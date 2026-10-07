@@ -182,6 +182,9 @@ section { padding-block: 72px; }
 .thumb button { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg); font-size: 16px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
 .counter { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
 .counter.warn { color: var(--focus); font-weight: 600; }
+.thumb.low { outline: 3px solid var(--focus); outline-offset: -3px; }
+.thumb .lowtag { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 0; background: var(--focus); color: var(--bg); font-size: 11px; font-weight: 700; text-align: center; letter-spacing: 0.02em; }
+.res-note { margin-top: 8px; font-size: 14px; color: var(--focus); font-weight: 600; }
 .builder textarea { width: 100%; min-height: 84px; resize: vertical; padding: 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font: 16px var(--body); }
 .check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; font-size: 15px; color: var(--muted); }
 .check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--ink); }
@@ -1008,6 +1011,7 @@ footer { padding-block: 48px 64px; }
         <div>
           <div class="thumbs" id="thumbs" aria-live="polite"></div>
           <p class="counter" id="counter" style="margin-top:10px">0 of 9 photos added</p>
+          <p class="res-note" id="res-note" hidden></p>
         </div>
 
         <div>
@@ -1172,6 +1176,7 @@ footer { padding-block: 48px 64px; }
 
   /* custom photo builder */
   var photos = [];
+  var MIN_PHOTO_PX = 600;
   function packSize() { return Number(document.querySelector('input[name="pack"]:checked').value); }
   function packPrice() { return Number(document.querySelector('input[name="pack"]:checked').getAttribute('data-price')); }
 
@@ -1183,8 +1188,20 @@ footer { padding-block: 48px 64px; }
       var img = document.createElement('img'); img.src = p.url; img.alt = 'Photo ' + (i + 1);
       var x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove photo ' + (i + 1));
       x.onclick = function () { URL.revokeObjectURL(p.url); photos.splice(i, 1); renderBuilder(); };
-      d.append(img, x); grid.appendChild(d);
+      d.append(img, x);
+      if (p.low) {
+        d.classList.add('low');
+        var t = document.createElement('span'); t.className = 'lowtag'; t.textContent = 'Low quality'; d.appendChild(t);
+        img.alt += ' (low resolution, may print blurry)';
+      }
+      grid.appendChild(d);
     });
+    var lowCount = photos.filter(function (p) { return p.low; }).length;
+    var rn = $('res-note');
+    if (lowCount) {
+      rn.textContent = (lowCount === 1 ? '1 photo is' : lowCount + ' photos are') + ' too small and may print blurry. For sharp magnets, use the original photo from your camera roll, not a screenshot or a photo saved from a chat app.';
+      rn.hidden = false;
+    } else { rn.hidden = true; }
     for (var k = photos.length; k < size; k++) {
       var e = document.createElement('div'); e.className = 'thumb empty'; e.textContent = k + 1; e.setAttribute('aria-hidden', 'true'); grid.appendChild(e);
     }
@@ -1196,7 +1213,17 @@ footer { padding-block: 48px 64px; }
   }
 
   function addFiles(files) {
-    Array.prototype.forEach.call(files, function (f) { if (f.type.indexOf('image/') === 0) photos.push({ name: f.name, url: URL.createObjectURL(f) }); });
+    Array.prototype.forEach.call(files, function (f) {
+      if (f.type.indexOf('image/') !== 0) return;
+      var p = { name: f.name, url: URL.createObjectURL(f), low: false };
+      photos.push(p);
+      /* a 2 in magnet wraps about 2.5 in of print; under 600 px on the short side it prints soft */
+      var probe = new Image();
+      probe.onload = function () {
+        if (Math.min(probe.naturalWidth, probe.naturalHeight) < MIN_PHOTO_PX && photos.indexOf(p) !== -1) { p.low = true; renderBuilder(); }
+      };
+      probe.src = p.url;
+    });
     renderBuilder();
   }
   $('photos').addEventListener('change', function (e) { addFiles(e.target.files); e.target.value = ''; });
