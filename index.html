@@ -237,6 +237,8 @@ footer { padding-block: 48px 64px; }
 .totals .grand { font-size: 20px; font-weight: 600; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
 .totals .btn { margin-top: 12px; width: 100%; }
 .totals small { color: var(--muted); text-align: center; display: block; }
+.ship-note { color: var(--muted); font-size: 14px; text-align: center; margin-top: 6px; }
+.ship-note.free { color: var(--focus); font-weight: 600; }
 
 .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 12px 20px; border-radius: 999px; font-weight: 500; z-index: 50; box-shadow: var(--shadow); }
 </style>
@@ -244,7 +246,7 @@ footer { padding-block: 48px 64px; }
 <body>
 
 
-<div class="strip">Handmade in small batches in the USA</div>
+<div class="strip">Free US shipping on orders over $35 · Handmade in small batches</div>
 
 <header class="site-header">
   <div class="wrap header-row">
@@ -1093,9 +1095,10 @@ footer { padding-block: 48px 64px; }
   <div class="totals" id="totals" hidden>
     <div><span>Subtotal</span><span id="t-sub">$0</span></div>
     <div class="discount" id="t-disc-row" hidden><span>Any 3 places for $12</span><span id="t-disc">−$0</span></div>
+    <div><span>Shipping</span><span id="t-ship">$4.95</span></div>
     <div class="grand"><span>Total</span><span id="t-total">$0</span></div>
+    <p class="ship-note" id="ship-note"></p>
     <button type="button" class="btn btn-honey" id="checkout" disabled>Checkout opens soon</button>
-    <small>Shipping is added at checkout.</small>
   </div>
 </aside>
 
@@ -1104,6 +1107,7 @@ footer { padding-block: 48px 64px; }
 <script>
 (function () {
   var PLACE_PRICE = 5;
+  var SHIPPING = 4.95, FREE_SHIP_AT = 35;
   var cart = [];
   try { var saved = JSON.parse(localStorage.getItem('lhh-cart') || '[]'); if (Array.isArray(saved)) cart = saved.filter(function (l) { return l.kind === 'place'; }); } catch (e) {}
 
@@ -1122,7 +1126,9 @@ footer { padding-block: 48px 64px; }
     var sub = 0, places = 0;
     cart.forEach(function (l) { sub += l.price * l.qty; if (l.kind === 'place') places += l.qty; });
     var disc = Math.floor(places / 3) * (3 * PLACE_PRICE - 12);
-    return { sub: sub, disc: disc, total: sub - disc, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
+    var goods = sub - disc;
+    var ship = goods >= FREE_SHIP_AT ? 0 : SHIPPING;
+    return { sub: sub, disc: disc, goods: goods, ship: ship, total: goods + ship, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
   }
 
   function render() {
@@ -1153,7 +1159,11 @@ footer { padding-block: 48px 64px; }
     $('t-sub').textContent = money(t.sub);
     $('t-disc-row').hidden = t.disc === 0;
     $('t-disc').textContent = '−' + money(t.disc);
+    $('t-ship').textContent = t.ship ? money(t.ship) : 'Free';
     $('t-total').textContent = money(t.total);
+    var sn = $('ship-note');
+    if (t.ship) { sn.textContent = 'Add ' + money(FREE_SHIP_AT - t.goods) + ' more for free US shipping.'; sn.classList.remove('free'); }
+    else { sn.textContent = 'Your order ships free.'; sn.classList.add('free'); }
   }
 
   function openCart() { $('scrim').hidden = false; $('drawer').hidden = false; $('close-cart').focus(); }
