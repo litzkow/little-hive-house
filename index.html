@@ -314,7 +314,7 @@ footer { padding-block: 48px 64px; }
           <p class="eyebrow">Collection</p>
           <h2>Places</h2>
         </div>
-        <p>Hand-drawn magnets of cities, parks and beaches, sized for any fridge. <span class="deal">Any 3 for $18</span></p>
+        <p>Hand-drawn magnets of cities, parks and beaches, sized for any fridge. <span class="deal">Any 3 for $12</span></p>
       </div>
       <div class="fridge">
         <ul class="products">
@@ -393,7 +393,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>New York</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-new-york" data-add="new-york" data-name="New York">Add to cart</button>
 </li>
@@ -453,7 +453,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>San Francisco</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-san-francisco" data-add="san-francisco" data-name="San Francisco">Add to cart</button>
 </li>
@@ -486,7 +486,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>Grand Canyon</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-grand-canyon" data-add="grand-canyon" data-name="Grand Canyon">Add to cart</button>
 </li>
@@ -611,7 +611,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>Washington, DC</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-washington-dc" data-add="washington-dc" data-name="Washington, DC">Add to cart</button>
 </li>
@@ -680,7 +680,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>Miami Beach</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-miami-beach" data-add="miami-beach" data-name="Miami Beach">Add to cart</button>
 </li>
@@ -731,7 +731,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>Honolulu</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-honolulu" data-add="honolulu" data-name="Honolulu">Add to cart</button>
 </li>
@@ -818,7 +818,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>Savannah</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-savannah" data-add="savannah" data-name="Savannah">Add to cart</button>
 </li>
@@ -911,7 +911,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>St. Augustine</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-st-augustine" data-add="st-augustine" data-name="St. Augustine">Add to cart</button>
 </li>
@@ -962,7 +962,7 @@ footer { padding-block: 48px 64px; }
   <div class="product-info">
     <h3>Rio de Janeiro</h3>
     <p class="spec">2 × 2 in magnet</p>
-    <p class="price">$7</p>
+    <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" id="add-rio" data-add="rio" data-name="Rio de Janeiro">Add to cart</button>
 </li>
@@ -1088,7 +1088,7 @@ footer { padding-block: 48px 64px; }
   </div>
   <div class="totals" id="totals" hidden>
     <div><span>Subtotal</span><span id="t-sub">$0</span></div>
-    <div class="discount" id="t-disc-row" hidden><span>Any 3 places for $18</span><span id="t-disc">−$0</span></div>
+    <div class="discount" id="t-disc-row" hidden><span>Any 3 places for $12</span><span id="t-disc">−$0</span></div>
     <div class="grand"><span>Total</span><span id="t-total">$0</span></div>
     <button type="button" class="btn btn-honey" id="checkout" disabled>Checkout opens soon</button>
     <small>Shipping is added at checkout.</small>
@@ -1099,7 +1099,7 @@ footer { padding-block: 48px 64px; }
 
 <script>
 (function () {
-  var PLACE_PRICE = 7;
+  var PLACE_PRICE = 5;
   var cart = [];
   try { var saved = JSON.parse(localStorage.getItem('lhh-cart') || '[]'); if (Array.isArray(saved)) cart = saved.filter(function (l) { return l.kind === 'place'; }); } catch (e) {}
 
@@ -1117,7 +1117,7 @@ footer { padding-block: 48px 64px; }
   function totals() {
     var sub = 0, places = 0;
     cart.forEach(function (l) { sub += l.price * l.qty; if (l.kind === 'place') places += l.qty; });
-    var disc = Math.floor(places / 3) * (3 * PLACE_PRICE - 18);
+    var disc = Math.floor(places / 3) * (3 * PLACE_PRICE - 12);
     return { sub: sub, disc: disc, total: sub - disc, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
   }
 
