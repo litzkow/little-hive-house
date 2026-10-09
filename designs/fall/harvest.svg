@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#B4532A"/>
+<line x1="236" y1="300" x2="236" y2="110" stroke="#F6EDE0" stroke-width="4" stroke-linecap="round"/>
+<ellipse cx="227" cy="124" rx="6" ry="12" transform="rotate(-28 227 124)" fill="#F6EDE0"/>
+<ellipse cx="245" cy="124" rx="6" ry="12" transform="rotate(28 245 124)" fill="#F6EDE0"/>
+<ellipse cx="227" cy="140" rx="6" ry="12" transform="rotate(-28 227 140)" fill="#F6EDE0"/>
+<ellipse cx="245" cy="140" rx="6" ry="12" transform="rotate(28 245 140)" fill="#F6EDE0"/>
+<ellipse cx="227" cy="156" rx="6" ry="12" transform="rotate(-28 227 156)" fill="#F6EDE0"/>
+<ellipse cx="245" cy="156" rx="6" ry="12" transform="rotate(28 245 156)" fill="#F6EDE0"/>
+<ellipse cx="227" cy="172" rx="6" ry="12" transform="rotate(-28 227 172)" fill="#F6EDE0"/>
+<ellipse cx="245" cy="172" rx="6" ry="12" transform="rotate(28 245 172)" fill="#F6EDE0"/>
+<ellipse cx="227" cy="188" rx="6" ry="12" transform="rotate(-28 227 188)" fill="#F6EDE0"/>
+<ellipse cx="245" cy="188" rx="6" ry="12" transform="rotate(28 245 188)" fill="#F6EDE0"/>
+<ellipse cx="227" cy="204" rx="6" ry="12" transform="rotate(-28 227 204)" fill="#F6EDE0"/>
+<ellipse cx="245" cy="204" rx="6" ry="12" transform="rotate(28 245 204)" fill="#F6EDE0"/>
+<ellipse cx="236" cy="110" rx="5.5" ry="12" fill="#F6EDE0"/>
+<line x1="300" y1="300" x2="300" y2="90" stroke="#F6EDE0" stroke-width="4" stroke-linecap="round"/>
+<ellipse cx="291" cy="104" rx="6" ry="12" transform="rotate(-28 291 104)" fill="#F6EDE0"/>
+<ellipse cx="309" cy="104" rx="6" ry="12" transform="rotate(28 309 104)" fill="#F6EDE0"/>
+<ellipse cx="291" cy="120" rx="6" ry="12" transform="rotate(-28 291 120)" fill="#F6EDE0"/>
+<ellipse cx="309" cy="120" rx="6" ry="12" transform="rotate(28 309 120)" fill="#F6EDE0"/>
+<ellipse cx="291" cy="136" rx="6" ry="12" transform="rotate(-28 291 136)" fill="#F6EDE0"/>
+<ellipse cx="309" cy="136" rx="6" ry="12" transform="rotate(28 309 136)" fill="#F6EDE0"/>
+<ellipse cx="291" cy="152" rx="6" ry="12" transform="rotate(-28 291 152)" fill="#F6EDE0"/>
+<ellipse cx="309" cy="152" rx="6" ry="12" transform="rotate(28 309 152)" fill="#F6EDE0"/>
+<ellipse cx="291" cy="168" rx="6" ry="12" transform="rotate(-28 291 168)" fill="#F6EDE0"/>
+<ellipse cx="309" cy="168" rx="6" ry="12" transform="rotate(28 309 168)" fill="#F6EDE0"/>
+<ellipse cx="291" cy="184" rx="6" ry="12" transform="rotate(-28 291 184)" fill="#F6EDE0"/>
+<ellipse cx="309" cy="184" rx="6" ry="12" transform="rotate(28 309 184)" fill="#F6EDE0"/>
+<ellipse cx="300" cy="90" rx="5.5" ry="12" fill="#F6EDE0"/>
+<line x1="364" y1="300" x2="364" y2="110" stroke="#F6EDE0" stroke-width="4" stroke-linecap="round"/>
+<ellipse cx="355" cy="124" rx="6" ry="12" transform="rotate(-28 355 124)" fill="#F6EDE0"/>
+<ellipse cx="373" cy="124" rx="6" ry="12" transform="rotate(28 373 124)" fill="#F6EDE0"/>
+<ellipse cx="355" cy="140" rx="6" ry="12" transform="rotate(-28 355 140)" fill="#F6EDE0"/>
+<ellipse cx="373" cy="140" rx="6" ry="12" transform="rotate(28 373 140)" fill="#F6EDE0"/>
+<ellipse cx="355" cy="156" rx="6" ry="12" transform="rotate(-28 355 156)" fill="#F6EDE0"/>
+<ellipse cx="373" cy="156" rx="6" ry="12" transform="rotate(28 373 156)" fill="#F6EDE0"/>
+<ellipse cx="355" cy="172" rx="6" ry="12" transform="rotate(-28 355 172)" fill="#F6EDE0"/>
+<ellipse cx="373" cy="172" rx="6" ry="12" transform="rotate(28 373 172)" fill="#F6EDE0"/>
+<ellipse cx="355" cy="188" rx="6" ry="12" transform="rotate(-28 355 188)" fill="#F6EDE0"/>
+<ellipse cx="373" cy="188" rx="6" ry="12" transform="rotate(28 373 188)" fill="#F6EDE0"/>
+<ellipse cx="355" cy="204" rx="6" ry="12" transform="rotate(-28 355 204)" fill="#F6EDE0"/>
+<ellipse cx="373" cy="204" rx="6" ry="12" transform="rotate(28 373 204)" fill="#F6EDE0"/>
+<ellipse cx="364" cy="110" rx="5.5" ry="12" fill="#F6EDE0"/>
+<path d="M 230 270 Q 300 290 370 270" fill="none" stroke="#D9A23B" stroke-width="8" stroke-linecap="round"/>
+<text x="305" y="440" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="10" fill="#F6EDE0">HARVEST</text>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="46" fill="#D9A23B">gather &amp; give thanks</text>
+</svg>

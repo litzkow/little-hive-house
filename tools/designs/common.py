@@ -106,3 +106,43 @@ def mug(cx, top, ink, sw=5, fill="none", steam=True, heart_fill=None):
     if heart_fill:
         out.append(heart(cx - 4, top + 52, 16, heart_fill))
     return "\n".join(out)
+
+
+# ---------------------------------------------------------------- text measuring (for auto-fitting type)
+FONT_DIR = pathlib.Path(__file__).resolve().parents[1] / "fonts"
+_FONT_FILES = {BEBAS: ("BebasNeue-Regular.ttf", None), MONO: ("DMMono-Medium.ttf", None),
+               SERIF_IT: ("PlayfairDisplay-Italic[wght].ttf", 700), JOS: ("JosefinSans[wght].ttf", 700),
+               JOST: ("Jost[wght].ttf", 500), CINZEL: ("Cinzel[wght].ttf", 600), DMS: ("DMSerifDisplay-Regular.ttf", None)}
+_cache = {}
+
+
+def _metrics(font):
+    if font not in _cache:
+        from fontTools.ttLib import TTFont
+        name, wght = _FONT_FILES[font]
+        f = TTFont(FONT_DIR / name)
+        if wght and "fvar" in f:
+            from fontTools.varLib import instancer
+            f = instancer.instantiateVariableFont(f, {"wght": wght})
+        _cache[font] = (f.getBestCmap(), f["hmtx"].metrics, f["head"].unitsPerEm)
+    return _cache[font]
+
+
+def measure(s, font, size, ls=0):
+    cmap, hmtx, upm = _metrics(font)
+    w = 0
+    for ch in s:
+        g = cmap.get(ord(ch))
+        w += hmtx[g][0] if g else upm * 0.5
+    return w * size / upm + ls * max(0, len(s) - 1)
+
+
+def fit_size(s, font, size, max_w, ls=0):
+    """Largest size <= `size` whose width fits in max_w."""
+    while size > 10 and measure(s, font, size, ls) > max_w:
+        size -= 1
+    return size
+
+
+def ftext(x, y, s, font, size, fill, max_w=500, ls=0, anchor="middle", extra=""):
+    return text(x, y, s, font, fit_size(s, font, size, max_w, ls), fill, ls=ls, anchor=anchor, extra=extra)

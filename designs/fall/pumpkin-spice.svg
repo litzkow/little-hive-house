@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#D9A23B"/>
+<rect x="289.5" y="93.0" width="21.0" height="39.0" rx="6.0" fill="#5A6B2E"/>
+<path d="M 307.5 108.0 Q 345.0 81.0 354.0 114.0 Q 330.0 126.0 307.5 114.0 Z" fill="#5A6B2E"/>
+<g fill="#E37B33" stroke="#4A2F1E" stroke-width="5.3">
+<ellipse cx="246.0" cy="186" rx="63.0" ry="69.0"/>
+<ellipse cx="354.0" cy="186" rx="63.0" ry="69.0"/>
+<ellipse cx="300" cy="186" rx="66.0" ry="75.0"/></g>
+<text x="300" y="362" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="75" fill="#4A2F1E">pumpkin spice</text>
+<text x="303" y="446" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="72" letter-spacing="6" fill="#4A2F1E">&amp; EVERYTHING</text>
+<text x="305" y="522" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="80" letter-spacing="10" fill="#F6EDE0">NICE</text>
+</svg>

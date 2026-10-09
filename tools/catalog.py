@@ -2,11 +2,12 @@
 
 PRICE = 5          # every ready-made design
 BUNDLE = (3, 12)   # any 3 designs for $12
+VOLUME = [(100, 25), (50, 20), (20, 10)]   # magnets in the cart -> % off, designs and photos mixed
 
 COLLECTIONS = [
     {
-        "slug": "places", "name": "Places", "tag": "Colorful travel posters",
-        "blurb": "Bright, poster-style illustrations of the cities, parks and beaches people love most.",
+        "slug": "places", "name": "American Places", "tag": "Colorful US travel posters",
+        "blurb": "Bright, poster-style illustrations of the American cities, parks and beaches people love most.",
         "titles": {"rio": "Rio de Janeiro", "washington-dc": "Washington, DC", "st-augustine": "St. Augustine"},
         "order": ["new-york", "san-francisco", "grand-canyon", "washington-dc", "miami-beach", "honolulu",
                   "savannah", "st-augustine", "rio"],
@@ -63,10 +64,55 @@ COLLECTIONS = [
         "order": ["saudade", "bom-dia", "cafe-com-leite", "tamo-junto", "brasil", "cafune"],
     },
     {
-        "slug": "holidays", "name": "Holidays", "tag": "Seasonal favorites",
-        "blurb": "Small, cheerful gifts for every holiday of the year, from Valentine's Day to Christmas.",
-        "titles": {"merry-and-bright": "Merry & Bright", "boo": "Boo!", "happy-4th": "Happy 4th", "xoxo": "XOXO"},
-        "order": ["merry-and-bright", "boo", "thankful", "cheers", "xoxo", "happy-4th"],
+        "slug": "holidays", "name": "Holidays & Dates", "tag": "A magnet for every date",
+        "blurb": "Little gifts for every date on the calendar: New Year, Valentine's, Easter, Mother's and Father's Day, graduation, the 4th, Thanksgiving and birthdays.",
+        "titles": {"happy-4th": "Happy 4th", "xoxo": "XOXO", "lucky": "Lucky", "congrats-grad": "Congrats, Grad!"},
+        "order": ["cheers", "xoxo", "lucky", "hoppy-easter", "best-mom-ever", "best-dad-ever", "congrats-grad",
+                  "happy-4th", "thankful", "happy-birthday"],
+    },
+    {
+        "slug": "world", "name": "World Places", "tag": "Travel posters from around the globe",
+        "blurb": "Our colorful travel posters go abroad: Paris at sunset, Mount Fuji in cherry blossom season, the blue domes of Santorini and more.",
+        "titles": {},
+        "order": ["paris", "japan", "santorini", "rome", "london", "venice", "cairo", "sydney"],
+    },
+    {
+        "slug": "fall", "name": "Fall", "tag": "Pumpkins, leaves and cozy sweaters",
+        "blurb": "Warm rust, mustard and olive for the coziest season of the year.",
+        "titles": {"oh-my-gourd": "Oh My Gourd!", "pumpkin-spice": "Pumpkin Spice & Everything Nice",
+                   "autumn-is-calling": "Autumn Is Calling"},
+        "order": ["hello-fall", "pumpkin-spice", "sweater-weather", "cozy-season", "falling-for-you", "harvest",
+                  "oh-my-gourd", "autumn-is-calling"],
+    },
+    {
+        "slug": "halloween", "name": "Halloween", "tag": "Spooky season",
+        "blurb": "Ghosts, bats, black cats and a few bad puns. Spooky, never scary.",
+        "titles": {"boo": "Boo!", "here-for-the-boos": "Here for the Boos"},
+        "order": ["boo", "happy-halloween", "trick-or-treat", "spooky-season", "here-for-the-boos", "witch-please",
+                  "creep-it-real", "stay-spooky"],
+    },
+    {
+        "slug": "christmas", "name": "Christmas", "tag": "Merry little magnets",
+        "blurb": "Stocking stuffers and gift toppers for the merriest time of the year, including a little Feliz Natal.",
+        "titles": {"merry-and-bright": "Merry & Bright", "ho-ho-ho": "Ho Ho Ho!"},
+        "order": ["merry-and-bright", "merry-christmas", "ho-ho-ho", "let-it-snow", "hot-cocoa-season",
+                  "naughty-or-nice", "joy-to-the-world", "feliz-natal"],
+    },
+    {
+        "slug": "summer", "name": "Summer", "tag": "Sun, sea and good vibes",
+        "blurb": "Bright, beachy colors for long days, salty hair and endless sunsets.",
+        "titles": {"lifes-a-beach": "Life's a Beach", "salty-air-sandy-hair": "Salty Air, Sandy Hair"},
+        "order": ["endless-summer", "beach-please", "vitamin-sea", "good-vibes-only", "lifes-a-beach",
+                  "sunshine-state-of-mind", "chill-out", "salty-air-sandy-hair"],
+    },
+    {
+        "slug": "bumper-stickers", "name": "Bumper Stickers", "tag": "Retro sayings, fridge edition",
+        "blurb": "Retro bumper sticker sayings that are way too good for a car. Funny, sweet and a little sassy.",
+        "titles": {"honk-if-youre-happy": "Honk If You're Happy", "moms-taxi": "Mom's Taxi",
+                   "powered-by-coffee": "Powered by Coffee & Chaos"},
+        "order": ["i-brake-for-coffee", "honk-if-youre-happy", "moms-taxi", "powered-by-coffee",
+                  "my-other-car-is-a-broom", "work-hard-nap-harder", "normal-is-boring", "good-things-take-time",
+                  "do-more-of-what-makes-you-happy", "be-the-good"],
     },
     {
         "slug": "home-notes", "name": "Home Notes", "tag": "Soft colors, kind words",
@@ -76,9 +122,52 @@ COLLECTIONS = [
     },
 ]
 
-FEATURED = [("ink-cities", "atlanta"), ("bee-kind", "bee-kind"), ("night-sky", "leo"), ("kitchen-words", "bless-this-mess"),
-            ("holidays", "merry-and-bright"), ("birth-flowers", "october-cosmos"), ("places", "savannah"),
-            ("brasil", "saudade")]
+DISPLAY = ["places", "world", "ink-cities", "fall", "halloween", "christmas", "holidays", "summer", "kitchen-words",
+           "bumper-stickers", "night-sky", "birth-flowers", "bee-kind", "furry-friends", "brasil", "home-notes"]
+COLLECTIONS.sort(key=lambda c: DISPLAY.index(c["slug"]))
+
+# The home page spotlight changes with the calendar. (start MM-DD, end MM-DD), first match wins.
+SEASONS = [
+    ("12-26", "01-03", "Cheers to a new year", "New Year", "Start the year with a little sparkle on the fridge.", "holidays",
+     [("holidays", "cheers"), ("christmas", "joy-to-the-world"), ("home-notes", "choose-joy"), ("bumper-stickers", "good-things-take-time")], ("#1D2B44", "#F6EFE0", "#E2B857")),
+    ("01-04", "02-14", "Little love notes", "Valentine's Day", "Sweet little magnets for the people you love, from XOXO to Bee Mine.", "holidays",
+     [("holidays", "xoxo"), ("bee-kind", "bee-mine"), ("home-notes", "love-you-more"), ("kitchen-words", "pizza-love-language")], ("#F4C7C3", "#3A2E2A", "#C2343A")),
+    ("02-15", "03-17", "Feeling lucky", "St. Patrick's Day", "A little green for March, plus favorites to brighten the end of winter.", "holidays",
+     [("holidays", "lucky"), ("ink-cities", "boston"), ("home-notes", "hello-sunshine"), ("bumper-stickers", "be-the-good")], ("#2E7D4F", "#F6EFE0", "#F3D27A")),
+    ("03-18", "04-20", "Hello, spring", "Easter & spring", "Bunnies, daisies and daffodils for the first warm days.", "holidays",
+     [("holidays", "hoppy-easter"), ("birth-flowers", "march-daffodil"), ("birth-flowers", "april-daisy"), ("home-notes", "hello-sunshine")], ("#E8E1F5", "#2B2118", "#7A5BB5")),
+    ("04-21", "05-11", "For the best mom ever", "Mother's Day", "Small, thoughtful gifts for moms, grandmas and everyone who mothers us.", "holidays",
+     [("holidays", "best-mom-ever"), ("home-notes", "love-you-more"), ("birth-flowers", "may-lily-of-the-valley"), ("home-notes", "grandmas-kitchen")], ("#F8D7DD", "#3A2E2A", "#C2343A")),
+    ("05-12", "05-31", "Congrats, grads", "Graduation season", "Cheer on the class of the year with a little something for the fridge.", "holidays",
+     [("holidays", "congrats-grad"), ("bumper-stickers", "do-more-of-what-makes-you-happy"), ("summer", "beach-please"), ("kitchen-words", "eat-cake")], ("#F6EFE0", "#1F2F4D", "#C2343A")),
+    ("06-01", "06-21", "For the best dad ever", "Father's Day", "Coffee, naps and dad jokes: the essentials.", "holidays",
+     [("holidays", "best-dad-ever"), ("bumper-stickers", "i-brake-for-coffee"), ("bumper-stickers", "work-hard-nap-harder"), ("kitchen-words", "but-first-coffee")], ("#1F2F4D", "#F6EFE0", "#E9B949")),
+    ("06-22", "07-04", "Land of the free", "4th of July", "Stars, stripes and the American places we love.", "holidays",
+     [("holidays", "happy-4th"), ("places", "washington-dc"), ("places", "new-york"), ("places", "grand-canyon")], ("#F6EFE0", "#1F2F4D", "#B23A3A")),
+    ("07-05", "08-31", "Endless summer", "Summer", "Bright, beachy magnets for long days and salty hair.", "summer",
+     [("summer", "endless-summer"), ("summer", "vitamin-sea"), ("summer", "beach-please"), ("places", "honolulu")], ("#FF6F59", "#FFFFFF", "#FFC93C")),
+    ("09-01", "10-14", "Hello, fall", "Fall", "Pumpkins, falling leaves and sweater weather. Our coziest collection is here.", "fall",
+     [("fall", "hello-fall"), ("fall", "pumpkin-spice"), ("fall", "sweater-weather"), ("fall", "cozy-season")], ("#4A2F1E", "#F6EDE0", "#D9A23B")),
+    ("10-15", "10-31", "Spooky season is here", "Halloween", "Ghosts, bats and black cats. Spooky, never scary.", "halloween",
+     [("halloween", "boo"), ("halloween", "happy-halloween"), ("halloween", "spooky-season"), ("halloween", "here-for-the-boos")], ("#151515", "#F6EFE0", "#E8833A")),
+    ("11-01", "11-27", "Gather & give thanks", "Thanksgiving", "Cozy magnets for the table, the hosts and the people we are thankful for.", "fall",
+     [("holidays", "thankful"), ("fall", "harvest"), ("fall", "oh-my-gourd"), ("kitchen-words", "gather")], ("#B4532A", "#F6EDE0", "#F3D27A")),
+    ("11-28", "12-25", "Merry little magnets", "Christmas", "Stocking stuffers and gift toppers for the merriest time of the year.", "christmas",
+     [("christmas", "merry-and-bright"), ("christmas", "merry-christmas"), ("christmas", "let-it-snow"), ("christmas", "feliz-natal")], ("#1E4D3A", "#F6EFE0", "#E9B949")),
+]
+
+# Gift guide cards on the home page: (title, line, link inside the site)
+GIFTS = [
+    ("For coffee lovers", "Coffee first, everything else later.", "shop.html?q=coffee"),
+    ("For travelers", "Their favorite places, near and far.", "collections/world.html"),
+    ("Birthday gifts", "Their star sign or their birth flower.", "collections/birth-flowers.html"),
+    ("For pet people", "Dog moms, cat ladies and rescuers.", "collections/furry-friends.html"),
+    ("For the kitchen", "Bless this mess and taco Tuesdays.", "collections/kitchen-words.html"),
+    ("Brazilian at heart", "Saudade, cafuné and café com leite.", "collections/brasil.html"),
+]
+
+FEATURED = [("world", "japan"), ("ink-cities", "atlanta"), ("bee-kind", "bee-kind"), ("bumper-stickers", "i-brake-for-coffee"),
+            ("night-sky", "leo"), ("kitchen-words", "bless-this-mess"), ("places", "savannah"), ("brasil", "saudade")]
 
 
 def title_for(col, slug):

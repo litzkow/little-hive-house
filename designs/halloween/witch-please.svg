@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#7BA05B"/>
+<ellipse cx="300" cy="250" rx="150" ry="26" fill="#151515"/><path d="M 214 246 L 300 70 Q 330 60 352 96 Q 330 90 322 110 L 386 246 Z" fill="#151515"/><rect x="232" y="214" width="138" height="22" fill="#7BA05B" transform="skewX(-4)"/><rect x="282" y="212" width="26" height="26" fill="none" stroke="#F3D27A" stroke-width="5"/>
+<text x="306" y="420" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="12" fill="#151515">WITCH</text>
+<text x="300" y="504" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="86" fill="#F6EFE0">please</text>
+</svg>

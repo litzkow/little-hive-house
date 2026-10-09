@@ -64,7 +64,7 @@
   $('builder').addEventListener('submit', function (e) {
     e.preventDefault();
     var size = packSize();
-    LHH.addCustom({ id: 'custom-' + Date.now(), name: 'Custom photo magnets', detail: size + ' magnets · ' + photos.length + ' photo' + (photos.length > 1 ? 's' : ''), price: packPrice() });
+    LHH.addCustom({ id: 'custom-' + Date.now(), count: size, name: 'Custom photo magnets', detail: size + ' magnets · ' + photos.length + ' photo' + (photos.length > 1 ? 's' : ''), price: packPrice() });
     photos = []; $('notes').value = ''; $('rights').checked = false;
     renderBuilder();
   });

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F7E3C3"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#1FA6A6" stroke-width="3"/>
+<path d="M 90 130 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0" fill="none" stroke="#1FA6A6" stroke-width="6" stroke-linecap="round"/>
+<path d="M 110 170 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0 q 10.0 -10 20.0 0 t 20.0 0" fill="none" stroke="#FF6F59" stroke-width="6" stroke-linecap="round"/>
+<text x="300" y="300" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="96" fill="#163A5C">salty air</text>
+<text x="305" y="430" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="114" letter-spacing="10" fill="#1FA6A6">SANDY HAIR</text>
+<path d="M 300 512 C 270 492 276 470 292 474 Q 298 476 300 482 Q 302 476 308 474 C 324 470 330 492 300 512 Z" fill="#FF6F59"/>
+</svg>

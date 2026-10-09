@@ -2,6 +2,7 @@
 (function () {
   var PRICE = 5, BUNDLE_N = 3, BUNDLE_PRICE = 12;
   var SHIPPING = 4.95, FREE_SHIP_AT = 35;
+  var VOLUME = [[100, 25], [50, 20], [20, 10]];
   var KEY = 'lhh-cart';
   var $ = function (id) { return document.getElementById(id); };
   var money = function (n) { return '$' + (Math.round(n * 100) / 100).toFixed(n % 1 ? 2 : 0); };
@@ -34,9 +35,14 @@
     var sub = 0, designs = 0;
     cart.forEach(function (l) { sub += l.price * l.qty; if (l.kind === 'design') designs += l.qty; });
     var disc = Math.floor(designs / BUNDLE_N) * (BUNDLE_N * PRICE - BUNDLE_PRICE);
-    var goods = sub - disc;
+    var magnets = cart.reduce(function (a, l) { return a + l.qty * (l.count || 1); }, 0);
+    var tier = VOLUME.find(function (v) { return magnets >= v[0]; });
+    var pct = tier ? tier[1] : 0;
+    var vol = Math.round((sub - disc) * pct) / 100;
+    var goods = sub - disc - vol;
     var ship = goods >= FREE_SHIP_AT ? 0 : SHIPPING;
-    return { sub: sub, disc: disc, goods: goods, ship: ship, total: goods + ship, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
+    var next = VOLUME.slice().reverse().find(function (v) { return magnets < v[0]; });
+    return { sub: sub, disc: disc, vol: vol, pct: pct, magnets: magnets, next: next, goods: goods, ship: ship, total: goods + ship, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
   }
 
   function render() {
@@ -68,6 +74,12 @@
     $('t-sub').textContent = money(t.sub);
     $('t-disc-row').hidden = t.disc === 0;
     $('t-disc').textContent = '−' + money(t.disc);
+    $('t-vol-row').hidden = t.vol === 0;
+    $('t-vol-label').textContent = 'Big order, ' + t.magnets + ' magnets (' + t.pct + '% off)';
+    $('t-vol').textContent = '−' + money(t.vol);
+    var vn = $('vol-note');
+    if (t.next && t.magnets >= 5) { vn.textContent = 'Add ' + (t.next[0] - t.magnets) + ' more magnets for ' + t.next[1] + '% off your whole order.'; vn.hidden = false; }
+    else vn.hidden = true;
     $('t-ship').textContent = t.ship ? money(t.ship) : 'Free';
     $('t-total').textContent = money(t.total);
     var sn = $('ship-note');
@@ -135,7 +147,9 @@
     var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-filter]'));
     var q = $('search'), countEl = $('result-count'), none = $('no-results');
     var current = 'all';
-    var fromUrl = new URLSearchParams(location.search).get('c');
+    var params = new URLSearchParams(location.search);
+    var fromUrl = params.get('c');
+    if (params.get('q')) q.value = params.get('q');
     if (fromUrl && tabs.some(function (t) { return t.getAttribute('data-filter') === fromUrl; })) current = fromUrl;
     function apply() {
       var term = (q.value || '').trim().toLowerCase();
@@ -160,6 +174,18 @@
     });
     q.addEventListener('input', apply);
     apply();
+  }
+
+  // home page: show the seasonal spotlight for today's date
+  var spot = $('spotlight');
+  if (spot) {
+    var now = new Date();
+    var md = String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    var inRange = function (s, e) { return s <= e ? (md >= s && md <= e) : (md >= s || md <= e); };
+    var tpl = Array.prototype.find.call(document.querySelectorAll('template[data-start]'), function (t) { return inRange(t.getAttribute('data-start'), t.getAttribute('data-end')); });
+    if (tpl && spot.getAttribute('data-season') !== tpl.getAttribute('data-start') + '_' + tpl.getAttribute('data-end')) {
+      spot.replaceWith(tpl.content.cloneNode(true));
+    }
   }
 
   window.LHH = {

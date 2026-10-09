@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#BFE8E6"/>
+<circle cx="400" cy="150" r="56" fill="#FFC93C"/>
+<path d="M 0 300 Q 150 270 300 296 Q 450 322 600 290 L 600 340 L 0 340 Z" fill="#F7E3C3"/>
+<path d="M 204.0 316 Q 220.0 216.0 250.0 126.0 L 260.0 130.0 Q 234.0 216.0 220.0 316 Z" fill="#163A5C"/><path d="M 255.0 126.0 Q 218.0 105.3 176.2 130.1 Q 214.6 125.0 255.0 126.0 Z" fill="#163A5C"/><path d="M 255.0 126.0 Q 229.5 86.3 186.1 86.1 Q 216.7 101.7 255.0 126.0 Z" fill="#163A5C"/><path d="M 255.0 126.0 Q 262.7 89.1 242.8 75.1 Q 243.0 92.6 255.0 126.0 Z" fill="#163A5C"/><path d="M 255.0 126.0 Q 289.1 94.9 299.0 67.8 Q 271.8 84.9 255.0 126.0 Z" fill="#163A5C"/><path d="M 255.0 126.0 Q 299.3 124.8 333.9 115.3 Q 292.4 106.0 255.0 126.0 Z" fill="#163A5C"/><path d="M 255.0 126.0 Q 284.1 145.3 318.0 155.1 Q 287.6 125.6 255.0 126.0 Z" fill="#163A5C"/>
+<path d="M 300 300 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0 q 7.5 -6 15.0 0 t 15.0 0" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+<text x="300" y="440" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="90" fill="#163A5C">life's a</text>
+<text x="307" y="540" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="130" letter-spacing="14" fill="#FF6F59">BEACH</text>
+</svg>

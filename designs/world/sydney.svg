@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#2C6E9B"/>
+<svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444">
+<rect width="600" height="444" fill="#BFE1EE"/>
+<circle cx="110" cy="110" r="46" fill="#FFC857"/>
+<path d="M 300 300 Q 450 120 600 300" fill="none" stroke="#3B4A5A" stroke-width="14"/>
+<path d="M 330 300 Q 450 160 570 300" fill="none" stroke="#3B4A5A" stroke-width="4"/>
+<g stroke="#3B4A5A" stroke-width="3"><line x1="340" y1="225" x2="340" y2="300"/><line x1="364" y1="191" x2="364" y2="300"/><line x1="388" y1="166" x2="388" y2="300"/><line x1="412" y1="148" x2="412" y2="300"/><line x1="436" y1="139" x2="436" y2="300"/><line x1="460" y1="139" x2="460" y2="300"/><line x1="484" y1="146" x2="484" y2="300"/><line x1="508" y1="162" x2="508" y2="300"/><line x1="532" y1="186" x2="532" y2="300"/><line x1="556" y1="219" x2="556" y2="300"/></g>
+<rect x="300" y="290" width="300" height="10" fill="#3B4A5A"/>
+<rect x="120" y="336" width="340" height="26" fill="#D9C7A7"/>
+<path d="M 150 340 Q 160 270 220 230 Q 214 300 236 340 Z" fill="#FAF7F0"/><path d="M 210 340 Q 220 240 290 200 Q 284 270 306 340 Z" fill="#ECE6DA"/><path d="M 290 340 Q 300 260 360 220 Q 354 290 376 340 Z" fill="#FAF7F0"/><path d="M 350 340 Q 360 290 410 250 Q 404 320 426 340 Z" fill="#ECE6DA"/><path d="M 400 340 Q 410 312 450 272 Q 444 342 466 340 Z" fill="#FAF7F0"/>
+<rect x="0" y="360" width="600" height="84" fill="#2C6E9B"/>
+<g stroke="#8CC3E3" stroke-width="3" stroke-linecap="round"><line x1="40" y1="384" x2="100" y2="384"/><line x1="200" y1="404" x2="260" y2="404"/><line x1="380" y1="390" x2="440" y2="390"/><line x1="500" y1="414" x2="560" y2="414"/></g>
+</svg>
+<rect x="0" y="444" width="600" height="5" fill="#FFC857"/>
+<text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#FFFFFF">SYDNEY</text>
+<text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#FFC857">AUSTRALIA · HARBOUR CITY</text>
+</svg>

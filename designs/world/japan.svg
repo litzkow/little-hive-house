@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#9E2F2A"/>
+<svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444">
+<rect width="600" height="444" fill="#F6E3C8"/>
+<circle cx="420" cy="150" r="58" fill="#D8483B"/>
+<path d="M 40 370 L 250 150 Q 300 122 350 150 L 560 370 Z" fill="#6D84A6"/>
+<path d="M 250 150 Q 300 122 350 150 L 384 186 L 360 178 L 342 196 L 322 180 L 300 198 L 280 180 L 260 196 L 242 178 L 216 186 Z" fill="#FFFFFF"/>
+<path d="M 0 360 Q 150 330 300 352 Q 450 372 600 344 L 600 444 L 0 444 Z" fill="#7E9B6B"/>
+<path d="M 0 400 Q 200 380 400 404 Q 500 414 600 396 L 600 444 L 0 444 Z" fill="#5E7A54"/>
+<path d="M 600 70 Q 520 80 460 120" fill="none" stroke="#5A3A2E" stroke-width="7" stroke-linecap="round"/>
+<path d="M 0 40 Q 40 50 80 30" fill="none" stroke="#5A3A2E" stroke-width="6" stroke-linecap="round"/>
+<circle cx="470" cy="40" r="26" fill="#F2A7B8"/><circle cx="510" cy="70" r="30" fill="#F7C6D0"/><circle cx="560" cy="50" r="34" fill="#F2A7B8"/><circle cx="590" cy="100" r="28" fill="#F7C6D0"/><circle cx="540" cy="110" r="22" fill="#F2A7B8"/><circle cx="450" cy="84" r="18" fill="#F7C6D0"/><circle cx="30" cy="30" r="30" fill="#F7C6D0"/><circle cx="70" cy="10" r="26" fill="#F2A7B8"/>
+<rect x="104.0" y="376" width="72" height="24" fill="#9E2F2A"/><path d="M 84.0 376 Q 140 366 196.0 376 L 178.0 364 L 102.0 364 Z" fill="#3A2A2A"/><rect x="109.0" y="340" width="62" height="24" fill="#9E2F2A"/><path d="M 89.0 340 Q 140 330 191.0 340 L 173.0 328 L 107.0 328 Z" fill="#3A2A2A"/><rect x="114.0" y="304" width="52" height="24" fill="#9E2F2A"/><path d="M 94.0 304 Q 140 294 186.0 304 L 168.0 292 L 112.0 292 Z" fill="#3A2A2A"/><rect x="119.0" y="268" width="42" height="24" fill="#9E2F2A"/><path d="M 99.0 268 Q 140 258 181.0 268 L 163.0 256 L 117.0 256 Z" fill="#3A2A2A"/><rect x="124.0" y="232" width="32" height="24" fill="#9E2F2A"/><path d="M 104.0 232 Q 140 222 176.0 232 L 158.0 220 L 122.0 220 Z" fill="#3A2A2A"/>
+<rect x="137" y="190" width="6" height="34" fill="#3A2A2A"/>
+</svg>
+<rect x="0" y="444" width="600" height="5" fill="#F2A7B8"/>
+<text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#FFF4EE">JAPAN</text>
+<text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#F2A7B8">MOUNT FUJI · HONSHU</text>
+</svg>

@@ -7,11 +7,13 @@ import html
 import pathlib
 import re
 
-from catalog import BUNDLE, COLLECTIONS, FEATURED, PRICE, title_for
+import datetime
+
+from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, PRICE, SEASONS, VOLUME, title_for
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "3"
+VERSION = "4"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -198,6 +200,11 @@ def deal():
     return f'<span class="deal">Any {BUNDLE[0]} designs for ${BUNDLE[1]}</span>'
 
 
+def vol_badge():
+    n, pct = VOLUME[-1]
+    return f'<span class="deal alt">{pct}% off {n}+ magnets</span>'
+
+
 def footer(pg):
     cols = "\n".join(f'          <li><a href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a></li>' for c in COLLECTIONS)
     return f"""<footer>
@@ -259,9 +266,11 @@ def chrome_end(pg, extra_js=()):
   <div class="totals" id="totals" hidden>
     <div><span>Subtotal</span><span id="t-sub">$0</span></div>
     <div class="discount" id="t-disc-row" hidden><span>Any {BUNDLE[0]} designs for ${BUNDLE[1]}</span><span id="t-disc">−$0</span></div>
+    <div class="discount" id="t-vol-row" hidden><span id="t-vol-label">Big order discount</span><span id="t-vol">−$0</span></div>
     <div><span>Shipping</span><span id="t-ship">$4.95</span></div>
     <div class="grand"><span>Total</span><span id="t-total">$0</span></div>
     <p class="ship-note" id="ship-note"></p>
+    <p class="ship-note" id="vol-note" hidden></p>
     <button type="button" class="btn btn-honey" id="checkout" disabled>Checkout opens soon</button>
   </div>
 </aside>
@@ -300,6 +309,56 @@ def write(path, content):
     out.write_text(content)
 
 
+def in_season(md, start, end):
+    return start <= md <= end if start <= end else (md >= start or md <= end)
+
+
+def contrast_text(bg, a, b):
+    def lum(h):
+        h = h.lstrip("#")
+        r, g, bb = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+        f = lambda c: c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(bb)
+    def ratio(x, y):
+        l1, l2 = sorted((lum(x), lum(y)), reverse=True)
+        return (l1 + 0.05) / (l2 + 0.05)
+    return a if ratio(bg, a) >= ratio(bg, b) else b
+
+
+def spotlight(pg, season, sid):
+    start, end, title, eyebrow, blurb, colslug, picks, (bg, fg, acc) = season
+    col = BY_SLUG[colslug]
+    items = "\n".join(product(pg, BY_SLUG[c], s) for c, s in picks)
+    btn_fg = contrast_text(acc, bg, fg)
+    return f"""<section class="spot" id="spotlight" data-season="{start}_{end}" style="--spot-bg:{bg};--spot-fg:{fg};--spot-acc:{acc};--spot-btn:{btn_fg}" aria-labelledby="{sid}">
+  <div class="wrap spot-grid">
+    <div class="spot-copy">
+      <p class="eyebrow">In season now · {E(eyebrow)}</p>
+      <h2 id="{sid}">{E(title)}</h2>
+      <p>{E(blurb)}</p>
+      <a class="btn spot-btn" href="{pg.p}collections/{colslug}.html">Shop {E(col["name"])}</a>
+    </div>
+    <ul class="products spot-products">
+{items}
+    </ul>
+  </div>
+</section>"""
+
+
+def spotlight_block(pg):
+    today = datetime.date.today().strftime("%m-%d")
+    current = next(se for se in SEASONS if in_season(today, se[0], se[1]))
+    out = [spotlight(pg, current, "spot-now")]
+    for k, se in enumerate(SEASONS):
+        out.append(f'<template data-start="{se[0]}" data-end="{se[1]}">{spotlight(pg, se, f"spot-{k}")}</template>')
+    return "\n".join(out)
+
+
+def gift_cards(pg):
+    return "\n".join(f'''        <li><a class="gift" href="{pg.p}{href}"><strong>{E(t)}</strong><span>{E(line)}</span><span class="more">Shop the gift →</span></a></li>'''
+                     for t, line, href in GIFTS)
+
+
 # ---------------------------------------------------------------- pages
 def page_home():
     pg = Page("")
@@ -324,6 +383,7 @@ def page_home():
     </div>
   </section>
 
+{spotlight_block(pg)}
 {tabs_links(pg, None)}
   <section id="collections">
     <div class="wrap">
@@ -332,7 +392,7 @@ def page_home():
           <p class="eyebrow">Shop by collection</p>
           <h2>Find your kind of magnet</h2>
         </div>
-        <p>Black and white skylines, star signs, birth flowers, honey bees and more. {deal()}</p>
+        <p>Travel posters, black and white skylines, seasonal favorites, star signs, birth flowers and more. {deal()} {vol_badge()}</p>
       </div>
       <ul class="col-grid">
 {cards}
@@ -345,7 +405,7 @@ def page_home():
       <div class="section-head">
         <div>
           <p class="eyebrow">Fresh from the hive</p>
-          <h2>Customer favorites</h2>
+          <h2>A few of our favorites</h2>
         </div>
         <a class="btn btn-ghost btn-small" href="shop.html">See all {TOTAL} designs</a>
       </div>
@@ -359,11 +419,26 @@ def page_home():
 
   <section class="tight">
     <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Gift guide</p>
+          <h2>Not sure what to get?</h2>
+        </div>
+        <p>Small enough for a card, sweet enough to keep for years.</p>
+      </div>
+      <ul class="gift-grid">
+{gift_cards(pg)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
       <div class="band honey">
         <div>
           <p class="eyebrow">Custom</p>
           <h2>Your photos, on the fridge</h2>
-          <p>Upload your favorite pictures and we turn them into a set of glossy 2 × 2 inch magnets. Packs of 4, 9 or 16.</p>
+          <p>Upload your favorite pictures and we turn them into a set of glossy 2 × 2 inch magnets. Packs of 4 to 50, and you can mix them with any of our designs.</p>
           <div class="actions"><a class="btn" href="photo-magnets.html">Make photo magnets</a></div>
         </div>
         <div class="band-art" aria-hidden="true">{photo_tiles()}</div>
@@ -436,7 +511,7 @@ def page_shop():
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6"/><path d="M13 13l5 5"/></svg>
         <input type="search" id="search" placeholder="Search designs" autocomplete="off">
       </label>
-      {deal()}
+      {deal()} {vol_badge()}
       <span class="count" id="result-count" aria-live="polite">{TOTAL} designs</span>
     </div>
   </div>
@@ -492,7 +567,7 @@ def page_collection(col):
     <p class="eyebrow">{E(col["tag"])}</p>
     <h1>{E(col["name"])}</h1>
     <p class="lede">{E(col["blurb"])}</p>
-    <div class="head-row">{deal()}<span class="count">{len(col["order"])} designs · ${PRICE} each</span></div>
+    <div class="head-row">{deal()} {vol_badge()}<span class="count">{len(col["order"])} designs · ${PRICE} each</span></div>
   </div>
 {tabs_links(pg, col["slug"])}
   <section class="tight">
@@ -538,7 +613,7 @@ def page_photo():
       <div>
         <ol class="steps">
           <li><div><h3>Upload your photos</h3><p>Pick your favorite pictures from your phone or computer. Bright, sharp photos print best.</p></div></li>
-          <li><div><h3>Choose a pack</h3><p>4, 9 or 16 square magnets, each 2 × 2 inches with a glossy finish.</p></div></li>
+          <li><div><h3>Choose a pack</h3><p>4 to 50 square magnets, each 2 × 2 inches with a glossy finish. Mix them with any of our designs in the same order.</p></div></li>
           <li><div><h3>We make and ship them</h3><p>We print, press and pack every magnet by hand, then send them to your door.</p></div></li>
         </ol>
         <p class="note">Professional photos belong to the photographer. Only upload pictures you took yourself or have permission to print.</p>
@@ -551,6 +626,8 @@ def page_photo():
             <div class="pack"><input type="radio" name="pack" id="pack-4" value="4" data-price="14"><label for="pack-4"><strong>4 magnets</strong><span>$14</span></label></div>
             <div class="pack"><input type="radio" name="pack" id="pack-9" value="9" data-price="25" checked><label for="pack-9"><strong>9 magnets</strong><span>$25</span></label></div>
             <div class="pack"><input type="radio" name="pack" id="pack-16" value="16" data-price="40"><label for="pack-16"><strong>16 magnets</strong><span>$40</span></label></div>
+            <div class="pack"><input type="radio" name="pack" id="pack-25" value="25" data-price="65"><label for="pack-25"><strong>25 magnets</strong><span>$65</span></label></div>
+            <div class="pack"><input type="radio" name="pack" id="pack-50" value="50" data-price="120"><label for="pack-50"><strong>50 magnets</strong><span>$120</span></label></div>
           </div>
         </fieldset>
         <div>
@@ -590,7 +667,8 @@ def page_photo():
         <details><summary>Which photos work best?</summary><p>Use the original photo from your camera roll. Screenshots and photos saved from chat apps are often too small and print blurry; the builder warns you when a photo looks too small.</p></details>
         <details><summary>Will you crop my photos?</summary><p>Yes, every photo is cropped to a square. Tell us in the notes if someone must stay in the frame and we will crop around them.</p></details>
         <details><summary>How long does it take?</summary><p>Most packs ship within 3 to 5 business days. Shipping is $4.95 and free on US orders over $35.</p></details>
-        <details><summary>Need 20 or more?</summary><p>See our <a href="big-orders.html">big order packages</a> for weddings, parties, teams and businesses.</p></details>
+        <details><summary>Can I mix my photos with your designs?</summary><p>Yes. Add photo packs and any designs from the <a href="shop.html">shop</a> to the same cart. Orders with 20 or more magnets get 10% off automatically, 50 or more get 20% off and 100 or more get 25% off.</p></details>
+        <details><summary>Need a custom design for an event?</summary><p>See our <a href="big-orders.html">big order packages</a> for weddings, parties, teams and businesses.</p></details>
       </div>
     </div>
   </section>
@@ -622,7 +700,8 @@ def page_big():
           <table class="tiers"><thead><tr><th scope="col">Pack</th><th scope="col">Price</th><th scope="col">Per magnet</th></tr></thead><tbody>{rows}</tbody></table>
           <button type="button" class="btn btn-small" data-pkg="{E(key)}" data-qty="{pick}">Request this package</button>
         </li>""")
-    options = "".join(f"<option>{E(k)}</option>" for _, k, _, _, _ in PACKAGES) + "<option>Something else</option>"
+    options = "<option>Mix &amp; match</option>" + "".join(f"<option>{E(k)}</option>" for _, k, _, _, _ in PACKAGES) + "<option>Something else</option>"
+    vol_rows = "".join(f"<li><strong>{n}+ magnets</strong><span>{pct}% off the whole order</span></li>" for n, pct in reversed(VOLUME))
     body = f"""{header(pg, "big")}
 <main id="main">
   <div class="wrap page-head">
@@ -632,6 +711,15 @@ def page_big():
   </div>
   <section class="tight">
     <div class="wrap">
+      <div class="band dark" style="margin-bottom:28px">
+        <div>
+          <p class="eyebrow">Mix &amp; match</p>
+          <h2>Mix anything you like</h2>
+          <p>One from the bees, one from the cities, a few from Christmas and a stack of your own photos. Put any mix of designs and photo packs in your cart and the discount is applied automatically.</p>
+          <div class="actions"><a class="btn" href="shop.html">Shop designs</a><a class="btn btn-ghost" style="color:inherit;border-color:currentColor" href="photo-magnets.html">Add your photos</a></div>
+        </div>
+        <ul class="occasions">{vol_rows}<li><strong>Any 3 designs</strong><span>for $12, always</span></li></ul>
+      </div>
       <ul class="pkg-grid">
         {chr(10).join(cards)}
       </ul>

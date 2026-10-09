@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#4A2F1E"/>
+<g fill="none" stroke="#F6EDE0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 220 128 L 360 128 L 348 226 Q 344 240 328 240 L 252 240 Q 236 240 232 226 Z" fill="none"/>
+<path d="M 358 148 Q 400 148 396 180 Q 392 210 352 210"/>
+<path d="M 260 114 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 290 114 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 320 114 q -10 -12 0 -24 t 0 -24"/>
+</g>
+<path d="M 286 198 C 256 178 262 156 278 160 Q 284 162 286 168 Q 288 162 294 160 C 310 156 316 178 286 198 Z" fill="#B4532A"/>
+<g transform="rotate(20 470 110)"><polygon points="470.0,84.0 473.1,93.9 478.3,90.8 477.3,99.6 486.1,94.4 484.6,102.2 495.0,101.7 490.3,107.9 493.9,111.6 483.0,115.7 484.6,120.9 474.7,118.3 471.3,122.0 468.7,122.0 465.3,118.3 455.4,120.9 457.0,115.7 446.1,111.6 449.7,107.9 445.0,101.7 455.4,102.2 453.9,94.4 462.7,99.6 461.7,90.8 466.9,93.9" fill="#D9A23B"/><line x1="470" y1="120.4" x2="470" y2="134.7" stroke="#D9A23B" stroke-width="2.0" stroke-linecap="round"/></g>
+<g transform="rotate(-20 120 300)"><polygon points="120.0,278.0 122.6,286.4 127.0,283.7 126.2,291.2 133.6,286.8 132.3,293.4 141.1,293.0 137.2,298.2 140.2,301.3 131.0,304.8 132.3,309.2 124.0,307.0 121.1,310.1 118.9,310.1 116.0,307.0 107.7,309.2 109.0,304.8 99.8,301.3 102.8,298.2 98.9,293.0 107.7,293.4 106.4,286.8 113.8,291.2 113.0,283.7 117.4,286.4" fill="#B4532A"/><line x1="120" y1="308.8" x2="120" y2="320.9" stroke="#B4532A" stroke-width="2.0" stroke-linecap="round"/></g>
+<text x="305" y="416" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="10" fill="#F6EDE0">COZY</text>
+<text x="300" y="498" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="82" fill="#D9A23B">season</text>
+</svg>

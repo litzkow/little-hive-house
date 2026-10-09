@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F8D7DD"/>
+<path d="M 300 238.75 C 168.75 151.25 195 55 265 72.5 Q 291.25 81.25 300 107.5 Q 308.75 81.25 335 72.5 C 405 55 431.25 151.25 300 238.75 Z" fill="#C2343A"/>
+<text x="300" y="340" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="86" fill="#1F2F4D">best</text>
+<text x="305" y="460" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="126" letter-spacing="10" fill="#1F2F4D">MOM EVER</text>
+<text x="302.5" y="516" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="18" letter-spacing="5" fill="#C2343A">HAPPY MOTHER'S DAY</text>
+</svg>

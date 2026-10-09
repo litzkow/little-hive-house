@@ -204,7 +204,7 @@ def build_holidays():
     pine, cream, gold = "#1E4D3A", "#F6EFE0", "#E9B949"
     snow = "".join(f'<circle cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in
                    ((80, 90, 4), (150, 250, 3), (520, 80, 3), (480, 220, 4), (90, 400, 3), (530, 420, 3), (210, 60, 2.5), (400, 70, 2.5)))
-    save("holidays", "merry-and-bright", "\n".join([
+    save("christmas", "merry-and-bright", "\n".join([
         f'<rect width="600" height="600" fill="{pine}"/>',
         f'<g fill="{cream}" opacity="0.7">{snow}</g>',
         f'<polygon points="{star_points(300, 160, 64, 27)}" fill="{gold}"/>',
@@ -214,7 +214,7 @@ def build_holidays():
     black, orange = "#151515", "#E8833A"
     ghost = ("M 236 320 L 236 190 Q 236 112 300 112 Q 364 112 364 190 L 364 320 "
              "q -10.7 -18 -21.3 0 t -21.3 0 t -21.3 0 t -21.3 0 t -21.3 0 t -21.5 0 Z")
-    save("holidays", "boo", "\n".join([
+    save("halloween", "boo", "\n".join([
         f'<rect width="600" height="600" fill="{black}"/>',
         f'<path d="{ghost}" fill="{cream}"/>',
         f'<g fill="{black}"><ellipse cx="278" cy="196" rx="9" ry="14"/><ellipse cx="322" cy="196" rx="9" ry="14"/>'

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FF6F59"/>
+<circle cx="300" cy="170" r="54" fill="#FFC93C"/><g stroke="#FFC93C" stroke-width="9" stroke-linecap="round"><line x1="370.0" y1="170.0" x2="400.0" y2="170.0"/><line x1="360.6" y1="205.0" x2="386.6" y2="220.0"/><line x1="335.0" y1="230.6" x2="350.0" y2="256.6"/><line x1="300.0" y1="240.0" x2="300.0" y2="270.0"/><line x1="265.0" y1="230.6" x2="250.0" y2="256.6"/><line x1="239.4" y1="205.0" x2="213.4" y2="220.0"/><line x1="230.0" y1="170.0" x2="200.0" y2="170.0"/><line x1="239.4" y1="135.0" x2="213.4" y2="120.0"/><line x1="265.0" y1="109.4" x2="250.0" y2="83.4"/><line x1="300.0" y1="100.0" x2="300.0" y2="70.0"/><line x1="335.0" y1="109.4" x2="350.0" y2="83.4"/><line x1="360.6" y1="135.0" x2="386.6" y2="120.0"/></g>
+<text x="300" y="406" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="120" fill="#FFFFFF">beach</text>
+<text x="306" y="516" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="12" fill="#163A5C">PLEASE</text>
+</svg>

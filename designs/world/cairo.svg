@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#5B3A22"/>
+<svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444">
+<rect width="600" height="444" fill="#F9D9A0"/>
+<circle cx="420" cy="230" r="120" fill="#F28C38"/>
+<polygon points="140,340 300,140 460,340" fill="#D9A35F"/><polygon points="300,140 460,340 330,340" fill="#B97E3E"/>
+<polygon points="400,340 490,226 580,340" fill="#D9A35F"/><polygon points="490,226 580,340 500,340" fill="#B97E3E"/>
+<polygon points="40,340 110,250 180,340" fill="#D9A35F"/><polygon points="110,250 180,340 120,340" fill="#B97E3E"/>
+<path d="M 0 330 Q 150 300 300 330 Q 450 360 600 320 L 600 444 L 0 444 Z" fill="#E8B977"/>
+<path d="M 0 380 Q 200 350 400 380 Q 500 396 600 370 L 600 444 L 0 444 Z" fill="#DDA766"/>
+<path d="M 120 410 L 126 372 Q 120 352 134 342 Q 150 330 168 344 Q 178 330 192 340 Q 204 350 206 366 L 220 360 L 228 336 L 238 334 L 236 350 L 222 376 L 214 410 L 206 410 L 204 384 L 180 384 L 176 410 L 168 410 L 166 384 L 140 384 L 136 410 L 128 410 L 130 384 Z" fill="#5B3A22"/>
+<g fill="#5B7A3A"><path d="M 520 420 Q 524 380 516 340 L 522 340 Q 532 380 528 420 Z" fill="#6B4A2E"/><path d="M 519 340 Q 490 320 470 334 Q 494 330 519 344 Z"/><path d="M 519 340 Q 550 318 572 330 Q 548 330 519 346 Z"/><path d="M 519 340 Q 510 310 492 300 Q 516 318 521 340 Z"/><path d="M 519 340 Q 534 308 552 302 Q 530 320 521 342 Z"/></g>
+</svg>
+<rect x="0" y="444" width="600" height="5" fill="#F28C38"/>
+<text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#FCEBD5">CAIRO</text>
+<text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#F9D9A0">EGYPT · THE PYRAMIDS OF GIZA</text>
+</svg>

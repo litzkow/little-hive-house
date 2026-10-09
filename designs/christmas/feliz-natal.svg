@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F6EFE0"/>
+<g fill="#B8312F" opacity="0.18"><circle cx="70" cy="90" r="5"/><circle cx="140" cy="160" r="4"/><circle cx="520" cy="80" r="4"/><circle cx="470" cy="180" r="6"/><circle cx="90" cy="260" r="3"/><circle cx="530" cy="300" r="4"/><circle cx="220" cy="70" r="3"/><circle cx="380" cy="60" r="4"/></g>
+<polygon points="300.0,90.0 315.3,135.0 362.8,135.6 324.7,164.0 338.8,209.4 300.0,182.0 261.2,209.4 275.3,164.0 237.2,135.6 284.7,135.0" fill="#E9B949"/>
+<g stroke="#1E4D3A" stroke-width="4" stroke-linecap="round"><line x1="190" y1="250" x2="260" y2="250"/><line x1="340" y1="250" x2="410" y2="250"/></g>
+<path d="M 300 267.75 C 273.75 250.25 279 231 293 234.5 Q 298.25 236.25 300 241.5 Q 301.75 236.25 307 234.5 C 321 231 326.25 250.25 300 267.75 Z" fill="#B8312F"/>
+<text x="300" y="384" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="100" fill="#1E4D3A">feliz</text>
+<text x="307" y="510" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="14" fill="#B8312F">NATAL</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FF8FB1"/>
+<rect x="286" y="236" width="28" height="80" rx="12" fill="#E9C99A"/>
+<path d="M 230 250 L 230 120 Q 230 70 300 70 Q 370 70 370 120 L 370 250 Z" fill="#FF6F59"/>
+<path d="M 230 120 Q 230 70 300 70 Q 370 70 370 120 L 370 150 Q 300 132 230 150 Z" fill="#FFC93C"/>
+<circle cx="350" cy="84" r="22" fill="#FF8FB1"/>
+<text x="307" y="430" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="14" fill="#163A5C">CHILL</text>
+<text x="300" y="512" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="96" fill="#FFFFFF">out</text>
+</svg>

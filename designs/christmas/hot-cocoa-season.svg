@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#B8312F"/>
+<g fill="none" stroke="#F6EFE0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 220 128 L 360 128 L 348 226 Q 344 240 328 240 L 252 240 Q 236 240 232 226 Z" fill="none"/>
+<path d="M 358 148 Q 400 148 396 180 Q 392 210 352 210"/>
+</g>
+<rect x="238" y="112" width="24" height="20" rx="5" fill="#F6EFE0" transform="rotate(-12 250 122)"/><rect x="268" y="104" width="24" height="20" rx="5" fill="#F6EFE0" transform="rotate(8 280 114)"/><rect x="298" y="112" width="24" height="20" rx="5" fill="#F6EFE0" transform="rotate(-4 310 122)"/><rect x="326" y="106" width="24" height="20" rx="5" fill="#F6EFE0" transform="rotate(14 338 116)"/>
+<text x="300" y="404" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="90" fill="#F6EFE0">hot cocoa</text>
+<text x="306" y="512" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="120" letter-spacing="12" fill="#E9B949">SEASON</text>
+</svg>
