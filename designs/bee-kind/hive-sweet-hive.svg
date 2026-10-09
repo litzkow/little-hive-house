@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#2B2118"/>
+<g transform="translate(300 215) scale(2.1) translate(-200 -67)">
+<polygon points="200,14 217.32,24 217.32,44 200,54 182.68,44 182.68,24" fill="#F2A81D"/>
+<polygon points="180.95,47 198.27,57 198.27,77 180.95,87 163.63,77 163.63,57" fill="#F2A81D"/>
+<polygon points="219.05,47 236.37,57 236.37,77 219.05,87 201.73,77 201.73,57" fill="#F9D88A"/>
+<polygon points="161.9,80 179.22,90 179.22,110 161.9,120 144.58,110 144.58,90" fill="#F2A81D"/>
+<polygon points="200,80 217.32,90 217.32,110 200,120 182.68,110 182.68,90" fill="#FFF6E5"/>
+<polygon points="238.1,80 255.42,90 255.42,110 238.1,120 220.78,110 220.78,90" fill="#F2A81D"/>
+<path d="M 194 115 L 194 104 A 6 6 0 0 1 206 104 L 206 115 Z" fill="#2B2118"/>
+</g>
+<text x="300" y="440" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="64" fill="#FFF6E5">hive sweet hive</text>
+<text x="302" y="500" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="15" letter-spacing="4" fill="#F2A81D">HOME IS WHERE THE HONEY IS</text>
+</svg>

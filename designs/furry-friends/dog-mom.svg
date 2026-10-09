@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#DCE3D3"/>
+<g fill="#DCE3D3" stroke="#23302A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="300" cy="200" rx="70" ry="64"/>
+<path d="M 244 156 Q 188 164 198 230 Q 216 244 234 204 Z"/>
+<path d="M 356 156 Q 412 164 402 230 Q 384 244 366 204 Z"/>
+<ellipse cx="300" cy="226" rx="28" ry="21"/>
+<path d="M 300 224 L 300 234" fill="none"/>
+<path d="M 287 236 Q 300 246 313 236" fill="none"/>
+</g>
+<g fill="#23302A"><circle cx="276" cy="190" r="7"/><circle cx="324" cy="190" r="7"/><ellipse cx="300" cy="216" rx="11" ry="8"/></g>
+<path d="M 300 123.75 C 273.75 106.25 279 87 293 90.5 Q 298.25 92.25 300 97.5 Q 301.75 92.25 307 90.5 C 321 87 326.25 106.25 300 123.75 Z" fill="#C8673E"/>
+<text x="304" y="440" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="8" fill="#23302A">DOG MOM</text>
+<text x="303" y="500" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#23302A">EST. WITH LOVE</text>
+</svg>

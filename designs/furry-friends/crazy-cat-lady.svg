@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#23302A"/>
+<g transform="translate(100 64) scale(0.55)"><g fill="#23302A" stroke="#F7F1E6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 116 160 L 122 88 L 166 124 Z"/>
+<path d="M 244 160 L 238 88 L 194 124 Z"/>
+<ellipse cx="180" cy="180" rx="72" ry="60"/>
+<path d="M 166 202 Q 173 210 180 200 Q 187 210 194 202" fill="none"/>
+</g>
+<g stroke="#F7F1E6" stroke-width="4.2" stroke-linecap="round"><line x1="150" y1="192" x2="88" y2="182"/><line x1="150" y1="200" x2="90" y2="206"/><line x1="210" y1="192" x2="272" y2="182"/><line x1="210" y1="200" x2="270" y2="206"/></g>
+<g fill="#F7F1E6"><ellipse cx="154" cy="172" rx="7" ry="10"/><ellipse cx="206" cy="172" rx="7" ry="10"/><path d="M 172 188 L 188 188 L 180 197 Z"/></g></g>
+<g transform="translate(200 50) scale(0.55)"><g fill="#23302A" stroke="#F7F1E6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 116 160 L 122 88 L 166 124 Z"/>
+<path d="M 244 160 L 238 88 L 194 124 Z"/>
+<ellipse cx="180" cy="180" rx="72" ry="60"/>
+<path d="M 166 202 Q 173 210 180 200 Q 187 210 194 202" fill="none"/>
+</g>
+<g stroke="#F7F1E6" stroke-width="4.2" stroke-linecap="round"><line x1="150" y1="192" x2="88" y2="182"/><line x1="150" y1="200" x2="90" y2="206"/><line x1="210" y1="192" x2="272" y2="182"/><line x1="210" y1="200" x2="270" y2="206"/></g>
+<g fill="#F7F1E6"><ellipse cx="154" cy="172" rx="7" ry="10"/><ellipse cx="206" cy="172" rx="7" ry="10"/><path d="M 172 188 L 188 188 L 180 197 Z"/></g></g>
+<g transform="translate(300 64) scale(0.55)"><g fill="#23302A" stroke="#F7F1E6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 116 160 L 122 88 L 166 124 Z"/>
+<path d="M 244 160 L 238 88 L 194 124 Z"/>
+<ellipse cx="180" cy="180" rx="72" ry="60"/>
+<path d="M 166 202 Q 173 210 180 200 Q 187 210 194 202" fill="none"/>
+</g>
+<g stroke="#F7F1E6" stroke-width="4.2" stroke-linecap="round"><line x1="150" y1="192" x2="88" y2="182"/><line x1="150" y1="200" x2="90" y2="206"/><line x1="210" y1="192" x2="272" y2="182"/><line x1="210" y1="200" x2="270" y2="206"/></g>
+<g fill="#F7F1E6"><ellipse cx="154" cy="172" rx="7" ry="10"/><ellipse cx="206" cy="172" rx="7" ry="10"/><path d="M 172 188 L 188 188 L 180 197 Z"/></g></g>
+<text x="300" y="336" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="88" fill="#F7F1E6">crazy</text>
+<text x="304" y="470" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="134" letter-spacing="8" fill="#C8673E">CAT LADY</text>
+</svg>

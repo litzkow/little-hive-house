@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FFF6E5"/>
+<polygon points="500.0,70.0 522.5,83.0 522.5,109.0 500.0,122.0 477.5,109.0 477.5,83.0" fill="#F9D88A"/>
+<polygon points="522.0,110.0 544.5,123.0 544.5,149.0 522.0,162.0 499.5,149.0 499.5,123.0" fill="#F9D88A"/>
+<g transform="translate(300 214) scale(1.5 1.5)">
+<defs><clipPath id="c-knees"><ellipse cx="0" cy="0" rx="58" ry="40"/></clipPath></defs>
+<ellipse cx="-14" cy="-44" rx="24" ry="38" transform="rotate(-25 -14 -44)" fill="#FFFFFF" stroke="#2B2118" stroke-width="5"/>
+<ellipse cx="18" cy="-44" rx="22" ry="34" transform="rotate(22 18 -44)" fill="#FFFFFF" stroke="#2B2118" stroke-width="5"/>
+<path d="M 56 -7 L 80 0 L 56 7 Z" fill="#2B2118"/>
+<ellipse cx="0" cy="0" rx="58" ry="40" fill="#F2A81D"/>
+<g clip-path="url(#c-knees)"><rect x="-16" y="-50" width="16" height="100" fill="#2B2118"/><rect x="16" y="-50" width="16" height="100" fill="#2B2118"/></g>
+<ellipse cx="0" cy="0" rx="58" ry="40" fill="none" stroke="#2B2118" stroke-width="5"/>
+<path d="M -66 -22 Q -74 -48 -90 -50" fill="none" stroke="#2B2118" stroke-width="4" stroke-linecap="round"/>
+<path d="M -52 -24 Q -50 -50 -36 -58" fill="none" stroke="#2B2118" stroke-width="4" stroke-linecap="round"/>
+<circle cx="-90" cy="-50" r="5" fill="#2B2118"/>
+<circle cx="-36" cy="-58" r="5" fill="#2B2118"/>
+<circle cx="-62" cy="0" r="26" fill="#2B2118"/>
+<circle cx="-70" cy="-6" r="5" fill="#FFF6E5"/>
+<path d="M -78 9 Q -70 16 -62 9" fill="none" stroke="#FFF6E5" stroke-width="3" stroke-linecap="round"/>
+</g>
+<text x="300" y="384" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="42" fill="#2B2118">you're the</text>
+<text x="301" y="466" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="70" letter-spacing="2" fill="#2B2118">BEE'S KNEES</text>
+</svg>

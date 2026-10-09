@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#0E1116"/>
+<g fill="#F4F0E8" opacity="0.55"><circle cx="60" cy="80" r="1.6"/><circle cx="130" cy="58" r="1.1"/><circle cx="210" cy="22" r="1.2"/><circle cx="300" cy="28" r="1.3"/><circle cx="470" cy="30" r="1.1"/><circle cx="522" cy="72" r="1.7"/><circle cx="562" cy="150" r="1.2"/><circle cx="76" cy="206" r="1.3"/><circle cx="42" cy="320" r="1.7"/><circle cx="562" cy="300" r="1.4"/><circle cx="526" cy="420" r="1.2"/><circle cx="88" cy="432" r="1.5"/><circle cx="40" cy="540" r="1.4"/><circle cx="170" cy="566" r="1.2"/><circle cx="432" cy="572" r="1.4"/><circle cx="562" cy="520" r="1.2"/></g>
+<circle cx="300" cy="235" r="190" fill="none" stroke="#D9B26A" stroke-width="1.5" opacity="0.6"/>
+<circle cx="300" cy="235" r="178" fill="none" stroke="#D9B26A" stroke-width="1" opacity="0.4" stroke-dasharray="2 8"/>
+<g fill="none" stroke="#F4F0E8" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round">
+<polyline points="170,170 250,230 380,170 430,190 350,310 260,320 200,260 170,170"/>
+</g>
+<circle cx="430" cy="190" r="17" fill="#D9B26A" opacity="0.22"/>
+<g fill="#F4F0E8"><circle cx="170" cy="170" r="5.5"/><circle cx="250" cy="230" r="4"/><circle cx="380" cy="170" r="4.5"/><circle cx="430" cy="190" r="7"/><circle cx="350" cy="310" r="4.5"/><circle cx="260" cy="320" r="4.5"/><circle cx="200" cy="260" r="4"/></g>
+<text x="305" y="488" text-anchor="middle" font-family="Cinzel, 'Times New Roman', serif" font-weight="600" font-size="46" letter-spacing="10" fill="#D9B26A">CAPRICORN</text>
+<text x="300" y="534" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="18" letter-spacing="4" fill="#F4F0E8" opacity="0.8">DEC 22 – JAN 19</text>
+</svg>

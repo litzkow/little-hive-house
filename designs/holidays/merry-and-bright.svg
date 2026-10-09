@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#1E4D3A"/>
+<g fill="#F6EFE0" opacity="0.7"><circle cx="80" cy="90" r="4"/><circle cx="150" cy="250" r="3"/><circle cx="520" cy="80" r="3"/><circle cx="480" cy="220" r="4"/><circle cx="90" cy="400" r="3"/><circle cx="530" cy="420" r="3"/><circle cx="210" cy="60" r="2.5"/><circle cx="400" cy="70" r="2.5"/></g>
+<polygon points="300.0,96.0 315.9,138.2 360.9,140.2 325.7,168.3 337.6,211.8 300.0,187.0 262.4,211.8 274.3,168.3 239.1,140.2 284.1,138.2" fill="#E9B949"/>
+<text x="300" y="344" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="104" fill="#F6EFE0">merry</text>
+<text x="304" y="474" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="124" letter-spacing="8" fill="#E9B949">&amp; BRIGHT</text>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#161616"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#F4F0E8" stroke-width="2"/>
+<g fill="none" stroke="#F4F0E8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 226 118 Q 300 94 374 118 L 300 286 Z"/>
+<path d="M 234 134 Q 300 112 366 134"/>
+</g>
+<g fill="#F4F0E8"><circle cx="276" cy="166" r="13"/><circle cx="322" cy="184" r="13"/><circle cx="298" cy="228" r="11"/></g>
+<text x="304" y="444" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="160" letter-spacing="8" fill="#F4F0E8">PIZZA</text>
+<text x="300" y="510" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="46" fill="#F4F0E8">is my love language</text>
+</svg>

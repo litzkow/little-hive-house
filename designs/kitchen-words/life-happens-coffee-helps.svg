@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#161616"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#F4F0E8" stroke-width="2"/>
+<text x="300" y="172" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="66" fill="#F4F0E8">life happens,</text>
+<text x="303" y="348" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="168" letter-spacing="6" fill="#F4F0E8">COFFEE</text>
+<text x="300" y="432" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="80" fill="#F4F0E8">helps</text>
+<g fill="none" stroke="#F4F0E8" stroke-width="4" transform="translate(150 235) scale(0.5)" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 226 470 L 366 470 L 354 568 Q 350 582 334 582 L 258 582 Q 242 582 238 568 Z" fill="none"/>
+<path d="M 364 490 Q 406 490 402 522 Q 398 552 358 552"/>
+</g>
+</svg>

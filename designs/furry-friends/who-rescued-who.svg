@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F7F1E6"/>
+<path d="M 300 295.5 C 127.5 180.5 162 54 254 77 Q 288.5 88.5 300 123 Q 311.5 88.5 346 77 C 438 54 472.5 180.5 300 295.5 Z" fill="#C8673E"/>
+<ellipse cx="300" cy="209.5" rx="31.5" ry="25.5" fill="#F7F1E6"/>
+<ellipse cx="270.0" cy="179.5" rx="10.8" ry="14.4" transform="rotate(-22 270.0 179.5)" fill="#F7F1E6"/>
+<ellipse cx="288.0" cy="161.5" rx="11.4" ry="15.0" fill="#F7F1E6"/>
+<ellipse cx="312.0" cy="161.5" rx="11.4" ry="15.0" fill="#F7F1E6"/>
+<ellipse cx="330.0" cy="179.5" rx="10.8" ry="14.4" transform="rotate(22 330.0 179.5)" fill="#F7F1E6"/>
+<text x="300" y="392" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="66" fill="#23302A">who rescued</text>
+<text x="305" y="520" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="10" fill="#23302A">WHO?</text>
+</svg>

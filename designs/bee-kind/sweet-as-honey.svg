@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FFF6E5"/>
+<path d="M 222 154 L 378 154 Q 400 154 400 180 L 400 352 Q 400 384 368 384 L 232 384 Q 200 384 200 352 L 200 180 Q 200 154 222 154 Z" fill="#F2A81D" stroke="#2B2118" stroke-width="5" stroke-linejoin="round"/>
+<path d="M 222 196 Q 222 176 236 172" fill="none" stroke="#FFF6E5" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+<rect x="212" y="118" width="176" height="36" rx="8" fill="#2B2118"/>
+<path d="M 236 118 L 280 118 L 280 130 Q 278 150 268 150 Q 258 150 258 136 Q 256 128 246 130 Q 236 132 236 124 Z" fill="#F2A81D"/>
+<rect x="240" y="232" width="120" height="72" rx="8" fill="#FFF6E5" stroke="#2B2118" stroke-width="3"/>
+<text x="302" y="278" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="26" letter-spacing="3" fill="#2B2118">HONEY</text>
+<line x1="344" y1="128" x2="402" y2="70" stroke="#2B2118" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="414" cy="58" rx="22" ry="15" transform="rotate(-45 414 58)" fill="#F2A81D" stroke="#2B2118" stroke-width="4"/>
+<g stroke="#2B2118" stroke-width="3" stroke-linecap="round">
+<line x1="400" y1="58" x2="414" y2="44"/>
+<line x1="408" y1="66" x2="424" y2="50"/>
+<line x1="416" y1="74" x2="430" y2="60"/>
+</g>
+<text x="300" y="466" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="62" fill="#2B2118">sweet as honey</text>
+<text x="303" y="522" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="16" letter-spacing="6" fill="#2B2118">HANDMADE WITH LOVE</text>
+</svg>

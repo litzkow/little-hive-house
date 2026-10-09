@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FAF8F3"/>
+<path d="M 120 470 L 120 230 A 180 180 0 0 1 480 230 L 480 470 Z" fill="#F1ECE2" stroke="#222222" stroke-width="2.5"/>
+<g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 300 300 Q 296 390 300 466"/>
+<path d="M 299 372 Q 256 352 236 318"/>
+<path d="M 300 412 Q 346 394 368 360"/>
+<path d="M 300 440 Q 268 432 250 410"/>
+</g>
+<path d="M 284 254 L 222.7 201.3 L 241.5 198.6 L 229.8 183.7 L 248.7 185.5 L 240.8 168.2 L 258.7 174.4 L 255.2 155.7 L 271.1 166.0 L 272.0 147.0 L 285.1 160.8 L 290.5 142.6 L 300.0 159.0 L 309.5 142.6 L 314.9 160.8 L 328.0 147.0 L 328.9 166.0 L 344.8 155.7 L 341.3 174.4 L 359.2 168.2 L 351.3 185.5 L 370.2 183.7 L 358.5 198.6 L 377.3 201.3 L 316 254 Z" fill="#F1ECE2" stroke="#222222" stroke-width="3" stroke-linejoin="round"/>
+<path d="M 255.9 194.4 L 269.5 196.1 L 265.6 183.0 L 278.1 188.5 L 278.1 174.8 L 288.6 183.7 L 292.5 170.5 L 300.0 182.0 L 307.5 170.5 L 311.4 183.7 L 321.9 174.8 L 321.9 188.5 L 334.4 183.0 L 330.5 196.1 L 344.1 194.4" fill="none" stroke="#222222" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M 282 252 L 289 300 L 311 300 L 318 252 Z" fill="#F1ECE2" stroke="#222222" stroke-width="3" stroke-linejoin="round"/>
+<g fill="none" stroke="#222222" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 292 262 L 296 296"/>
+<path d="M 308 262 L 304 296"/>
+</g>
+<text x="300" y="530" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="50" fill="#222222">January</text>
+<text x="303" y="566" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#222222">CARNATION</text>
+</svg>

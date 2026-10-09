@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F4F0E8"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#161616" stroke-width="2"/>
+<g fill="none" stroke="#161616" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 201.0 248.1 L 191.7 233.3 L 207.1 225.1 L 201.6 208.6 L 218.4 204.2 L 217.0 186.8 L 234.4 186.5 L 237.1 169.3 L 254.1 173.2 L 260.8 157.1 L 276.4 164.8 L 286.7 150.8 L 300.0 162.0 L 313.3 150.8 L 323.6 164.8 L 339.2 157.1 L 345.9 173.2 L 362.9 169.3 L 365.6 186.5 L 383.0 186.8 L 381.6 204.2 L 398.4 208.6 L 392.9 225.1 L 408.3 233.3 L 399.0 248.1"/>
+<path d="M 206 262 A 94 94 0 0 1 394 262 Z" fill="#F4F0E8"/>
+<path d="M 228 262 A 72 72 0 0 1 372 262"/>
+</g>
+<g fill="#161616"><circle cx="252" cy="160" r="6"/><circle cx="300" cy="146" r="6"/><circle cx="348" cy="160" r="6"/></g>
+<text x="304" y="418" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="160" letter-spacing="8" fill="#161616">TACO</text>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="80" fill="#161616">tuesday</text>
+</svg>

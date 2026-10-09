@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F2A81D"/>
+<g stroke="#2B2118" stroke-width="5" stroke-linecap="round"><line x1="90" y1="190" x2="190" y2="190"/><line x1="120" y1="226" x2="210" y2="226"/><line x1="70" y1="262" x2="180" y2="262"/></g>
+<g transform="translate(330 220) scale(-1.5 1.5)">
+<defs><clipPath id="c-busy"><ellipse cx="0" cy="0" rx="58" ry="40"/></clipPath></defs>
+<ellipse cx="-14" cy="-44" rx="24" ry="38" transform="rotate(-25 -14 -44)" fill="#FFFFFF" stroke="#2B2118" stroke-width="5"/>
+<ellipse cx="18" cy="-44" rx="22" ry="34" transform="rotate(22 18 -44)" fill="#FFFFFF" stroke="#2B2118" stroke-width="5"/>
+<path d="M 56 -7 L 80 0 L 56 7 Z" fill="#2B2118"/>
+<ellipse cx="0" cy="0" rx="58" ry="40" fill="#FFF6E5"/>
+<g clip-path="url(#c-busy)"><rect x="-16" y="-50" width="16" height="100" fill="#2B2118"/><rect x="16" y="-50" width="16" height="100" fill="#2B2118"/></g>
+<ellipse cx="0" cy="0" rx="58" ry="40" fill="none" stroke="#2B2118" stroke-width="5"/>
+<path d="M -66 -22 Q -74 -48 -90 -50" fill="none" stroke="#2B2118" stroke-width="4" stroke-linecap="round"/>
+<path d="M -52 -24 Q -50 -50 -36 -58" fill="none" stroke="#2B2118" stroke-width="4" stroke-linecap="round"/>
+<circle cx="-90" cy="-50" r="5" fill="#2B2118"/>
+<circle cx="-36" cy="-58" r="5" fill="#2B2118"/>
+<circle cx="-62" cy="0" r="26" fill="#2B2118"/>
+<circle cx="-70" cy="-6" r="5" fill="#FFF6E5"/>
+<path d="M -78 9 Q -70 16 -62 9" fill="none" stroke="#FFF6E5" stroke-width="3" stroke-linecap="round"/>
+</g>
+<text x="300" y="450" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="104" fill="#2B2118">busy bee</text>
+<text x="303" y="512" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="16" letter-spacing="6" fill="#2B2118">LITTLE HIVE HOUSE</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F5D5B8"/>
+<path d="M 130 124 Q 130 146 152 146 Q 130 146 130 168 Q 130 146 108 146 Q 130 146 130 124 Z" fill="#3A2E2A"/>
+<path d="M 506 314 Q 506 330 522 330 Q 506 330 506 346 Q 506 330 490 330 Q 506 330 506 314 Z" fill="#3A2E2A"/>
+<path d="M 104 428 Q 104 440 116 440 Q 104 440 104 452 Q 104 440 92 440 Q 104 440 104 428 Z" fill="#3A2E2A"/>
+<path d="M 476 100 Q 476 110 486 110 Q 476 110 476 120 Q 476 110 466 110 Q 476 110 476 100 Z" fill="#3A2E2A"/>
+<text x="300" y="232" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="102" fill="#3A2E2A">choose</text>
+<text x="307" y="476" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="250" letter-spacing="14" fill="#3A2E2A">JOY</text>
+</svg>

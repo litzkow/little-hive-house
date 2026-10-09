@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#161616"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#F4F0E8" stroke-width="2"/>
+<g fill="none" stroke="#F4F0E8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<rect x="220" y="170" width="160" height="82" rx="6"/>
+<path d="M 220 188 q 10 16 20 0 t 20 0 t 20 0 t 20 0 t 20 0 t 20 0 t 20 0 t 20 0"/>
+<line x1="196" y1="266" x2="404" y2="266"/>
+<rect x="294" y="122" width="12" height="48" rx="3"/>
+</g>
+<path d="M 300 92 Q 314 108 300 118 Q 286 108 300 92 Z" fill="#F4F0E8"/>
+<text x="300" y="382" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="96" fill="#F4F0E8">eat</text>
+<text x="304" y="522" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="160" letter-spacing="8" fill="#F4F0E8">CAKE</text>
+</svg>

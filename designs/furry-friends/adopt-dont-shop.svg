@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#DCE3D3"/>
+<ellipse cx="300" cy="209.9" rx="65.1" ry="52.7" fill="#23302A"/>
+<ellipse cx="238.0" cy="147.9" rx="22.3" ry="29.8" transform="rotate(-22 238.0 147.9)" fill="#23302A"/>
+<ellipse cx="275.2" cy="110.7" rx="23.6" ry="31.0" fill="#23302A"/>
+<ellipse cx="324.8" cy="110.7" rx="23.6" ry="31.0" fill="#23302A"/>
+<ellipse cx="362.0" cy="147.9" rx="22.3" ry="29.8" transform="rotate(22 362.0 147.9)" fill="#23302A"/>
+<text x="305" y="420" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="10" fill="#23302A">ADOPT</text>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="72" fill="#C8673E">don't shop</text>
+</svg>

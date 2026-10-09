@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F4F0E8"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#161616" stroke-width="2"/>
+<g fill="none" stroke="#161616" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 220 132 L 360 132 L 348 230 Q 344 244 328 244 L 252 244 Q 236 244 232 230 Z" fill="none"/>
+<path d="M 358 152 Q 400 152 396 184 Q 392 214 352 214"/>
+<path d="M 260 118 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 290 118 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 320 118 q -10 -12 0 -24 t 0 -24"/>
+</g>
+<path d="M 286 202 C 256 182 262 160 278 164 Q 284 166 286 172 Q 288 166 294 164 C 310 160 316 182 286 202 Z" fill="#161616"/>
+<text x="304" y="412" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="8" fill="#161616">STAY</text>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="96" fill="#161616">cozy</text>
+</svg>

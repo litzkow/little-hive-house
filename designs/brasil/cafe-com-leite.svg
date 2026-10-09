@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FAF3E3"/>
+<g fill="none" stroke="#4A2E1F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 222 124 L 362 124 L 350 222 Q 346 236 330 236 L 254 236 Q 238 236 234 222 Z" fill="none"/>
+<path d="M 360 144 Q 402 144 398 176 Q 394 206 354 206"/>
+<path d="M 262 110 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 292 110 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 322 110 q -10 -12 0 -24 t 0 -24"/>
+</g>
+<text x="304" y="414" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="8" fill="#4A2E1F">CAFÉ</text>
+<text x="300" y="494" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="78" fill="#4A2E1F">com leite</text>
+</svg>

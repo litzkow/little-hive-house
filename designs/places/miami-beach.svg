@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#155C6B"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#FFE1C7"/>
+<circle cx="300" cy="240" r="110" fill="#FF8A6E"/>
+<rect x="186" y="252" width="228" height="6" fill="#FFE1C7"/>
+<rect x="186" y="272" width="228" height="8" fill="#FFE1C7"/>
+<rect x="186" y="292" width="228" height="11" fill="#FFE1C7"/>
+<rect x="0" y="300" width="600" height="80" fill="#2BB3B0"/>
+<rect x="0" y="300" width="600" height="8" fill="#1A8F96"/>
+<g fill="none" stroke="#8EDDD6" stroke-width="3" stroke-linecap="round">
+<path d="M 30 330 L 80 330"/>
+<path d="M 120 346 L 160 346"/>
+<path d="M 230 322 L 270 322"/>
+<path d="M 480 326 L 530 326"/>
+<path d="M 540 350 L 580 350"/>
+</g>
+<path d="M 0 372 Q 300 352 600 372 L 600 444 L 0 444 Z" fill="#F7E1B5"/>
+<ellipse cx="395" cy="412" rx="80" ry="6" fill="#E6CB98"/>
+<g fill="none" stroke="#FFD25E" stroke-width="5" stroke-linecap="round">
+<path d="M 346 350 L 444 392"/>
+<path d="M 444 350 L 346 392"/>
+</g>
+<rect x="342" y="334" width="8" height="76" fill="#FFD25E"/>
+<rect x="440" y="334" width="8" height="76" fill="#FFD25E"/>
+<polygon points="456,326 470,326 574,402 556,404" fill="#FFD25E"/>
+<rect x="326" y="326" width="138" height="8" fill="#FFD25E"/>
+<rect x="330" y="312" width="4" height="16" fill="#FFD25E"/>
+<rect x="456" y="312" width="4" height="16" fill="#FFD25E"/>
+<rect x="326" y="310" width="16" height="4" fill="#FFD25E"/>
+<rect x="448" y="310" width="16" height="4" fill="#FFD25E"/>
+<rect x="340" y="270" width="110" height="56" fill="#F28CB1"/>
+<rect x="340" y="310" width="110" height="6" fill="#3DBFB6"/>
+<rect x="354" y="282" width="82" height="22" fill="#FFF2DE"/>
+<rect x="380" y="282" width="3" height="22" fill="#F28CB1"/>
+<rect x="407" y="282" width="3" height="22" fill="#F28CB1"/>
+<polygon points="330,272 460,272 440,246 350,246" fill="#3DBFB6"/>
+<line x1="395" y1="246" x2="395" y2="220" stroke="#3A3A3A" stroke-width="2"/>
+<polygon points="396,220 416,226 396,232" fill="#FF6F61"/>
+<path d="M 182 420 Q 178 320 196 214 L 203 216 Q 190 320 194 420 Z" fill="#9A7A58"/>
+<g fill="#2E8C6C">
+<path d="M 196 214 Q 154 188 124 224 Q 160 202 196 220 Z"/>
+<path d="M 196 214 Q 162 158 136 150 Q 168 170 196 218 Z"/>
+<path d="M 196 214 Q 194 158 208 130 Q 204 168 200 216 Z"/>
+<path d="M 196 214 Q 234 156 266 154 Q 234 174 200 218 Z"/>
+<path d="M 196 214 Q 244 190 274 222 Q 238 206 198 220 Z"/>
+<path d="M 196 216 Q 168 232 154 266 Q 176 240 198 222 Z"/>
+<path d="M 196 216 Q 226 232 238 264 Q 218 240 196 222 Z"/>
+</g>
+<path d="M 92 420 Q 86 300 110 150 L 118 152 Q 98 300 106 420 Z" fill="#8A6A4A"/>
+<g fill="#1F7A5C">
+<path d="M 110 150 Q 68 124 38 160 Q 74 138 110 156 Z"/>
+<path d="M 110 150 Q 76 94 50 86 Q 82 106 110 154 Z"/>
+<path d="M 110 150 Q 108 94 122 66 Q 118 104 114 152 Z"/>
+<path d="M 110 150 Q 148 92 180 90 Q 148 110 114 154 Z"/>
+<path d="M 110 150 Q 158 126 188 158 Q 152 142 112 156 Z"/>
+<path d="M 110 152 Q 82 168 68 202 Q 90 176 112 158 Z"/>
+<path d="M 110 152 Q 140 168 152 200 Q 132 176 110 158 Z"/>
+</g>
+<circle cx="111" cy="153" r="7" fill="#5B4A33"/>
+<g fill="none" stroke="#155C6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 470 120 Q 478 112 486 120 Q 494 112 502 120"/>
+<path d="M 512 146 Q 518 140 524 146 Q 530 140 536 146"/>
+</g></svg><rect x="0" y="444" width="600" height="5" fill="#FFD25E"/><text x="300" y="535.8" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="82" letter-spacing="1.6" fill="#FFF4E8">MIAMI BEACH</text><text x="300" y="574.1" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#FF8FA9">FLORIDA · USA</text></svg>

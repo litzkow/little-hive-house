@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FAF8F3"/>
+<path d="M 120 470 L 120 230 A 180 180 0 0 1 480 230 L 480 470 Z" fill="#F1ECE2" stroke="#222222" stroke-width="2.5"/>
+<g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 246 466 Q 160 380 186 210 Q 236 330 248 466"/>
+<path d="M 246 450 Q 204 360 190 232"/>
+<path d="M 254 466 Q 330 432 376 372 Q 300 400 254 456"/>
+<path d="M 250 466 Q 250 260 400 220"/>
+<line x1="274" y1="326" x2="278" y2="346"/>
+<line x1="295" y1="288" x2="299" y2="308"/>
+<line x1="324" y1="258" x2="328" y2="278"/>
+<line x1="358" y1="236" x2="361" y2="254"/>
+<line x1="391" y1="222" x2="393" y2="230"/>
+</g>
+<g fill="#FAF8F3" stroke="#222222" stroke-width="3" stroke-linejoin="round">
+<path d="M 267 366 C 266 346, 290 346, 289 366 Q 292 372 286 371 Q 278 367 270 371 Q 264 372 267 366 Z"/>
+<path d="M 288 328 C 287 308, 311 308, 310 328 Q 313 334 307 333 Q 299 329 291 333 Q 285 334 288 328 Z"/>
+<path d="M 317 298 C 316 278, 340 278, 339 298 Q 342 304 336 303 Q 328 299 320 303 Q 314 304 317 298 Z"/>
+<path d="M 352 271 C 351 255, 371 255, 370 271 Q 372 276 367 275 Q 361 272 355 275 Q 350 276 352 271 Z"/>
+<ellipse cx="393" cy="238" rx="6" ry="8"/>
+</g>
+<text x="300" y="530" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="50" fill="#222222">May</text>
+<text x="303" y="566" text-anchor="middle" font-family="'DM Mono', monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#222222">LILY OF THE VALLEY</text>
+</svg>

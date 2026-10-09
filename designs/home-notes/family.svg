@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#D6E4EE"/>
+<g fill="none" stroke="#3A2E2A" stroke-width="6" stroke-linejoin="round"><path d="M 300 80 L 382 150 L 382 236 L 218 236 L 218 150 Z"/><rect x="284" y="190" width="32" height="46"/></g>
+<path d="M 300 165.75 C 273.75 148.25 279 129 293 132.5 Q 298.25 134.25 300 139.5 Q 301.75 134.25 307 132.5 C 321 129 326.25 148.25 300 165.75 Z" fill="#C2343A"/>
+<text x="306" y="428" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="12" fill="#3A2E2A">FAMILY</text>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="48" fill="#3A2E2A">our favorite people</text>
+</svg>

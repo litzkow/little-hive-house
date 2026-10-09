@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F2C230"/>
+<circle cx="300" cy="196" r="56" fill="none" stroke="#1F5E3B" stroke-width="7"/>
+<g stroke="#1F5E3B" stroke-width="7" stroke-linecap="round"><line x1="374.0" y1="196.0" x2="400.0" y2="196.0"/><line x1="364.1" y1="233.0" x2="386.6" y2="246.0"/><line x1="337.0" y1="260.1" x2="350.0" y2="282.6"/><line x1="300.0" y1="270.0" x2="300.0" y2="296.0"/><line x1="263.0" y1="260.1" x2="250.0" y2="282.6"/><line x1="235.9" y1="233.0" x2="213.4" y2="246.0"/><line x1="226.0" y1="196.0" x2="200.0" y2="196.0"/><line x1="235.9" y1="159.0" x2="213.4" y2="146.0"/><line x1="263.0" y1="131.9" x2="250.0" y2="109.4"/><line x1="300.0" y1="122.0" x2="300.0" y2="96.0"/><line x1="337.0" y1="131.9" x2="350.0" y2="109.4"/><line x1="364.1" y1="159.0" x2="386.6" y2="146.0"/></g>
+<text x="304" y="444" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="8" fill="#1F5E3B">BOM DIA</text>
+<text x="303" y="504" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="18" letter-spacing="6" fill="#1F5E3B">GOOD MORNING</text>
+</svg>

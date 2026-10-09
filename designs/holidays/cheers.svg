@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#1D2B44"/>
+<g transform="translate(262 214) rotate(-14)"><path d="M -22 -92 L 22 -92 L 14 0 Q 0 10 -14 0 Z" fill="none" stroke="#E2B857" stroke-width="5" stroke-linejoin="round"/><path d="M -19 -60 L 19 -60 L 14 0 Q 0 10 -14 0 Z" fill="#E2B857" opacity="0.55"/><line x1="0" y1="6" x2="0" y2="70" stroke="#E2B857" stroke-width="5"/><ellipse cx="0" cy="72" rx="26" ry="6" fill="none" stroke="#E2B857" stroke-width="5"/></g>
+<g transform="translate(338 214) rotate(14)"><path d="M -22 -92 L 22 -92 L 14 0 Q 0 10 -14 0 Z" fill="none" stroke="#E2B857" stroke-width="5" stroke-linejoin="round"/><path d="M -19 -60 L 19 -60 L 14 0 Q 0 10 -14 0 Z" fill="#E2B857" opacity="0.55"/><line x1="0" y1="6" x2="0" y2="70" stroke="#E2B857" stroke-width="5"/><ellipse cx="0" cy="72" rx="26" ry="6" fill="none" stroke="#E2B857" stroke-width="5"/></g>
+<g stroke="#F6EFE0" stroke-width="4" stroke-linecap="round"><line x1="300" y1="78" x2="300" y2="96"/><line x1="272" y1="86" x2="282" y2="100"/><line x1="328" y1="86" x2="318" y2="100"/></g>
+<path d="M 150 116 Q 150 130 164 130 Q 150 130 150 144 Q 150 130 136 130 Q 150 130 150 116 Z" fill="#E2B857"/>
+<path d="M 460 288 Q 460 300 472 300 Q 460 300 460 312 Q 460 300 448 300 Q 460 300 460 288 Z" fill="#E2B857"/>
+<path d="M 130 321 Q 130 330 139 330 Q 130 330 130 339 Q 130 330 121 330 Q 130 330 130 321 Z" fill="#F6EFE0"/>
+<text x="305" y="436" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="150" letter-spacing="10" fill="#E2B857">CHEERS</text>
+<text x="300" y="504" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="52" fill="#F6EFE0">to the new year</text>
+</svg>
