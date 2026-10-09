@@ -70,6 +70,9 @@ a { color: inherit; }
 
 /* announcement + header */
 .strip { background: var(--ink); color: var(--bg); text-align: center; font-size: 14px; letter-spacing: .04em; padding: 8px 16px; }
+.strip span { white-space: nowrap; }
+.strip .dot { padding-inline: 10px; }
+@media (max-width: 640px) { .strip span { display: block; } .strip .dot { display: none; } }
 .site-header {
   position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
@@ -246,7 +249,7 @@ footer { padding-block: 48px 64px; }
 <body>
 
 
-<div class="strip">Free US shipping on orders over $35 · Handmade in small batches</div>
+<div class="strip"><span>Free US shipping on orders over $35</span><span class="dot" aria-hidden="true">·</span><span>Handmade in small batches</span></div>
 
 <header class="site-header">
   <div class="wrap header-row">
