@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
 <rect width="600" height="600" fill="#FAF8F3"/>
-<path d="M 120 470 L 120 230 A 180 180 0 0 1 480 230 L 480 470 Z" fill="#F1ECE2" stroke="#222222" stroke-width="2.5"/>
+<g fill="#222222" opacity="0.1"><circle cx="371.8" cy="441.2" r="1.6"/><circle cx="558.4" cy="440.1" r="1.7"/><circle cx="24.9" cy="279.9" r="1.7"/><circle cx="387.0" cy="534.1" r="0.9"/><circle cx="281.9" cy="152.0" r="1.3"/><circle cx="343.2" cy="15.7" r="1.0"/><circle cx="171.2" cy="543.1" r="1.6"/><circle cx="101.2" cy="473.5" r="0.9"/><circle cx="368.6" cy="82.0" r="0.8"/><circle cx="516.9" cy="130.3" r="1.0"/><circle cx="581.7" cy="517.5" r="1.1"/><circle cx="569.5" cy="322.9" r="1.5"/><circle cx="127.6" cy="557.5" r="1.5"/><circle cx="572.5" cy="529.9" r="1.1"/><circle cx="218.9" cy="104.9" r="0.9"/><circle cx="46.0" cy="184.0" r="1.4"/><circle cx="10.0" cy="403.9" r="1.1"/><circle cx="189.0" cy="486.0" r="1.3"/><circle cx="192.4" cy="289.0" r="1.5"/><circle cx="41.3" cy="577.5" r="0.8"/><circle cx="445.9" cy="501.4" r="0.8"/><circle cx="468.0" cy="221.9" r="1.4"/><circle cx="13.3" cy="35.3" r="1.0"/><circle cx="565.8" cy="122.8" r="1.6"/><circle cx="550.9" cy="558.2" r="1.1"/><circle cx="215.2" cy="314.4" r="1.6"/><circle cx="71.1" cy="445.1" r="1.6"/><circle cx="510.1" cy="29.4" r="1.7"/><circle cx="61.2" cy="207.0" r="1.4"/><circle cx="544.2" cy="206.5" r="1.7"/><circle cx="326.4" cy="190.5" r="1.1"/><circle cx="111.6" cy="53.7" r="0.9"/><circle cx="410.5" cy="590.1" r="1.0"/><circle cx="36.4" cy="584.2" r="1.3"/><circle cx="245.0" cy="146.6" r="1.4"/><circle cx="490.6" cy="274.1" r="1.2"/><circle cx="40.5" cy="543.0" r="0.8"/><circle cx="296.2" cy="497.6" r="0.9"/><circle cx="435.3" cy="562.7" r="1.4"/><circle cx="468.2" cy="70.3" r="1.2"/><circle cx="95.2" cy="501.3" r="1.1"/><circle cx="272.6" cy="591.6" r="1.7"/><circle cx="578.0" cy="272.9" r="1.3"/><circle cx="434.0" cy="287.8" r="1.1"/><circle cx="243.8" cy="93.6" r="1.2"/><circle cx="585.2" cy="568.5" r="1.4"/><circle cx="299.6" cy="205.7" r="0.9"/><circle cx="167.0" cy="464.7" r="1.7"/><circle cx="219.0" cy="467.0" r="1.6"/><circle cx="413.6" cy="395.8" r="1.6"/><circle cx="220.2" cy="419.4" r="1.1"/><circle cx="291.6" cy="457.5" r="1.5"/><circle cx="179.6" cy="560.2" r="1.4"/><circle cx="347.1" cy="14.8" r="1.3"/><circle cx="154.4" cy="400.2" r="1.3"/><circle cx="484.9" cy="386.1" r="1.6"/><circle cx="211.2" cy="384.1" r="1.5"/><circle cx="491.7" cy="212.4" r="1.6"/><circle cx="516.0" cy="410.0" r="1.8"/><circle cx="566.6" cy="310.6" r="1.3"/><circle cx="105.0" cy="496.6" r="1.7"/><circle cx="286.7" cy="411.8" r="1.5"/><circle cx="434.5" cy="108.3" r="1.6"/><circle cx="347.2" cy="396.7" r="1.2"/><circle cx="372.3" cy="460.4" r="1.4"/><circle cx="428.7" cy="24.1" r="1.0"/><circle cx="265.6" cy="387.7" r="1.0"/><circle cx="408.6" cy="376.4" r="0.8"/><circle cx="283.4" cy="140.1" r="0.9"/><circle cx="86.0" cy="193.3" r="1.0"/></g>
+<path d="M 118 452 L 118 256 A 182 182 0 0 1 482 256 L 482 452 Z" fill="#F1ECE2" stroke="#222222" stroke-width="2.5"/>
+<path d="M 128 444 L 128 256 A 172 172 0 0 1 472 256 L 472 444 Z" fill="none" stroke="#222222" stroke-width="1" opacity="0.6"/>
+<g transform="translate(19.2 -3) scale(0.936)">
 <g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
 <path d="M 300 245 Q 296 360 300 466"/>
 <path d="M 296 466 Q 238 380 254 290 Q 282 380 300 462"/>
@@ -17,6 +20,10 @@
 <circle cx="300" cy="215" r="20"/>
 </g>
 <circle cx="300" cy="215" r="8" fill="#222222"/>
-<text x="300" y="530" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="50" fill="#222222">March</text>
-<text x="303" y="566" text-anchor="middle" font-family="'DM Mono', monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#222222">DAFFODIL</text>
+
+</g>
+<line x1="96" y1="452" x2="504" y2="452" stroke="#222222" stroke-width="2.5" stroke-linecap="round"/>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="48" fill="#222222">March</text>
+<text x="302.5" y="528" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="15" letter-spacing="5" fill="#222222">03 · DAFFODIL</text>
+<g stroke="#222222" stroke-width="1.4"><line x1="171.5" y1="523" x2="197.5" y2="523"/><line x1="402.5" y1="523" x2="428.5" y2="523"/></g>
 </svg>

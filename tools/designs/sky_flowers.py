@@ -231,5 +231,4 @@ def build_flowers():
 
 
 if __name__ == "__main__":
-    build_sky()
-    build_flowers()
+    pass  # superseded by sky_and_flowers.py

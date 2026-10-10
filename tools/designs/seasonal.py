@@ -505,9 +505,6 @@ def build_stickers():
 
 
 if __name__ == "__main__":
-    build_fall()
-    build_halloween()
-    build_christmas()
     build_dates()
     build_summer()
     build_stickers()

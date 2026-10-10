@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#2D4A5C"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#F7D7C4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#2D4A5C"/>
+<svg x="0" y="0" width="600" height="404" viewBox="0 0 600 444" preserveAspectRatio="xMidYMax slice">
+<rect x="0" y="0" width="600" height="444" fill="#F7D7C4"/>
 <circle cx="300" cy="170" r="118" fill="#F2A784"/>
 <g fill="#E7B9A6">
 <rect x="0" y="300" width="30" height="60"/>
@@ -68,4 +71,9 @@
 <g fill="none" stroke="#2D4A5C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
 <path d="M 400 96 Q 408 88 416 96 Q 424 88 432 96"/>
 <path d="M 440 122 Q 446 116 452 122 Q 458 116 464 122"/>
-</g></svg><rect x="0" y="444" width="600" height="5" fill="#5FA996"/><text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#F7E9DD">NEW YORK</text><text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#F2A784">NEW YORK · USA</text></svg>
+</g>
+</svg>
+<rect x="0" y="404" width="600" height="5" fill="#5FA996"/>
+<text x="301.4" y="499.9" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="90" letter-spacing="2.7" fill="#F7E9DD">NEW YORK</text>
+<text x="302" y="531.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="19" letter-spacing="4.2" fill="#F2A784">NEW YORK · USA</text>
+</svg>

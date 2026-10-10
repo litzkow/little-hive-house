@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#5A2E2A"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#F9DDB0"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#5A2E2A"/>
+<svg x="0" y="0" width="600" height="404" viewBox="0 0 600 444" preserveAspectRatio="xMidYMax slice">
+<rect x="0" y="0" width="600" height="444" fill="#F9DDB0"/>
 <circle cx="430" cy="120" r="58" fill="#F4A15A"/>
 <g fill="none" stroke="#5A2E2A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
 <path d="M 150 96 Q 160 86 170 96 Q 180 86 190 96"/>
@@ -22,4 +25,9 @@
 <rect x="110" y="384" width="4" height="18" fill="#4A3A2A"/>
 <circle cx="104" cy="380" r="10" fill="#4F5D34"/>
 <circle cx="116" cy="372" r="12" fill="#4F5D34"/>
-<circle cx="124" cy="382" r="9" fill="#4F5D34"/></svg><rect x="0" y="444" width="600" height="5" fill="#E9925A"/><text x="300" y="532.2" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="72" letter-spacing="1.4" fill="#F8E6CC">GRAND CANYON</text><text x="300" y="569.6" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#F4A15A">ARIZONA · USA</text></svg>
+<circle cx="124" cy="382" r="9" fill="#4F5D34"/>
+</svg>
+<rect x="0" y="404" width="600" height="5" fill="#E9925A"/>
+<text x="301.3" y="497.7" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="84" letter-spacing="2.5" fill="#F8E6CC">GRAND CANYON</text>
+<text x="302" y="529.0" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="19" letter-spacing="4.2" fill="#F4A15A">ARIZONA · USA</text>
+</svg>

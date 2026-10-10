@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#23314F"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#DCE8F2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#23314F"/>
+<svg x="0" y="0" width="600" height="404" viewBox="0 0 600 444" preserveAspectRatio="xMidYMax slice">
+<rect x="0" y="0" width="600" height="444" fill="#DCE8F2"/>
 <rect x="0" y="368" width="600" height="76" fill="#86A872"/>
 <rect x="110" y="300" width="380" height="70" fill="#FAF7F0"/>
 <rect x="104" y="294" width="392" height="8" fill="#FAF7F0"/>
@@ -114,4 +117,9 @@
 <circle cx="520" cy="84" r="8" fill="#FFF2F4"/>
 <circle cx="586" cy="70" r="9" fill="#E98DA2"/>
 <circle cx="422" cy="64" r="8" fill="#E98DA2"/>
-<circle cx="460" cy="58" r="8" fill="#FFF2F4"/></svg><rect x="0" y="444" width="600" height="5" fill="#E98DA2"/><text x="300" y="530.8" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="68" letter-spacing="1.4" fill="#FAF7F0">WASHINGTON, DC</text><text x="300" y="567.8" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#F4B6C2">DISTRICT OF COLUMBIA</text></svg>
+<circle cx="460" cy="58" r="8" fill="#FFF2F4"/>
+</svg>
+<rect x="0" y="404" width="600" height="5" fill="#E98DA2"/>
+<text x="301.1" y="494.8" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="76" letter-spacing="2.3" fill="#FAF7F0">WASHINGTON, DC</text>
+<text x="302" y="526.1" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="19" letter-spacing="4.2" fill="#F4B6C2">DISTRICT OF COLUMBIA</text>
+</svg>

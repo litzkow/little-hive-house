@@ -1,0 +1,58 @@
+<g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 300 272 Q 304 370 300 466"/>
+<path d="M 300 404 Q 270 380 250 390 Q 236 372 222 380 Q 228 400 250 404 Q 270 412 300 404"/>
+<path d="M 302 434 Q 330 414 350 422 Q 362 404 378 410 Q 372 430 350 434 Q 330 440 302 434"/>
+</g>
+<g fill="#F1ECE2" stroke="#222222" stroke-width="2.5">
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(0 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(18 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(36 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(54 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(72 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(90 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(108 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(126 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(144 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(162 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(180 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(198 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(216 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(234 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(252 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(270 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(288 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(306 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(324 300 220)"/>
+<ellipse cx="300" cy="174" rx="7" ry="24" transform="rotate(342 300 220)"/>
+</g>
+<g fill="#F1ECE2" stroke="#222222" stroke-width="2.5">
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(11 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(33.5 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(56 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(78.5 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(101 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(123.5 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(146 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(168.5 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(191 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(213.5 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(236 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(258.5 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(281 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(303.5 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(326 300 220)"/>
+<ellipse cx="300" cy="190" rx="6" ry="18" transform="rotate(348.5 300 220)"/>
+</g>
+<g fill="#F1ECE2" stroke="#222222" stroke-width="2.5">
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(18 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(54 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(90 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(126 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(162 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(198 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(234 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(270 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(306 300 220)"/>
+<ellipse cx="300" cy="205" rx="5" ry="11" transform="rotate(342 300 220)"/>
+</g>
+<circle cx="300" cy="220" r="6" fill="#222222"/>

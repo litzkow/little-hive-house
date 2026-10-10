@@ -17,7 +17,7 @@ def save(collection, slug, body):
     d = ROOT / collection
     d.mkdir(parents=True, exist_ok=True)
     svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">\n' + body.strip() + "\n</svg>\n"
-    (d / f"{slug}.svg").write_text(svg)
+    (d / f"{slug}.svg").write_text(svg, encoding="utf-8")
 
 
 def esc(s):

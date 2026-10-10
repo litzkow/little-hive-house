@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#1F3B2D"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#F6CBA4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#1F3B2D"/>
+<svg x="0" y="0" width="600" height="404" viewBox="0 0 600 444" preserveAspectRatio="xMidYMax slice">
+<rect x="0" y="0" width="600" height="444" fill="#F6CBA4"/>
 <circle cx="300" cy="226" r="134" fill="#EE8A4E"/>
 <path d="M 0 352 Q 20 330 46 338 Q 64 316 92 330 Q 112 312 138 328 Q 160 314 182 332 Q 204 318 226 334 Q 250 320 272 336 Q 300 322 328 336 Q 350 320 374 334 Q 398 316 420 332 Q 444 314 466 330 Q 490 316 512 334 Q 536 320 558 336 Q 580 324 600 340 L 600 372 L 0 372 Z" fill="#7C9B74"/>
 <rect x="0" y="360" width="600" height="84" fill="#3F6A4A"/>
@@ -76,4 +79,9 @@
 <path d="M 100 114 Q 105 136 98 156"/>
 <path d="M 452 92 Q 447 112 453 130"/>
 <path d="M 556 130 Q 551 150 557 168"/>
-</g></svg><rect x="0" y="444" width="600" height="5" fill="#EE8A4E"/><text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#FAF2E4">SAVANNAH</text><text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#F2B48A">GEORGIA · EST. 1733</text></svg>
+</g>
+</svg>
+<rect x="0" y="404" width="600" height="5" fill="#EE8A4E"/>
+<text x="301.4" y="499.9" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="90" letter-spacing="2.7" fill="#FAF2E4">SAVANNAH</text>
+<text x="302" y="531.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="19" letter-spacing="4.2" fill="#F2B48A">GEORGIA · EST. 1733</text>
+</svg>

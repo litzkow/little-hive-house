@@ -1,0 +1,16 @@
+<g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 300 245 Q 296 360 300 466"/>
+<path d="M 296 466 Q 238 380 254 290 Q 282 380 300 462"/>
+<path d="M 304 466 Q 358 390 352 310 Q 330 390 304 462"/>
+</g>
+<g fill="#F1ECE2" stroke="#222222" stroke-width="3" stroke-linejoin="round">
+<path d="M 300 215 Q 282 180 300 140 Q 318 180 300 215 Z"/>
+<path d="M 300 215 Q 282 180 300 140 Q 318 180 300 215 Z" transform="rotate(60 300 215)"/>
+<path d="M 300 215 Q 282 180 300 140 Q 318 180 300 215 Z" transform="rotate(120 300 215)"/>
+<path d="M 300 215 Q 282 180 300 140 Q 318 180 300 215 Z" transform="rotate(180 300 215)"/>
+<path d="M 300 215 Q 282 180 300 140 Q 318 180 300 215 Z" transform="rotate(240 300 215)"/>
+<path d="M 300 215 Q 282 180 300 140 Q 318 180 300 215 Z" transform="rotate(300 300 215)"/>
+<circle cx="300" cy="215" r="28"/>
+<circle cx="300" cy="215" r="20"/>
+</g>
+<circle cx="300" cy="215" r="8" fill="#222222"/>

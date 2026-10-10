@@ -33,7 +33,7 @@ class Page:
         self.n = 0
 
     def svg(self, col, slug, cls="mag"):
-        raw = (DESIGNS / col / f"{slug}.svg").read_text().strip()
+        raw = (DESIGNS / col / f"{slug}.svg").read_text(encoding="utf-8").strip()
         self.n += 1
         uid = f"m{self.n}"
         raw = re.sub(r'id="([^"]+)"', lambda m: f'id="{uid}-{m.group(1)}"', raw)
@@ -306,7 +306,7 @@ def chrome_end(pg, extra_js=()):
 def write(path, content):
     out = ROOT / path
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(content)
+    out.write_text(content, encoding="utf-8")
 
 
 def in_season(md, start, end):

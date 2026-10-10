@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#155C6B"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#FFE1C7"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#155C6B"/>
+<svg x="0" y="0" width="600" height="404" viewBox="0 0 600 444" preserveAspectRatio="xMidYMax slice">
+<rect x="0" y="0" width="600" height="444" fill="#FFE1C7"/>
 <circle cx="300" cy="240" r="110" fill="#FF8A6E"/>
 <rect x="186" y="252" width="228" height="6" fill="#FFE1C7"/>
 <rect x="186" y="272" width="228" height="8" fill="#FFE1C7"/>
@@ -58,4 +61,9 @@
 <g fill="none" stroke="#155C6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
 <path d="M 470 120 Q 478 112 486 120 Q 494 112 502 120"/>
 <path d="M 512 146 Q 518 140 524 146 Q 530 140 536 146"/>
-</g></svg><rect x="0" y="444" width="600" height="5" fill="#FFD25E"/><text x="300" y="535.8" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="82" letter-spacing="1.6" fill="#FFF4E8">MIAMI BEACH</text><text x="300" y="574.1" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#FF8FA9">FLORIDA · USA</text></svg>
+</g>
+</svg>
+<rect x="0" y="404" width="600" height="5" fill="#FFD25E"/>
+<text x="301.4" y="499.9" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="90" letter-spacing="2.7" fill="#FFF4E8">MIAMI BEACH</text>
+<text x="302" y="531.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="19" letter-spacing="4.2" fill="#FF8FA9">FLORIDA · USA</text>
+</svg>

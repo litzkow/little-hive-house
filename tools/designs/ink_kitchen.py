@@ -205,5 +205,4 @@ def build_kitchen():
 
 
 if __name__ == "__main__":
-    build_ink()
     build_kitchen()

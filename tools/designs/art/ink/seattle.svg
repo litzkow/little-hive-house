@@ -1,0 +1,23 @@
+<g fill="none" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="120" cy="140" r="30"/>
+<path d="M 430 110 q 8 -18 28 -10 q 13 -20 34 -4 q 20 -4 20 14 Z"/>
+<path d="M 66 420 L 150 300 Q 175 262 195 262 Q 215 262 240 300 L 296 392"/>
+<path d="M 150 300 L 165 312 L 178 296 L 192 314 L 206 296 L 222 308 L 240 300"/>
+<path d="M 330 420 Q 352 330 354 214"/>
+<path d="M 390 420 Q 368 330 366 214"/>
+<line x1="345" y1="300" x2="375" y2="300"/>
+<ellipse cx="360" cy="200" rx="58" ry="12"/>
+<path d="M 330 196 L 338 182 L 382 182 L 390 196"/>
+<ellipse cx="360" cy="182" rx="22" ry="5"/>
+<line x1="360" y1="177" x2="360" y2="96"/>
+<ellipse cx="360" cy="214" rx="18" ry="4"/>
+<rect x="430" y="330" width="46" height="90"/>
+<rect x="486" y="360" width="46" height="60"/>
+</g>
+<g stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" fill="none">
+<line x1="352" y1="232" x2="368" y2="300"/>
+<line x1="368" y1="232" x2="352" y2="300"/>
+<line x1="348" y1="300" x2="372" y2="410"/>
+<line x1="372" y1="300" x2="346" y2="410"/>
+<g stroke-dasharray="6 6"><line x1="438" y1="346" x2="464" y2="346"/><line x1="438" y1="366" x2="464" y2="366"/><line x1="438" y1="386" x2="464" y2="386"/><line x1="494" y1="378" x2="516" y2="378"/><line x1="494" y1="398" x2="516" y2="398"/></g>
+</g>

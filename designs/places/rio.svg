@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#12613F"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#FBD38B"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#12613F"/>
+<svg x="0" y="0" width="600" height="404" viewBox="0 0 600 444" preserveAspectRatio="xMidYMax slice">
+<rect x="0" y="0" width="600" height="444" fill="#FBD38B"/>
 <circle cx="150" cy="130" r="62" fill="#FF8A5B"/>
 <path d="M 0 332 Q 30 300 70 312 Q 110 282 150 300 Q 190 284 230 306 Q 262 296 292 320 L 292 362 L 0 362 Z" fill="#EDA978"/>
 <path d="M 512 324 Q 556 296 600 306 L 600 362 L 512 362 Z" fill="#EDA978"/>
@@ -40,4 +43,9 @@
 <path d="M 96 234 Q 68 250 54 284 Q 76 258 98 240 Z"/>
 <path d="M 96 234 Q 126 250 138 282 Q 118 258 96 240 Z"/>
 </g>
-<circle cx="97" cy="235" r="7" fill="#4A3826"/></svg><rect x="0" y="444" width="600" height="5" fill="#FFD23F"/><text x="300" y="532.2" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="72" letter-spacing="1.4" fill="#FFFFFF">RIO DE JANEIRO</text><text x="300" y="569.6" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#FFD23F">BRASIL · DESDE 1565</text></svg>
+<circle cx="97" cy="235" r="7" fill="#4A3826"/>
+</svg>
+<rect x="0" y="404" width="600" height="5" fill="#FFD23F"/>
+<text x="301.2" y="497.4" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="83" letter-spacing="2.5" fill="#FFFFFF">RIO DE JANEIRO</text>
+<text x="302" y="528.7" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="19" letter-spacing="4.2" fill="#FFD23F">BRASIL · DESDE 1565</text>
+</svg>

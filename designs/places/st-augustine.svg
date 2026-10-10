@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#134B5A"/><svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444"><rect x="0" y="0" width="600" height="444" fill="#A9DBE6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#134B5A"/>
+<svg x="0" y="0" width="600" height="404" viewBox="0 0 600 444" preserveAspectRatio="xMidYMax slice">
+<rect x="0" y="0" width="600" height="444" fill="#A9DBE6"/>
 <circle cx="262" cy="118" r="50" fill="#FFD36E"/>
 <g fill="#F2FAFC">
 <rect x="24" y="64" width="84" height="18" rx="9"/>
@@ -82,4 +85,9 @@
 <ellipse cx="58" cy="358" rx="3" ry="7" transform="rotate(20 58 358)"/>
 <ellipse cx="228" cy="370" rx="3" ry="7" transform="rotate(-18 228 370)"/>
 <ellipse cx="260" cy="374" rx="3" ry="7" transform="rotate(22 260 374)"/>
-</g></svg><rect x="0" y="444" width="600" height="5" fill="#D9442F"/><text x="300" y="532.2" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="72" letter-spacing="1.4" fill="#FBFAF6">ST. AUGUSTINE</text><text x="300" y="569.6" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#FFD36E">FLORIDA · EST. 1565</text></svg>
+</g>
+</svg>
+<rect x="0" y="404" width="600" height="5" fill="#D9442F"/>
+<text x="301.3" y="499.6" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="89" letter-spacing="2.7" fill="#FBFAF6">ST. AUGUSTINE</text>
+<text x="302" y="530.9" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="19" letter-spacing="4.2" fill="#FFD36E">FLORIDA · EST. 1565</text>
+</svg>
