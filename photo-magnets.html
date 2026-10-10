@@ -90,7 +90,7 @@
     <div class="wrap custom-grid">
       <div>
         <ol class="steps">
-          <li><div><h3>Upload your photos</h3><p>Pick your favorite pictures from your phone or computer. Bright, sharp photos print best.</p></div></li>
+          <li><div><h3>Upload your photos</h3><p>Pick your favorite pictures from your phone or computer, then tap each one to give it its own frame and caption.</p></div></li>
           <li><div><h3>Choose a pack</h3><p>4 to 50 square magnets, each 2 × 2 inches with a glossy finish. Mix them with any of our designs in the same order.</p></div></li>
           <li><div><h3>We make and ship them</h3><p>We print, press and pack every magnet by hand, then send them to your door.</p></div></li>
         </ol>
@@ -108,27 +108,6 @@
             <div class="pack"><input type="radio" name="pack" id="pack-50" value="50" data-price="120"><label for="pack-50"><strong>50 magnets</strong><span>$120</span></label></div>
           </div>
         </fieldset>
-        <fieldset>
-          <legend>Frame</legend>
-          <div class="frames" id="frames">
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-none" value="none" checked><label for="frame-none"><span class="fprev" style="--x:0.0%;--y:0.0%;--w:100.0%;--h:100.0%;--r:0.0%"><i></i><img src="assets/frames/none.svg" alt=""></span><span class="fname">No border</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-classic" value="classic"><label for="frame-classic"><span class="fprev" style="--x:12.333333333333334%;--y:12.333333333333334%;--w:75.33333333333333%;--h:75.33333333333333%;--r:0.0%"><i></i><img src="assets/frames/classic.svg" alt=""></span><span class="fname">Classic white</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-polaroid" value="polaroid"><label for="frame-polaroid"><span class="fprev" style="--x:13.0%;--y:12.0%;--w:74.0%;--h:64.0%;--r:0.0%"><i></i><img src="assets/frames/polaroid.svg" alt=""></span><span class="fname">Instant photo</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-rounded" value="rounded"><label for="frame-rounded"><span class="fprev" style="--x:13.333333333333334%;--y:13.333333333333334%;--w:73.33333333333333%;--h:73.33333333333333%;--r:7.666666666666667%"><i></i><img src="assets/frames/rounded.svg" alt=""></span><span class="fname">Soft corners</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-honey" value="honey"><label for="frame-honey"><span class="fprev" style="--x:15.333333333333334%;--y:15.333333333333334%;--w:69.33333333333333%;--h:69.33333333333333%;--r:0.0%"><i></i><img src="assets/frames/honey.svg" alt=""></span><span class="fname">Honey line</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-gallery" value="gallery"><label for="frame-gallery"><span class="fprev" style="--x:16.0%;--y:16.0%;--w:68.0%;--h:68.0%;--r:0.0%"><i></i><img src="assets/frames/gallery.svg" alt=""></span><span class="fname">Gallery black</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-scallop" value="scallop"><label for="frame-scallop"><span class="fprev" style="--x:17.0%;--y:17.0%;--w:66.0%;--h:66.0%;--r:0.0%"><i></i><img src="assets/frames/scallop.svg" alt=""></span><span class="fname">Pink scallop</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-film" value="film"><label for="frame-film"><span class="fprev" style="--x:8.666666666666666%;--y:14.333333333333334%;--w:82.66666666666667%;--h:71.33333333333333%;--r:0.0%"><i></i><img src="assets/frames/film.svg" alt=""></span><span class="fname">Film strip</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-autumn" value="autumn"><label for="frame-autumn"><span class="fprev" style="--x:14.0%;--y:14.0%;--w:72.0%;--h:72.0%;--r:1.3333333333333333%"><i></i><img src="assets/frames/autumn.svg" alt=""></span><span class="fname">Autumn leaves</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-holly" value="holly"><label for="frame-holly"><span class="fprev" style="--x:14.0%;--y:14.0%;--w:72.0%;--h:72.0%;--r:1.3333333333333333%"><i></i><img src="assets/frames/holly.svg" alt=""></span><span class="fname">Holly &amp; berries</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-hearts" value="hearts"><label for="frame-hearts"><span class="fprev" style="--x:14.0%;--y:14.0%;--w:72.0%;--h:72.0%;--r:2.0%"><i></i><img src="assets/frames/hearts.svg" alt=""></span><span class="fname">Little hearts</span></label></div>
-            <div class="frame-opt"><input type="radio" name="frame" id="frame-starry" value="starry"><label for="frame-starry"><span class="fprev" style="--x:14.666666666666666%;--y:14.666666666666666%;--w:70.66666666666667%;--h:70.66666666666667%;--r:1.6666666666666667%"><i></i><img src="assets/frames/starry.svg" alt=""></span><span class="fname">Starry night</span></label></div>
-          </div>
-          <div class="caption-row" id="caption-row" hidden>
-            <label class="label" for="caption">Caption <span class="muted">(optional, up to 28 letters)</span></label>
-            <input type="text" id="caption" maxlength="28" placeholder="Summer 2026">
-          </div>
-        </fieldset>
         <div>
           <p class="label">Photos</p>
           <label class="drop" id="drop" for="photos">
@@ -137,9 +116,24 @@
           </label>
           <input class="visually-hidden" type="file" id="photos" accept="image/*" multiple>
         </div>
-        <div>
-          <div class="thumbs" id="thumbs" aria-live="polite"></div>
-          <p class="counter" id="counter" style="margin-top:10px">0 of 9 photos added</p>
+        <div class="magnets">
+          <div class="magnets-head">
+            <p class="label" id="magnets-label">Your magnets</p>
+            <p class="magnets-hint" id="magnets-hint" hidden>Tap a photo to choose its frame and caption.</p>
+          </div>
+          <div class="frame-teaser" id="frame-teaser">
+            <p>24 frames to choose from, photo by photo: classic mats, hand-painted florals, holidays, birthdays and more.</p>
+            <ul aria-label="A few of the frames">
+            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="assets/frames/sample.svg" x="94" y="90" width="412" height="344" preserveAspectRatio="xMidYMid slice"/><image href="assets/frames/instant.svg" width="600" height="600"/></svg></span><span class="fname">Instant photo</span></li>
+            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="assets/frames/sample.svg" x="104" y="104" width="392" height="392" preserveAspectRatio="xMidYMid slice"/><image href="assets/frames/floral.svg" width="600" height="600"/></svg></span><span class="fname">Watercolour peonies</span></li>
+            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="assets/frames/sample.svg" x="90" y="114.1" width="420" height="363.7" preserveAspectRatio="xMidYMid slice"/><image href="assets/frames/honeycomb.svg" width="600" height="600"/></svg></span><span class="fname">Honeycomb</span></li>
+            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="assets/frames/sample.svg" x="104" y="104" width="392" height="392" preserveAspectRatio="xMidYMid slice"/><image href="assets/frames/holly.svg" width="600" height="600"/></svg></span><span class="fname">Christmas holly</span></li>
+            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="assets/frames/sample.svg" x="110" y="110" width="380" height="380" preserveAspectRatio="xMidYMid slice"/><image href="assets/frames/gold-cream.svg" width="600" height="600"/></svg></span><span class="fname">Gold line on cream</span></li>
+            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="assets/frames/sample.svg" x="100" y="140" width="400" height="290" preserveAspectRatio="xMidYMid slice"/><image href="assets/frames/birthday.svg" width="600" height="600"/></svg></span><span class="fname">Birthday balloons</span></li>
+            </ul>
+          </div>
+          <ul class="thumbs" id="thumbs" aria-labelledby="magnets-label"></ul>
+          <p class="counter" id="counter" aria-live="polite">0 of 9 photos added</p>
           <p class="res-note" id="res-note" hidden></p>
         </div>
         <div>
@@ -155,6 +149,37 @@
           <button type="submit" class="btn btn-honey" id="add-custom" disabled>Add to cart</button>
         </div>
       </form>
+      <dialog class="studio" id="studio" aria-labelledby="studio-title">
+        <div class="studio-head">
+          <button type="button" class="icon-btn" id="studio-prev" aria-label="Previous photo">&#8249;</button>
+          <h2 id="studio-title">Photo 1 of 1</h2>
+          <button type="button" class="icon-btn" id="studio-next" aria-label="Next photo">&#8250;</button>
+          <button type="button" class="icon-btn studio-x" id="studio-close" aria-label="Close frame picker">&#215;</button>
+        </div>
+        <div class="studio-body">
+          <div class="studio-preview">
+            <div class="studio-mag" id="studio-mag"></div>
+            <p class="studio-fname"><strong id="studio-fname">No border</strong> <span id="studio-blurb"></span></p>
+            <div class="studio-cap" id="studio-cap-row" hidden>
+              <label class="label" for="studio-cap" id="studio-cap-label">Caption</label>
+              <input type="text" id="studio-cap" maxlength="24" autocomplete="off" aria-describedby="studio-cap-help">
+              <p class="cap-help" id="studio-cap-help"><span id="studio-cap-count">0/24</span> · Optional, leave empty for none</p>
+              <button type="button" class="linkish" id="cap-all" hidden>Use this caption on all photos</button>
+            </div>
+          </div>
+          <div class="studio-pick">
+            <div class="chips" role="group" aria-label="Frame styles"><button type="button" class="chip" data-group="" aria-pressed="true">All</button><button type="button" class="chip" data-group="Classic" aria-pressed="false">Classic</button><button type="button" class="chip" data-group="Modern" aria-pressed="false">Modern</button><button type="button" class="chip" data-group="Elegant" aria-pressed="false">Elegant</button><button type="button" class="chip" data-group="Seasonal &amp; Holidays" aria-pressed="false">Seasonal &amp; Holidays</button><button type="button" class="chip" data-group="Kids &amp; Fun" aria-pressed="false">Kids &amp; Fun</button></div>
+            <fieldset class="swatches" id="swatches">
+              <legend class="visually-hidden" id="swatch-legend">Frame for this photo</legend>
+            </fieldset>
+          </div>
+        </div>
+        <div class="studio-foot">
+          <p class="studio-status" id="studio-status" role="status"></p>
+          <button type="button" class="btn btn-ghost btn-small" id="apply-all">Apply this frame to all photos</button>
+          <button type="button" class="btn btn-honey btn-small" id="studio-done">Done</button>
+        </div>
+      </dialog>
     </div>
   </section>
 
@@ -164,6 +189,7 @@
       <div class="faq">
         <details><summary>What size are the magnets?</summary><p>Each magnet is a 2 × 2 inch square with rounded corners, a glossy front and a strong magnet back.</p></details>
         <details><summary>Which photos work best?</summary><p>Use the original photo from your camera roll. Screenshots and photos saved from chat apps are often too small and print blurry; the builder warns you when a photo looks too small.</p></details>
+        <details><summary>Can every photo have a different frame?</summary><p>Yes. Tap any photo in the builder to pick its own frame and caption, or use "Apply this frame to all photos" to frame the whole pack the same way in one tap.</p></details>
         <details><summary>Will you crop my photos?</summary><p>Yes, every photo is cropped to a square. Tell us in the notes if someone must stay in the frame and we will crop around them.</p></details>
         <details><summary>How long does it take?</summary><p>Most packs ship within 3 to 5 business days. Shipping is $4.95 and free on US orders over $35.</p></details>
         <details><summary>Can I mix my photos with your designs?</summary><p>Yes. Add photo packs and any designs from the <a href="shop.html">shop</a> to the same cart. Orders with 20 or more magnets get 10% off automatically, 50 or more get 20% off and 100 or more get 25% off.</p></details>
@@ -234,7 +260,7 @@
   </div>
 </footer>
 
-<script>window.LHH_FRAMES={"none":{"id":"none","name":"No border","window":[0,0,600,600],"radius":0,"caption":false,"note":"Your photo fills the whole magnet"},"classic":{"id":"classic","name":"Classic white","window":[74,74,452,452],"radius":0,"caption":false,"note":""},"polaroid":{"id":"polaroid","name":"Instant photo","window":[78,72,444,384],"radius":0,"caption":true,"note":"Add a short caption"},"rounded":{"id":"rounded","name":"Soft corners","window":[80,80,440,440],"radius":46,"caption":false,"note":""},"honey":{"id":"honey","name":"Honey line","window":[92,92,416,416],"radius":0,"caption":false,"note":""},"gallery":{"id":"gallery","name":"Gallery black","window":[96,96,408,408],"radius":0,"caption":false,"note":""},"scallop":{"id":"scallop","name":"Pink scallop","window":[102,102,396,396],"radius":0,"caption":false,"note":""},"film":{"id":"film","name":"Film strip","window":[52,86,496,428],"radius":0,"caption":false,"note":""},"autumn":{"id":"autumn","name":"Autumn leaves","window":[84,84,432,432],"radius":8,"caption":false,"note":""},"holly":{"id":"holly","name":"Holly & berries","window":[84,84,432,432],"radius":8,"caption":false,"note":""},"hearts":{"id":"hearts","name":"Little hearts","window":[84,84,432,432],"radius":12,"caption":false,"note":""},"starry":{"id":"starry","name":"Starry night","window":[88,88,424,424],"radius":10,"caption":false,"note":""}};window.LHH_FRAMES_BASE="assets/frames/";</script>
+<script>window.LHH_FRAMES={"list":[{"id":"none","name":"No border","group":"Classic","window":[0,0,600,600],"shape":"rect","radius":0,"blurb":"Your photo fills the whole magnet","caption":null},{"id":"white","name":"Crisp white mat","group":"Classic","window":[100,100,400,400],"shape":"rect","radius":0,"blurb":"Gallery-white mat with a hand-cut bevel","caption":null},{"id":"instant","name":"Instant photo","group":"Classic","window":[94,90,412,344],"shape":"rect","radius":0,"blurb":"The classic instant print, with a handwritten caption","caption":{"x":300,"y":494,"w":380,"size":46,"min":24,"font":"serif","color":"#2D3A6B","upper":false,"ls":0,"rot":-2,"max":22,"placeholder":"Summer 2026","label":"Handwritten caption","kicker":null,"family":"'Playfair Display', Georgia, serif","style":"italic","weight":700}},{"id":"gallery","name":"Black gallery mat","group":"Classic","window":[106,106,388,388],"shape":"rect","radius":0,"blurb":"Deep black mat with a bright white bevel","caption":null},{"id":"rounded","name":"Rounded modern","group":"Modern","window":[104,104,392,392],"shape":"rect","radius":64,"blurb":"Soft sage with a cut-out arch and sunny shapes","caption":null},{"id":"film","name":"Film strip","group":"Modern","window":[82,128,436,344],"shape":"rect","radius":0,"blurb":"A frame cut from a roll of 35mm film","caption":null},{"id":"stamp","name":"Postage stamp","group":"Modern","window":[102,102,396,340],"shape":"rect","radius":0,"blurb":"Perforated stamp with a postmark, on kraft paper","caption":{"x":300,"y":494,"w":330,"size":30,"min":18,"font":"jos","color":"#FBF5EA","upper":true,"ls":4,"rot":0,"max":20,"placeholder":"With love","label":"Stamp text","kicker":null,"family":"'Josefin Sans', sans-serif","style":"normal","weight":700}},{"id":"postcard","name":"Travel postcard","group":"Modern","window":[98,98,404,318],"shape":"rect","radius":0,"blurb":"Airmail stripes, a little stamp and a postmark","caption":{"x":300,"y":498,"w":330,"size":46,"min":24,"font":"dms","color":"#1F4E8C","upper":false,"ls":0,"rot":0,"max":20,"placeholder":"Lisbon","label":"Place name","kicker":{"text":"GREETINGS FROM","y":452,"size":17,"font":"jos","color":"#B8432F","ls":5,"family":"'Josefin Sans', sans-serif","style":"normal","weight":700},"family":"'DM Serif Display', Georgia, serif","style":"normal","weight":400}},{"id":"honeycomb","name":"Honeycomb","group":"Modern","window":[90,114.1,420,363.7],"shape":"hex","radius":0,"blurb":"Our Little Hive House signature: painted honeycomb and a busy bee","caption":null},{"id":"gold-cream","name":"Gold line on cream","group":"Elegant","window":[110,110,380,380],"shape":"rect","radius":0,"blurb":"Fine double gold rule with filigree corners","caption":null},{"id":"lace","name":"Scalloped lace","group":"Elegant","window":[122,122,356,356],"shape":"rect","radius":4,"blurb":"Heirloom white lace on dusty rose","caption":null},{"id":"floral","name":"Watercolour peonies","group":"Elegant","window":[104,104,392,392],"shape":"rect","radius":0,"blurb":"Hand-painted peonies and garden roses","caption":null},{"id":"eucalyptus","name":"Eucalyptus wreath","group":"Elegant","window":[108,104,384,384],"shape":"circle","radius":0,"blurb":"A painted silver-dollar eucalyptus wreath","caption":null},{"id":"wedding","name":"Linen & gold leaf","group":"Elegant","window":[100,96,400,326],"shape":"rect","radius":0,"blurb":"Ivory linen, torn gold leaf and your names","caption":{"x":300,"y":494,"w":360,"size":42,"min":22,"font":"serif","color":"#8A6420","upper":false,"ls":0,"rot":0,"max":26,"placeholder":"Ana & Leo · 06.14.26","label":"Names and date","kicker":null,"family":"'Playfair Display', Georgia, serif","style":"italic","weight":700}},{"id":"ornate","name":"Vintage ornate gold","group":"Elegant","window":[118,118,364,364],"shape":"rect","radius":0,"blurb":"Carved baroque gold frame with a linen liner","caption":null},{"id":"fall","name":"Painted fall leaves","group":"Seasonal & Holidays","window":[104,104,392,392],"shape":"rect","radius":4,"blurb":"Gouache maple, oak and acorns","caption":null},{"id":"holly","name":"Christmas holly","group":"Seasonal & Holidays","window":[104,104,392,392],"shape":"rect","radius":4,"blurb":"Painted holly, pine and red berries","caption":null},{"id":"snowflakes","name":"Snowflakes","group":"Seasonal & Holidays","window":[106,106,388,388],"shape":"rect","radius":14,"blurb":"Winter blue with hand-drawn snowflakes","caption":null},{"id":"hearts","name":"Hearts & confetti","group":"Seasonal & Holidays","window":[106,106,388,388],"shape":"rect","radius":14,"blurb":"Painted hearts and confetti on blush","caption":null},{"id":"tropical","name":"Tropical leaves","group":"Seasonal & Holidays","window":[104,104,392,392],"shape":"rect","radius":6,"blurb":"Painted monstera, palms and hibiscus","caption":null},{"id":"birthday","name":"Birthday balloons","group":"Kids & Fun","window":[100,140,400,290],"shape":"rect","radius":0,"blurb":"Bunting, balloons and confetti for the big day","caption":{"x":280,"y":496,"w":300,"size":44,"min":22,"font":"dms","color":"#3A2E6A","upper":false,"ls":0,"rot":0,"max":22,"placeholder":"Happy 5th, Mia!","label":"Birthday message","kicker":null,"family":"'DM Serif Display', Georgia, serif","style":"normal","weight":400}},{"id":"baby","name":"Sweet dreams baby","group":"Kids & Fun","window":[104,100,392,318],"shape":"rect","radius":34,"blurb":"Pastel sky, a sleepy moon, stars and clouds","caption":{"x":300,"y":492,"w":320,"size":44,"min":22,"font":"serif","color":"#5A6A9A","upper":false,"ls":0,"rot":0,"max":22,"placeholder":"Welcome, Olivia","label":"Baby's name","kicker":null,"family":"'Playfair Display', Georgia, serif","style":"italic","weight":700}},{"id":"sports","name":"Team spirit","group":"Kids & Fun","window":[100,100,400,314],"shape":"rect","radius":0,"blurb":"Varsity stripes and stars, with a name and number","caption":{"x":300,"y":508,"w":400,"size":64,"min":28,"font":"bebas","color":"#FFFFFF","upper":true,"ls":3,"rot":0,"max":18,"placeholder":"Mia #12","label":"Name and number","kicker":null,"family":"'Bebas Neue', Impact, sans-serif","style":"normal","weight":400}},{"id":"graduation","name":"Graduation","group":"Kids & Fun","window":[100,100,400,314],"shape":"rect","radius":0,"blurb":"Mortarboard, gold laurel and your year","caption":{"x":300,"y":490,"w":270,"size":44,"min":22,"font":"serif","color":"#F2D589","upper":false,"ls":0,"rot":0,"max":20,"placeholder":"Class of 2026","label":"Caption","kicker":null,"family":"'Playfair Display', Georgia, serif","style":"italic","weight":700}}],"groups":["Classic","Modern","Elegant","Seasonal & Holidays","Kids & Fun"]};window.LHH_FRAMES_BASE="assets/frames/";</script>
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" hidden>
   <div class="drawer-head">

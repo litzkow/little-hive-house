@@ -616,12 +616,20 @@ def page_photo():
     pg = Page("")
     import json as _json
     _frames = _json.loads((ROOT / "assets" / "frames" / "frames.json").read_text(encoding="utf-8"))
-    frame_opts = "\n".join(
-        f'            <div class="frame-opt"><input type="radio" name="frame" id="frame-{f["id"]}" value="{f["id"]}"{" checked" if f["id"] == "none" else ""}>'
-        f'<label for="frame-{f["id"]}"><span class="fprev" style="--x:{f["window"][0] / 6}%;--y:{f["window"][1] / 6}%;--w:{f["window"][2] / 6}%;--h:{f["window"][3] / 6}%;--r:{f["radius"] / 6}%">'
-        f'<i></i><img src="{pg.p}assets/frames/{f["id"]}.svg" alt=""></span><span class="fname">{E(f["name"])}</span></label></div>'
-        for f in _frames)
-    frames_js = _json.dumps({f["id"]: f for f in _frames}, separators=(",", ":"))
+    _groups = []
+    for f in _frames:
+        if f["group"] not in _groups:
+            _groups.append(f["group"])
+    # a few frames shown on a sample picture before any photo is added
+    teaser_ids = ["instant", "floral", "honeycomb", "holly", "gold-cream", "birthday"]
+    _by_id = {f["id"]: f for f in _frames}
+    frame_teaser = "\n".join(
+        f'            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="{pg.p}assets/frames/sample.svg" '
+        f'x="{_by_id[i]["window"][0]}" y="{_by_id[i]["window"][1]}" width="{_by_id[i]["window"][2]}" height="{_by_id[i]["window"][3]}" preserveAspectRatio="xMidYMid slice"/>'
+        f'<image href="{pg.p}assets/frames/{i}.svg" width="600" height="600"/></svg></span><span class="fname">{E(_by_id[i]["name"])}</span></li>'
+        for i in teaser_ids if i in _by_id)
+    group_chips = "".join(f'<button type="button" class="chip" data-group="{E(g)}" aria-pressed="false">{E(g)}</button>' for g in _groups)
+    frames_js = _json.dumps({"list": _frames, "groups": _groups}, separators=(",", ":"), ensure_ascii=False)
     body = f"""{header(pg, "photo")}
 <main id="main">
   <div class="wrap page-head">
@@ -633,7 +641,7 @@ def page_photo():
     <div class="wrap custom-grid">
       <div>
         <ol class="steps">
-          <li><div><h3>Upload your photos</h3><p>Pick your favorite pictures from your phone or computer. Bright, sharp photos print best.</p></div></li>
+          <li><div><h3>Upload your photos</h3><p>Pick your favorite pictures from your phone or computer, then tap each one to give it its own frame and caption.</p></div></li>
           <li><div><h3>Choose a pack</h3><p>4 to 50 square magnets, each 2 × 2 inches with a glossy finish. Mix them with any of our designs in the same order.</p></div></li>
           <li><div><h3>We make and ship them</h3><p>We print, press and pack every magnet by hand, then send them to your door.</p></div></li>
         </ol>
@@ -651,16 +659,6 @@ def page_photo():
             <div class="pack"><input type="radio" name="pack" id="pack-50" value="50" data-price="120"><label for="pack-50"><strong>50 magnets</strong><span>$120</span></label></div>
           </div>
         </fieldset>
-        <fieldset>
-          <legend>Frame</legend>
-          <div class="frames" id="frames">
-{frame_opts}
-          </div>
-          <div class="caption-row" id="caption-row" hidden>
-            <label class="label" for="caption">Caption <span class="muted">(optional, up to 28 letters)</span></label>
-            <input type="text" id="caption" maxlength="28" placeholder="Summer 2026">
-          </div>
-        </fieldset>
         <div>
           <p class="label">Photos</p>
           <label class="drop" id="drop" for="photos">
@@ -669,9 +667,19 @@ def page_photo():
           </label>
           <input class="visually-hidden" type="file" id="photos" accept="image/*" multiple>
         </div>
-        <div>
-          <div class="thumbs" id="thumbs" aria-live="polite"></div>
-          <p class="counter" id="counter" style="margin-top:10px">0 of 9 photos added</p>
+        <div class="magnets">
+          <div class="magnets-head">
+            <p class="label" id="magnets-label">Your magnets</p>
+            <p class="magnets-hint" id="magnets-hint" hidden>Tap a photo to choose its frame and caption.</p>
+          </div>
+          <div class="frame-teaser" id="frame-teaser">
+            <p>{len(_frames)} frames to choose from, photo by photo: classic mats, hand-painted florals, holidays, birthdays and more.</p>
+            <ul aria-label="A few of the frames">
+{frame_teaser}
+            </ul>
+          </div>
+          <ul class="thumbs" id="thumbs" aria-labelledby="magnets-label"></ul>
+          <p class="counter" id="counter" aria-live="polite">0 of 9 photos added</p>
           <p class="res-note" id="res-note" hidden></p>
         </div>
         <div>
@@ -687,6 +695,37 @@ def page_photo():
           <button type="submit" class="btn btn-honey" id="add-custom" disabled>Add to cart</button>
         </div>
       </form>
+      <dialog class="studio" id="studio" aria-labelledby="studio-title">
+        <div class="studio-head">
+          <button type="button" class="icon-btn" id="studio-prev" aria-label="Previous photo">&#8249;</button>
+          <h2 id="studio-title">Photo 1 of 1</h2>
+          <button type="button" class="icon-btn" id="studio-next" aria-label="Next photo">&#8250;</button>
+          <button type="button" class="icon-btn studio-x" id="studio-close" aria-label="Close frame picker">&#215;</button>
+        </div>
+        <div class="studio-body">
+          <div class="studio-preview">
+            <div class="studio-mag" id="studio-mag"></div>
+            <p class="studio-fname"><strong id="studio-fname">No border</strong> <span id="studio-blurb"></span></p>
+            <div class="studio-cap" id="studio-cap-row" hidden>
+              <label class="label" for="studio-cap" id="studio-cap-label">Caption</label>
+              <input type="text" id="studio-cap" maxlength="24" autocomplete="off" aria-describedby="studio-cap-help">
+              <p class="cap-help" id="studio-cap-help"><span id="studio-cap-count">0/24</span> · Optional, leave empty for none</p>
+              <button type="button" class="linkish" id="cap-all" hidden>Use this caption on all photos</button>
+            </div>
+          </div>
+          <div class="studio-pick">
+            <div class="chips" role="group" aria-label="Frame styles"><button type="button" class="chip" data-group="" aria-pressed="true">All</button>{group_chips}</div>
+            <fieldset class="swatches" id="swatches">
+              <legend class="visually-hidden" id="swatch-legend">Frame for this photo</legend>
+            </fieldset>
+          </div>
+        </div>
+        <div class="studio-foot">
+          <p class="studio-status" id="studio-status" role="status"></p>
+          <button type="button" class="btn btn-ghost btn-small" id="apply-all">Apply this frame to all photos</button>
+          <button type="button" class="btn btn-honey btn-small" id="studio-done">Done</button>
+        </div>
+      </dialog>
     </div>
   </section>
 
@@ -696,6 +735,7 @@ def page_photo():
       <div class="faq">
         <details><summary>What size are the magnets?</summary><p>Each magnet is a 2 × 2 inch square with rounded corners, a glossy front and a strong magnet back.</p></details>
         <details><summary>Which photos work best?</summary><p>Use the original photo from your camera roll. Screenshots and photos saved from chat apps are often too small and print blurry; the builder warns you when a photo looks too small.</p></details>
+        <details><summary>Can every photo have a different frame?</summary><p>Yes. Tap any photo in the builder to pick its own frame and caption, or use "Apply this frame to all photos" to frame the whole pack the same way in one tap.</p></details>
         <details><summary>Will you crop my photos?</summary><p>Yes, every photo is cropped to a square. Tell us in the notes if someone must stay in the frame and we will crop around them.</p></details>
         <details><summary>How long does it take?</summary><p>Most packs ship within 3 to 5 business days. Shipping is $4.95 and free on US orders over $35.</p></details>
         <details><summary>Can I mix my photos with your designs?</summary><p>Yes. Add photo packs and any designs from the <a href="shop.html">shop</a> to the same cart. Orders with 20 or more magnets get 10% off automatically, 50 or more get 20% off and 100 or more get 25% off.</p></details>
@@ -705,7 +745,7 @@ def page_photo():
   </section>
 </main>
 {footer(pg)}"""
-    body += f'\n<script>window.LHH_FRAMES={frames_js};window.LHH_FRAMES_BASE="assets/frames/";</script>'
+    body += f'\n<script>window.LHH_FRAMES={frames_js};window.LHH_FRAMES_BASE="{pg.p}assets/frames/";</script>'
     write("photo-magnets.html", head(pg, "Custom photo magnets", "Custom 2 × 2 inch photo magnets from your own pictures, with or without a frame. Packs of 4 to 50.", "photo-magnets.html") + body + chrome_end(pg, ("custom.js",)))
 
 

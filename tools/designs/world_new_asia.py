@@ -3137,8 +3137,9 @@ def gw2_land(C, ridges, zs, main_pts, floor=-78, x0=-14, x1=618, dx=8, seed=11):
         cs = cand(Z)
         cands.append(cs)
         prof.append([C((x - C.cx) * Z / C.f, H((x - C.cx) * Z / C.f, Z, cs), Z)[1] for x in xs])
-    PAL = [(("#7A2A1C", "#B8442A", "#F09058"), 3), (("#8A4A1C", "#D8742E", "#F8BC68"), 4), (("#7A6020", "#D4A438", "#FAE08A"), 3),
-           (("#4E4C24", "#8C8A3C", "#CCC478"), 2), (("#5E1E1E", "#9A362A", "#E47458"), 2), (("#7A5424", "#BE883A", "#F0C87C"), 2)]
+    # the hills around the wall are mostly green-olive in early autumn, with only a few warm trees
+    PAL = [(("#2E3E2A", "#4E6440", "#7E9064"), 5), (("#3A4430", "#5E6A44", "#8E9668"), 4), (("#44482E", "#6E7046", "#A0A06C"), 3),
+           (("#5A5232", "#8A7A48", "#B8A672"), 2), (("#5A4030", "#86603E", "#B48E66"), 1), (("#5E3A2E", "#8A5440", "#B07C62"), 1)]
     PINE = ("#1C2620", "#2E3C2C", "#5A6A4A")
     pool = [c for c, wgt in PAL for _ in range(wgt)]
     # 1) every slice's trees (screen position, size, colours), a band of ROWS rows deep
@@ -3334,7 +3335,7 @@ def great_wall():
         poly, line = ridge_poly(pts_, 300 + i, amp=6, fill=col)
         out.append(poly)
         top = min(p[1] for p in line)
-        out.append(gw2_far_canopy(line, 310 + i, 46, 1.6 + i * 0.35, [mix(col, c, 0.22 + 0.1 * i) for c in ("#C8603A", "#E8A040", "#B8843A", "#7A7A4A", "#B8503A")],
+        out.append(gw2_far_canopy(line, 310 + i, 46, 1.6 + i * 0.35, [mix(col, c, 0.22 + 0.1 * i) for c in ("#5E6A44", "#7A7A4A", "#6E7650", "#8A7A50", "#4E5A3E")],
                                   mix(col, "#4A4A60", 0.4), "#FFF4E0"))
         out.append(gw2_far_wall(line, xa, xb, s, tw, mix(col, "#7A746E", 0.45), mix(col, "#F4ECE0", 0.6), mix(col, "#2A2628", 0.6)))
         out.append(mist(300 + (i - 1) * 160, max(p[1] for p in line) + 4, 440, 18, "#FFF6EA", f"{u}-fm{i}", 0.85))

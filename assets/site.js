@@ -55,6 +55,17 @@
       var left = document.createElement('div');
       var h = document.createElement('h3'); h.textContent = l.name; left.appendChild(h);
       var d = document.createElement('p'); d.className = 'detail'; d.textContent = l.detail; left.appendChild(d);
+      if (l.photos && l.photos.length) {  /* photo packs: the frame (and caption) chosen for each photo */
+        var det = document.createElement('details'); det.className = 'line-photos';
+        var sm = document.createElement('summary'); sm.textContent = 'Frame for each photo'; det.appendChild(sm);
+        var ol = document.createElement('ol');
+        l.photos.forEach(function (ph) {
+          var it = document.createElement('li');
+          it.textContent = ph.frameName + (ph.caption ? ' · “' + ph.caption + '”' : '');
+          ol.appendChild(it);
+        });
+        det.appendChild(ol); left.appendChild(det);
+      }
       var amt = document.createElement('div'); amt.className = 'amt'; amt.textContent = money(l.price * l.qty);
       var qty = document.createElement('div'); qty.className = 'qty';
       var minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.setAttribute('aria-label', 'One less ' + l.name);

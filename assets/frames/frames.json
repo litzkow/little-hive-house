@@ -2,157 +2,515 @@
  {
   "id": "none",
   "name": "No border",
+  "group": "Classic",
   "window": [
    0,
    0,
    600,
    600
   ],
+  "shape": "rect",
   "radius": 0,
-  "caption": false,
-  "note": "Your photo fills the whole magnet"
+  "blurb": "Your photo fills the whole magnet",
+  "caption": null
  },
  {
-  "id": "classic",
-  "name": "Classic white",
+  "id": "white",
+  "name": "Crisp white mat",
+  "group": "Classic",
   "window": [
-   74,
-   74,
-   452,
-   452
+   100,
+   100,
+   400,
+   400
   ],
+  "shape": "rect",
   "radius": 0,
-  "caption": false,
-  "note": ""
+  "blurb": "Gallery-white mat with a hand-cut bevel",
+  "caption": null
  },
  {
-  "id": "polaroid",
+  "id": "instant",
   "name": "Instant photo",
+  "group": "Classic",
   "window": [
-   78,
-   72,
-   444,
-   384
+   94,
+   90,
+   412,
+   344
   ],
+  "shape": "rect",
   "radius": 0,
-  "caption": true,
-  "note": "Add a short caption"
- },
- {
-  "id": "rounded",
-  "name": "Soft corners",
-  "window": [
-   80,
-   80,
-   440,
-   440
-  ],
-  "radius": 46,
-  "caption": false,
-  "note": ""
- },
- {
-  "id": "honey",
-  "name": "Honey line",
-  "window": [
-   92,
-   92,
-   416,
-   416
-  ],
-  "radius": 0,
-  "caption": false,
-  "note": ""
+  "blurb": "The classic instant print, with a handwritten caption",
+  "caption": {
+   "x": 300,
+   "y": 494,
+   "w": 380,
+   "size": 46,
+   "min": 24,
+   "font": "serif",
+   "color": "#2D3A6B",
+   "upper": false,
+   "ls": 0,
+   "rot": -2,
+   "max": 22,
+   "placeholder": "Summer 2026",
+   "label": "Handwritten caption",
+   "kicker": null,
+   "family": "'Playfair Display', Georgia, serif",
+   "style": "italic",
+   "weight": 700
+  }
  },
  {
   "id": "gallery",
-  "name": "Gallery black",
+  "name": "Black gallery mat",
+  "group": "Classic",
   "window": [
-   96,
-   96,
-   408,
-   408
+   106,
+   106,
+   388,
+   388
   ],
+  "shape": "rect",
   "radius": 0,
-  "caption": false,
-  "note": ""
+  "blurb": "Deep black mat with a bright white bevel",
+  "caption": null
  },
  {
-  "id": "scallop",
-  "name": "Pink scallop",
+  "id": "rounded",
+  "name": "Rounded modern",
+  "group": "Modern",
   "window": [
-   102,
-   102,
-   396,
-   396
+   104,
+   104,
+   392,
+   392
   ],
-  "radius": 0,
-  "caption": false,
-  "note": ""
+  "shape": "rect",
+  "radius": 64,
+  "blurb": "Soft sage with a cut-out arch and sunny shapes",
+  "caption": null
  },
  {
   "id": "film",
   "name": "Film strip",
+  "group": "Modern",
   "window": [
-   52,
-   86,
-   496,
-   428
+   82,
+   128,
+   436,
+   344
   ],
+  "shape": "rect",
   "radius": 0,
-  "caption": false,
-  "note": ""
+  "blurb": "A frame cut from a roll of 35mm film",
+  "caption": null
  },
  {
-  "id": "autumn",
-  "name": "Autumn leaves",
+  "id": "stamp",
+  "name": "Postage stamp",
+  "group": "Modern",
   "window": [
-   84,
-   84,
-   432,
-   432
+   102,
+   102,
+   396,
+   340
   ],
-  "radius": 8,
-  "caption": false,
-  "note": ""
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Perforated stamp with a postmark, on kraft paper",
+  "caption": {
+   "x": 300,
+   "y": 494,
+   "w": 330,
+   "size": 30,
+   "min": 18,
+   "font": "jos",
+   "color": "#FBF5EA",
+   "upper": true,
+   "ls": 4,
+   "rot": 0,
+   "max": 20,
+   "placeholder": "With love",
+   "label": "Stamp text",
+   "kicker": null,
+   "family": "'Josefin Sans', sans-serif",
+   "style": "normal",
+   "weight": 700
+  }
+ },
+ {
+  "id": "postcard",
+  "name": "Travel postcard",
+  "group": "Modern",
+  "window": [
+   98,
+   98,
+   404,
+   318
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Airmail stripes, a little stamp and a postmark",
+  "caption": {
+   "x": 300,
+   "y": 498,
+   "w": 330,
+   "size": 46,
+   "min": 24,
+   "font": "dms",
+   "color": "#1F4E8C",
+   "upper": false,
+   "ls": 0,
+   "rot": 0,
+   "max": 20,
+   "placeholder": "Lisbon",
+   "label": "Place name",
+   "kicker": {
+    "text": "GREETINGS FROM",
+    "y": 452,
+    "size": 17,
+    "font": "jos",
+    "color": "#B8432F",
+    "ls": 5,
+    "family": "'Josefin Sans', sans-serif",
+    "style": "normal",
+    "weight": 700
+   },
+   "family": "'DM Serif Display', Georgia, serif",
+   "style": "normal",
+   "weight": 400
+  }
+ },
+ {
+  "id": "honeycomb",
+  "name": "Honeycomb",
+  "group": "Modern",
+  "window": [
+   90,
+   114.1,
+   420,
+   363.7
+  ],
+  "shape": "hex",
+  "radius": 0,
+  "blurb": "Our Little Hive House signature: painted honeycomb and a busy bee",
+  "caption": null
+ },
+ {
+  "id": "gold-cream",
+  "name": "Gold line on cream",
+  "group": "Elegant",
+  "window": [
+   110,
+   110,
+   380,
+   380
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Fine double gold rule with filigree corners",
+  "caption": null
+ },
+ {
+  "id": "lace",
+  "name": "Scalloped lace",
+  "group": "Elegant",
+  "window": [
+   122,
+   122,
+   356,
+   356
+  ],
+  "shape": "rect",
+  "radius": 4,
+  "blurb": "Heirloom white lace on dusty rose",
+  "caption": null
+ },
+ {
+  "id": "floral",
+  "name": "Watercolour peonies",
+  "group": "Elegant",
+  "window": [
+   104,
+   104,
+   392,
+   392
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Hand-painted peonies and garden roses",
+  "caption": null
+ },
+ {
+  "id": "eucalyptus",
+  "name": "Eucalyptus wreath",
+  "group": "Elegant",
+  "window": [
+   108,
+   104,
+   384,
+   384
+  ],
+  "shape": "circle",
+  "radius": 0,
+  "blurb": "A painted silver-dollar eucalyptus wreath",
+  "caption": null
+ },
+ {
+  "id": "wedding",
+  "name": "Linen & gold leaf",
+  "group": "Elegant",
+  "window": [
+   100,
+   96,
+   400,
+   326
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Ivory linen, torn gold leaf and your names",
+  "caption": {
+   "x": 300,
+   "y": 494,
+   "w": 360,
+   "size": 42,
+   "min": 22,
+   "font": "serif",
+   "color": "#8A6420",
+   "upper": false,
+   "ls": 0,
+   "rot": 0,
+   "max": 26,
+   "placeholder": "Ana & Leo · 06.14.26",
+   "label": "Names and date",
+   "kicker": null,
+   "family": "'Playfair Display', Georgia, serif",
+   "style": "italic",
+   "weight": 700
+  }
+ },
+ {
+  "id": "ornate",
+  "name": "Vintage ornate gold",
+  "group": "Elegant",
+  "window": [
+   118,
+   118,
+   364,
+   364
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Carved baroque gold frame with a linen liner",
+  "caption": null
+ },
+ {
+  "id": "fall",
+  "name": "Painted fall leaves",
+  "group": "Seasonal & Holidays",
+  "window": [
+   104,
+   104,
+   392,
+   392
+  ],
+  "shape": "rect",
+  "radius": 4,
+  "blurb": "Gouache maple, oak and acorns",
+  "caption": null
  },
  {
   "id": "holly",
-  "name": "Holly & berries",
+  "name": "Christmas holly",
+  "group": "Seasonal & Holidays",
   "window": [
-   84,
-   84,
-   432,
-   432
+   104,
+   104,
+   392,
+   392
   ],
-  "radius": 8,
-  "caption": false,
-  "note": ""
+  "shape": "rect",
+  "radius": 4,
+  "blurb": "Painted holly, pine and red berries",
+  "caption": null
+ },
+ {
+  "id": "snowflakes",
+  "name": "Snowflakes",
+  "group": "Seasonal & Holidays",
+  "window": [
+   106,
+   106,
+   388,
+   388
+  ],
+  "shape": "rect",
+  "radius": 14,
+  "blurb": "Winter blue with hand-drawn snowflakes",
+  "caption": null
  },
  {
   "id": "hearts",
-  "name": "Little hearts",
+  "name": "Hearts & confetti",
+  "group": "Seasonal & Holidays",
   "window": [
-   84,
-   84,
-   432,
-   432
+   106,
+   106,
+   388,
+   388
   ],
-  "radius": 12,
-  "caption": false,
-  "note": ""
+  "shape": "rect",
+  "radius": 14,
+  "blurb": "Painted hearts and confetti on blush",
+  "caption": null
  },
  {
-  "id": "starry",
-  "name": "Starry night",
+  "id": "tropical",
+  "name": "Tropical leaves",
+  "group": "Seasonal & Holidays",
   "window": [
-   88,
-   88,
-   424,
-   424
+   104,
+   104,
+   392,
+   392
   ],
-  "radius": 10,
-  "caption": false,
-  "note": ""
+  "shape": "rect",
+  "radius": 6,
+  "blurb": "Painted monstera, palms and hibiscus",
+  "caption": null
+ },
+ {
+  "id": "birthday",
+  "name": "Birthday balloons",
+  "group": "Kids & Fun",
+  "window": [
+   100,
+   140,
+   400,
+   290
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Bunting, balloons and confetti for the big day",
+  "caption": {
+   "x": 280,
+   "y": 496,
+   "w": 300,
+   "size": 44,
+   "min": 22,
+   "font": "dms",
+   "color": "#3A2E6A",
+   "upper": false,
+   "ls": 0,
+   "rot": 0,
+   "max": 22,
+   "placeholder": "Happy 5th, Mia!",
+   "label": "Birthday message",
+   "kicker": null,
+   "family": "'DM Serif Display', Georgia, serif",
+   "style": "normal",
+   "weight": 400
+  }
+ },
+ {
+  "id": "baby",
+  "name": "Sweet dreams baby",
+  "group": "Kids & Fun",
+  "window": [
+   104,
+   100,
+   392,
+   318
+  ],
+  "shape": "rect",
+  "radius": 34,
+  "blurb": "Pastel sky, a sleepy moon, stars and clouds",
+  "caption": {
+   "x": 300,
+   "y": 492,
+   "w": 320,
+   "size": 44,
+   "min": 22,
+   "font": "serif",
+   "color": "#5A6A9A",
+   "upper": false,
+   "ls": 0,
+   "rot": 0,
+   "max": 22,
+   "placeholder": "Welcome, Olivia",
+   "label": "Baby's name",
+   "kicker": null,
+   "family": "'Playfair Display', Georgia, serif",
+   "style": "italic",
+   "weight": 700
+  }
+ },
+ {
+  "id": "sports",
+  "name": "Team spirit",
+  "group": "Kids & Fun",
+  "window": [
+   100,
+   100,
+   400,
+   314
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Varsity stripes and stars, with a name and number",
+  "caption": {
+   "x": 300,
+   "y": 508,
+   "w": 400,
+   "size": 64,
+   "min": 28,
+   "font": "bebas",
+   "color": "#FFFFFF",
+   "upper": true,
+   "ls": 3,
+   "rot": 0,
+   "max": 18,
+   "placeholder": "Mia #12",
+   "label": "Name and number",
+   "kicker": null,
+   "family": "'Bebas Neue', Impact, sans-serif",
+   "style": "normal",
+   "weight": 400
+  }
+ },
+ {
+  "id": "graduation",
+  "name": "Graduation",
+  "group": "Kids & Fun",
+  "window": [
+   100,
+   100,
+   400,
+   314
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Mortarboard, gold laurel and your year",
+  "caption": {
+   "x": 300,
+   "y": 490,
+   "w": 270,
+   "size": 44,
+   "min": 22,
+   "font": "serif",
+   "color": "#F2D589",
+   "upper": false,
+   "ls": 0,
+   "rot": 0,
+   "max": 20,
+   "placeholder": "Class of 2026",
+   "label": "Caption",
+   "kicker": null,
+   "family": "'Playfair Display', Georgia, serif",
+   "style": "italic",
+   "weight": 700
+  }
  }
 ]
