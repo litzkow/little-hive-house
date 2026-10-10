@@ -2656,6 +2656,662 @@ def gw_walk(C, ctrl, hw=2.3, pt=0.45, mer=1.85, cren=1.15, low=1.0, body=6.5, li
     return items, pts, arcs, fr
 
 
+# ---------------------------------------------------------------- Great Wall v2: grey Ming brick on the crests (Mutianyu / Jinshanling)
+GW_SUN = (-0.921, 0.390)          # XZ unit vector toward the low morning sun: off to the left, a little ahead of us
+GW_HAZE = "#E4DCD8"
+GW_LIT, GW_SHADE = "#BDB3A5", "#6C6865"           # grey-brown Ming brick in sun / in shade
+GW_STONE_LIT, GW_STONE_SH = "#B3A895", "#686258"  # dressed granite footing
+GW_COPE = "#D4CCC0"
+GW_TREAD, GW_RISER, GW_JOINT = "#A69F95", "#6E6964", "#55504C"
+
+
+def gw2_amt(Z):
+    return max(0.0, min(0.6, (Z - 24) / 470))
+
+
+def gw2_hz(col, Z, extra=0.0):
+    return mix(col, GW_HAZE, min(0.85, gw2_amt(Z) + extra))
+
+
+def gw2_tone(n, lit, shade, Z, k=0.75):
+    """Face colour from its horizontal outward normal: toward the sun -> warm lit brick, away -> cool shade."""
+    d = n[0] * GW_SUN[0] + n[1] * GW_SUN[1]
+    return gw2_hz(mix(shade, lit, max(0.0, min(1.0, 0.42 + k * d))), Z)
+
+
+class GwPath:
+    """Centre line of the walkway (X right, Y up, Z ahead, metres) as a Catmull-Rom curve with arc-length lookup."""
+    def __init__(self, ctrl):
+        dense = []
+        ext = [ctrl[0]] + ctrl + [ctrl[-1]]
+        for i in range(1, len(ext) - 2):
+            p0, p1, p2, p3 = ext[i - 1], ext[i], ext[i + 1], ext[i + 2]
+            for j in range(40):
+                t = j / 40
+                t2, t3 = t * t, t * t * t
+                dense.append(tuple(0.5 * ((2 * p1[c]) + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2
+                                          + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3) for c in range(3)))
+        dense.append(ctrl[-1])
+        self.d = dense
+        self.S = [0.0]
+        for a, b in zip(dense, dense[1:]):
+            self.S.append(self.S[-1] + math.dist(a, b))
+        self.total = self.S[-1]
+
+    def at(self, s):
+        import bisect
+        s = max(0.0, min(self.total, s))
+        k = max(0, min(len(self.d) - 2, bisect.bisect_right(self.S, s) - 1))
+        t = (s - self.S[k]) / max(1e-9, self.S[k + 1] - self.S[k])
+        a, b = self.d[k], self.d[k + 1]
+        return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t)
+
+    def tan(self, s):
+        a, b = self.at(s - 0.6), self.at(s + 0.6)
+        tx, tz = b[0] - a[0], b[2] - a[2]
+        dd = math.hypot(tx, tz) or 1.0
+        return (tx / dd, tz / dd)
+
+    def nrm(self, s):
+        tx, tz = self.tan(s)
+        return (-tz, tx)          # left of the walking direction = the outer, crenellated side
+
+    def s_at_z(self, Z):
+        return min((abs(self.at(s)[2] - Z), s) for s in [i * 0.25 for i in range(int(self.total / 0.25) + 1)])[1]
+
+
+GW_STEP = 0.46
+
+
+def gw2_floor(path, s):
+    """Height of the tread under arc position s (steps are flat treads, not a ramp)."""
+    k = math.floor(s / GW_STEP)
+    a, b = path.at(k * GW_STEP)[1], path.at((k + 1) * GW_STEP)[1]
+    if abs(b - a) < 0.1 * GW_STEP:
+        return path.at(s)[1]
+    return max(a, b)
+
+
+def gw2_wall(C, path, hw=2.3, pt=0.5, mer=1.9, cren=1.25, low=1.05, body=6.8, P_=2.15, M_=1.55, skip=(), seed=3):
+    """The wall as a solid in perspective, segment by segment far to near: grey brick body on its granite footing, the
+    walkway in worn grey brick with real steps (treads and risers), a crenellated parapet on the outer (left) side with a
+    lookout hole in every merlon and a shooting hole under every crenel, and a low parapet on the inner side; the low sun
+    throws the merlons' toothed shadow across the walkway. Returns (depth, svg) items."""
+    rnd = random.Random(seed)
+    cam = (0.0, C.eye, 0.0)
+    sv = [0.0]
+    s = 0.0
+    while s < path.total:
+        s += max(0.36, 0.02 * path.at(s)[2])
+        sv.append(min(s, path.total))
+    k = 0
+    while k * P_ < path.total:
+        Zk = path.at(k * P_)[2]
+        if Zk < 125:
+            sv += [k * P_, k * P_ + M_]
+        if Zk < 48:      # lookout hole in the merlon, shooting hole under the crenel
+            c1, c2 = k * P_ + M_ / 2, k * P_ + M_ + (P_ - M_) / 2
+            sv += [c1 - 0.12, c1 + 0.12, c2 - 0.1, c2 + 0.1]
+        k += 1
+    sv = sorted(v for v in set(round(v, 4) for v in sv) if 0 <= v <= path.total)
+    clean = [sv[0]]
+    for v in sv[1:]:
+        if v - clean[-1] > 0.015:
+            clean.append(v)
+    sv = clean
+
+    def is_mer(x):
+        return (x % P_) < M_
+
+    def off(A, n, d, dy=0.0):
+        return (A[0] + n[0] * d, A[1] + dy, A[2] + n[1] * d)
+
+    def up(A, dy):
+        return (A[0], A[1] + dy, A[2])
+
+    def vis(m, A):
+        return m[0] * (cam[0] - A[0]) + m[1] * (cam[2] - A[2]) > 0
+
+    lt = (-GW_SUN[0], -GW_SUN[1])     # light travel
+    items = []
+    for s0, s1 in zip(sv, sv[1:]):
+        sm = (s0 + s1) / 2
+        if any(a <= sm <= b for a, b in skip):
+            continue
+        p, q = path.at(s0), path.at(s1)
+        Z = (p[2] + q[2]) / 2
+        if Z < 1.2:
+            continue
+        # overlap each piece a hair onto the farther one so no anti-aliasing seams show between them
+        e_ = min(0.3 * (s1 - s0), 0.8 * Z / C.f)
+        q = path.at(s1 + e_)
+        na, nb = path.nrm(s0), path.nrm(s1 + e_)
+        tt = path.tan(sm)
+        merl = is_mer(sm)
+        sw = max(0.35, 2.2 / Z)
+        g = []
+
+        def quad(pts3, col, extra=""):
+            g.append(Q([C(*x) for x in pts3], col, extra))
+
+        pend = {}
+
+        def seg(A, B, col, w, op):
+            a, b = C(*A), C(*B)
+            pend.setdefault((col, round(w, 2), op), []).append(f"M{a[0]:.1f} {a[1]:.1f}L{b[0]:.1f} {b[1]:.1f}")
+
+        def flush():
+            for (col, w, op), ds in pend.items():
+                g.append(f'<path d="{"".join(ds)}" stroke="{col}" stroke-width="{w:g}" opacity="{op}" fill="none"/>')
+            pend.clear()
+
+        def courses(A, B, y0, y1, step, col, op, joints=False):
+            n_ = int((y1 - y0) / step)
+            for kk in range(1, n_ + 1):
+                yy = y0 + kk * step
+                seg(up(A, yy), up(B, yy), col, sw, op)
+                if joints:
+                    sh = (kk % 2) * 0.19
+                    for jx in range(int(s0 / 0.38) - 1, int(s1 / 0.38) + 2):
+                        sj = jx * 0.38 + sh
+                        if s0 < sj < s1:
+                            f_ = (sj - s0) / (s1 - s0)
+                            J = (A[0] + (B[0] - A[0]) * f_, A[1] + (B[1] - A[1]) * f_, A[2] + (B[2] - A[2]) * f_)
+                            seg(up(J, yy - step), up(J, yy), col, sw * 0.8, op * 0.8)
+
+        def side_parts(side):
+            ma, mb = (na[0] * side, na[1] * side), (nb[0] * side, nb[1] * side)
+            mN = ((ma[0] + mb[0]) / 2, (ma[1] + mb[1]) / 2)
+            Ip, Iq = off(p, ma, hw), off(q, mb, hw)
+            Op, Oq = off(p, ma, hw + pt), off(q, mb, hw + pt)
+            h = (mer if merl else cren) if side > 0 else low
+            # outer face, running down the body to the footing in the slope
+            if vis(mN, Op):
+                col = gw2_tone(mN, GW_LIT, GW_SHADE, Z)
+                foot = -body - 3.5
+                quad([up(Op, foot), up(Oq, foot), up(Oq, h), up(Op, h)], col)
+                quad([up(Op, foot), up(Oq, foot), up(Oq, -body + 2.0), up(Op, -body + 2.0)], gw2_tone(mN, GW_STONE_LIT, GW_STONE_SH, Z))
+                if Z < 90:
+                    courses(Op, Oq, -body + 2.0, h, 0.5 if Z < 30 else 1.0, gw2_hz("#3E3A38", Z), 0.4)
+                    courses(Op, Oq, -body - 1.0, -body + 2.0, 0.75, gw2_hz(GW_JOINT, Z), 0.35)
+                if rnd.random() < 0.05 and Z < 140:   # a rain stain down the face
+                    f_ = rnd.random()
+                    A = off(p, ma, hw + pt, 0)
+                    seg(up(A, h - 0.1), up(A, h - rnd.uniform(2, 5)), gw2_hz("#4A4644", Z), max(0.8, 0.5 * C.f / Z), 0.18)
+            # end faces of a merlon (the sides of the crenel gaps)
+            if side > 0 and merl:
+                if abs((s0 + 1e-6) % P_) < 2e-3 and vis((-tt[0], -tt[1]), Ip):
+                    quad([up(Ip, cren), up(Op, cren), up(Op, mer), up(Ip, mer)], gw2_hz(mix(GW_SHADE, GW_LIT, 0.55), Z))
+                if abs(((s1 + 1e-6) % P_) - M_) < 2e-3 and vis(tt, Iq):
+                    quad([up(Iq, cren), up(Oq, cren), up(Oq, mer), up(Iq, mer)], gw2_hz(mix(GW_SHADE, GW_LIT, 0.3), Z))
+            # inner face, toward the walkway
+            iN = (-mN[0], -mN[1])
+            if vis(iN, Ip):
+                col = gw2_tone(iN, GW_LIT, GW_SHADE, Z, 0.6)
+                quad([Ip, Iq, up(Iq, h), up(Ip, h)], col)
+                if Z < 30:
+                    quad([Ip, Iq, up(Iq, 0.32), up(Ip, 0.32)], gw2_hz("#4E4A48", Z), ' opacity="0.3"')
+                    seg(up(Ip, h - 0.07), up(Iq, h - 0.07), gw2_hz("#3E3A3A", Z), max(0.4, 0.06 * C.f / Z), 0.35)
+                if Z < 16:
+                    courses(Ip, Iq, 0, h, 0.16 if Z < 9 else 0.32, gw2_hz(GW_JOINT, Z), 0.38, joints=Z < 7.5)
+                elif Z < 40:
+                    courses(Ip, Iq, 0, h, 0.6, gw2_hz(GW_JOINT, Z), 0.3)
+                if side > 0 and Z < 48:
+                    c1 = math.floor(sm / P_) * P_ + M_ / 2
+                    c2 = math.floor(sm / P_) * P_ + M_ + (P_ - M_) / 2
+                    if merl and abs(sm - c1) < 0.119:           # square lookout hole in the merlon
+                        quad([up(Ip, 1.45), up(Iq, 1.45), up(Iq, 1.66), up(Ip, 1.66)], gw2_hz("#3A3634", Z))
+                    if not merl and abs(sm - c2) < 0.099:      # shooting hole low under the crenel
+                        quad([up(Ip, 0.45), up(Iq, 0.45), up(Iq, 0.64), up(Ip, 0.64)], gw2_hz("#3A3634", Z))
+                if rnd.random() < 0.06 and Z < 30:   # odd darker / paler bricks
+                    f_ = rnd.uniform(0.1, 0.7)
+                    y0 = rnd.choice([0.16, 0.48, 0.8, 1.12])
+                    quad([up(Ip, y0), up(Iq, y0), up(Iq, y0 + 0.16), up(Ip, y0 + 0.16)], gw2_hz(rnd.choice(["#8A847C", "#5E5A56", "#9A8E7E"]), Z), ' opacity="0.6"')
+            # coping on top, the palest line
+            if C.eye > max(p[1], q[1]) + h:
+                quad([up(Ip, h), up(Iq, h), up(Oq, h), up(Op, h)], gw2_hz(GW_COPE, Z))
+            flush()
+
+        dL = math.dist(cam, off(p, na, hw))
+        dR = math.dist(cam, off(p, na, -hw))
+        order = [1, -1] if dL > dR else [-1, 1]
+        side_parts(order[0])
+        # the walkway: worn grey brick, flat paving or flights of steps
+        Lp, Lq, Rp, Rq = off(p, na, hw), off(q, nb, hw), off(p, na, -hw), off(q, nb, -hw)
+        horiz = math.hypot(q[0] - p[0], q[2] - p[2])
+        slope = (q[1] - p[1]) / max(0.01, horiz)
+        if abs(slope) < 0.1 or Z > 95:
+            if C.eye > max(p[1], q[1]):
+                quad([Lp, Lq, Rq, Rp], gw2_hz(mix(GW_TREAD, "#B8B0A4", 0.5 if (int(sm / GW_STEP) % 2) else 0.2) if abs(slope) >= 0.1 else GW_TREAD, Z))
+                if Z < 16:
+                    for f_ in (-0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75):
+                        seg(off(p, na, hw * f_), off(q, nb, hw * f_), gw2_hz(GW_JOINT, Z), sw * 0.8, 0.35)
+                    seg(Lp, Rp, gw2_hz(GW_JOINT, Z), sw * 0.8, 0.3)
+            else:
+                quad([Lp, Lq, Rq, Rp], gw2_hz(GW_RISER, Z))
+        else:
+            k0, k1 = math.floor(s0 / GW_STEP), math.floor((s1 - 1e-6) / GW_STEP)
+            for kk in range(k1, k0 - 1, -1):
+                a_, b_ = max(s0, kk * GW_STEP), min(s1, (kk + 1) * GW_STEP)
+                b_e = b_ + (e_ if b_ == s1 else 0.0)
+                ya, yb = path.at(kk * GW_STEP)[1], path.at((kk + 1) * GW_STEP)[1]
+                top = max(ya, yb)
+                A, B = path.at(a_), path.at(b_e)
+                nA, nB = path.nrm(a_), path.nrm(b_e)
+                LA, LB, RA, RB = off(A, nA, hw), off(B, nB, hw), off(A, nA, -hw), off(B, nB, -hw)
+                LA, LB, RA, RB = [(x[0], top, x[2]) for x in (LA, LB, RA, RB)]
+                rv = (kk * 7919) % 11 / 10.0
+                tread = mix(GW_TREAD, "#8C857C" if rv < 0.5 else "#BDB5A9", abs(rv - 0.5) * 0.9)
+                if C.eye > top:
+                    quad([LA, LB, RB, RA], gw2_hz(tread, Z))
+                if yb > ya and a_ == kk * GW_STEP:       # climbing away: the riser faces us
+                    quad([(LA[0], ya, LA[2]), (RA[0], ya, RA[2]), RA, LA], gw2_hz(mix(GW_RISER, "#4E4A48", rv * 0.3), Z))
+                    if C.eye > top and Z < 70:
+                        seg(LA, RA, gw2_hz("#D8D0C4", Z), sw * 1.1, 0.7)
+                elif yb < ya and b_ == (kk + 1) * GW_STEP and Z < 60:   # dropping away: the nosing and the drop beyond
+                    seg(LB, RB, gw2_hz("#3E3A3A", Z), sw * 1.4, 0.55)
+                    if Z < 30:
+                        LB2, RB2 = off(LB, nB, 0), off(RB, nB, 0)
+                        seg(up(LB2, -0.02), up(RB2, -0.02), gw2_hz("#DCD4C8", Z), sw * 0.9, 0.6)
+                if Z < 14 and C.eye > top and rnd.random() < 0.35:   # a worn, paler or darker patch of brick
+                    f0 = rnd.uniform(-0.8, 0.5)
+                    f1 = f0 + rnd.uniform(0.15, 0.45)
+                    quad([off(LA, nA, -hw * (1 + f0)), off(LB, nB, -hw * (1 + f0)), off(LB, nB, -hw * (1 + f1)), off(LA, nA, -hw * (1 + f1))],
+                         gw2_hz(rnd.choice(["#C4BCB0", "#8C857C", "#B0A698"]), Z), ' opacity="0.45"')
+                if Z < 12 and C.eye > top and (b_ - a_) > 0.2:   # brick joints in the tread
+                    for f_ in (-0.66, -0.33, 0.0, 0.33, 0.66):
+                        sh = 0.16 if kk % 2 else 0.0
+                        seg(off(LA, nA, -hw * (1 - f_ - sh)), off(LB, nB, -hw * (1 - f_ - sh)), gw2_hz(GW_JOINT, Z), sw * 0.7, 0.3)
+        flush()
+        # the parapets' shadows thrown across the walkway by the low sun (toothed under the merlons)
+        for side in (1, -1):
+            ma, mb = (na[0] * side, na[1] * side), (nb[0] * side, nb[1] * side)
+            lp = -(lt[0] * ma[0] + lt[1] * ma[1])
+            if lp > 0.08 and C.eye > max(p[1], q[1]):
+                h = (mer if merl else cren) if side > 0 else low
+                w = min(2 * hw - 0.2, h * lp * 1.35)
+                Ip, Iq = off(p, ma, hw, 0.13), off(q, mb, hw, 0.13)
+                quad([Ip, Iq, off(Iq, mb, -w), off(Ip, ma, -w)], "#2C2E48", f' opacity="{0.22 if Z < 60 else 0.15}"')
+        side_parts(order[1])
+        flush()
+        items.append((Z, "".join(g)))
+    return items
+
+
+def gw2_tower(C, path, s, w=10.5, d=9.6, h1=5.4, below=10.0, pav=False, seed=0):
+    """A square two-storey watchtower astride the wall at arc position s: granite base, a grey brick storey with a row of
+    arched windows (an arched doorway where the walkway runs through), a corbelled cornice and a crenellated roof
+    platform; pav adds a small brick watch-house with a tiled hip roof on top."""
+    rnd = random.Random(seed)
+    c = path.at(s)
+    c = (c[0], gw2_floor(path, s), c[2])
+    t = path.tan(s)
+    n = (-t[1], t[0])
+    Z = c[2]
+    cam = (0.0, C.eye, 0.0)
+
+    def W(a, b, y):
+        return (c[0] + t[0] * a + n[0] * b, c[1] + y, c[2] + t[1] * a + n[1] * b)
+
+    def at(a, b, y):
+        return C(*W(a, b, y))
+
+    o = []
+
+    def box(hw_, hd_, y0, y1, kind, faces_out):
+        fl = [((-hw_, hd_), (hw_, hd_), n, "side"), ((hw_, -hd_), (-hw_, -hd_), (-n[0], -n[1]), "side"),
+              ((-hw_, -hd_), (-hw_, hd_), (-t[0], -t[1]), "end"), ((hw_, hd_), (hw_, -hd_), t, "end")]
+        vs = []
+        for (a0, b0), (a1, b1), m, kd in fl:
+            P0 = W((a0 + a1) / 2, (b0 + b1) / 2, 0)
+            if m[0] * (cam[0] - P0[0]) + m[1] * (cam[2] - P0[2]) > 0:
+                vs.append((a0, b0, a1, b1, m, kd))
+        faces_out += vs
+        return vs
+
+    def fpt(f, u, y):
+        a0, b0, a1, b1 = f[:4]
+        return at(a0 + (a1 - a0) * u, b0 + (b1 - b0) * u, y)
+
+    def arch_poly(f, u, half, y0, y1):
+        L = math.hypot(f[2] - f[0], f[3] - f[1])
+        du = half / L
+        pts = [fpt(f, u - du, y0), fpt(f, u - du, y1)]
+        for k in range(1, 8):
+            th = math.pi * k / 8
+            pts.append(fpt(f, u - du * math.cos(th), y1 + half * math.sin(th)))
+        pts += [fpt(f, u + du, y1), fpt(f, u + du, y0)]
+        return pts
+
+    det = Z < 120
+    faces = []
+    vs = box(w / 2, d / 2, -below, h1, "tower", faces)
+    for f in vs:
+        a0, b0, a1, b1, m, kd = f
+        L = math.hypot(a1 - a0, b1 - b0)
+        col = gw2_tone(m, GW_LIT, GW_SHADE, Z)
+        o.append(Q([fpt(f, 0, -below), fpt(f, 1, -below), fpt(f, 1, h1), fpt(f, 0, h1)], col))
+        o.append(Q([fpt(f, 0, -below), fpt(f, 1, -below), fpt(f, 1, 0.3), fpt(f, 0, 0.3)], gw2_tone(m, GW_STONE_LIT, GW_STONE_SH, Z)))
+        if det:
+            lw = max(0.35, 2.2 / Z)
+            jc = gw2_hz(GW_JOINT, Z)
+            for yy in [0.3 + 0.55 * k for k in range(1, 10)] + [-below + 0.8 * k for k in range(1, int((below + 0.3) / 0.8))]:
+                if yy < h1 - 0.1:
+                    a, b = fpt(f, 0, yy), fpt(f, 1, yy)
+                    o.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{jc}" stroke-width="{lw:.2f}" opacity="0.28"/>')
+        # rain stains below the openings and the cornice
+        for _ in range(3 if det else 0):
+            u = rnd.uniform(0.08, 0.92)
+            a, b = fpt(f, u, h1 - 0.2), fpt(f, u, h1 - rnd.uniform(2.5, 6.0))
+            o.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{gw2_hz("#4A4644", Z)}" stroke-width="{0.35 * C.f / Z:.1f}" opacity="0.16"/>')
+        # openings: arched windows in a row; the walkway's arched doorway on the end faces
+        frame = gw2_hz(mix(col, GW_COPE, 0.35), Z)
+        dark = gw2_hz("#262224", Z, -0.08)
+        if kd == "side":
+            nw = 4 if L > 10.2 else 3
+            us = [(j + 0.5) / nw for j in range(nw)]
+            for u in us:
+                o.append(Q(arch_poly(f, u, 0.62, 1.55, 3.0), frame))
+                o.append(Q(arch_poly(f, u, 0.45, 1.7, 3.0), dark))
+        else:
+            o.append(Q(arch_poly(f, 0.5, 1.0, 0.0, 2.2), frame))
+            o.append(Q(arch_poly(f, 0.5, 0.8, 0.0, 2.2), dark))
+            for u in (0.17, 0.83):
+                o.append(Q(arch_poly(f, u, 0.55, 1.55, 3.0), frame))
+                o.append(Q(arch_poly(f, u, 0.4, 1.7, 3.0), dark))
+    # corbelled cornice and the crenellated roof platform
+    ext = 0.25
+    vs2 = box(w / 2 + ext, d / 2 + ext, h1, h1 + 0.45, "cornice", [])
+    for f in vs2:
+        m = f[4]
+        o.append(Q([fpt(f, 0, h1), fpt(f, 1, h1), fpt(f, 1, h1 + 0.45), fpt(f, 0, h1 + 0.45)], gw2_hz(mix(gw2_tone(m, GW_LIT, GW_SHADE, 0), GW_COPE, 0.35), Z)))
+        a, b = fpt(f, 0, h1), fpt(f, 1, h1)
+        o.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{gw2_hz("#3A3636", Z)}" stroke-width="{max(0.5, 0.18 * C.f / Z):.2f}" opacity="0.6"/>')
+    ptop = h1 + 0.45 + 1.0
+    if pav:      # brick watch-house on the platform with a grey tiled hip roof and lifted corners
+        base = h1 + 0.45
+        hh = 4.0
+        pw, pd = w * 0.27, d * 0.28
+        for f in box(pw, pd, base, base + hh, "house", []):
+            m = f[4]
+            col = gw2_tone(m, GW_LIT, GW_SHADE, Z)
+            o.append(Q([fpt(f, 0, base), fpt(f, 1, base), fpt(f, 1, base + hh), fpt(f, 0, base + hh)], col))
+            o.append(Q(arch_poly(f, 0.5, 0.42, base, base + 1.4), gw2_hz("#262224", Z)))
+        ey = base + hh
+        ew, ed = pw + 0.9, pd + 0.9
+        rh = 2.5
+        rl = ew * 0.38
+        E = {(-1, -1): W(-ew, -ed, ey), (1, -1): W(ew, -ed, ey), (1, 1): W(ew, ed, ey), (-1, 1): W(-ew, ed, ey)}
+        R1, R2 = W(-rl, 0, ey + rh), W(rl, 0, ey + rh)
+        planes = [([E[(-1, 1)], E[(1, 1)], R2, R1], n), ([E[(1, -1)], E[(-1, -1)], R1, R2], (-n[0], -n[1])),
+                  ([E[(-1, -1)], E[(-1, 1)], R1], (-t[0], -t[1])), ([E[(1, 1)], E[(1, -1)], R2], t)]
+        for pts3, m in planes:
+            ctr = (sum(x[0] for x in pts3) / len(pts3), sum(x[2] for x in pts3) / len(pts3))
+            facing = m[0] * (cam[0] - ctr[0]) + m[1] * (cam[2] - ctr[1]) > -2.0 * (C.eye - ey)
+            if facing:
+                lit = 0.5 + 0.5 * (m[0] * GW_SUN[0] + m[1] * GW_SUN[1])
+                o.append(Q([C(*x) for x in pts3], gw2_hz(mix("#3E3C42", "#8A8480", lit), Z)))
+        # eave line and the upturned corners
+        ring = [C(*E[k]) for k in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        o.append(f'<polygon points="{P(ring)}" fill="none" stroke="{gw2_hz("#C8C0B4", Z)}" stroke-width="{max(0.6, 0.12 * C.f / Z):.2f}" opacity="0.8"/>')
+        r1, r2 = C(*R1), C(*R2)
+        o.append(f'<line x1="{r1[0]:.1f}" y1="{r1[1]:.1f}" x2="{r2[0]:.1f}" y2="{r2[1]:.1f}" stroke="{gw2_hz("#2E2C30", Z)}" stroke-width="{max(0.8, 0.22 * C.f / Z):.2f}" stroke-linecap="round"/>')
+        for k in E:
+            x, y = C(*E[k])
+            cx_, cy_ = C(*W(0, 0, ey))
+            dx = (x - cx_) * 0.12
+            o.append(f'<path d="M{x - dx:.1f} {y + 0.5:.1f}L{x + dx * 0.45:.1f} {y - 0.025 * C.f / Z * 6:.1f}L{x:.1f} {y + 0.7:.1f}Z" fill="{gw2_hz("#5A5658", Z)}"/>')
+    vs3 = box(w / 2, d / 2, h1 + 0.45, ptop + 0.8, "parapet", [])
+    for f in vs3:
+        a0, b0, a1, b1, m, kd = f
+        L = math.hypot(a1 - a0, b1 - b0)
+        col = gw2_tone(m, GW_LIT, GW_SHADE, Z)
+        o.append(Q([fpt(f, 0, h1 + 0.45), fpt(f, 1, h1 + 0.45), fpt(f, 1, ptop), fpt(f, 0, ptop)], col))
+        nm = max(3, int(round(L / 1.9)))
+        mw = 1.1 / L
+        for j in range(nm):
+            u = j / (nm - 1)
+            u0, u1 = max(0.0, u - mw / 2), min(1.0, u + mw / 2)
+            o.append(Q([fpt(f, u0, ptop - 0.05), fpt(f, u1, ptop - 0.05), fpt(f, u1, ptop + 0.75), fpt(f, u0, ptop + 0.75)], col))
+            if Z < 120:
+                a, b = fpt(f, u0, ptop + 0.75), fpt(f, u1, ptop + 0.75)
+                o.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{gw2_hz(GW_COPE, Z)}" stroke-width="{max(0.5, 0.12 * C.f / Z):.2f}"/>')
+        a, b = fpt(f, 0, ptop), fpt(f, 1, ptop)
+        o.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{gw2_hz(GW_COPE, Z)}" stroke-width="{max(0.5, 0.12 * C.f / Z):.2f}"/>')
+    return "".join(o)
+
+
+def gw2_dots(ds):
+    """Compact path of round-capped dashes: whole pixels, relative moves."""
+    out, cx, cy = [], None, None
+    for x, y, ln in sorted(ds, key=lambda d: (round(d[1]), d[0])):
+        xi, yi, li = round(x), round(y), round(ln)
+        if cx is None:
+            out.append(f"M{xi} {yi}h{li}")
+        else:
+            dx, dy = xi - cx, yi - cy
+            out.append(f"m{dx}{' ' if dy >= 0 else ''}{dy}h{li}")
+        cx, cy = xi + li, yi
+    return "".join(out)
+
+
+def gw2_land(C, ridges, zs, main_pts, floor=-78, x0=-14, x1=618, dx=8, seed=11):
+    """Forested mountains as a height field (the wall's own crest + side ridges + peaks), painted as depth slices far to
+    near so ridges overlap and the wall's foot sinks into them. Each slice is a ground silhouette carrying a row of
+    autumn tree crowns (rust, orange, gold, olive, a few dark pines) sized by distance, sunlit on slopes facing the morning
+    sun, cooler in shade, hazier with distance. Crowns hidden behind nearer slices are culled. Returns (depth, svg)."""
+    rnd = random.Random(seed)
+    pts = []
+    for line, w0, k in ridges:
+        for (ax, az, ay), (bx, bz, by) in zip(line, line[1:]):
+            nseg = max(1, int(math.hypot(bx - ax, bz - az) / 2.0))
+            for i in range(nseg):
+                f = i / nseg
+                pts.append((ax + (bx - ax) * f, az + (bz - az) * f, ay + (by - ay) * f, w0, k))
+        pts.append(line[-1] + (w0, k))
+    mp = [(x, z) for x, y, z in main_pts]
+
+    def cand(Z, R=70):
+        return [p for p in pts if abs(p[1] - Z) < R]
+
+    def H(X, Z, cs):
+        best, bd = floor, 99.0
+        for px, pz, py, w0, k in cs:
+            d = math.hypot(X - px, Z - pz) - w0
+            if d < 0:
+                d = 0.0
+            dr = k * 2.0 * min(d, 170.0) ** 0.78
+            v = py - dr
+            if v > best:
+                best, bd = v, d
+        nz = (2.8 * math.sin(0.23 * X + 0.7) * math.sin(0.19 * Z + 1.3) + 2.2 * math.sin(0.11 * X - 0.07 * Z + 2.0)
+              + 0.9 * math.sin(0.41 * X + 0.29 * Z)) * min(1.0, bd / 12.0)
+        return best + nz
+
+    def dmain(X, Z):
+        return min((math.hypot(X - x, Z - z) for x, z in mp if abs(z - Z) < 8), default=99)
+
+    xs = list(range(x0, x1 + 1, dx))
+    prof, cands = [], []
+    for Z in zs:
+        cs = cand(Z)
+        cands.append(cs)
+        prof.append([C((x - C.cx) * Z / C.f, H((x - C.cx) * Z / C.f, Z, cs), Z)[1] for x in xs])
+    PAL = [(("#7A2A1C", "#B8442A", "#F09058"), 3), (("#8A4A1C", "#D8742E", "#F8BC68"), 4), (("#7A6020", "#D4A438", "#FAE08A"), 3),
+           (("#4E4C24", "#8C8A3C", "#CCC478"), 2), (("#5E1E1E", "#9A362A", "#E47458"), 2), (("#7A5424", "#BE883A", "#F0C87C"), 2)]
+    PINE = ("#1C2620", "#2E3C2C", "#5A6A4A")
+    pool = [c for c, wgt in PAL for _ in range(wgt)]
+    # 1) every slice's trees (screen position, size, colours), a band of ROWS rows deep
+    ROWS = 2
+    trees = []
+    for j, Z in enumerate(zs):
+        rr_ = random.Random(seed * 1000 + j)
+        cs = cands[j]
+        rw0 = max(0.8, 0.0068 * Z)
+        a = gw2_amt(Z)
+        lst = []
+        X = (x0 - C.cx) * Z / C.f + rr_.uniform(0, rw0)
+        Xe = (x1 - C.cx) * Z / C.f
+        if min(prof[j]) < 470:
+            while X < Xe:
+                rw = rw0 * rr_.uniform(0.7, 1.25) * (1.45 if rr_.random() < 0.12 else 1.0)
+                X += rw * rr_.uniform(0.95, 1.5) / ROWS
+                pine = rr_.random() < 0.08
+                pal_ = PINE if pine else rr_.choice(pool)
+                ln_ = rr_.uniform(0.0, 0.7)
+                Zt = Z * math.exp(rr_.uniform(-0.015, 0.015))
+                if dmain(X, Zt) < 3.3:
+                    continue
+                h = H(X, Zt, cs)
+                r = rw * C.f / Zt
+                sx, gy = C(X, h, Zt)
+                cy = C(X, h + rw * rr_.uniform(0.6, 1.0), Zt)[1]
+                if cy - r > 452 or sx < -10 or sx > 610:
+                    continue
+                lst.append([X, h, sx, gy, cy, r, pine, pal_, ln_ * r])
+        trees.append(lst)
+    # 2) near to far: keep only crowns not already hidden by nearer ground and crowns
+    W_ = 640
+    occ = [1e9] * W_
+    keep = [None] * len(zs)
+    slice_vis = [False] * len(zs)
+    for j in range(len(zs)):
+        ys = prof[j]
+        slice_vis[j] = any(ys[i] < occ[max(0, min(W_ - 1, xs[i] + 20))] for i in range(len(xs)))
+        kk = []
+        for t_ in trees[j]:
+            sx, cy, r = t_[2], t_[4], t_[5]
+            c0, c1 = int(sx - r * 0.8) + 20, int(sx + r * 0.8) + 20
+            if any(occ[c] > cy - 0.55 * r for c in range(max(0, c0), min(W_, c1 + 1))):
+                kk.append(t_)
+        for t_ in kk:
+            sx, cy, r = t_[2], t_[4], t_[5]
+            for c in range(max(0, int(sx - r) + 20), min(W_, int(sx + r) + 21)):
+                dxr = (c - 20 - sx) / max(r, 0.01)
+                if abs(dxr) < 1:
+                    v = cy - 0.6 * r * math.sqrt(1 - dxr * dxr)
+                    if v < occ[c]:
+                        occ[c] = v
+        for i in range(len(xs) - 1):
+            for c in range(xs[i], xs[i + 1]):
+                cc = c + 20
+                if 0 <= cc < W_:
+                    v = ys[i] + (ys[i + 1] - ys[i]) * (c - xs[i]) / dx
+                    if v < occ[cc]:
+                        occ[cc] = v
+        keep[j] = kk
+    # 3) paint far to near
+    items = []
+    BATCH = 4
+    order = [j for j in range(len(zs)) if slice_vis[j] or keep[j]]
+    groups = [order[i:i + BATCH] for i in range(0, len(order), BATCH)]
+    for grp in groups:
+        g = []
+        layers = [{}, {}, {}]
+        zb = zs[grp[len(grp) // 2]]
+        rb = max(0.8, 0.0068 * zb) * C.f / zb          # one crown size per batch and tone keeps the groups few
+        WID = (max(1.0, round(2 * rb * 2) / 2), max(1.0, round(1.72 * rb * 2) / 2), max(1.0, round(0.9 * rb * 2) / 2))
+        for j in sorted(grp, reverse=True):
+            Z = zs[j]
+            ys = prof[j]
+            cs = cands[j]
+            a = gw2_amt(Z)
+            if j == max(grp):
+                ground = mix(mix("#7E4226", "#7A5458", min(1, Z / 300)), GW_HAZE, a)
+                uy = [min(prof[jj][i] for jj in grp) for i in range(len(xs))]
+                poly = [(x, min(y, 470)) for x, y in zip(xs, uy)] + [(x1, 470), (x0, 470)]
+                g.append(Q(poly, ground))
+
+            def dot(lay, col, x, y, ln=0.0):
+                layers[lay].setdefault(("D", col), []).append((x - ln / 2, y, ln))
+            for X, h, sx, gy, cy, r, pine, (dk, md, lt), ln in keep[j]:
+                gx = (H(X + 1.5, Z, cs) - H(X - 1.5, Z, cs)) / 3.0
+                gz = (H(X, Z + 1.5, cs) - H(X, Z - 1.5, cs)) / 3.0
+                sun = -GW_SUN[0] * gx - GW_SUN[1] * gz
+                lvl = 2 if sun > 0.15 else 0 if sun < -0.15 else 1
+                md = mix(md, lt, 0.12)
+                if lvl == 0:
+                    dk, md, lt = mix(dk, "#2A2238", 0.32), mix(md, "#4A3A58", 0.3), mix(md, lt, 0.35)
+                elif lvl == 2:
+                    md, lt = mix(md, lt, 0.3), mix(lt, "#FFF4D0", 0.45)
+                aq = round(a / 0.06) * 0.06
+                dk, md, lt = mix(dk, GW_HAZE, aq * 0.9), mix(md, GW_HAZE, aq), mix(lt, GW_HAZE, aq)
+                if pine:
+                    hh = r * 2.6
+                    layers[1].setdefault(("P", md), []).append(f"M{sx:.1f} {gy - hh:.1f}L{sx + r * 0.75:.1f} {gy + r * 0.2:.1f}H{sx - r * 0.75:.1f}Z")
+                    if r > 1.6:
+                        layers[2].setdefault(("P", lt), []).append(f"M{sx:.1f} {gy - hh:.1f}L{sx - r * 0.75:.1f} {gy + r * 0.2:.1f}H{sx - r * 0.3:.1f}Z")
+                else:
+                    # a crown: dark underside, body (two or three lobes on the bigger trees), sunlit cap toward the sun
+                    m_ = r / rb
+                    if rb > 2.2:
+                        dot(0, dk, sx + rb * 0.2, cy + rb * 0.25, ln)
+                    dot(1, md, sx - rb * 0.08, cy - rb * 0.05, ln)
+                    if m_ > 1.15:
+                        dot(0 if rb > 2.2 else 1, dk if rb > 2.2 else md, sx + rb * 0.75, cy + rb * 0.15, ln * 0.5)
+                        dot(1, md, sx + rb * 0.55, cy - rb * 0.2)
+                        dot(2, lt, sx + rb * 0.25, cy - rb * 0.55)
+                    if m_ > 1.4:
+                        dot(1, md, sx - rb * 0.3, cy - rb * 0.7)
+                    if rb > 1.0:
+                        dot(2, lt, sx - rb * 0.34, cy - rb * 0.36, ln * 0.5)
+        for li, lay in enumerate(layers):
+            for key, ds in lay.items():
+                if key[0] == "P":
+                    g.append(f'<path d="{"".join(ds)}" fill="{key[1]}"/>')
+                else:
+                    g.append(f'<path d="{gw2_dots(ds)}" stroke="{key[1]}" stroke-width="{WID[li]:g}" stroke-linecap="round"/>')
+        items.append((min(zs[j] for j in grp), "".join(g)))
+    return items
+
+
+def gw2_far_canopy(line, seed, depth, r, cols, shade, lit, dens=1.0):
+    """Hazy far forest on a screen-space ridge: rows of small crowns under the crest line, a body and a sunlit cap each,
+    grouped by colour into compact dot paths."""
+    rnd = random.Random(seed)
+    body, caps = {}, {}
+    top = min(p[1] for p in line)
+    y = top - r
+    while y < top + depth:
+        x = -10 + rnd.uniform(0, r)
+        while x < 610:
+            yc = y_on(line, x)
+            yy = y + rnd.uniform(-0.4, 0.4) * r
+            if yc is not None and yy > yc + r * 0.2:
+                c = rnd.choice(cols)
+                body.setdefault(mix(c, shade, rnd.uniform(0, 0.25)), []).append((x, yy, rnd.uniform(0, r * 0.6)))
+                if rnd.random() < 0.7:
+                    caps.setdefault(mix(c, lit, 0.35), []).append((x - r * 0.35, yy - r * 0.35, 0))
+            x += r * rnd.uniform(1.1, 1.6) / dens
+        y += r * 0.8 / dens
+    o = [f'<path d="{gw2_dots(ds)}" stroke="{c}" stroke-width="{round(2 * r * 2) / 2:g}" stroke-linecap="round"/>' for c, ds in body.items()]
+    o += [f'<path d="{gw2_dots(ds)}" stroke="{c}" stroke-width="{max(1.0, round(0.9 * r * 2) / 2):g}" stroke-linecap="round"/>' for c, ds in caps.items()]
+    return "".join(o)
+
+
+def gw2_far_wall(line, x0, x1, s, towers, body, lit, dark, step=2):
+    """A distant run of wall riding a crest (screen-space ridgeline): the grey body set into the crest, a crenellated
+    top edge, and square towers with a row of window dots, all scaled by s."""
+    ptsl = [(x, y_on(line, x)) for x in range(int(x0), int(x1) + 1, step) if y_on(line, x) is not None]
+    if len(ptsl) < 2:
+        return ""
+    h = 3.2 * s
+    o = [Q([(x, y - h * 0.55) for x, y in ptsl] + [(x, y + h * 0.6) for x, y in ptsl[::-1]], body)]
+    o.append(f'<polyline points="{P([(x, y - h * 0.55) for x, y in ptsl])}" fill="none" stroke="{lit}" stroke-width="{max(0.7, s * 0.9):.1f}"/>')
+    if s > 0.55:
+        o.append("".join(rect(x - s * 0.45, y - h * 0.55 - s * 0.9, s * 0.9, s * 0.9, body) for x, y in ptsl[::max(1, int(round(2.2 * s / step)))]))
+    for tx in towers:
+        ty = y_on(line, tx)
+        if ty is None:
+            continue
+        w, th = 7.5 * s, 6.5 * s
+        o.append(rect(tx - w / 2, ty - th, w, th + h * 0.6, body) + rect(tx - w / 2, ty - th, w * 0.4, th + h * 0.6, lit, ' opacity="0.5"'))
+        o.append("".join(rect(tx - w / 2 + j * (w - s) / 3, ty - th - s * 0.9, s, s * 0.9, body) for j in range(4)))
+        if s > 0.6:
+            o.append("".join(rect(tx - w * 0.3 + j * w * 0.3 - s * 0.35, ty - th * 0.62, s * 0.7, s * 1.1, dark, ' opacity="0.75"') for j in range(3)))
+    return "".join(o)
+
+
 def great_wall():
     from figures import person, couple
     u = "gwall"
@@ -2667,105 +3323,92 @@ def great_wall():
     out.append(f'<rect width="600" height="444" fill="url(#{u}-sky)"/>')
     out.append(glow(30, 150, 330, "#FFE6C0", f"{u}-sun", 0.9))
     out.append(glow(30, 150, 60, "#FFF8EA", f"{u}-sun2", 1.0))
-    for x, y, w in ((260, 104, 130), (470, 86, 150), (560, 130, 60), (150, 128, 70)):
+    for x, y, w in ((260, 100, 130), (470, 82, 150), (560, 124, 60), (150, 122, 70)):
         out.append(streak_cloud(x, y, w, "#FFF4E6", 0.55, 3.4))
         out.append(streak_cloud(x - 20, y + 3, w * 0.5, "#FFE2CE", 0.5, 1.4))
-
-    def haze(Z):
-        return "#E8DED8", max(0.0, min(0.5, (Z - 30) / 300))
-
-    # far ridges: palest and bluest, the wall a thread along their crests, mist lying in the valleys between
-    far = [([(-10, 196), (60, 186), (130, 194), (200, 180), (280, 190), (360, 172), (430, 184), (520, 170), (610, 182)], "#B6BED0", 0.55, (330, 600), [372, 470, 556]),
-           ([(-10, 214), (70, 204), (150, 214), (230, 200), (330, 214), (420, 198), (500, 210), (610, 204)], "#A2A8BA", 0.75, (-10, 200), [40, 150]),
-           ([(-10, 238), (80, 224), (160, 236), (260, 226), (360, 240), (460, 222), (540, 232), (610, 226)], "#9A9AA6", 0.9, (420, 610), [470, 580])]
+    # far ranges, palest and bluest, each with its thread of wall and towers getting smaller toward the horizon
+    far = [([(-10, 168), (50, 156), (120, 166), (190, 150), (260, 162), (340, 146), (420, 160), (500, 150), (610, 162)], "#B8C0D2", 0.5, (300, 610), [352, 430, 512, 590]),
+           ([(-10, 186), (60, 172), (140, 184), (210, 170), (300, 186), (380, 176), (470, 190), (540, 176), (610, 186)], "#A8AEC2", 0.68, (-10, 230), [26, 96, 170]),
+           ([(-10, 204), (70, 192), (150, 202), (240, 196), (330, 210), (430, 200), (520, 210), (610, 202)], "#9EA0B0", 0.85, (420, 610), [470, 560])]
     for i, (pts_, col, s, (xa, xb), tw) in enumerate(far):
         poly, line = ridge_poly(pts_, 300 + i, amp=6, fill=col)
         out.append(poly)
         top = min(p[1] for p in line)
-        out.append(gw_foliage(line + [(610, 300), (-10, 300)], f"{u}-ff{i}", 310 + i, 560, top - 2, top + 40, 3.0 + i * 0.5, 4.0 + i * 0.7,
-                              [mix(col, c, 0.22 + 0.12 * i) for c in ("#C8603A", "#E8A040", "#B8843A", "#7A7A4A")], light=L, shade=mix(col, "#4A4A60", 0.5), pines=0.0, contrast=0.45))
-        out.append(far_wall(line, xa, xb, s, tw, mix(col, "#C8A884", 0.55), mix(col, "#FFF2DC", 0.75), 320 + i))
-        out.append(mist(300 + (i - 1) * 160, max(p[1] for p in line) + 6, 440, 22, "#FFF6EA", f"{u}-fm{i}", 0.9))
-    # the wall path: from our feet over the crest, down into a hidden saddle, straight up the near mountain to a
-    # tower on its summit, along the ridge to a higher tower and on out of sight
-    ctrl = [(0.9, 0.0, 1.2), (0.7, -0.25, 5.0), (-0.1, -1.3, 10.0), (-1.4, -4.4, 17.0), (-3.8, -7.8, 26.0), (-6.8, -7.4, 34.0),
-            (-9.6, -3.6, 44.0), (-12.2, 1.8, 55.0), (-13.8, 6.0, 64.0), (-10.0, 7.0, 80.0), (-2.0, 10.0, 98.0), (8.0, 17.0, 118.0),
-            (20.0, 24.0, 140.0), (36.0, 21.0, 168.0), (54.0, 16.0, 200.0)]
-    items, pts, arcs, fr = gw_walk(C, ctrl, light=L, haze=haze)
-    # the near mountain the wall climbs: its skyline runs down from the first tower to the left and along the ridge
-    sky_l = rough([(-10, 290), (80, 268), (160, 236), (206, 214)], 41, amp=5, depth=3)
-    ridge = []
-    for j in range(len(pts)):
-        if pts[j][2] >= 62:
-            x, y = C(pts[j][0], pts[j][1] - 1.2, pts[j][2])
-            ridge.append((x, y))
-    sky_r = rough([ridge[-1], (470, 226), (540, 240), (610, 250)], 42, amp=5, depth=3)
-    m1 = sky_l + ridge + sky_r[1:] + [(610, 444), (-10, 444)]
-    out.append(Q(m1, "#9A6A4E"))
-    out.append(gw_foliage(m1, f"{u}-m1", 51, 1000, 172, 312, 3.4, 6.0, ["#B8442A", "#D8742E", "#E8B040", "#C8562A", "#8A8A3A", "#9A3A2A", "#E89A3A"],
-                          light=L, shade="#4A2E34", haze=("#E8DED8", 0.3)))
-    # the sun side of the mountain glows, the far side sinks into blue shade
-    out.append(f'<defs>{lg(f"{u}-m1s", [(0, "#FFE6B0", 0.35), (0.45, "#FFE6B0", 0.0), (0.6, "#3A3A5A", 0.0), (1, "#3A3A5A", 0.3)], 0, 0, 1, 0)}</defs>')
-    out.append(Q(m1, f"url(#{u}-m1s)"))
-    out.append(mist(110, 300, 260, 34, "#FFF6EA", f"{u}-mv1", 0.95))
-    out.append(mist(520, 286, 220, 26, "#FFF6EA", f"{u}-mv2", 0.85))
-    # the near saddle: the ridge we stand on falls away in front of the mountain's foot
-    sad = rough([(-10, 318), (90, 312), (170, 322), (250, 330), (330, 326), (420, 316), (520, 304), (610, 300)], 61, amp=4, depth=3) + [(610, 444), (-10, 444)]
-    items.append((30.5, mist(300, 318, 360, 30, "#FFF4E6", f"{u}-ms", 0.9)))
-    items.append((29.5, Q(sad, "#7A4A3A") + gw_foliage(sad, f"{u}-sd", 71, 1000, 296, 380, 4.6, 7.4, ["#B8442A", "#D8742E", "#E8B040", "#C8562A", "#8A8A3A", "#9A3A2A", "#E89A3A"],
-                                                       light=L, shade="#3A2430")))
-    # towers on the two summits
-    def nearest(target_z):
-        return min(range(len(pts)), key=lambda k_: abs(pts[k_][2] - target_z))
-    for tz, roof in ((64.0, True), (140.0, False)):
-        j = nearest(tz)
-        t, n = fr[j]
-        tw = gw_tower(C, pts[j], t, n, u, haze=haze, light=L, roof=False, w=10.0, d=9.0, h=8.5, below=5.0)
-        if roof:   # a small watch pavilion on the platform: red walls, dark hip roof with upturned eaves
-            b = pts[j]
-            sc = C.f / b[2]
-            px, py = C(b[0], b[1] + 9.5, b[2])
-            tw += rect(px - 2.6 * sc, py - 2.4 * sc, 5.2 * sc, 2.4 * sc, "#8A3426") + rect(px - 2.6 * sc, py - 2.4 * sc, 1.6 * sc, 2.4 * sc, "#C2523A")
-            tw += "".join(rect(px - 1.8 * sc + q * 1.2 * sc, py - 1.9 * sc, 0.5 * sc, 1.4 * sc, "#3A1A16") for q in range(4))
-            tw += jp_roof(px, py - 2.3 * sc, 3.8 * sc, 1.1 * sc, py - 4.4 * sc, 0.6 * sc, u, "pav", tile="#3A3A44", tile_lit="#8A8A9A", soffit="#C8603A", soffit_dk="#6A2A1A",
-                          lip="#D8D0C8", thick=0.5 * sc, rafters=False)
-            tw += f'<circle cx="{px:.1f}" cy="{py - 4.6 * sc:.1f}" r="{0.35 * sc:.1f}" fill="#3A3A44"/>'
-        items.append((pts[j][2] - 0.5, tw))
-    # two tiny hikers on the long flight of steps
-    for tz, dx, sd in ((47.0, 0.6, 21), (49.5, -0.5, 22)):
-        j = nearest(tz)
-        b = pts[j]
-        n = fr[j][1]
-        x, y = C(b[0] + n[0] * dx, b[1], b[2] + n[1] * dx)
+        out.append(gw2_far_canopy(line, 310 + i, 46, 1.6 + i * 0.35, [mix(col, c, 0.22 + 0.1 * i) for c in ("#C8603A", "#E8A040", "#B8843A", "#7A7A4A", "#B8503A")],
+                                  mix(col, "#4A4A60", 0.4), "#FFF4E0"))
+        out.append(gw2_far_wall(line, xa, xb, s, tw, mix(col, "#7A746E", 0.45), mix(col, "#F4ECE0", 0.6), mix(col, "#2A2628", 0.6)))
+        out.append(mist(300 + (i - 1) * 160, max(p[1] for p in line) + 4, 440, 18, "#FFF6EA", f"{u}-fm{i}", 0.85))
+    # the wall: from the step we stand on, down a long flight into a saddle, straight up the crest to a tower on the
+    # summit, then along the ridge from peak to peak, dropping and climbing, until it fades into the haze
+    ctrl = [(-1.5, 0.0, 2.4), (-1.7, -0.5, 6.0), (-2.6, -2.4, 11.0), (-4.4, -5.6, 17.0), (-7.0, -8.6, 24.0), (-9.6, -9.6, 30.0),
+            (-10.2, -7.4, 37.0), (-9.8, -2.0, 46.0), (-9.0, 3.8, 55.0), (-8.0, 8.2, 63.0), (-7.4, 9.2, 68.0), (-3.0, 6.6, 80.0),
+            (2.0, 3.0, 94.0), (8.0, 6.0, 110.0), (14.0, 12.0, 126.0), (18.0, 16.5, 140.0), (26.0, 11.0, 158.0), (38.0, 8.0, 180.0),
+            (48.0, 16.0, 205.0), (54.0, 27.0, 228.0), (66.0, 22.0, 252.0), (84.0, 20.0, 280.0), (100.0, 32.0, 310.0), (110.0, 42.0, 336.0),
+            (126.0, 34.0, 366.0), (146.0, 44.0, 400.0), (166.0, 58.0, 440.0), (190.0, 64.0, 480.0), (220.0, 56.0, 530.0)]
+    path = GwPath(ctrl)
+    body = 6.8
+    towers = []
+    for tz, pav in ((66.0, True), (140.0, False), (228.0, False), (336.0, False), (468.0, False)):
+        towers.append((path.s_at_z(tz), pav))
+    skip = [(s_ - 5.2, s_ + 5.2) for s_, _ in towers]
+    items = gw2_wall(C, path, body=body, skip=skip)
+    for k, (s_, pav) in enumerate(towers):
+        items.append((path.at(s_ - 5.4)[2] + 0.05, gw2_tower(C, path, s_, pav=pav, below=body + 3.0, seed=40 + k)))
+    # the mountains: the wall's own crest plus side ridges and peaks
+    main = [(path.at(s_)[0], path.at(s_)[2], path.at(s_)[1] - body) for s_ in [i * 2.0 for i in range(int(path.total / 2.0) + 1)]]
+    ridges = [(main, 2.9, 1.25),
+              ([(5.0, 9.0, -13.0), (22.0, 22.0, -22.0), (46.0, 38.0, -32.0), (80.0, 56.0, -42.0)], 0.0, 0.9),
+              ([(-11.0, 31.0, -17.0), (-30.0, 44.0, -23.0), (-54.0, 58.0, -29.0), (-95.0, 74.0, -34.0)], 0.0, 0.9),
+              ([(-30.0, 110.0, -6.0), (-52.0, 124.0, 8.0), (-70.0, 140.0, 3.0), (-92.0, 150.0, 20.0), (-120.0, 160.0, 15.0), (-150.0, 176.0, 26.0),
+                (-180.0, 196.0, 8.0)], 0.0, 1.0),
+              ([(46.0, 92.0, -18.0), (64.0, 104.0, -4.0), (80.0, 120.0, -10.0), (100.0, 140.0, 6.0), (120.0, 160.0, 1.0), (146.0, 180.0, 18.0),
+                (170.0, 200.0, 12.0), (200.0, 224.0, 26.0), (230.0, 250.0, 20.0)], 0.0, 1.0)]
+    zs = []
+    z = 7.0
+    while z < 560:
+        zs.append(z)
+        z *= 1.03
+    items += gw2_land(C, ridges, zs, [path.at(i * 1.0) for i in range(int(path.total) + 1)])
+    # morning mist pooled in the valleys between the ridges
+    for Z, cx_, cy_, rx, ry, st in ((40.0, 470, 352, 220, 26, 0.85), (44.0, 90, 360, 200, 24, 0.8), (95.0, 520, 262, 200, 18, 0.8),
+                                    (120.0, 120, 250, 220, 16, 0.75), (190.0, 300, 226, 380, 12, 0.7)):
+        items.append((Z, mist(cx_, cy_, rx, ry, "#FFF6EA", f"{u}-mv{int(Z)}", st)))
+    # two hikers climbing the long flight to the summit tower
+    for tz, dx, sd in ((45.0, 0.7, 21), (48.0, -0.6, 22)):
+        s_ = path.s_at_z(tz)
+        b = path.at(s_)
+        n = path.nrm(s_)
+        x, y = C(b[0] + n[0] * dx, gw2_floor(path, s_), b[2] + n[1] * dx)
         items.append((b[2] - 0.05, person(x, y, 1.72 * C.f / b[2], "stand_back", 1, {"season": "winter"}, seed=sd, light=L)))
-    # the couple at the crest, looking out over the steps falling away in front of them
-    zc = 10.2
-    j = nearest(zc)
-    b, n = pts[j], fr[j][1]
-    cx_, cy_ = C(b[0] - n[0] * 0.9, b[1], b[2] - n[1] * 0.9)
+    # a couple on the steps below us, looking out over the wall falling away in front of them
+    s_ = path.s_at_z(10.0)
+    b, n = path.at(s_), path.nrm(s_)
+    cx_, cy_ = C(b[0] - n[0] * 1.45, gw2_floor(path, s_), b[2] - n[1] * 1.45)
     hpx = 1.72 * C.f / b[2]
     pals = {"top_kind": "jacket", "bottom_kind": "trousers", "pack": True, "hair": "#2A1C16"}
     items.append((b[2] - 0.05, couple(cx_, cy_, hpx, "back", pals, seed=9, light=L, rim="#FFE6C0")))
     for Z, svg in sorted(items, key=lambda it: -it[0]):
         out.append(svg)
-    # autumn leaves blown onto the walkway, a few still in the air
+    # the low sun's warmth washing over the whole morning scene from the left
+    out.append(glow(20, 150, 520, "#FFD49A", f"{u}-warm", 0.22))
+    # autumn leaves blown onto the steps, a few still in the air
     rnd = random.Random(17)
     lv = []
-    for _ in range(60):
-        Zl = 1.6 + rnd.random() ** 1.5 * 8
-        j = nearest(Zl)
-        b, n = pts[j], fr[j][1]
+    for _ in range(40):
+        s_ = path.s_at_z(3.0 + rnd.random() ** 1.4 * 7)
+        b, n = path.at(s_), path.nrm(s_)
         off_ = rnd.uniform(-2.0, 2.0)
-        x, y = C(b[0] + n[0] * off_, b[1], b[2] + n[1] * off_)
-        r = 0.09 * C.f / Zl
+        Zl = b[2] + n[1] * off_
+        x, y = C(b[0] + n[0] * off_, gw2_floor(path, s_) + 0.01, Zl)
+        r = 0.08 * C.f / Zl
         lv.append(f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{r:.1f}" ry="{r * 0.45:.1f}" fill="{rnd.choice(["#C8442A", "#E8842E", "#E8B040", "#9A3A24"])}" '
                   f'transform="rotate({rnd.uniform(-30, 30):.0f} {x:.1f} {y:.1f})" opacity="0.9"/>')
-    for _ in range(9):
-        x, y = rnd.uniform(80, 560), rnd.uniform(140, 300)
-        r = rnd.uniform(2.2, 3.4)
+    for _ in range(7):
+        x, y = rnd.uniform(80, 560), rnd.uniform(150, 300)
+        r = rnd.uniform(2.2, 3.2)
         lv.append(f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{r:.1f}" ry="{r * 0.5:.1f}" fill="{rnd.choice(["#C8442A", "#E8842E", "#E8B040"])}" transform="rotate({rnd.uniform(0, 180):.0f} {x:.1f} {y:.1f})"/>')
     out.append("".join(lv))
-    out.append(flock([(400, 132, 8), (418, 142, 6), (386, 148, 5)], "#4A4A5A", 1.6))
+    out.append(flock([(400, 126, 8), (418, 136, 6), (386, 142, 5)], "#4A4A5A", 1.6))
     return "\n".join(out)
 
 
