@@ -287,7 +287,7 @@ section.tight { padding-block: 28px 72px; }
 .col-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .fan { position: relative; height: 190px; background: var(--fridge); display: grid; place-items: center; overflow: hidden; }
 .fan .m { position: absolute; width: 112px; top: 40px; border-radius: 6px; box-shadow: var(--shadow); line-height: 0; }
-.fan .m svg { width: 100%; height: auto; display: block; border-radius: 6px; }
+.fan .m svg, .fan .m img { width: 100%; height: auto; display: block; border-radius: 6px; }
 .fan .m:nth-child(1) { transform: translateX(-74px) rotate(-8deg); }
 .fan .m:nth-child(2) { transform: translateY(-8px); z-index: 2; }
 .fan .m:nth-child(3) { transform: translateX(74px) rotate(7deg); }
@@ -323,7 +323,7 @@ section.tight { padding-block: 28px 72px; }
 .qv::backdrop { background: rgba(20, 14, 8, .55); }
 .qv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .qv-art { background: var(--fridge); padding: clamp(20px, 4vw, 40px); display: grid; place-items: center; }
-.qv-art svg { width: 100%; height: auto; display: block; border-radius: 4%; box-shadow: var(--shadow); }
+.qv-art svg, .qv-art img { width: 100%; height: auto; display: block; border-radius: 4%; box-shadow: var(--shadow); }
 .qv-info { padding: 28px clamp(20px, 3vw, 32px); display: flex; flex-direction: column; gap: 12px; position: relative; }
 .qv-info h2 { font-size: 30px; padding-right: 48px; }
 .qv-info .price { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }

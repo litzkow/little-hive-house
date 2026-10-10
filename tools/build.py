@@ -20,6 +20,9 @@ FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&famil
          "&family=DM+Mono:wght@500&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700"
          "&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700&display=swap")
 
+import raster  # noqa: E402
+raster.main()
+
 BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
 CUR = ' aria-current="page"'
 TOTAL = sum(len(c["order"]) for c in COLLECTIONS)
@@ -33,14 +36,11 @@ class Page:
         self.n = 0
 
     def svg(self, col, slug, cls="mag"):
-        raw = (DESIGNS / col / f"{slug}.svg").read_text(encoding="utf-8").strip()
+        """Designs are shown as pre-rendered WebP (tools/raster.py); the SVGs stay the print masters."""
         self.n += 1
-        uid = f"m{self.n}"
-        raw = re.sub(r'id="([^"]+)"', lambda m: f'id="{uid}-{m.group(1)}"', raw)
-        raw = re.sub(r'url\(#([^)]+)\)', lambda m: f'url(#{uid}-{m.group(1)})', raw)
-        raw = re.sub(r'href="#([^"]+)"', lambda m: f'href="#{uid}-{m.group(1)}"', raw)
-        return raw.replace('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">',
-                           f'<svg class="{cls}" viewBox="0 0 600 600" aria-hidden="true" focusable="false">', 1)
+        lazy = ' loading="lazy"' if self.n > 6 else ""
+        return (f'<img class="{cls}" src="{self.p}assets/art/{col}/{slug}.webp" width="600" height="600" alt=""'
+                f'{lazy} decoding="async">')
 
 
 LOGO = """<svg viewBox="138 8 124 118" aria-hidden="true">

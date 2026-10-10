@@ -247,6 +247,5 @@ def build_christmas():
 
 
 if __name__ == "__main__":
-    build_fall()
-    build_halloween()
-    build_christmas()
+    # Superseded by fall_painted.py, halloween_painted.py and christmas_painted.py; kept only for its helpers.
+    print("holidays_season.py is legacy: run the *_painted.py generators instead")
