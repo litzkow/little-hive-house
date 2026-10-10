@@ -90,7 +90,7 @@ NAV = [("shop.html", "Shop all", "shop"), ("collections/index.html", "Collection
 
 
 def head(pg, title, desc, path):
-    full = "Little Hive House" if title is None else f"{title} · Little Hive House"
+    full = "Little Hive House · Handmade Fridge Magnets" if title is None else f"{title} · Little Hive House"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -952,6 +952,30 @@ def export_store_catalog():
     out.write_text(_json.dumps(cat, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def write_sitemap():
+    """sitemap.xml (pages + every design image, so Google Images finds them) and robots.txt."""
+    site = "https://littlehivehouse.com/"
+    def img(col_slug, slug, title):
+        return (f"\n    <image:image><image:loc>{site}assets/art/{col_slug}/{slug}.webp</image:loc>"
+                f"<image:title>{E(title)} magnet</image:title></image:image>")
+    entries = [("", "1.0", ""), ("shop.html", "0.9", ""), ("collections/", "0.9", ""),
+               ("photo-magnets.html", "0.8", ""), ("big-orders.html", "0.8", "")]
+    for c in COLLECTIONS:
+        imgs = "".join(img(c["slug"], s, c["titles"].get(s) or s.replace("-", " ").title())
+                       for s in c["order"] if (ROOT / f"assets/art/{c['slug']}/{s}.webp").exists())
+        entries.append((f"collections/{c['slug']}.html", "0.8", imgs))
+    for p in ("contact.html", "shipping.html", "returns.html", "track.html", "privacy.html", "terms.html"):
+        if (ROOT / p).exists():
+            entries.append((p, "0.4", ""))
+    urls = "\n".join(f"  <url>\n    <loc>{site}{loc}</loc>\n    <priority>{pri}</priority>{imgs}\n  </url>"
+                     for loc, pri, imgs in entries)
+    write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n'
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+          'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n' + urls + "\n</urlset>\n")
+    write("robots.txt", "User-agent: *\nAllow: /\nDisallow: /admin/\n\n"
+          f"Sitemap: {site}sitemap.xml\n")
+
+
 if __name__ == "__main__":
     page_home()
     page_shop()
@@ -966,6 +990,7 @@ if __name__ == "__main__":
     import store_pages
     store_pages.build(_sys.modules[__name__])
     export_store_catalog()   # store backend prices -> functions/catalog.json
+    write_sitemap()          # sitemap.xml + robots.txt for Google
     import admin_icons       # admin/icons/*.png for the installable admin (only drawn when missing)
     admin_icons.main()
     print(f"built {TOTAL} designs in {len(COLLECTIONS)} collections")
