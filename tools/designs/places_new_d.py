@@ -946,9 +946,10 @@ def sedona():
     out.append('<g transform="translate(386 352)"><path d="M -9 0 L -7 -20 L 7 -20 L 9 0 Z" fill="#8A5A44"/>'
                + "".join(f'<ellipse cx="{dx}" cy="{dy}" rx="4" ry="2.6" fill="{c}"/>' for dx, dy, c in ((-4, -3, "#B4553A"), (3, -4, "#C8603E"), (-2, -9, "#9A4434"), (4, -11, "#B4553A"), (-3, -15, "#C8603E"), (2, -18, "#9A4434")))
                + '<g stroke="#3A2A2A" stroke-width="1" opacity="0.8"><path d="M -8 -10 L 8 -10 M -8.5 -5 L 8.5 -5 M -7.5 -15 L 7.5 -15"/><path d="M -3 0 L -2 -20 M 3 0 L 2 -20"/></g></g>')
-    hx, hb = 336, 376
-    out.append(f'<ellipse cx="{hx + 14}" cy="{hb}" rx="16" ry="2.4" fill="#5A2420" opacity="0.4"/>')
-    out.append(F.person(hx, hb, 34, "hiker", -1, {"top": "#2E7A8A", "bottom": "#3A3A4A", "bottom_kind": "trousers", "bag": "#C9734A", "hat_kind": "sunhat", "hat": "#E8D6B0", "form": "m"},
+    hx, hb = 318, 412
+    out.append(f'<ellipse cx="{hx + 18}" cy="{hb}" rx="24" ry="3.2" fill="#5A2420" opacity="0.4"/>')
+    out.append(F.person(hx, hb, 62, "hiker", -1, {"top": "#2E7A8A", "top_kind": "tee", "bottom": "#B8A078", "bottom_kind": "shorts", "bag": "#C9734A",
+                                                 "hat_kind": "sunhat", "hat": "#E8D6B0", "skin": "#C88A60", "shoes": "#5A3A2A", "form": "m"},
                         seed=41, rim="#FFC08A", light=-1))
     # foreground: junipers rim-lit by the sun behind us, prickly pear, a yucca
     out.append(juniper(120, 330, 70, 3, rim="#E8B070"))
@@ -1384,12 +1385,18 @@ def atlanta():
     out.append('<path d="M -10 372 Q 200 358 400 364 Q 520 368 610 360 L 610 366 Q 520 374 400 370 Q 200 364 -10 378 Z" fill="#3E5A3A" opacity="0.6"/>')
     out.append(f'<path d="M -10 392 Q 220 376 400 384 Q 520 390 610 380 L 610 398 Q 520 408 400 402 Q 220 394 -10 412 Z" fill="url(#{u}-path)"/>')
     out.append(grass(160, 15, (-10, 372, 610, 444), ["#A8C468", "#7A9A4A", "#C8D888", "#5E7E3E"], h=(4, 12)))
-    out.append(jogger(290, 393, 52, "#E8506E", phase=0, cap="#2E4A6A"))
-    out.append(jogger(326, 391, 48, "#3E7AB8", shorts="#1E1E2A", skin="#C89A7A", phase=1))
-    # her dog trotting alongside
-    out.append('<g transform="translate(260 393) scale(0.62)"><path d="M -18 -22 Q -20 -30 -8 -30 L 12 -30 Q 18 -30 20 -36 L 28 -38 Q 34 -36 32 -30 L 26 -24 L 22 -22 Q 16 -18 10 -18 L -14 -18 Q -20 -18 -18 -22 Z" fill="#C8884A"/>'
-               '<path d="M -14 -20 L -18 0 M -8 -20 L -4 0 M 10 -20 L 8 0 M 16 -20 L 20 0" stroke="#C8884A" stroke-width="4" stroke-linecap="round"/><path d="M -18 -26 Q -28 -34 -26 -40" stroke="#C8884A" stroke-width="4" fill="none" stroke-linecap="round"/>'
-               '<path d="M 26 -38 L 24 -44 L 30 -40 Z" fill="#8A5A2A"/><path d="M -10 -30 Q 4 -33 16 -31" stroke="#FFD890" stroke-width="2" fill="none"/></g>')
+    # two runners on the lakeside path, painted close enough to read: running tights and a tank, a tee and shorts
+    out.append(f'<ellipse cx="350" cy="404" rx="70" ry="4" fill="#3A4A2A" opacity="0.18"/>')
+    out.append(F.person(392, 403, 84, "jog", -1, {"top": "#3E7AB8", "top_kind": "tee", "bottom": "#1E1E2A", "bottom_kind": "shorts", "skin": "#8E5A3A",
+                                                 "shoes": "#E6E0D6", "form": "m", "hair_style": "buzz", "hair": "#1C1412"}, seed=392, rim="#FFD08A", light=1))
+    out.append(F.person(338, 405, 80, "jog", -1, {"top": "#E8506E", "top_kind": "tank", "bottom": "#2A2A3A", "bottom_kind": "trousers", "skin": "#E8B48E",
+                                                 "shoes": "#F2F0EA", "form": "f", "hair_style": "ponytail", "hair": "#6E4426", "hat_kind": "cap", "hat": "#2E4A6A"},
+                        seed=338, rim="#FFD08A", light=1))
+    # her dog trotting alongside on a loose lead (painted like the people: shaded body, rim light)
+    dp = F.Painter(0.9, 1, "#FFD08A", None, 2)
+    F._dog(dp, 0, 0, 1.0, "#C8884A", facing=-1)
+    out.append('<ellipse cx="284" cy="407" rx="16" ry="2.4" fill="#2A3A1A" opacity="0.2"/>')
+    out.append(f'<g transform="translate(290 406) scale(0.9)">' + "".join(dp.out) + '</g>')
     out.append('<path d="M 284 360 L 266 376" stroke="#3A2A2A" stroke-width="1.2" opacity="0"/>')
     # picnic: gingham blanket, a woven basket of peaches, two peaches rolled out on the cloth
     out.append('<g transform="translate(150 424)"><polygon points="-70,0 40,-22 104,4 -10,30" fill="#F4F0E8"/>')

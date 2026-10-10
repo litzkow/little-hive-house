@@ -1642,7 +1642,7 @@ def cozy_season():
         f'<path d="M {x + (5 if (k % 2) else 0)} {244 + k * 11} l 0 11"/>' for k in range(6) for x in range(372, 410, 13))
     out.append(f'<g {chc}><g stroke="#5A3028" stroke-width="1.4" opacity="0.5">{bricks}</g></g>')
     out.append(painted(D, jitter([(364, 240), (364, 228), (414, 228), (414, 240)], 5, 0.8), ("#B07A68", "#7A4A3C", "#4A2820"), 52, sdir=(0.8, 0.5), sk=0.2, angle=0, n=6, inkw=2, hi=0.3))
-    out.append(smoke(D, [(388, 228), (384, 210), (396, 194), (424, 186), (456, 192), (488, 186), (514, 168), (530, 150)], 14, 4, 53, "#EADCE8", 0.75))
+    out.append(smoke(D, [(388, 228), (386, 216), (398, 210), (424, 208), (452, 214), (482, 211), (508, 202), (528, 192)], 14, 4, 53, "#EADCE8", 0.75))
     roof = [(160, 372), (164, 340), (186, 304), (226, 280), (300, 268), (374, 280), (414, 304), (436, 340), (440, 372), (380, 380), (300, 382), (220, 380)]
     out.append(painted(D, roof, ("#E8BC6E", "#C08A44", "#6E4A22"), 54, sdir=(0.5, 0.8), sk=0.12, angle=-100, n=200, slen=(10, 30), sw=(0.8, 2),
                        cols=["#F2D088", "#8A5A2A", "#D8A858", "#A8742E"], inkw=2.6, hi=0.35, curve=0.15))
@@ -1700,9 +1700,9 @@ def cozy_season():
     out.append(falling(D, [("maple", 150, 540, 18, "orange", 40), ("oak", 470, 556, 18, "red", -50), ("slim", 520, 520, 16, "gold", 80),
                            ("maple", 78, 520, 16, "red", -20), ("maple", 214, 256, 16, "gold", -30)]))
     # lettering
-    out.append(letters(D, 300, 168, "cozy", DMS, 156, "#FFF0D8", ["#FFFFFF", "#F2D8B0", "#FFF6E6", "#E8C8A0"], 31, max_w=340,
+    out.append(letters(D, 300, 148, "cozy", DMS, 156, "#FFF0D8", ["#FFFFFF", "#F2D8B0", "#FFF6E6", "#E8C8A0"], 31, max_w=340,
                        shadow="#1E1A36", soff=(0.02, 0.035), angle=-35, hi="#FFFFFF"))
-    out.append(ruled(300, 220, "SEASON", "#F6C46A", font=JOS, size=30, ls=14, line_w=44, gap=16))
+    out.append(ruled(300, 230, "SEASON", "#F6C46A", font=JOS, size=30, ls=14, line_w=44, gap=16))
     return finish(D, out, 33, "#F4E0C0", 0.7)
 
 

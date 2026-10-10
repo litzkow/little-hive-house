@@ -198,7 +198,14 @@ class Painter:
         self.tint = tint
         self.detail = detail                # 0 tiny, 1 small, 2 full
         self.out = []
-        self.rim_d = min(3.2, max(0.9, 1.05 / k)) if rim else 0
+        self.rim_d = min(3.2, max(0.9, 0.6 / k)) if rim else 0
+        # body mass grows as the figure shrinks, so small people read as painted bodies, not stick lines:
+        # limbs (bulk), torso (tbulk) and head (hbulk) widen smoothly below ~70 px of standing height.
+        s = max(0.0, min(1.0, (70.0 - 100.0 * k) / 46.0))
+        self.small = s
+        self.bulk = 1.1 + 0.5 * s
+        self.tbulk = 1.05 + 0.22 * s
+        self.hbulk = 1.0 + 0.16 * s
 
     def c(self, col):
         if self.tint and col:
@@ -366,6 +373,9 @@ def pose_joints(pose, form, rnd, child=False):
                      ("near", [sh, (sh[0] - 4 * st, -66), (sh[0] - 8.5 * st, -54.5)], "front")]
         if pose == "dog_walker":
             J["arms"][1] = ("near", [sh, (sh[0] + 1.5, -66), (sh[0] + 9, -57)], "front")
+        if pose == "surfer":    # board under the near arm: the arm wraps over the top rail, hand under the bottom rail
+            J["arms"][1] = ("near", [sh, (sh[0] - 3, -62), (sh[0] + 4.5, -46.5)], "front")
+            J["arms"][0] = ("far", [sh, (sh[0] + 5, -66), (sh[0] + 9.5, -55)], "back")
         if pose == "walk_point":
             J["arms"][1] = ("near", [sh, (sh[0] + 9, -84), (sh[0] + 20, -92)], "front")
         J["foot"] = "side"
@@ -789,6 +799,32 @@ def _dog(Pt, x, base, s, col, facing=1):
     return p(11.5, -26)
 
 
+def _board(Pt, cx, cy, col, stripe, L=54.0, H=7.4, tilt=-5.0):
+    """A longboard carried under the arm, seen from below at an angle: a long lens with a pointed, lifted nose,
+    a rounded tail, a fin, the stringer and shaded rails."""
+    a = math.radians(tilt)
+    def r(px, py):
+        return (cx + px * math.cos(a) - py * math.sin(a), cy + px * math.sin(a) + py * math.cos(a))
+    top, bot = [], []
+    for i in range(25):
+        t = -1 + 2 * i / 24                     # -1 tail .. +1 nose
+        w = H * (1 - abs(t) ** 2.6) ** 0.55 if t > 0 else H * (1 - abs(t) ** 4) ** 0.45
+        lift = 3.2 * max(0.0, t) ** 3          # nose rocker
+        top.append(r(t * L, -w - lift))
+        bot.append(r(t * L, w * 0.8 - lift))
+    outline = top + bot[::-1]
+    Pt.fill(outline, col, smooth=False)
+    # lower rail in shade, a lit band along the upper rail
+    Pt.shape(bot[2:-2] + [(x, y - H * 0.45) for x, y in bot[2:-2][::-1]], mix(col, SHADOW, 0.3), smooth=False)
+    Pt.shape(top[2:-3] + [(x, y + H * 0.28) for x, y in top[2:-3][::-1]], mix(col, LIGHT, 0.45), op=0.8, smooth=False)
+    # stringer and a coloured stripe near the nose
+    Pt.add(f'<path d="M {_f(r(-L * 0.96, 0)[0])} {_f(r(-L * 0.96, 0)[1])} L {_f(r(L * 0.93, -2.4)[0])} {_f(r(L * 0.93, -2.4)[1])}" '
+           f'stroke="{Pt.c(mix(col, "#8A6A4A", 0.45))}" stroke-width="0.8" fill="none" opacity="0.8"/>')
+    Pt.shape([r(L * 0.55, -H * 0.8), r(L * 0.62, -H * 0.75), r(L * 0.62, H * 0.6), r(L * 0.55, H * 0.68)], stripe, smooth=False)
+    # fin under the tail
+    Pt.fill([r(-L * 0.86, H * 0.55), r(-L * 0.78, H * 0.6), r(-L * 0.86, H * 1.75), r(-L * 0.92, H * 1.55)], mix(col, SHADOW, 0.5), smooth=False, rim=False)
+
+
 def _bike(Pt, b, col, k):
     frame = col
     rr, fr = (-30, -19), (31, -19)
@@ -826,6 +862,19 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
     sleeve = {"tee": 0.42, "tank": 0.0, "long": 1.0, "jacket": 1.0, "coat": 1.0, "sweater": 1.0, "dress": 0.22 if f else 0.4, "swim": 0.0}.get(tk, 0.42)
     hx, hy = J["head"]
     rx, ry = (7.6, 8.6) if child else (5.9, 6.9)
+    # body mass for the figure's size (see Painter): wider torso, thicker limbs, a slightly bigger head
+    tb, hb = Pt.tbulk, Pt.hbulk
+    J = dict(J)
+    J["torso"] = [(x_, y_, w_ * tb) for x_, y_, w_ in J["torso"]]
+    if view != "side" and tb != 1.0:
+        def spread(pts, k):
+            return [(p[0] * k,) + tuple(p[1:]) for p in pts]
+        J["arms"] = [(n, spread(pts, tb), lay) for n, pts, lay in J["arms"]]
+        J["legs"] = [(spread(pts, 0.5 + 0.5 * tb), fa, lay) for pts, fa, lay in J["legs"]]
+    if hb != 1.0:
+        hy -= ry * (hb - 1.0) * 0.8
+        rx, ry = rx * hb, ry * hb
+        J["head"] = (hx, hy)
     # child: bigger head, compress body below the chin toward the feet
     darker = lambda c, t=0.22: mix(c, SHADOW, t)
 
@@ -836,7 +885,7 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
             if lay != layer:
                 continue
             dim = (lambda c: darker(c, 0.2)) if (lay == "back" and view == "side") else (lambda c: c)
-            ws = [9.2 if f else 9.8, 6.4 if f else 6.8, 4.2]
+            ws = [w * Pt.bulk for w in (9.2 if f else 9.8, 6.4 if f else 6.8, 4.2)]
             if child:
                 ws = [w * 1.05 for w in ws]
             trousers = bk == "trousers"
@@ -846,15 +895,16 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
                 if t > 0:
                     cp, cw = cut(pts, [w + 1.0 for w in ws], t)
                     Pt.tube(cp, cw, dim(bottom), cap0=False, cap1=False)
+            ss = 0.5 + 0.5 * Pt.bulk
             if J.get("foot") == "side":
-                _shoe(Pt, pts[-1], fa or 0, dim(shoes), "side")
+                _shoe(Pt, pts[-1], fa or 0, dim(shoes), "side", s=ss)
             elif not pose.startswith("sit_back"):
                 side = -1 if pts[-1][0] < 0 else 1
-                _shoe(Pt, pts[-1], 0, dim(shoes), "front", side_sign=side)
+                _shoe(Pt, pts[-1], 0, dim(shoes), "front", s=ss, side_sign=side)
 
     def arm(name, pts, lay):
         dim = (lambda c: darker(c, 0.2)) if (lay == "back" and view == "side") else (lambda c: c)
-        ws = [5.8 if f else 6.6, 4.7 if f else 5.3, 3.5 if f else 3.9]
+        ws = [w * Pt.bulk for w in (5.8 if f else 6.6, 4.7 if f else 5.3, 3.5 if f else 3.9)]
         if child:
             ws = [w * 1.05 for w in ws]
         Pt.tube(pts, ws, dim(skin), cap0=True)
@@ -865,7 +915,8 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
         # hand
         hp = pts[-1]
         d = _norm(hp[0] - pts[-2][0], hp[1] - pts[-2][1])
-        Pt.ellipse(hp[0] + d[0] * 2.2, hp[1] + d[1] * 2.2, 2.3 if f else 2.6, 2.7 if f else 3.0, dim(skin), rot=math.degrees(math.atan2(d[1], d[0])) + 90, shade=Pt.detail >= 2)
+        hk = 0.55 + 0.45 * Pt.bulk
+        Pt.ellipse(hp[0] + d[0] * 2.2 * hk, hp[1] + d[1] * 2.2 * hk, (2.3 if f else 2.6) * hk, (2.7 if f else 3.0) * hk, dim(skin), rot=math.degrees(math.atan2(d[1], d[0])) + 90, shade=Pt.detail >= 2)
 
     def torso_layer():
         T = J["torso"]
@@ -875,10 +926,18 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
         if tk == "swim":
             # skin torso + swimsuit
             Pt.tube(pts, ws, skin)
+            lerp = lambda a_, b_, t: tuple(u + (v - u) * t for u, v in zip(a_, b_))
             if f:
-                cp, cw = cut(pts[1:], [w + 0.4 for w in ws[1:]], 1.0)
-                Pt.tube(cp[2:] if len(cp) > 3 else cp, cw[2:] if len(cw) > 3 else cw, top, cap0=True)
-            Pt.tube(pts[3:], [w + 0.6 for w in ws[3:]], bottom if bk == "swim" else bottom, cap0=False)
+                # bikini top: a band across the chest, slightly wider than the ribcage
+                c0, c1 = lerp(T[1], T[2], 0.3), lerp(T[2], T[3], 0.3)
+                Pt.tube([c0[:2], c1[:2]], [c0[2] + 0.8, c1[2] + 0.8], top, cap0=False, cap1=False, rim=False)
+            # trunks / bikini bottom: from below the waist over the hips, a soft V between the legs
+            a_, b_ = lerp(T[3], T[4], 0.35 if bk == "swim" else 0.1), T[4]
+            low = 5.5 if bk == "swim" else 9.0
+            band = [(a_[0] - a_[2] / 2 - 0.3, a_[1]), (a_[0] + a_[2] / 2 + 0.3, a_[1]), (b_[0] + b_[2] / 2 + 0.6, b_[1] + low * 0.7),
+                    (b_[0] + b_[2] * 0.12, b_[1] + low), (b_[0] - b_[2] * 0.12, b_[1] + low), (b_[0] - b_[2] / 2 - 0.6, b_[1] + low * 0.7)]
+            Pt.fill(band, bottom, smooth=False)
+            Pt.shape(tube_side([a_[:2], (b_[0], b_[1] + low * 0.6)], [a_[2] + 0.6, b_[2] + 1.2], Pt.L, 0.4, cap1=False), darker(bottom, 0.3))
             return
         Pt.tube(pts[2:], ws[2:], bottom_col, cap0=False)
         hem = 1.0 if tk in ("tee", "long", "tank", "sweater") else 1.0
@@ -972,7 +1031,7 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
 
     def neck_head():
         nx, ny = J["torso"][0][0], J["torso"][0][1]
-        Pt.tube([(nx, ny + 1), ((nx + hx) / 2, (ny + hy) / 2 + 2.5)], [4.8 if f else 5.4, 4.4 if f else 5.0], darker(skin, 0.12) if view != "back" else skin, cap1=False, cap0=False)
+        Pt.tube([(nx, ny + 1), ((nx + hx) / 2, (ny + hy) / 2 + 2.5)], [(4.8 if f else 5.4) * tb, (4.4 if f else 5.0) * tb], darker(skin, 0.12) if view != "back" else skin, cap1=False, cap0=False)
         if view == "back":
             Pt.ellipse(hx, hy, rx, ry, skin, rot=J["tilt"])
             if Pt.detail >= 1 and pal["hair_style"] not in ("afro",):
@@ -1026,10 +1085,6 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
     for name, pts, lay in J["arms"]:
         if lay == "back":
             arm(name, pts, lay)
-    if pose == "surfer":
-        b = pal["board"]
-        sh = J["torso"][2]
-        Pt.fill(ell_pts(sh[0] - 6, -58, 48, 3.8, 0, 360, 30, -8)[:-1], darker(b, 0.15))
     legs_layer("back")
     legs_layer("front")
     if (pose in SEATED) and view != "side":
@@ -1058,12 +1113,7 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
             Pt.add(f'<path d="M {_f(x0 - 2)} {_f(y0 + 1)} Q {_f(x0 + 4)} {_f(y0 + 6)} {_f(T[2][0] - 1)} {_f(T[2][1] + 6)}" stroke="{Pt.c(darker(pal["bag"], 0.3))}" stroke-width="1.8" fill="none"/>')
         neck_head()
         if pose == "surfer":
-            b = pal["board"]
-            sh = J["torso"][2]
-            pts = ell_pts(sh[0] + 4, -57, 50, 4.4, 0, 360, 34, -8)[:-1]
-            Pt.fill(pts, b)
-            Pt.shape(ell_pts(sh[0] + 4, -55.6, 50, 2.6, 0, 180, 18, -8), darker(b, 0.3))
-            Pt.add(f'<path d="M {_f(sh[0] - 40)} {_f(-52)} L {_f(sh[0] + 48)} {_f(-64.5)}" stroke="{Pt.c(pal["accent"])}" stroke-width="1.4" opacity="0.8"/>')
+            _board(Pt, J["torso"][2][0] + 3, -53, pal["board"], pal.get("accent", "#E2603E"))
         for name, pts, lay in J["arms"]:
             if lay == "front":
                 arm(name, pts, lay)
@@ -1117,36 +1167,88 @@ def _render(Pt, J, pal, child=False, pose="", parts=None):
 
 
 def _tiny(x, base, h, facing, pal, seed, rim, light, tint, walk=True):
-    """Far-distance figure, 8..26 px: a real silhouette (head, shoulders, waist, two legs, arm hints)."""
+    """Far-distance figure, 8..20 px: a small painted body, not a stick figure. Chunky proportions (about six
+    heads tall) so every part keeps real width at print size: a shaped torso with shoulders, waist and hips, thick
+    tapered legs with shoes, arms that hug the body, a head with hair, and three tones (shadow side, base, lit edge)
+    plus a soft contact shadow."""
     rnd = random.Random(seed)
     k = h / 100.0
     Pt = Painter(k, light * facing, rim, tint, 0)
-    Pt.rim_d = min(5, max(1.5, 0.75 / k)) if rim else 0
-    top, bottom, skin, hair = pal["top"], pal["bottom"], pal["skin"], pal["hair"]
-    if pal["top_kind"] == "dress":
-        bottom = skin
-    stride = rnd.uniform(8, 12) if walk else 3
-    legcol = bottom if pal["bottom_kind"] == "trousers" else skin
-    Pt.tube([(-1, -48), (-stride * 0.5, -25), (-stride, -2)], [10, 7.5, 6], mix(legcol, SHADOW, 0.15), shade=False, cap0=False)
-    Pt.tube([(1, -48), (stride * 0.6, -25), (stride * 0.8, -2)], [10, 7.5, 6], legcol, shade=False, cap0=False)
-    if pal["bottom_kind"] == "shorts":
-        Pt.tube([(-1, -50), (-stride * 0.3, -36)], [11, 9], bottom, shade=False, cap0=False)
-        Pt.tube([(1, -50), (stride * 0.36, -36)], [11, 9], bottom, shade=False, cap0=False)
-    body = [(0, -84, 12), (0, -79, 23), (0, -64, 19), (0, -50, 19)]
-    pts = [(a, b) for a, b, c in body]
-    ws = [c for a, b, c in body]
-    if pal["top_kind"] in ("dress", "coat") or pal["bottom_kind"] == "skirt":
-        c = top if pal["top_kind"] != "skirt" and pal["bottom_kind"] != "skirt" else bottom
-        Pt.fill([(-8, -62), (8, -62), (13, -27), (-13, -27)], c if pal["bottom_kind"] != "skirt" else bottom)
-    Pt.tube(pts, ws, top, shade=True, cap1=False, sh=0.3, hi=0)
-    Pt.tube([(-9, -79), (-11.5, -50)], [6.5, 5.5], mix(top, SHADOW, 0.12), shade=False)
-    Pt.tube([(9, -79), (11.5, -50)], [6.5, 5.5], top, shade=False)
-    Pt.ellipse(0, -92, 7, 8, skin, shade=False)
-    Pt.fill(ell_pts(-0.6, -93, 7.5, 8.3, 175, 365, 10) + [(6, -94), (0, -96.5), (-6, -93)], hair)
-    if pal["hair_style"] in ("long", "ponytail", "bob"):
-        Pt.fill([(-7, -94), (-8, -82), (-3, -83)], hair)
-    Pt.shape(Pt.crescent(0, -92, 7, 8, 0.6), mix(skin, SHADOW, 0.3))
-    return f'<g transform="translate({_f(x)} {_f(base)}) scale({k * facing:.4f} {k:.4f})">' + "".join(Pt.out) + "</g>"
+    Pt.rim_d = min(4.0, max(1.5, 0.55 / k)) if rim else 0
+    sil = pal.get("silhouette")
+    top, bottom, skin, hair, shoes = pal["top"], pal["bottom"], pal["skin"], pal["hair"], pal["shoes"]
+    tk, bk = pal["top_kind"], pal["bottom_kind"]
+    f = pal["form"] == "f"
+    if tk == "dress":
+        bk = "none"
+    dark = lambda c, t=0.3: mix(c, SHADOW, t)
+    out = [f'<ellipse cx="{_f(-Pt.lx * 4)}" cy="0.8" rx="20" ry="3.6" fill="#140C1A" opacity="0.22"/>']
+    stride = rnd.uniform(9, 12) if walk else 3.2
+    legcol = bottom if bk == "trousers" else skin
+    hip_y = -46
+    # legs: far leg (darker) then near leg, thick tapered tubes ending in shoes
+    legs = [([(-1.5, hip_y), (-stride * 0.45, -24), (-stride, -3)], True), ([(1.5, hip_y), (stride * 0.55, -24), (stride * 0.8, -3)], False)]
+    if not walk:
+        legs = [([(-5, hip_y), (-5.5, -24), (-6, -3)], True), ([(5, hip_y), (5.5, -24), (6, -3)], False)]
+    for pts, far in legs:
+        c = dark(legcol, 0.22) if far else legcol
+        Pt.tube(pts, [15, 11.5, 9], c, shade=not far, cap0=False, sh=0.32, hi=0)
+        if bk in ("shorts", "swim") and not sil:
+            cp, cw = cut(pts, [16.5, 13, 10], 0.45 if bk == "shorts" else 0.2)
+            Pt.tube(cp, cw, dark(bottom, 0.22) if far else bottom, shade=False, cap0=False, cap1=False)
+        ax, ay = pts[-1]
+        Pt.fill(ell_pts(ax + (2.5 if walk else 0), ay + 1.5, 6.5, 3.6, 0, 360, 12)[:-1], dark(shoes, 0.15) if far else shoes, rim=False)
+    # skirt / dress / coat over the thighs
+    if (tk in ("dress", "coat") or bk == "skirt") and not sil:
+        c = bottom if bk == "skirt" else top
+        hem = -24 if tk == "coat" else -27
+        Pt.fill([(-11, -58), (11, -58), (16 + stride * 0.25, hem), (0, hem + 2), (-16 - stride * 0.15, hem)], c, smooth=False)
+        Pt.shape(tube_side([(0, -58), (0, hem)], [22, 32], Pt.L, 0.42, cap1=False), dark(c))
+    # far arm, tucked behind the body
+    sw = stride * 0.35 if walk else 0
+    sleeve_col = skin if tk in ("tank", "swim") else top
+    Pt.tube([(-1, -79), (3 + sw, -63), (5 + sw * 1.4, -52)], [10, 8.5, 7.5], dark(sleeve_col, 0.3), shade=False, cap0=True)
+    # torso: shoulders, chest, waist, hips
+    tcol = skin if tk == "swim" else top
+    sh_w = 15.5 if not f else 13.5
+    body = [(-6, -86), (6, -86), (sh_w, -80), (sh_w - 1, -70), (11.5, -58), (12.5, hip_y - 1), (-12.5, hip_y - 1), (-11.5, -58), (-sh_w + 1, -70), (-sh_w, -80)]
+    Pt.fill(body, tcol)
+    if bk in ("trousers", "shorts", "swim") and tk not in ("coat", "dress"):
+        Pt.fill([(-12, -55), (12, -55), (12.5, hip_y + 2), (-12.5, hip_y + 2)], bottom, smooth=False, rim=False)
+    if tk == "swim" and f and not sil:
+        Pt.fill([(-sh_w + 1.5, -76), (sh_w - 1.5, -76), (sh_w - 2, -67), (-sh_w + 2, -67)], top, smooth=False, rim=False)
+    Pt.shape(tube_side([(0, -84), (0, hip_y)], [sh_w * 2, 25], Pt.L, 0.42, cap1=False), dark(tcol, 0.32))
+    Pt.shape(tube_side([(0, -82), (0, hip_y + 4)], [sh_w * 2 - 2, 23], Pt.L, 0.14, lit=True, cap1=False), mix(tcol, LIGHT, 0.35), op=0.7)
+    # near arm swinging back a little, hand in skin tone
+    Pt.tube([(1, -79), (-2 - sw, -64), (-3 - sw * 1.3, -53)], [10.5, 9, 8], sleeve_col, shade=True, cap0=True, sh=0.3, hi=0)
+    if tk in ("tee", "dress") and not sil:
+        cp, cw = cut([(-2 - sw, -64), (-3 - sw * 1.3, -53)], [9, 8], 1.0)
+        Pt.tube(cp, cw, skin, shade=False, cap0=False)
+    Pt.fill(ell_pts(-3 - sw * 1.3, -50, 4.4, 4.8, 0, 360, 10)[:-1], skin, rim=False)
+    # neck and head
+    Pt.tube([(0, -86), (0.8, -90)], [8, 7.5], dark(skin, 0.15), shade=False, cap0=False, cap1=False, rim=False)
+    hx, hy, hr = 1.2, -94, 9.0
+    if pal["hair_style"] in ("long", "bob"):
+        L = -80 if pal["hair_style"] == "long" else -86
+        Pt.fill([(hx - 9, hy - 2), (hx - 10.5, L), (hx - 1, L + 1), (hx + 1, hy)], hair)
+    Pt.fill(ell_pts(hx, hy, hr * 0.9, hr, 0, 360, 16)[:-1], skin)
+    if pal["hair_style"] != "bald":
+        cap = ell_pts(hx - 0.6, hy - 0.8, hr * 0.98, hr * 1.06, 160, 380, 12) + [(hx + 5, hy - 3.5), (hx - 2, hy - 2), (hx - 6, hy + 4)]
+        if pal["hair_style"] == "afro":
+            cap = ell_pts(hx - 1, hy - 2, hr * 1.35, hr * 1.25, 0, 360, 16)[:-1]
+        Pt.fill(cap, hair)
+        if pal["hair_style"] in ("ponytail", "bun"):
+            Pt.fill(ell_pts(hx - 9, hy - 4, 4.2, 4.6, 0, 360, 10)[:-1], hair)
+    Pt.shape(Pt.crescent(hx, hy, hr * 0.9, hr, 0.55), dark(skin, 0.3), op=0.8)
+    hk = pal.get("hat_kind")
+    if hk and not sil:
+        hc = pal["hat"]
+        if hk in ("sunhat", "cowboy"):
+            Pt.fill(ell_pts(hx, hy - 4, 16, 3.6, 0, 360, 14)[:-1], hc)
+            Pt.fill(ell_pts(hx, hy - 5, 9, 7.5, 180, 360, 10), hc)
+        else:
+            Pt.fill(ell_pts(hx - 0.5, hy - 3, 9.6, 8, 180, 360, 10) + ([(hx + 15, hy - 3)] if hk == "cap" else []), hc)
+    return f'<g transform="translate({_f(x)} {_f(base)}) scale({k * facing:.4f} {k:.4f})">' + "".join(out + Pt.out) + "</g>"
 
 
 def person(x, base_y, height_px, pose="walk", facing=1, palette=None, seed=0, rim=None, light=1, tint=None,

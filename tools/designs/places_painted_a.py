@@ -611,8 +611,12 @@ def grand_canyon():
     out.append(f'<polyline points="{P(rim[:7])}" fill="none" stroke="#FFF2D8" stroke-width="2.4" stroke-linejoin="round"/>')
     out.append(grass(40, 72, (-10, 362, 170, 400), ["#B8A070", "#8A8058", "#D8C08A"], h=(4, 10)))
     out.append(juniper(58, 362, 1.0, 5))
-    out.append(stroll(150, 378, 30, "#3E5A7A", rim="#FFD8A0", pose="hiker", light=1, seed=51, pal={"bag": "#C8573E", "hat_kind": "sunhat", "bottom_kind": "shorts"}))
-    out.append(stroll(168, 383, 28, "#B8504A", rim="#FFD8A0", pose="point", light=1, seed=52, pal={"bag": "#2E3A58", "form": "f"}))
+    # two early hikers at the edge, one pointing out across the canyon to the river far below
+    out.append(F.person(112, 412, 66, "hiker", 1, {"top": "#3E5A7A", "top_kind": "tee", "bottom": "#B8A078", "bottom_kind": "shorts", "bag": "#C8573E",
+                                                  "hat_kind": "sunhat", "hat": "#E8D8B0", "skin": "#C88A60", "shoes": "#5A3A2A", "form": "m"}, seed=51, rim="#FFD8A0", light=1))
+    out.append(F.person(150, 418, 62, "point", 1, {"top": "#B8504A", "top_kind": "long", "bottom": "#4A4038", "bottom_kind": "trousers", "bag": "#2E3A58", "pack": True,
+                                                  "skin": "#E8B48E", "hair": "#6E4426", "hair_style": "ponytail", "hat_kind": "cap", "hat": "#2E3A58", "shoes": "#5A3A2A",
+                                                  "form": "f"}, seed=52, rim="#FFD8A0", light=1))
     # ravens riding the morning updraft
     out.append('<g fill="#2A2030"><path d="M 330 150 q 8 -7 14 -1 q 6 -6 14 1 q -7 -1 -14 3 q -7 -4 -14 -3 Z"/><path d="M 372 168 q 6 -5 10 -1 q 4 -4 10 1 q -5 -1 -10 2 q -5 -3 -10 -2 Z"/></g>')
     return "\n".join(out)
@@ -757,9 +761,18 @@ def washington_dc():
     out.append(f'<polygon points="{P([(-10, 410), (610, 404), (610, 444), (-10, 444)])}" fill="url(#{u}-path)"/>')
     out.append(dots(160, 26, (-10, 404, 610, 444), "#F8C8D8", r=(0.8, 1.8), opacity=(0.5, 0.95)))
     # an early walker and a photographer on the walk
-    out.append(stroll(120, 404, 37, "#3E4A7A", rim="#FFD8B8", pose="jog", flip=1, light=-1, seed=61, pal={"top_kind": "tee", "bottom_kind": "shorts", "shoes": "#E6E0D6"}))
-    out.append('<g stroke="#2A2238" stroke-width="1.4"><line x1="389" y1="401" x2="395" y2="372"/><line x1="401" y1="401" x2="395" y2="372"/><line x1="395" y1="401" x2="395" y2="372"/></g>')
-    out.append(stroll(383, 401, 35, "#A84A5A", rim="#FFD8B8", pose="photo", flip=1, light=-1, seed=62, pal={"top_kind": "jacket"}))
+    out.append('<ellipse cx="146" cy="434" rx="26" ry="3" fill="#4A3A5A" opacity="0.25"/>')
+    out.append(F.person(150, 432, 74, "jog", 1, {"top": "#3E4A7A", "top_kind": "long", "bottom": "#26242C", "bottom_kind": "trousers", "shoes": "#E6E0D6",
+                                                "skin": "#6A4028", "hair": "#1C1412", "hair_style": "buzz", "form": "m"}, seed=61, rim="#FFD8B8", light=-1))
+    # a photographer with her camera on a tripod, framing the Monument through the blossoms
+    px_, pb_, ph_ = 396, 430, 70
+    tx_, ty_ = px_ + 0.36 * ph_, pb_ - 0.84 * ph_
+    out.append(f'<ellipse cx="{px_ + 10}" cy="{pb_ + 1}" rx="30" ry="3" fill="#4A3A5A" opacity="0.25"/>')
+    out.append(f'<g stroke="#2A2238" stroke-width="2.2" stroke-linecap="round"><line x1="{tx_ - 0.17 * ph_:.1f}" y1="{pb_}" x2="{tx_:.1f}" y2="{ty_:.1f}"/>'
+               f'<line x1="{tx_ + 0.16 * ph_:.1f}" y1="{pb_ + 1}" x2="{tx_:.1f}" y2="{ty_:.1f}"/><line x1="{tx_ + 0.03 * ph_:.1f}" y1="{pb_ + 2}" x2="{tx_:.1f}" y2="{ty_:.1f}"/></g>')
+    out.append(F.person(px_, pb_, ph_, "photo", 1, {"top": "#A84A5A", "top_kind": "coat", "bottom": "#2E3A58", "bottom_kind": "trousers", "skin": "#F3CDAE",
+                                                   "hair": "#C8964E", "hair_style": "bob", "hat_kind": "beanie", "hat": "#F2E6D0", "shoes": "#5A3A2A", "form": "f"},
+                        seed=62, rim="#FFD8B8", light=-1))
     # cherry trees framing the view: a gnarled trunk on the right, branches arching over from both corners
     segs, tips = branch_tree(596, 470, -98, 104, 24, 5, 31, droop=0.02)
     segs2, tips2 = branch_tree(-24, 50, 24, 74, 16, 4, 37, droop=0.16)
@@ -950,14 +963,9 @@ def miami_beach():
     for X, Z, sd, hh in ((-4, 120, 8, 12), (-3, 70, 7, 12), (-6, 44, 6, 11), (-3, 28, 5, 10), (-7, 18, 4, 8), (-6, 8, 3, 6.2)):
         x, b = C(X, 0, Z)
         out.append(palm_tree(x, b, 330 * hh / C.depth(X, Z), trunk="#2E2240", frond="#1C2434", rim="#FF9AB8", seed=sd, lean=0.1 if sd % 2 else -0.08))
-    # a couple on a park bench under the palms
-    x, b = C(-3.2, 0, 12)
-    k = 330 / C.depth(-3.2, 12) / 60
-    out.append(f'<g transform="translate({x:.1f} {b:.1f}) scale({k:.3f})"><rect x="-40" y="-26" width="80" height="6" fill="#4A3A5A"/><rect x="-40" y="-44" width="80" height="5" fill="#4A3A5A"/>'
-               '<rect x="-36" y="-26" width="4" height="26" fill="#2A2038"/><rect x="32" y="-26" width="4" height="26" fill="#2A2038"/>'
-               '</g>')
-    out.append(F.person(x - 14 * k, b - 26 * k, 100 * k, "sit_front", 1, {"top": "#E86A8A", "form": "f", "season": "summer"}, seed=71, rim="#FF9AB8", light=1, tint=("#3A2A5A", 0.25)))
-    out.append(F.person(x + 12 * k, b - 26 * k, 104 * k, "sit_front", 1, {"top": "#3A6A9A", "form": "m", "season": "summer"}, seed=72, rim="#FF9AB8", light=1, tint=("#3A2A5A", 0.25)))
+    # a couple strolling hand in hand along the park walk, away from us toward the glowing strip
+    cx_, cb_ = C(-2.6, 0, 7.2)
+    out.append(F.couple(cx_, cb_, 330 * 1.75 / C.depth(-2.6, 7.2), "back", {"season": "summer"}, seed=74, rim="#FF9AB8", light=1, tint=("#3A2A5A", 0.18), gap=30))
     # sea grape shrubs in the corner, catching pink light
     rnd = random.Random(61)
     for cx, cy, r in ((20, 420, 40), (80, 436, 34), (-4, 380, 30), (150, 444, 30)):
@@ -1066,9 +1074,11 @@ def honolulu():
         out.append(f'<path d="M {x0} {y0 + 4} Q {(x0 + x1) / 2} {y0 - 8} {x1} {y0 + 2} L {x1} {y0 + 6} Q {(x0 + x1) / 2} {y0 - 2} {x0} {y0 + 8} Z" fill="#1E6A8A" opacity="0.6"/>')
         out.append(f'<path d="M {x0} {y0 + 6} Q {(x0 + x1) / 2} {y0 - 2} {x1} {y0 + 4}" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.9"/>')
         out.append(dots(26, sd, (x0, y0 - 6, x1, y0 + 6), "#FFFFFF", r=(0.8, 2), opacity=(0.5, 1)))
-    out.append(surfer(250, 328, 0.62, board="#F8E8C8", suit="#2A2A3A"))
-    out.append(surfer(300, 324, 0.5, board="#F0B040", suit="#3A2A2A", flip=-1))
-    out.append('<g transform="translate(470 352)"><path d="M -14 0 Q 0 -3 14 -1 Q 0 2 -14 0 Z" fill="#7AD0E0"/><circle cx="0" cy="-5" r="3.2" fill="#3A2420"/><path d="M -3 -2 Q 0 -4 4 -2" stroke="#3A2A2A" stroke-width="3"/></g>')
+    out.append(surfer(250, 329, 0.78, board="#F8E8C8", suit="#2A2A3A"))
+    out.append(surfer(302, 325, 0.68, board="#F0B040", suit="#3A2A2A", flip=-1))
+    # a surfer sitting on her board beyond the break, waiting for the next set
+    out.append(F.person(548, 336, 36, "surf_sit", -1, {"board": "#7AD0E0", "top": "#E86A8A", "top_kind": "swim", "bottom_kind": "swim", "bottom": "#E86A8A",
+                                                      "form": "f", "hair_style": "long", "hair": "#2E1E16", "skin": "#B87A52"}, seed=470, rim="#FFE6B8", light=1))
     # outrigger canoe surfing in, its float and booms catching the light
     out.append('<path d="M 300 380 Q 400 386 520 378" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>')
     out.append('<path d="M 330 368 Q 410 366 490 362 L 488 365 Q 410 370 332 371 Z" fill="#E8D8B8"/>')
@@ -1086,6 +1096,13 @@ def honolulu():
         out.append(f'<g transform="rotate({(x - 560) * 0.3:.1f} {x} 430)"><path d="M {x - 7} 430 Q {x - 8} 380 {x} 362 Q {x + 8} 380 {x + 7} 430 Z" fill="{col}"/>'
                    f'<path d="M {x} 364 L {x} 430" stroke="{st}" stroke-width="2"/><path d="M {x + 3} 368 Q {x + 6} 390 {x + 6} 428" fill="none" stroke="#FFFFFF" stroke-width="1.4" opacity="0.6"/></g>')
     out.append('<ellipse cx="540" cy="434" rx="50" ry="5" fill="#B88A58" opacity="0.5"/>')
+    # a mother and her little girl walking down to the water's edge, hand in hand, in the late light
+    out.append('<path d="M 214 440 q 6 -3 10 0 M 232 436 q 6 -3 10 0 M 222 430 q 5 -2 9 0" stroke="#B88A58" stroke-width="2.4" fill="none" stroke-linecap="round" opacity="0.6"/>')
+    out.append(F.person(286, 428, 86, "walk", 1, {"top": "#F2E6D0", "top_kind": "dress", "skin": "#8E5A3A", "hair": "#1C1412", "hair_style": "long",
+                                                 "hat_kind": "sunhat", "hat": "#E8D8B0", "shoes": "#8E5A3A", "form": "f", "bag": "#C8573E"}, seed=286, rim="#FFE0A8", light=1))
+    out.append(F.person(262, 430, 50, "child_walk", 1, {"top": "#F27A5A", "top_kind": "swim", "bottom": "#F27A5A", "bottom_kind": "swim", "skin": "#9A6644",
+                                                       "hair": "#1C1412", "hair_style": "ponytail", "shoes": "#9A6644", "form": "f"}, seed=262, rim="#FFE0A8", light=1))
+    out.append('<path d="M 268 395 Q 272 400 278 397" stroke="#8E5A3A" stroke-width="3.6" fill="none" stroke-linecap="round"/>')
     out.append(palm_tree(30, 460, 300, trunk="#5A4434", frond="#244A30", rim="#FFD890", seed=24, lean=0.462))
     out.append(palm_tree(30, 460, 330, trunk="#5A4434", frond="#2E5A3A", rim="#FFD890", seed=21, lean=0.42))
     tx, ty = 30 + 0.42 * 330, 130

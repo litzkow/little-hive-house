@@ -149,10 +149,12 @@ def yellowstone():
     out.append('<g stroke="#6A4E3A" stroke-width="2">' + "".join(f'<line x1="{x}" y1="{404 - (x / 600) * 2:.0f}" x2="{x}" y2="{418 - (x / 600) * 4:.0f}"/>' for x in range(10, 600, 26)) + "</g>")
     # visitors on the boardwalk watching the eruption, backlit by the low sun on the right
     vis = dict(rim="#FFD49A", light=1, tint=("#4A3A5E", 0.2))
-    out.append(F.couple(156, 402, 23, palette={"top": "#3B4A6B", "season": "any"}, seed=4, **vis))
-    out.append(F.person(178, 402, 23, "photo", -1, {"top": "#2E3A30", "bottom": "#CDBB94"}, seed=7, **vis))
-    out.append(F.person(330, 402, 22, "stand_back", 1, {"top": "#5E4A7A", "form": "f"}, seed=11, **vis))
-    out.append(F.person(342, 402, 15, "child_back", 1, {"top": "#E0A040"}, seed=12, **vis))
+    out.append(F.couple(132, 409, 44, palette={"top": "#3B4A6B", "season": "any"}, seed=4, gap=30, **vis))
+    out.append(F.person(178, 408, 43, "photo", -1, {"top": "#2E3A30", "top_kind": "jacket", "bottom": "#CDBB94", "bottom_kind": "trousers", "hat_kind": "sunhat",
+                                                   "hat": "#D8B070", "form": "m"}, seed=7, **vis))
+    out.append(F.person(236, 406, 42, "stand_back", 1, {"top": "#5E4A7A", "top_kind": "jacket", "bottom": "#2E3A58", "bottom_kind": "trousers", "form": "f",
+                                                      "hair_style": "ponytail"}, seed=11, **vis))
+    out.append(F.person(253, 406, 27, "child_back", 1, {"top": "#E0A040", "top_kind": "jacket", "bottom": "#3E5274", "bottom_kind": "trousers"}, seed=12, **vis))
     # foreground meadow with a bison, rim-lit by the low sun
     out.append(f'<path d="M -10 424 Q 200 412 380 418 Q 500 420 610 412 L 610 444 L -10 444 Z" fill="url(#{u}-meadow)"/>')
     out.append(grass(160, 51, (-10, 414, 610, 444), ["#C9B26A", "#A8994E", "#6E7240", "#E0C27A"], h=(6, 18)))
@@ -533,10 +535,14 @@ def facade_windows(C, X, z0, z1, y0, y1, fh, bays, col, seed, lit_p=0.35, lit=("
     return "".join(out)
 
 
-# Everything below is built in 3-D with the pinhole Cam (X right = north bank, Y up, Z west up the river) so each
-# building is a real box: an east front in cool shade, a river face lit by the low sun (north bank) or by the sky
-# (south bank), set-back tiers, cornices, punched windows with reveals, glass curtain walls with sky reflections.
-CH_EYE = 16.0
+# Everything below is built in 3-D with the pinhole Cam (X right = north bank, Y up from the water, Z west up the
+# river). The camera stands on the south sidewalk of the Michigan Avenue bridge (X = CH_XC, eye CH_EYE above the
+# water), so the Riverwalk and its people come close on the left. Every building is a real volume: an east front in
+# cool shade, a river face lit by the low sun (north bank) or by the sky (south bank), each painted in its own
+# material (cream limestone with proud piers, red-brown brick with punched windows, glazed white terra cotta,
+# curtain-wall glass that mirrors the sunset and the city across the water), set-back tiers, cornices, roofs.
+CH_EYE = 12.0
+CH_XC = -12.0
 CH_HAZE = "#D9AAA8"
 
 
@@ -555,19 +561,25 @@ def cscale(c, k):
 
 
 # light on each kind of face: (tint, amount, brightness)
-CH_LIGHT = {"front": ("#3A3C6E", 0.42, 0.62), "xpos": ("#8A82B8", 0.30, 0.84), "xneg": ("#FFBE7A", 0.34, 1.12),
+CH_LIGHT = {"front": ("#3A3C6E", 0.40, 0.66), "xpos": ("#8A82B8", 0.28, 0.86), "xneg": ("#FFBE7A", 0.30, 1.10),
             "top": ("#FFD8A8", 0.25, 1.0), "bottom": ("#2A2A50", 0.5, 0.45)}
 # what a glass wall facing each way reflects: (top, middle, bottom)
-CH_GLASS = {"front": ("#33426E", "#5A6498", "#9A86AE"), "xpos": ("#55609A", "#A889B0", "#E9AE98"),
-            "xneg": ("#FBDDA8", "#F2AE7A", "#B87470"), "top": ("#8A86B0", "#8A86B0", "#8A86B0"),
+CH_GLASS = {"front": ("#2E3C68", "#525C92", "#8A7AA6"), "xpos": ("#55609A", "#A889B0", "#E9AE98"),
+            "xneg": ("#FBDDA8", "#E8A27A", "#9A6A78"), "top": ("#8A86B0", "#8A86B0", "#8A86B0"),
             "bottom": ("#2A2A40", "#2A2A40", "#2A2A40")}
+LIT_WIN = ("#FFD995", "#F9C574", "#FFE6B0", "#F4B866", "#FFCF8A")
 
 
 class ChiScene:
     def __init__(self):
-        self.C = Cam(f=470, cx=300, vpy=282, eye=CH_EYE)
+        self.f = 470.0
+        self.cam = Cam(f=self.f, cx=300, vpy=282, eye=CH_EYE)
         self.n = 0
         self.defs = []
+        self.refl = []          # (Z, pts3, colour, lit-window flecks) gathered while the city is built
+
+    def C(self, X, Y, Z):
+        return self.cam(X - CH_XC, Y, Z)
 
     def gid(self, pre="g"):
         self.n += 1
@@ -577,10 +589,10 @@ class ChiScene:
         return P([self.C(*q) for q in pts3])
 
     def poly(self, pts3, fill, extra=""):
-        return f'<polygon points="{self.p(pts3)}" fill="{fill}"{extra}/>'
+        return f'<path d="{d_rel([self.C(*q) for q in pts3])}" fill="{fill}"{extra}/>'
 
     def fog(self, Z):
-        return min(0.8, max(0.0, 1 - math.exp(-(Z - 140) / 1250)))
+        return min(0.8, max(0.0, 1 - math.exp(-(Z - 160) / 1250)))
 
     def lit(self, base, kind, Z, extra_fog=0.0):
         tint, amt, k = CH_LIGHT[kind]
@@ -588,15 +600,15 @@ class ChiScene:
 
     def px(self, Z):
         """pixels per metre at depth Z"""
-        return self.C.f / Z
+        return self.f / Z
 
 
 def box_faces(X0, X1, Z0, Z1, Y0, Y1):
-    """Visible faces of an axis-aligned box: (kind, quad, map(u, v)->3D, u-range, inward depth vector)."""
+    """Visible faces of an axis-aligned box: (kind, quad, map(u, v, depth)->3D, u-range)."""
     out = [("front", [(X0, Y0, Z0), (X0, Y1, Z0), (X1, Y1, Z0), (X1, Y0, Z0)], lambda u, v, d=0: (u, v, Z0 + d), (X0, X1))]
-    if X1 < 0:
+    if X1 < CH_XC:
         out.append(("xpos", [(X1, Y0, Z0), (X1, Y1, Z0), (X1, Y1, Z1), (X1, Y0, Z1)], lambda u, v, d=0: (X1 - d, v, u), (Z0, Z1)))
-    if X0 > 0:
+    if X0 > CH_XC:
         out.append(("xneg", [(X0, Y0, Z0), (X0, Y1, Z0), (X0, Y1, Z1), (X0, Y0, Z1)], lambda u, v, d=0: (X0 + d, v, u), (Z0, Z1)))
     if Y1 < CH_EYE:
         out.append(("top", [(X0, Y1, Z0), (X1, Y1, Z0), (X1, Y1, Z1), (X0, Y1, Z1)], None, None))
@@ -605,184 +617,641 @@ def box_faces(X0, X1, Z0, Z1, Y0, Y1):
     return out
 
 
-def ch_window(S, kind, fm, a, b, c, d, glass, depth, jamb, soffit, sill, detail):
-    """One punched window with depth: opening + the visible jamb, soffit (above eye) or sill (below eye)."""
-    out = [S.poly([fm(a, c), fm(a, d), fm(b, d), fm(b, c)], glass)]
-    if not detail:
+def fq(fm, a, b, c, d, dep=0.0):
+    """Face-local rectangle u a..b, v c..d at depth dep (negative = proud of the wall)."""
+    return [fm(a, c, dep), fm(a, d, dep), fm(b, d, dep), fm(b, c, dep)]
+
+
+def ch_line(S, p, q):
+    a, b = S.C(*p), S.C(*q)
+    return f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}"/>'
+
+
+def _num(v):
+    t = f"{v:.1f}"
+    if t.endswith(".0"):
+        t = t[:-2]
+    if t.startswith("0."):
+        t = t[1:]
+    elif t.startswith("-0."):
+        t = "-" + t[2:]
+    return "0" if t in ("-0", "") else t
+
+
+def d_rel(pts, close=True):
+    """Compact path data: absolute start, then relative steps between the rounded points."""
+    r = [(round(x, 1), round(y, 1)) for x, y in pts]
+    out = [f"M{_num(r[0][0])} {_num(r[0][1])}l"]
+    seq = []
+    for (ax, ay), (bx, by) in zip(r, r[1:]):
+        seq.append(f"{_num(bx - ax)} {_num(by - ay)}")
+    out.append(" ".join(seq).replace(" -", "-"))
+    return "".join(out) + ("z" if close else "")
+
+
+class Bk:
+    """Collects many small shapes and writes each (layer, paint) group as ONE path: same picture, far fewer bytes.
+    Layers keep the stacking right (glass < room details < blinds < reveals < mullions < ledges)."""
+    def __init__(self, S):
+        self.S = S
+        self.k = {}
+
+    def poly(self, layer, pts3, fill, extra="", min_area=0.35):
+        pts = [self.S.C(*q) for q in pts3]
+        if min_area and abs(sum(pts[i - 1][0] * pts[i][1] - pts[i][0] * pts[i - 1][1] for i in range(len(pts)))) / 2 < min_area:
+            return
+        d = d_rel(pts)
+        self.k.setdefault((layer, "f", fill, extra), []).append(d)
+
+    def line(self, layer, p, q, stroke, w, extra=""):
+        a, b = self.S.C(*p), self.S.C(*q)
+        self.k.setdefault((layer, "s", stroke, f'{w:.2f}"{extra}'), []).append(d_rel([a, b], False))
+
+    def svg(self):
+        out = []
+        for key in sorted(self.k, key=lambda k: k[0]):
+            ds = "".join(self.k[key])
+            if key[1] == "f":
+                out.append(f'<path d="{ds}" fill="{key[2]}"{key[3]}/>')
+            else:
+                out.append(f'<path d="{ds}" fill="none" stroke="{key[2]}" stroke-width="{key[3]}/>')
         return "".join(out)
-    if kind == "front":
-        ju = a if a < 0 else b
+
+
+def ch_vgrad(S, quad, stops):
+    ys = [S.C(*q)[1] for q in quad]
+    gid = S.gid("v")
+    S.defs.append(lg(gid, stops, 0, round(min(ys), 1), 0, round(max(ys), 1), units="userSpaceOnUse"))
+    return f"url(#{gid})"
+
+
+def ch_face_paint(S, kind, quad, col):
+    """Golden-hour light on a wall: the sunlit river face glows warm up high and cools toward the street canyon,
+    the sky-lit face carries a warm bounce off the river at its foot, the shaded front darkens downward."""
+    if kind == "xneg":
+        st = [(0, cmix(cscale(col, 1.12), "#FFE4B4", 0.3)), (0.45, col), (1, cmix(cscale(col, 0.8), "#6A4A6A", 0.28))]
+    elif kind == "xpos":
+        st = [(0, cmix(cscale(col, 1.08), "#B8B0D8", 0.15)), (0.55, col), (1, cmix(cscale(col, 0.86), "#B07A80", 0.25))]
     else:
-        ju = b
-    out.append(S.poly([fm(ju, c), fm(ju, d), fm(ju, d, depth), fm(ju, c, depth)], jamb))
-    if d > CH_EYE:
-        out.append(S.poly([fm(a, d), fm(b, d), fm(b, d, depth), fm(a, d, depth)], soffit))
-    if c < CH_EYE:
-        out.append(S.poly([fm(a, c), fm(b, c), fm(b, c, depth), fm(a, c, depth)], sill))
+        st = [(0, cmix(cscale(col, 1.1), "#9A90C0", 0.2)), (0.5, col), (1, cmix(cscale(col, 0.76), "#1E1A36", 0.2))]
+    return ch_vgrad(S, quad, st)
+
+
+def ch_haze_over(S, kind, quad, Zn, Zf):
+    """Extra aerial haze toward the far end of a receding face (details are painted with the near end's haze)."""
+    if kind == "front":
+        return ""
+    fa, fb = S.fog(Zn), S.fog(Zf)
+    if fb - fa < 0.03:
+        return ""
+    xa, xb = S.C(*quad[0])[0], S.C(*quad[3])[0]
+    gid = S.gid("hz")
+    S.defs.append(lg(gid, [(0, CH_HAZE, 0), (1, CH_HAZE, round(min(0.85, fb - fa), 2))], round(xa, 1), 0, round(xb, 1), 0, units="userSpaceOnUse"))
+    return S.poly(quad, f"url(#{gid})")
+
+
+def ch_chunks(S, side, zat, u0, u1, size, min_px, n=6):
+    """Split a face along u; in each chunk give the spacing multiplier (1, 2, 4...) that keeps marks >= min_px apart."""
+    out = []
+    k_ = n if side else 1
+    for k in range(k_):
+        ua, ub = u0 + (u1 - u0) * k / k_, u0 + (u1 - u0) * (k + 1) / k_
+        m = 1
+        while S.f / zat(ub) * size * m < min_px and m < 8:
+            m *= 2
+        if S.f / zat(ub) * size * m >= min_px:
+            out.append((ua, ub, m))
+    return out
+
+
+def ch_hjoints(S, fm, side, zat, u0, u1, v0, v1, step, min_px=1.8, phase=0.0):
+    out = []
+    for ua, ub, m in ch_chunks(S, side, zat, u0, u1, step, min_px):
+        s = step * m
+        v = v0 + phase + s
+        while v < v1 - 0.05:
+            out.append(ch_line(S, fm(ua, v), fm(ub, v)))
+            v += s
     return "".join(out)
 
 
-LIT_WIN = ("#FFD995", "#F9C574", "#FFE6B0", "#F4B866")
+def ch_vjoints(S, fm, side, zat, u0, u1, v0, v1, step, min_px=2.0, dep=0.0):
+    out = []
+    k = 1
+    while u0 + k * step < u1 - 0.1:
+        u = u0 + k * step
+        mm = 1
+        while S.f / zat(u) * step * mm < min_px and mm < 8:
+            mm *= 2
+        if S.f / zat(u) * step * mm >= min_px and k % mm == 0:
+            out.append(ch_line(S, fm(u, v0, dep), fm(u, v1, dep)))
+        k += 1
+    return "".join(out)
+
+
+MAT_FRAME = {"stone": "#F2EADC", "brick": "#EFE8DC", "tc": "#6A5650"}
+
+
+def ch_sun_shadow(S, t, kind, fm, ur, rnd):
+    """The low sun comes across the river from the south-west, so the towers on the south bank throw a ragged
+    band of cool shadow over the lower floors of the north-bank river faces; only the upper floors burn gold."""
+    if kind != "xneg" or t["Z0"] > 900 or t.get("sun_shadow") is False:
+        return ""
+    Y0, Y1 = t["Y0"], t["Y1"]
+    u0, u1 = ur
+    pts = [fm(u0, Y0)]
+    u = u0
+    h = rnd.uniform(0.35, 0.55)
+    while u < u1:
+        un = min(u1, u + rnd.uniform(12, 30))
+        top = min(Y1, Y0 + (Y1 - Y0) * h + 3)
+        pts += [fm(u, top), fm(un, top)]
+        h = max(0.2, min(0.7, h + rnd.uniform(-0.18, 0.18)))
+        u = un
+    pts.append(fm(u1, Y0))
+    return S.poly(pts, "#3A2C5A", ' opacity="0.36"')
+
+
+def ch_masonry_face(S, t, kind, quad, fm, ur, rnd):
+    """Limestone / brick / terra-cotta wall: graded light, coursing, proud piers with lit and shaded sides,
+    recessed spandrels, punched windows with jamb + soffit/sill reveals, mullions, blinds, lit rooms, a
+    rusticated or arcaded base, belt courses, an attic frieze and rain-wash weathering."""
+    mat, base = t["mat"], t["base"]
+    Z0, Z1, Y0, Y1 = t["Z0"], t["Z1"], t["Y0"], t["Y1"]
+    u0, u1 = ur
+    side = kind != "front"
+    zat = (lambda u: u) if side else (lambda u: Z0)
+    ppm = lambda u: S.f / zat(u)
+    Zn, Zf = Z0, (Z1 if side else Z0)
+    col = S.lit(base, kind, Zn)
+    fog = S.fog(Zn)
+    soff = S.lit(base, "bottom", Zn)
+    sill_c = S.lit(base, "top", Zn)
+    shade = cmix(cscale(col, 0.6), "#1E1A36", 0.3)
+    hi = cmix(col, "#FFF2DC", 0.4 if kind == "xneg" else 0.22)
+    gt, gm, gb = (cmix(cmix(g, "#1C1A30", 0.42), CH_HAZE, fog * 0.8) for g in CH_GLASS[kind])
+    glass = ch_vgrad(S, quad, [(0, gt), (0.55, gm), (1, gb)])
+    glass_far = cmix(gm, col, 0.25)
+    frame = cmix(MAT_FRAME[mat], CH_HAZE, fog) if mat != "tc" else cmix(cmix(MAT_FRAME[mat], col, 0.2), CH_HAZE, fog)
+    out = [S.poly(quad, ch_face_paint(S, kind, quad, col))]
+    fh, bay = t.get("fh", 4.0), t.get("bay", 3.0)
+    winw, winh = t.get("winw", 0.56), t.get("winh", 0.6)
+    street = Y0 < 10
+    base_h = t.get("base_h", 5.0 if street else 0.8)
+    cor_h = t.get("cornice_h", 1.4) if t.get("cornice", True) else 0.0
+    attic = t.get("attic", 0.0)
+    m = t.get("margin", 1.0)
+    nb = max(1, int(round((u1 - u0 - 2 * m) / bay)))
+    bw = (u1 - u0 - 2 * m) / nb
+    yf0 = Y0 + base_h
+    ytop = Y1 - cor_h - attic
+    nf = max(0, int((ytop - yf0) / fh + 0.3))
+    fh2 = (ytop - yf0) / nf if nf else fh
+
+    def side_kind(a):
+        """orientation of a reveal / pier side seen at face-coordinate a"""
+        return "front" if side else ("xneg" if a > CH_XC else "xpos")
+
+    # -- texture: coursing, brick bond, glazed blocks
+    if mat == "brick":
+        out.append(f'<g stroke="{cmix(cscale(col, 0.72), "#3A1E1A", 0.2)}" stroke-width="0.45" opacity="0.42">'
+                   + ch_hjoints(S, fm, side, zat, u0, u1, Y0, ytop, 0.33, 1.7) + "</g>")
+        for _ in range(int(30 * min(1.0, ppm(u0) / 4)) if ppm(u0) > 1.2 else 0):
+            ua = rnd.uniform(u0, u1 - 2)
+            va = rnd.uniform(Y0, ytop - 1)
+            w, h = rnd.uniform(1.5, 5), rnd.uniform(0.3, 1.4)
+            out.append(S.poly(fq(fm, ua, ua + w, va, va + h), rnd.choice([cscale(col, 1.14), cscale(col, 0.84), cmix(col, "#6A2E26", 0.35), cmix(col, "#C89070", 0.3)]),
+                              f' opacity="{rnd.uniform(0.18, 0.4):.2f}"'))
+    elif mat == "stone":
+        out.append(f'<g stroke="{shade}" stroke-width="0.45" opacity="0.16">' + ch_hjoints(S, fm, side, zat, u0, u1, yf0, ytop, 1.0, 3.2) + "</g>")
+    else:
+        out.append(f'<g stroke="{shade}" stroke-width="0.4" opacity="0.13">' + ch_hjoints(S, fm, side, zat, u0, u1, yf0, ytop, 0.8, 3.0)
+                   + ch_vjoints(S, fm, side, zat, u0, u1, yf0, ytop, 1.2, 3.5) + "</g>")
+    # -- windows, bay by bay (near bays in full detail, far bays as ribbons of glass)
+    lit_p = t.get("lit", 0.22)
+    pair = t.get("pair", False)
+    dep = 0.42 if mat != "brick" else 0.3
+    B = Bk(S)
+    jamb_c = {}
+    # far bays: one ribbon of glass per floor across all of them, lit windows dotted in
+    i_far = nb
+    for i in range(nb):
+        ba = u0 + m + i * bw
+        sw_ = bw * (0.72 if pair else winw)
+        if ppm(ba + bw / 2) * sw_ < 2.2 or ppm(ba + bw / 2) * fh2 * winh < 2.4:
+            i_far = i
+            break
+    if i_far < nb:
+        ua, ub = u0 + m + i_far * bw + bw * 0.15, u1 - m - bw * 0.15
+        for f_ in range(nf):
+            c = yf0 + f_ * fh2 + fh2 * (1 - winh) * 0.62
+            d = c + fh2 * winh
+            B.poly(1, fq(fm, ua, ub, c, d), glass_far)
+            for i in range(i_far, nb):
+                if rnd.random() < lit_p:
+                    a = u0 + m + i * bw + bw * (1 - winw) / 2
+                    B.poly(2, fq(fm, a, a + bw * winw, c, d), cmix(rnd.choice(LIT_WIN), CH_HAZE, fog * 0.6))
+    for i in range(i_far):
+        ba = u0 + m + i * bw
+        if pair:
+            spans = [(ba + bw * 0.14, ba + bw * 0.47), (ba + bw * 0.53, ba + bw * 0.86)]
+        else:
+            a = ba + bw * (1 - winw) / 2
+            spans = [(a, a + bw * winw)]
+        pp = ppm(ba + bw / 2)
+        far = pp * (spans[0][1] - spans[0][0]) < 2.2 or pp * fh2 * winh < 2.4
+        for f_ in range(nf):
+            c = yf0 + f_ * fh2 + fh2 * (1 - winh) * 0.62
+            d = c + fh2 * winh
+            if far:
+                B.poly(1, fq(fm, spans[0][0], spans[-1][1], c, d), glass_far)
+                for a, b in spans:
+                    if rnd.random() < lit_p:
+                        B.poly(2, fq(fm, a, b, c, d), cmix(rnd.choice(LIT_WIN), CH_HAZE, fog * 0.6))
+                continue
+            # recessed spandrel panel under the window (stone, terra cotta)
+            if mat != "brick" and f_ > 0 and pp * 0.8 > 2.4:
+                B.poly(0, fq(fm, spans[0][0], spans[-1][1], c - fh2 * (1 - winh) + 0.35, c - 0.3), cscale(col, 0.9), ' opacity="0.7"')
+                if mat == "tc" and pp * 0.6 > 3:
+                    mu = (spans[0][0] + spans[-1][1]) / 2
+                    mv = c - fh2 * (1 - winh) / 2
+                    B.poly(1, [fm(mu - 0.32, mv), fm(mu, mv + 0.32), fm(mu + 0.32, mv), fm(mu, mv - 0.32)], hi)
+            for a, b in spans:
+                on = rnd.random() < lit_p
+                w_px = pp * (b - a)
+                B.poly(2, fq(fm, a, b, c, d), cmix(rnd.choice(LIT_WIN), CH_HAZE, fog * 0.6) if on else glass)
+                if on and w_px > 3.5:
+                    # a room: darker furniture line low down, warm ceiling glow
+                    B.poly(3, fq(fm, a, b, c, c + (d - c) * 0.3), "#8A5636", ' opacity="0.3"')
+                    B.poly(3, fq(fm, a, b, d - (d - c) * 0.18, d), "#FFF4D6", ' opacity="0.5"')
+                elif not on and rnd.random() < 0.16 and w_px > 2.5:
+                    # blinds half drawn, catching the light
+                    B.poly(4, fq(fm, a, b, d - (d - c) * rnd.choice((0.3, 0.45, 0.6)), d), cmix(col, "#F4E6CC", 0.45))
+                if pp * dep > 0.8:
+                    ju = b if (side or a > CH_XC) else a
+                    sk = side_kind(a)
+                    if sk not in jamb_c:
+                        jamb_c[sk] = S.lit(base, sk, Zn)
+                    B.poly(5, [fm(ju, c), fm(ju, d), fm(ju, d, dep), fm(ju, c, dep)], jamb_c[sk])
+                    if d > CH_EYE:
+                        B.poly(5, [fm(a, d), fm(b, d), fm(b, d, dep), fm(a, d, dep)], soff)
+                    if c < CH_EYE:
+                        B.poly(5, [fm(a, c), fm(b, c), fm(b, c, dep), fm(a, c, dep)], sill_c)
+                if w_px > 6:
+                    sw = round(max(0.5, pp * 0.07) * 4) / 4
+                    B.line(6, fm((a + b) / 2, c, dep), fm((a + b) / 2, d, dep), frame, sw)
+                    B.line(6, fm(a, c + (d - c) * 0.68, dep), fm(b, c + (d - c) * 0.68, dep), frame, sw)
+                if mat != "tc" and w_px > 4:
+                    # stone sill ledge catching the light; brick walls also get a stone lintel
+                    B.poly(7, fq(fm, a - 0.15, b + 0.15, c - 0.22, c, -0.12), hi)
+                    if mat == "brick":
+                        B.poly(7, fq(fm, a - 0.2, b + 0.2, d, d + 0.38, -0.05), cmix(S.lit("#DCCAA8", kind, Zn), col, 0.1))
+                if mat in ("stone", "tc") and rnd.random() < 0.1 and w_px > 3:
+                    # rain-wash streak under a sill
+                    B.poly(8, fq(fm, a + (b - a) * 0.2, b - (b - a) * 0.2, c - rnd.uniform(1.5, 4.5), c - 0.2), shade, ' opacity="0.09"')
+    # -- proud piers running up between the bays, with their lit face and the shaded side we see
+    if t.get("piers"):
+        pw, pd = t.get("pw", 0.8 if not pair else 0.6), 0.32
+        pc = cmix(cscale(col, 1.06), "#FFF0D8", 0.15 if kind == "xneg" else 0.04)
+        ptop = ytop + (attic if t.get("piers_full") else 0)
+        for i in range(1, nb):
+            uc = u0 + m + i * bw
+            pa, pb = uc - pw / 2, uc + pw / 2
+            if ppm(uc) * pw < 1.0:
+                continue
+            B.poly(9, fq(fm, pa, pb, yf0, ptop, -pd), pc)
+            su = pa if (side or pa > CH_XC) else pb
+            sk = side_kind(pa)
+            if sk not in jamb_c:
+                jamb_c[sk] = S.lit(base, sk, Zn)
+            B.poly(9, [fm(su, yf0), fm(su, ptop), fm(su, ptop, -pd), fm(su, yf0, -pd)], jamb_c[sk])
+            if kind == "xneg" and ppm(uc) * pw > 2.5:
+                B.poly(10, fq(fm, pb - pw * 0.22, pb, yf0, ptop, -pd), "#FFF2D8", ' opacity="0.28"')
+    out.append(B.svg())
+    # -- attic frieze under the cornice
+    if attic > 0:
+        out.append(S.poly(fq(fm, u0, u1, ytop - 0.15, ytop + 0.35, -0.2), hi))
+        g = []
+        for i in range(nb):
+            ba = u0 + m + i * bw
+            if ppm(ba) * bw < 4:
+                continue
+            mu = ba + bw / 2
+            mv = ytop + attic * 0.55
+            r = min(bw, attic) * 0.22
+            if mat == "tc":
+                g.append(S.poly([fm(mu + r * math.cos(a_ * math.pi / 4), mv + r * math.sin(a_ * math.pi / 4)) for a_ in range(8)], cscale(col, 0.82)))
+                g.append(S.poly([fm(mu + r * 0.5 * math.cos(a_ * math.pi / 4), mv + r * 0.5 * math.sin(a_ * math.pi / 4)) for a_ in range(8)], hi))
+            else:
+                g.append(S.poly(fq(fm, mu - bw * 0.18, mu + bw * 0.18, mv - attic * 0.22, mv + attic * 0.22), glass))
+        out.append("".join(g))
+    # -- the street storey: rustication and an arcade, or shopfronts with striped awnings
+    if street and base_h >= 3:
+        out.append(ch_base(S, t, kind, fm, u0, u1, Y0, yf0, nb, bw, m, ppm, col, hi, shade, side, zat, rnd))
+    elif base_h > 0.5:
+        out.append(S.poly(fq(fm, u0, u1, Y0, yf0), cscale(col, 0.92), ' opacity="0.6"'))
+    # -- belt course at the top of the base
+    if yf0 - Y0 > 2:
+        out.append(S.poly(fq(fm, u0, u1, yf0 - 0.55, yf0, -0.3), hi))
+        out.append(S.poly(fq(fm, u0, u1, yf0 - 1.1, yf0 - 0.55), shade, ' opacity="0.35"'))
+    out.append(ch_sun_shadow(S, t, kind, fm, ur, rnd))
+    # -- the corner: a sunlit arris on the river face, a soft dark seam where the faces meet
+    if side:
+        out.append(S.poly([fm(u0, Y0), fm(u0, Y1), fm(u0 + 0.5, Y1), fm(u0 + 0.5, Y0)], "#FFF4DC" if kind == "xneg" else "#E8E0F0",
+                          f' opacity="{0.55 if kind == "xneg" else 0.25}"'))
+    out.append(ch_haze_over(S, kind, quad, Zn, Zf))
+    return "".join(out)
+
+
+def ch_base(S, t, kind, fm, u0, u1, Y0, yf0, nb, bw, m, ppm, col, hi, shade, side, zat, rnd):
+    mat = t["mat"]
+    fog = S.fog(t["Z0"])
+    out = []
+    shop = cmix("#FFD48A", CH_HAZE, fog * 0.5)
+    shop2 = cmix("#C8703E", CH_HAZE, fog * 0.5)
+    quad_b = fq(fm, u0, u1, Y0, yf0)
+    inner = ch_vgrad(S, quad_b, [(0, shop), (0.55, cmix(shop, shop2, 0.5)), (1, shop2)])
+    if mat in ("stone", "tc"):
+        out.append(f'<g stroke="{shade}" stroke-width="0.6" opacity="0.4">' + ch_hjoints(S, fm, side, zat, u0, u1, Y0, yf0 - 0.6, 0.75, 2.2) + "</g>")
+    for i in range(nb):
+        ba = u0 + m + i * bw
+        pp = ppm(ba + bw / 2)
+        a, b = ba + bw * 0.13, ba + bw * 0.87
+        top = yf0 - 1.0
+        if pp * (b - a) < 2:
+            out.append(S.poly(fq(fm, a, b, Y0 + 0.2, top), inner, ' opacity="0.85"'))
+            continue
+        if t.get("arcade"):
+            r = (b - a) / 2
+            spring = top - r
+            pts = [fm(a, Y0 + 0.1), fm(a, spring)] + [fm((a + b) / 2 - r * math.cos(math.pi * k / 12), spring + r * math.sin(math.pi * k / 12)) for k in range(13)] + [fm(b, Y0 + 0.1)]
+            ring = [fm((a + b) / 2 - (r + 0.45) * math.cos(math.pi * k / 12), spring + (r + 0.45) * math.sin(math.pi * k / 12)) for k in range(13)]
+            out.append(f'<polygon points="{P([S.C(*q) for q in [fm(a - 0.45, spring)] + ring + [fm(b + 0.45, spring)]])}" fill="{hi}"/>')
+            out.append(f'<polygon points="{P([S.C(*q) for q in pts])}" fill="{inner}"/>')
+            # reveal on the far side of the arch, mullioned fanlight, keystone
+            ju = b if (side or a > CH_XC) else a
+            out.append(S.poly([fm(ju, Y0 + 0.1), fm(ju, spring), fm(ju, spring, 0.9), fm(ju, Y0 + 0.1, 0.9)], S.lit(t["base"], "front" if side else "xneg", t["Z0"])))
+            if pp * r > 3:
+                sw = max(0.5, pp * 0.08)
+                fan = "".join(ch_line(S, fm((a + b) / 2, spring, 0.5), fm((a + b) / 2 - r * math.cos(math.pi * k / 4), spring + r * math.sin(math.pi * k / 4), 0.5)) for k in (1, 2, 3))
+                out.append(f'<g stroke="#5A4038" stroke-width="{sw:.2f}" opacity="0.8">' + fan + ch_line(S, fm(a, spring, 0.5), fm(b, spring, 0.5))
+                           + ch_line(S, fm((a + b) / 2, Y0 + 0.1, 0.5), fm((a + b) / 2, spring, 0.5)) + "</g>")
+                kx = (a + b) / 2
+                out.append(S.poly([fm(kx - 0.35, top + 0.5, -0.1), fm(kx - 0.22, top - 0.25, -0.1), fm(kx + 0.22, top - 0.25, -0.1), fm(kx + 0.35, top + 0.5, -0.1)], cmix(hi, "#FFFFFF", 0.2)))
+            # people inside, dark against the glow
+            if pp * 1.7 > 7:
+                for j in range(rnd.randint(1, 2)):
+                    x, y = S.C(*fm(rnd.uniform(a + 0.6, b - 0.6), Y0 + 0.1, 1.5))
+                    hh = pp * 1.65
+                    out.append(f'<path d="M {x - hh * 0.13:.1f} {y:.1f} L {x - hh * 0.15:.1f} {y - hh * 0.62:.1f} Q {x:.1f} {y - hh * 0.74:.1f} {x + hh * 0.15:.1f} {y - hh * 0.62:.1f} L {x + hh * 0.13:.1f} {y:.1f} Z" fill="#5A3A34" opacity="0.75"/>'
+                               f'<circle cx="{x:.1f}" cy="{y - hh * 0.84:.1f}" r="{hh * 0.1:.1f}" fill="#5A3A34" opacity="0.75"/>')
+        else:
+            out.append(S.poly(fq(fm, a, b, Y0 + 0.2, top), inner))
+            if pp * 0.15 > 0.5:
+                out.append(f'<g stroke="#3A2A2A" stroke-width="{max(0.5, pp * 0.1):.2f}" opacity="0.7">'
+                           + ch_line(S, fm((a + b) / 2, Y0 + 0.2), fm((a + b) / 2, top)) + ch_line(S, fm(a, top - 1.0), fm(b, top - 1.0)) + "</g>")
+            if mat == "brick" and pp * 1.0 > 1.6:
+                # striped canvas awning, sloping out over the sidewalk
+                cols = t.get("awning", ("#2E5A4A", "#EFE6D2"))
+                n_ = 6
+                for k in range(n_):
+                    ua, ub = a - 0.2 + (b - a + 0.4) * k / n_, a - 0.2 + (b - a + 0.4) * (k + 1) / n_
+                    out.append(S.poly([fm(ua, top + 0.4), fm(ub, top + 0.4), fm(ub, top - 0.7, -1.4), fm(ua, top - 0.7, -1.4)], cmix(cols[k % 2], CH_HAZE, fog)))
+                out.append(S.poly([fm(a - 0.2, top - 0.7, -1.4), fm(b + 0.2, top - 0.7, -1.4), fm(b + 0.2, top - 1.0, -1.4), fm(a - 0.2, top - 1.0, -1.4)], cmix(cols[0], "#1A1A2A", 0.3)))
+    return "".join(out)
+
+
+def ch_glass_face(S, t, kind, quad, fm, ur, rnd):
+    """Curtain wall: graded sky reflection, the city across the water mirrored in it (warm sunlit towers on the
+    south bank's glass, cool shaded ones on the north bank's), quilted panes, spandrel bands, mullions catching
+    the sun, a hot spot of reflected sun, lit offices."""
+    mat, base = t["mat"], t["base"]
+    Z0, Z1, Y0, Y1 = t["Z0"], t["Z1"], t["Y0"], t["Y1"]
+    u0, u1 = ur
+    side = kind != "front"
+    zat = (lambda u: u) if side else (lambda u: Z0)
+    ppm = lambda u: S.f / zat(u)
+    Zn, Zf = Z0, (Z1 if side else Z0)
+    fog = S.fog(Zn)
+    gt, gm, gb = CH_GLASS[kind]
+    if mat == "dark":
+        gt, gm, gb = (cmix(g, "#16141E", 0.74) for g in (gt, gm, gb))
+    ta = t.get("tint_amt", 0.28)
+    gt, gm, gb = (cmix(cmix(g, base, ta), CH_HAZE, fog) for g in (gt, gm, gb))
+    fill = ch_vgrad(S, quad, [(0, gt), (0.5, gm), (0.85, cmix(gm, gb, 0.7)), (1, gb)])
+    cid = S.gid("cp")
+    S.defs.append(f'<clipPath id="{cid}"><polygon points="{S.p(quad)}"/></clipPath>')
+    out = [S.poly(quad, fill)]
+    g = []
+    H = Y1 - Y0
+    fh = t.get("fh", 4.0)
+    mw = t.get("mull", 1.5)
+    # 1) the city across the water mirrored in the glass
+    if kind == "xpos":
+        rcols = ["#F4C892", "#E8A880", "#FFE0B0", "#C88A80"]
+    elif kind == "xneg":
+        rcols = ["#4A4470", "#5E4E78", "#3A3456", "#7A5E7E"]
+    else:
+        rcols = ["#24244A", "#2E2C52", "#C89A90", "#3A3660"]
+    for _ in range(rnd.randint(4, 7)):
+        ua = rnd.uniform(u0 - (u1 - u0) * 0.1, u1)
+        ub = min(u1 + 1, ua + rnd.uniform(0.06, 0.24) * (u1 - u0))
+        vt = Y0 + H * rnd.uniform(0.12, 0.62)
+        rc = cmix(cmix(rnd.choice(rcols), gm, 0.25), CH_HAZE, fog)
+        op = rnd.uniform(0.32, 0.55) * (0.6 if mat == "dark" else 1)
+        g.append(S.poly([fm(ua, Y0 - 1), fm(ua, vt), fm(ub, vt), fm(ub, Y0 - 1)], rc, f' opacity="{op:.2f}"'))
+        if ppm(ua) * 0.6 > 1:
+            g.append(S.poly(fq(fm, ua, ub, vt - 0.6, vt), cmix(rc, "#FFF0D8", 0.4), f' opacity="{op:.2f}"'))
+    if kind == "front" and mat == "glass":
+        # sunlit towers behind the viewer, caught in the shaded east glass: warm bands fading toward the street
+        ys_ = [S.C(*q)[1] for q in quad]
+        wg = S.gid("wr")
+        S.defs.append(lg(wg, [(0, "#FFD8A0", 0.62), (0.45, "#F2B088", 0.32), (0.8, "#C8908A", 0.0)], 0, round(max(min(ys_), 20), 1), 0, round(max(ys_), 1), units="userSpaceOnUse"))
+        for _ in range(3):
+            ua = rnd.uniform(u0, u1 - (u1 - u0) * 0.15)
+            ub = ua + (u1 - u0) * rnd.uniform(0.1, 0.28)
+            vt = Y1 - H * rnd.uniform(0.0, 0.25)
+            g.append(S.poly([fm(ua, Y0), fm(ua, vt), fm(ub, vt), fm(ub, Y0)], f"url(#{wg})"))
+    # 2) quilting: neighbouring panes catch the sky a little differently
+    QB = Bk(S)
+    for _ in range(70):
+        f_ = rnd.randrange(max(1, int(H / fh)))
+        i = rnd.randrange(max(1, int((u1 - u0) / mw)))
+        ua = u0 + i * mw
+        if ppm(ua) * mw < 2.5:
+            continue
+        va = Y0 + f_ * fh
+        n_ = rnd.randint(1, 3)
+        QB.poly(0, fq(fm, ua, ua + mw * n_, va, va + fh * rnd.randint(1, 2)), rnd.choice(["#FFFFFF", "#1A1830", gt, gb]), f' opacity="{rnd.choice((0.07, 0.11, 0.15))}"')
+    g.append(QB.svg())
+    # 3) a diagonal sheen of open sky sliding down the glass
+    ua = u0 + (u1 - u0) * rnd.uniform(0.1, 0.5)
+    wd = (u1 - u0) * rnd.uniform(0.1, 0.2)
+    g.append(S.poly([fm(ua, Y1), fm(ua + wd, Y1), fm(ua + wd * 1.8, Y0), fm(ua + wd * 0.8, Y0)], "#FFF4E0" if kind != "front" else "#B8B0E0", ' opacity="0.12"'))
+    # 4) lit offices
+    nf = int(H / fh)
+    nb = max(1, int((u1 - u0) / mw))
+    LB = Bk(S)
+    lo_ = round(0.9 - fog, 1)
+    for f_ in range(nf):
+        for i in range(nb):
+            if rnd.random() < t.get("lit", 0.05) * (1 if ppm(u0 + i * mw) * mw > 1.2 else 0.4):
+                ua, ub = u0 + i * mw, u0 + (i + rnd.randint(1, 3)) * mw
+                va = Y0 + f_ * fh
+                LB.poly(0, fq(fm, ua, min(u1, ub), va + 0.25 * fh, va + 0.95 * fh), rnd.choice(LIT_WIN), f' opacity="{lo_}"')
+    g.append(LB.svg())
+    # 5) spandrel bands at each floor slab and the mullion grid
+    sp_col = "#0E0E18" if mat == "dark" else cmix(gm, "#1A1A30", 0.45)
+    bands = []
+    for ua, ub, mm in ch_chunks(S, side, zat, u0, u1, fh, 2.6):
+        v = Y0 + fh * mm
+        while v < Y1 - 0.3:
+            bands.append(d_rel([S.C(*q) for q in fq(fm, ua, ub, v - fh * 0.22, v)]))
+            v += fh * mm
+    g.append(f'<path d="{"".join(bands)}" fill="{sp_col}" opacity="{0.55 if mat == "dark" else 0.32}"/>')
+    if kind == "xneg":
+        lc, lo = ("#FFD8A0", 0.5) if mat == "dark" else ("#FFE6C0", 0.34)
+    elif kind == "xpos":
+        lc, lo = ("#8A7E9A", 0.5) if mat == "dark" else ("#D8CCE8", 0.28)
+    else:
+        lc, lo = ("#6A6478", 0.55) if mat == "dark" else ("#141A34", 0.36)
+    sw = max(0.45, min(1.2, ppm(u0) * 0.09))
+    g.append(f'<g stroke="{cmix(lc, CH_HAZE, fog)}" stroke-width="{sw:.2f}" opacity="{lo * (1 - fog * 0.6):.2f}">' + ch_vjoints(S, fm, side, zat, u0, u1, Y0, Y1, mw, 2.4) + "</g>")
+    # 6) a hot spot of reflected sun on the sunlit glass
+    if kind == "xneg" and mat != "dark":
+        hx, hy = S.C(*fm(u0 + (u1 - u0) * rnd.uniform(0.15, 0.45), Y0 + H * rnd.uniform(0.45, 0.8)))
+        g.append(glow(round(hx, 1), round(hy, 1), round(ppm(u0) * min(H, u1 - u0) * 0.35, 1), "#FFF2CC", S.gid("hot"), 0.55))
+    g.append(ch_sun_shadow(S, t, kind, fm, ur, rnd))
+    out.append(f'<g clip-path="url(#{cid})">' + "".join(g) + "</g>")
+    # sunlit arris on the near corner
+    if side:
+        out.append(S.poly([fm(u0, Y0), fm(u0, Y1), fm(u0 + 0.4, Y1), fm(u0 + 0.4, Y0)], "#FFF2D8" if kind == "xneg" else "#D8D0F0", ' opacity="0.45"'))
+    out.append(ch_haze_over(S, kind, quad, Zn, Zf))
+    return "".join(out)
 
 
 def ch_tier(S, t, seed):
-    """t: dict(X0, X1, Z0, Z1, Y0, Y1, mat, base, fh, bay, lit, cornice, piers)."""
+    """t: dict(X0, X1, Z0, Z1, Y0, Y1, mat in stone/brick/tc/glass/dark, base colour, fh, bay, lit, piers, pair,
+    arcade, attic, cornice, cornice_d, cornice_h, balustrade, tanks, reflect)."""
     X0, X1, Z0, Z1, Y0, Y1 = t["X0"], t["X1"], t["Z0"], t["Z1"], t["Y0"], t["Y1"]
     mat, base = t["mat"], t["base"]
-    fh, bay = t.get("fh", 4.0), t.get("bay", 3.0)
     rnd = random.Random(seed)
     out = []
     for kind, quad, fm, ur in box_faces(X0, X1, Z0, Z1, Y0, Y1):
-        Zm = Z0 if kind == "front" else (Z0 + Z1) / 2
-        Zn = Z0                                  # nearest depth of this face (detail level)
-        ppm = S.px(Zn)
-        col = S.lit(base, kind, Zm)
         if fm is None:
-            out.append(S.poly(quad, col))
+            out.append(S.poly(quad, S.lit(base, kind, Z0)))
             continue
-        fog = S.fog(Zm)
         if mat in ("glass", "dark"):
-            gt, gm, gb = CH_GLASS[kind]
-            if mat == "dark":
-                gt, gm, gb = (cmix(g, "#151520", 0.72) for g in (gt, gm, gb))
-            gt, gm, gb = (cmix(cmix(g, base, 0.25), CH_HAZE, fog) for g in (gt, gm, gb))
-            ya = S.C(*quad[1])[1]
-            yb = S.C(*quad[0])[1]
-            gid = S.gid("gl")
-            S.defs.append(lg(gid, [(0, gt), (0.55, gm), (1, gb)], 0, ya, 0, yb, units="userSpaceOnUse"))
-            cid = S.gid("cp")
-            S.defs.append(f'<clipPath id="{cid}"><polygon points="{S.p(quad)}"/></clipPath>')
-            out.append(S.poly(quad, f"url(#{gid})"))
-            g = []
-            u0, u1 = ur
-            # reflections of neighbouring towers: soft vertical slabs in the glass
-            for _ in range(rnd.randint(2, 4)):
-                ua = rnd.uniform(u0, u1)
-                ub = ua + rnd.uniform(0.12, 0.35) * (u1 - u0)
-                va = rnd.uniform(Y0, Y0 + (Y1 - Y0) * 0.5)
-                rc = cmix(gm, "#1A1E38", 0.45) if rnd.random() < 0.6 else cmix(gm, "#FFE6C0", 0.5)
-                g.append(S.poly([fm(ua, Y0), fm(ua, va + (Y1 - Y0) * 0.5), fm(ub, va + (Y1 - Y0) * 0.45), fm(ub, Y0)], rc, f' opacity="{rnd.uniform(0.18, 0.32):.2f}"'))
-            # lit panes
-            mw = t.get("mull", 3.0)
-            nf = int((Y1 - Y0) / fh)
-            nb = max(1, int((u1 - u0) / mw))
-            for f_ in range(nf):
-                for i in range(nb):
-                    if rnd.random() < t.get("lit", 0.06):
-                        ua, ub = u0 + (u1 - u0) * i / nb, u0 + (u1 - u0) * (i + 1) / nb
-                        va = Y0 + f_ * fh
-                        g.append(S.poly([fm(ua, va + 0.2 * fh), fm(ua, va + 0.95 * fh), fm(ub, va + 0.95 * fh), fm(ub, va + 0.2 * fh)],
-                                        rnd.choice(LIT_WIN), f' opacity="{(0.95 - fog) * rnd.uniform(0.6, 1):.2f}"'))
-            # mullions and spandrels
-            sw = max(0.45, min(1.3, ppm * 0.16))
-            lc = "#141A34" if kind != "xneg" else "#7A4A44"
-            if mat == "dark":
-                lc = "#B89A7A" if kind == "xneg" else "#6A6478"
-            lines = []
-            step = mw if ppm * mw > 2.2 else mw * 2 if ppm * mw * 2 > 2.2 else None
-            if step:
-                k = 1
-                u = u0 + step
-                while u < u1 - 0.2:
-                    a_, b_ = S.C(*fm(u, Y0)), S.C(*fm(u, Y1))
-                    lines.append(f'<line x1="{a_[0]:.1f}" y1="{a_[1]:.1f}" x2="{b_[0]:.1f}" y2="{b_[1]:.1f}"/>')
-                    u += step
-            fstep = fh if ppm * fh > 2.0 else fh * 2 if ppm * fh * 2 > 2.0 else fh * 4
-            v = Y0 + fstep
-            hl = []
-            while v < Y1 - 0.2:
-                a_, b_ = S.C(*fm(u0, v)), S.C(*fm(u1, v))
-                hl.append(f'<line x1="{a_[0]:.1f}" y1="{a_[1]:.1f}" x2="{b_[0]:.1f}" y2="{b_[1]:.1f}"/>')
-                v += fstep
-            op = 0.42 * (1 - fog)
-            g.append(f'<g stroke="{lc}" stroke-width="{sw:.2f}" opacity="{op:.2f}">' + "".join(lines) + "</g>")
-            g.append(f'<g stroke="{lc}" stroke-width="{sw * 1.3:.2f}" opacity="{op * 1.15:.2f}">' + "".join(hl) + "</g>")
-            # sun glint / sky sheen running down the glass
-            if kind == "xneg":
-                g.append(S.poly([fm(u0, Y1), fm(u0 + (u1 - u0) * 0.35, Y1), fm(u0 + (u1 - u0) * 0.12, Y0), fm(u0, Y0)], "#FFF2D0", ' opacity="0.22"'))
-            elif kind == "front":
-                ua = u0 + (u1 - u0) * rnd.uniform(0.15, 0.6)
-                g.append(S.poly([fm(ua, Y1), fm(ua + (u1 - u0) * 0.12, Y1), fm(ua + (u1 - u0) * 0.3, Y0), fm(ua + (u1 - u0) * 0.18, Y0)], "#C8B8E0", ' opacity="0.13"'))
-            out.append(f'<g clip-path="url(#{cid})">' + "".join(g) + "</g>")
+            out.append(ch_glass_face(S, t, kind, quad, fm, ur, rnd))
         else:
-            out.append(S.poly(quad, col))
-            u0, u1 = ur
-            dark = cmix(cscale(col, 0.42), "#1E1E38", 0.3)
-            glass_dark = cmix(dark, CH_GLASS[kind][1], 0.35 if kind != "front" else 0.2)
-            jamb = cscale(col, 1.12) if kind == "xneg" else cscale(col, 0.82)
-            soffit = cscale(col, 0.55)
-            sill = cscale(col, 1.18)
-            nb = max(1, int(round((u1 - u0 - 1.0) / bay)))
-            base_h = t.get("base_h", 5.0)
-            nf = int((Y1 - Y0 - base_h - 1.5) / fh)
-            winw = t.get("winw", 0.56)
-            detail = ppm * bay * winw > 3.2
-            depth = 0.45
-            piers = t.get("piers")
-            if piers and ppm * bay > 2.5:
-                # vertical deco piers running between the window bays, a hair proud and catching light
-                for i in range(1, nb):
-                    u = u0 + 0.5 + (u1 - u0 - 1.0) * i / nb
-                    out.append(S.poly([fm(u - 0.25, Y0 + base_h), fm(u - 0.25, Y1 - 1), fm(u + 0.25, Y1 - 1), fm(u + 0.25, Y0 + base_h)],
-                                      cscale(col, 1.14 if kind == "xneg" else 1.08)))
-            small = ppm * fh * 0.6 < 2.6 or ppm * bay * winw < 2.0
-            for f_ in range(nf):
-                c = Y0 + base_h + f_ * fh + fh * 0.22
-                d = c + fh * 0.6
-                if small:
-                    # far away: a dark ribbon of glass per floor, lit windows dotted into it
-                    out.append(S.poly([fm(u0 + 0.5, c), fm(u0 + 0.5, d), fm(u1 - 0.5, d), fm(u1 - 0.5, c)], glass_dark, ' opacity="0.85"'))
-                    for i in range(nb):
-                        if rnd.random() < t.get("lit", 0.2):
-                            a = u0 + 0.5 + (u1 - u0 - 1.0) * (i + (1 - winw) / 2) / nb
-                            b = u0 + 0.5 + (u1 - u0 - 1.0) * (i + (1 + winw) / 2) / nb
-                            out.append(S.poly([fm(a, c), fm(a, d), fm(b, d), fm(b, c)], cmix(rnd.choice(LIT_WIN), CH_HAZE, fog * 0.7)))
-                    continue
-                for i in range(nb):
-                    a = u0 + 0.5 + (u1 - u0 - 1.0) * (i + (1 - winw) / 2) / nb
-                    b = u0 + 0.5 + (u1 - u0 - 1.0) * (i + (1 + winw) / 2) / nb
-                    on = rnd.random() < t.get("lit", 0.2)
-                    gcol = rnd.choice(LIT_WIN) if on else glass_dark
-                    if on:
-                        gcol = cmix(gcol, CH_HAZE, fog * 0.7)
-                    out.append(ch_window(S, kind, fm, a, b, c, d, gcol, depth, jamb, soffit, sill, detail))
-            # storefront band at the base
-            if base_h >= 4 and Y0 < 12:
-                out.append(S.poly([fm(u0 + 0.6, Y0 + 0.4), fm(u0 + 0.6, Y0 + base_h * 0.75), fm(u1 - 0.6, Y0 + base_h * 0.75), fm(u1 - 0.6, Y0 + 0.4)],
-                                  cmix(dark, "#F7B860", 0.35 if t.get("shop") else 0.05)))
-            # weathering: faint vertical wash and a dark foot
-            out.append(S.poly([fm(u0, Y0), fm(u0, Y0 + (Y1 - Y0) * 0.25), fm(u1, Y0 + (Y1 - Y0) * 0.25), fm(u1, Y0)], "#1A1830", ' opacity="0.12"'))
-        # corner shadow line where two faces meet (gives the edge a crisp turn)
-        if kind == "xpos":
-            out.append(S.poly([(X1, Y0, Z0), (X1, Y1, Z0), (X1, Y1, Z0 + 0.6), (X1, Y0, Z0 + 0.6)], "#FFE8C8", ' opacity="0.18"'))
-        if kind == "xneg":
-            out.append(S.poly([(X0, Y0, Z0), (X0, Y1, Z0), (X0, Y1, Z0 + 0.8), (X0, Y0, Z0 + 0.8)], "#FFF4D8", ' opacity="0.45"'))
-    # cornice: a proud slab with its shadowed underside
-    if t.get("cornice", mat in ("stone", "brick")):
-        e = t.get("cornice_d", 0.7)
+            out.append(ch_masonry_face(S, t, kind, quad, fm, ur, rnd))
+        # the river face shows in the water
+        if t.get("reflect", True) and kind in ("xpos", "xneg") and Z0 < 1500:
+            if mat in ("glass", "dark"):
+                rc = CH_GLASS[kind][1] if mat == "glass" else "#2A2634"
+                rc = cmix(cmix(rc, base, 0.3), CH_HAZE, S.fog(Z0))
+            else:
+                rc = cmix(S.lit(base, kind, Z0), "#3A3A60", 0.2)
+            S.refl.append((Z0, quad, rc, t.get("lit", 0.1)))
+    # cornice: a proud moulded slab with its shadowed soffit, a row of modillions and a soft cast shadow
+    if t.get("cornice", mat in ("stone", "brick", "tc")):
+        e = t.get("cornice_d", 0.8)
         hgt = t.get("cornice_h", 1.4)
-        ct = dict(X0=X0 - e, X1=X1 + e, Z0=Z0 - e, Z1=Z1 + e, Y0=Y1 - hgt, Y1=Y1)
-        for kind, quad, fm, ur in box_faces(ct["X0"], ct["X1"], ct["Z0"], ct["Z1"], ct["Y0"], ct["Y1"]):
+        yb = Y1 - hgt
+        for kind, quad, fm, ur in box_faces(X0 - e, X1 + e, Z0 - e, Z1 + e, yb, Y1):
             if kind in ("bottom", "top"):
                 continue
-            out.append(S.poly(quad, S.lit(cscale(base, 1.12), kind, Z0)))
-            # a bright lip along the top edge of the moulding
+            c_ = S.lit(cscale(base, 1.1), kind, Z0)
+            out.append(S.poly(quad, c_))
             q = quad
-            out.append(S.poly([q[1], q[2], (lambda a, b: tuple(a[i] + (b[i] - a[i]) * 0.3 for i in range(3)))(q[2], q[3]),
-                               (lambda a, b: tuple(a[i] + (b[i] - a[i]) * 0.3 for i in range(3)))(q[1], q[0])], "#FFF0D8", ' opacity="0.25"'))
-        yb = Y1 - hgt
+            lerp = lambda a, b, s: tuple(a[i] + (b[i] - a[i]) * s for i in range(3))
+            # upper lip catching the light + a darker bed moulding
+            out.append(S.poly([q[1], q[2], lerp(q[2], q[3], 0.28), lerp(q[1], q[0], 0.28)], "#FFF2DC", ' opacity="0.35"'))
+            out.append(S.poly([lerp(q[1], q[0], 0.62), lerp(q[2], q[3], 0.62), lerp(q[2], q[3], 0.75), lerp(q[1], q[0], 0.75)], cscale(c_, 0.8), ' opacity="0.7"'))
+        # cast shadow on the wall below, and the modillions in it
+        for kind, quad, fm, ur in box_faces(X0, X1, Z0, Z1, yb - 2.2, yb):
+            if fm is None:
+                continue
+            out.append(S.poly(fq(fm, ur[0], ur[1], yb - 0.9, yb), "#16142A", ' opacity="0.32"'))
+            out.append(S.poly(fq(fm, ur[0], ur[1], yb - 2.2, yb - 0.9), "#16142A", ' opacity="0.12"'))
+            u0, u1 = ur
+            zat = (lambda u: u) if kind != "front" else (lambda u: Z0)
+            mods = []
+            u = u0 + 0.5
+            mc = S.lit(cscale(base, 1.05), kind, Z0)
+            while u < u1 - 0.3:
+                if S.f / zat(u) * 0.3 > 0.9:
+                    mods.append(S.poly(fq(fm, u, u + 0.32, yb - 0.55, yb, -e * 0.7), mc))
+                u += 0.95
+            out.append("".join(mods))
         if yb > CH_EYE:
-            # only the projecting rim of the underside shows, in deep shadow
-            out.append(S.poly([(X0 - e, yb, Z0 - e), (X1 + e, yb, Z0 - e), (X1, yb, Z0), (X0, yb, Z0)], "#1E1A30", ' opacity="0.75"'))
-            if X1 < 0:
-                out.append(S.poly([(X1 + e, yb, Z0 - e), (X1 + e, yb, Z1 + e), (X1, yb, Z1), (X1, yb, Z0)], "#1E1A30", ' opacity="0.75"'))
-            if X0 > 0:
+            out.append(S.poly([(X0 - e, yb, Z0 - e), (X1 + e, yb, Z0 - e), (X1, yb, Z0), (X0, yb, Z0)], "#1E1A30", ' opacity="0.7"'))
+            if X1 < CH_XC:
+                out.append(S.poly([(X1 + e, yb, Z0 - e), (X1 + e, yb, Z1 + e), (X1, yb, Z1), (X1, yb, Z0)], "#1E1A30", ' opacity="0.7"'))
+            if X0 > CH_XC:
                 out.append(S.poly([(X0 - e, yb, Z0 - e), (X0 - e, yb, Z1 + e), (X0, yb, Z1), (X0, yb, Z0)], "#3A2A3A", ' opacity="0.6"'))
-        # soft cast shadow on the wall just under the cornice
-        for kind, quad, fm, ur in box_faces(X0, X1, Z0, Z1, yb - 1.6, yb):
-            if fm is not None:
-                out.append(S.poly(quad, "#16142A", ' opacity="0.25"'))
-    # golden hour: the low sun warms the upper floors more than the street canyon
+    if t.get("balustrade"):
+        out.append(ch_balustrade(S, t))
+    for (tx, tz) in t.get("tanks", ()):
+        out.append(ch_water_tank(S, tx, Y1, tz))
+    return "".join(out)
+
+
+def ch_balustrade(S, t):
+    """Stone balustrade along the roof edge facing the river and the front, seen against the sky."""
+    e = t.get("cornice_d", 0.8) * 0.6
+    X0, X1, Z0, Z1, Y1 = t["X0"] - e, t["X1"] + e, t["Z0"] - e, t["Z1"] + e, t["Y1"]
+    col = S.lit(cscale(t["base"], 1.08), "xneg" if X0 > CH_XC else "xpos", Z0)
+    edges = [((X0, Z0), (X1, Z0))]
+    edges.append(((X0, Z0), (X0, Z1)) if X0 > CH_XC else ((X1, Z0), (X1, Z1)))
+    out = []
+    for (xa, za), (xb, zb) in edges:
+        L = math.hypot(xb - xa, zb - za)
+        n = int(L / 0.45)
+        posts = []
+        for i in range(n + 1):
+            s = i / n
+            X, Z = xa + (xb - xa) * s, za + (zb - za) * s
+            if S.px(Z) * 0.45 < 1.2 and i % 2:
+                continue
+            posts.append(ch_line(S, (X, Y1 + 0.2, Z), (X, Y1 + 0.95, Z)))
+        out.append(f'<g stroke="{col}" stroke-width="{max(0.5, S.px(Z0) * 0.16):.2f}">' + "".join(posts) + "</g>")
+        out.append(S.poly([(xa, Y1 + 0.95, za), (xa, Y1 + 1.25, za), (xb, Y1 + 1.25, zb), (xb, Y1 + 0.95, zb)], col))
+        out.append(S.poly([(xa, Y1, za), (xa, Y1 + 0.25, za), (xb, Y1 + 0.25, zb), (xb, Y1, zb)], cscale(col, 0.9)))
+        # urns on the corner posts
+        for X, Z in ((xa, za), (xb, zb)):
+            x, y = S.C(X, Y1 + 1.25, Z)
+            k = S.px(Z)
+            out.append(f'<path d="M {x - k * 0.35:.1f} {y:.1f} L {x - k * 0.45:.1f} {y - k * 0.5:.1f} Q {x:.1f} {y - k * 1.3:.1f} {x + k * 0.45:.1f} {y - k * 0.5:.1f} L {x + k * 0.35:.1f} {y:.1f} Z" fill="{col}"/>')
+    return "".join(out)
+
+
+def ch_water_tank(S, X, Y, Z, R=2.4):
+    """Classic rooftop water tower: timber barrel on a steel frame, conical cap, lit on the sunward side."""
+    x, yb = S.C(X, Y, Z)
+    k = S.px(Z)
+    w = R * k
+    leg = 3.6 * k
+    bh = 4.6 * k
+    fog = S.fog(Z)
+    wood = cmix("#8A5A3E", CH_HAZE, fog)
+    dark = cmix("#3A2630", CH_HAZE, fog)
+    lit = cmix("#E8A870", CH_HAZE, fog)
+    gid = S.gid("tank")
+    S.defs.append(lg(gid, [(0, lit), (0.3, wood), (1, dark)], round(x - w, 1), 0, round(x + w, 1), 0, units="userSpaceOnUse"))
+    out = [f'<g stroke="{dark}" stroke-width="{max(0.5, k * 0.18):.2f}">'
+           f'<line x1="{x - w * 0.8:.1f}" y1="{yb:.1f}" x2="{x - w * 0.7:.1f}" y2="{yb - leg:.1f}"/><line x1="{x + w * 0.8:.1f}" y1="{yb:.1f}" x2="{x + w * 0.7:.1f}" y2="{yb - leg:.1f}"/>'
+           f'<line x1="{x:.1f}" y1="{yb:.1f}" x2="{x:.1f}" y2="{yb - leg:.1f}"/>'
+           f'<line x1="{x - w * 0.8:.1f}" y1="{yb:.1f}" x2="{x + w * 0.7:.1f}" y2="{yb - leg:.1f}" stroke-width="{max(0.4, k * 0.1):.2f}"/>'
+           f'<line x1="{x + w * 0.8:.1f}" y1="{yb:.1f}" x2="{x - w * 0.7:.1f}" y2="{yb - leg:.1f}" stroke-width="{max(0.4, k * 0.1):.2f}"/></g>']
+    yt = yb - leg
+    out.append(f'<rect x="{x - w:.1f}" y="{yt - bh:.1f}" width="{2 * w:.1f}" height="{bh:.1f}" fill="url(#{gid})"/>')
+    out.append(f'<path d="M {x - w:.1f} {yt:.1f} Q {x:.1f} {yt + w * 0.25:.1f} {x + w:.1f} {yt:.1f}" fill="none" stroke="{dark}" stroke-width="{max(0.4, k * 0.12):.2f}"/>')
+    hoops = "".join(f'<path d="M {x - w:.1f} {yt - bh * s:.1f} Q {x:.1f} {yt - bh * s + w * 0.25:.1f} {x + w:.1f} {yt - bh * s:.1f}"/>' for s in (0.22, 0.5, 0.78))
+    out.append(f'<g fill="none" stroke="{dark}" stroke-width="{max(0.35, k * 0.1):.2f}" opacity="0.8">{hoops}</g>')
+    out.append(f'<path d="M {x - w * 1.08:.1f} {yt - bh:.1f} L {x:.1f} {yt - bh - w * 0.95:.1f} L {x + w * 1.08:.1f} {yt - bh:.1f} Z" fill="url(#{gid})"/>')
+    out.append(f'<path d="M {x - w * 1.08:.1f} {yt - bh:.1f} L {x:.1f} {yt - bh - w * 0.95:.1f}" stroke="#FFE0B0" stroke-width="{max(0.4, k * 0.1):.2f}" opacity="0.8"/>')
+    out.append(f'<line x1="{x:.1f}" y1="{yt - bh - w * 0.95:.1f}" x2="{x:.1f}" y2="{yt - bh - w * 1.3:.1f}" stroke="{dark}" stroke-width="{max(0.4, k * 0.1):.2f}"/>')
     return "".join(out)
 
 
@@ -794,8 +1263,8 @@ def ch_building(S, tiers, seed):
 def ch_cylinder_grad(S, Xc, Zc, R, Y, lit_c, mid_c, dark_c, refl_c, fog, uid):
     """Horizontal gradient that shades a vertical cylinder lit from the left-ahead (the setting sun)."""
     C = S.C
-    a0 = math.atan2(-Xc, -Zc)
-    D = math.hypot(Xc, Zc)
+    a0 = math.atan2(-(Xc - CH_XC), -Zc)
+    D = math.hypot(Xc - CH_XC, Zc)
     lim = math.acos(R / D)
     L = (-math.sin(math.radians(74)), math.cos(math.radians(74)))
     xs, cols = [], []
@@ -818,11 +1287,11 @@ def ch_cylinder_grad(S, Xc, Zc, R, Y, lit_c, mid_c, dark_c, refl_c, fog, uid):
     return x0, x1
 
 
-def ch_ring(S, Xc, Zc, Y, rfun, n=40):
+def ch_ring(S, Xc, Zc, Y, rfun, n=40, R=17.0):
     """Projected front half of a horizontal ring with radius rfun(psi) at height Y, left to right."""
-    a0 = math.atan2(-Xc, -Zc)
-    D = math.hypot(Xc, Zc)
-    lim = math.acos(17.0 / D)
+    a0 = math.atan2(-(Xc - CH_XC), -Zc)
+    D = math.hypot(Xc - CH_XC, Zc)
+    lim = math.acos(min(0.999, R / D))
     pts = []
     for i in range(n + 1):
         th = -lim + 2 * lim * i / n
@@ -855,8 +1324,8 @@ def ch_corncob(S, Xc, Zc, seed, R=16.5, top=178.0):
         k = pet * psi / (2 * math.pi)
         t = 2 * (k - math.floor(k)) - 1
         return R - 0.6 + b * math.sqrt(max(0.0, 1 - t * t))
-    a0 = math.atan2(-Xc, -Zc)
-    lim = math.acos(17.0 / math.hypot(Xc, Zc))
+    a0 = math.atan2(-(Xc - CH_XC), -Zc)
+    lim = math.acos(17.0 / math.hypot(Xc - CH_XC, Zc))
     win = []
     for f_ in range(40):
         Y = 62 + f_ * 2.72
@@ -1057,7 +1526,7 @@ def ch_bridgehouse(S, X0, X1, Z0, Z1, Y0, Y1, seed):
     r1, r2 = (cx, Y1 + 3.6, cz - 1.2), (cx, Y1 + 3.6, cz + 1.2)
     fog = S.fog(Z0)
     roof = "#5E8A7A"
-    if X1 < 0:
+    if X1 < CH_XC:
         out.append(S.poly([b, c, r2, r1], cmix(cscale(roof, 0.95), CH_HAZE, fog)))
     else:
         out.append(S.poly([d, a, r1, r2], cmix(cscale(roof, 1.25), CH_HAZE, fog)))
@@ -1120,10 +1589,12 @@ def ch_boat(S, Xc, Zs, seed):
     out.append(ch_reflect(S, [(X0, 0, Zs), (X0, 2.2, Zs), (X1, 2.2, Zs), (X1, 0, Zs)], "#E8E2EE", seed + 3, 0.35))
     # hull: starboard side (catching the sky), stern transom with a navy boot stripe
     bow = Zs + Ln
-    side = [(X1, 0, Zs), (X1, 2.3, Zs), (X1, 2.3, bow - 7), (Xc + 0.8, 2.6, bow), (Xc + 0.8, 0.4, bow - 2), (X1 - 0.6, 0, bow - 8)]
+    sg = -1 if Xc > CH_XC else 1          # the hull side that faces the camera
+    E, tip = Xc + sg * Wd, Xc + sg * 0.8
+    side = [(E, 0, Zs), (E, 2.3, Zs), (E, 2.3, bow - 7), (tip, 2.6, bow), (tip, 0.4, bow - 2), (E - sg * 0.6, 0, bow - 8)]
     out.append(S.poly(side, "#D8D4E0"))
-    out.append(S.poly([(X1, 0, Zs), (X1, 0.8, Zs), (X1, 0.8, bow - 6), (Xc + 0.8, 1.0, bow - 1.2), (Xc + 0.8, 0.4, bow - 2), (X1 - 0.6, 0, bow - 8)], "#24385A"))
-    out.append(S.poly([(X1, 2.0, Zs), (X1, 2.3, Zs), (X1, 2.3, bow - 7), (Xc + 0.8, 2.6, bow), (Xc + 0.8, 2.3, bow)], "#F6F2EC"))
+    out.append(S.poly([(E, 0, Zs), (E, 0.8, Zs), (E, 0.8, bow - 6), (tip, 1.0, bow - 1.2), (tip, 0.4, bow - 2), (E - sg * 0.6, 0, bow - 8)], "#24385A"))
+    out.append(S.poly([(E, 2.0, Zs), (E, 2.3, Zs), (E, 2.3, bow - 7), (tip, 2.6, bow), (tip, 2.3, bow)], "#F6F2EC"))
     stern = [(X0 + 0.3, 0, Zs), (X0, 2.3, Zs), (X1, 2.3, Zs), (X1 - 0.3, 0, Zs)]
     out.append(S.poly(stern, "#C9C2CC"))
     out.append(S.poly([(X0 + 0.3, 0, Zs), (X0 + 0.15, 0.8, Zs), (X1 - 0.15, 0.8, Zs), (X1 - 0.3, 0, Zs)], "#24385A"))
@@ -1252,7 +1723,7 @@ def ch_compact(svg):
 
     def rep(m):
         segs = re.findall(r'<line x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"/>', m.group(2))
-        d = "".join(f"M{a} {b}L{c} {e}" for a, b, c, e in segs)
+        d = "".join(d_rel([(float(a), float(b)), (float(c), float(e))], False) for a, b, c, e in segs)
         return f'<path d="{d}" fill="none" {m.group(1)}/>'
     return re.sub(r'<g ([^>]*)>((?:<line x1="[^"]+" y1="[^"]+" x2="[^"]+" y2="[^"]+"/>)+)</g>', rep, svg)
 
@@ -1281,6 +1752,120 @@ def ch_gull(x, y, s, flap=0.0, rim="#FFE6C0"):
             f'<path d="M -20 {w - 6:.1f} Q -17 {w - 9:.1f} -14 {w - 9.5:.1f} L -15 {w - 6.5:.1f} Z M 20 {w - 6:.1f} Q 17 {w - 9:.1f} 14 {w - 9.5:.1f} L 15 {w - 6.5:.1f} Z" fill="#2A2630"/>'
             '<ellipse cx="0" cy="1" rx="2.6" ry="5.5" fill="#F4F0EA"/><circle cx="0" cy="-4.5" r="2" fill="#F4F0EA"/>'
             f'<path d="M -2 2 Q 0 4.5 2 2" fill="none" stroke="{rim}" stroke-width="1.2"/></g>')
+def ch_flag(x, y, k, seed=0):
+    """Small US flag on a rooftop staff, rippling in the evening breeze."""
+    w, h = 2.6 * k, 1.5 * k
+    out = [f'<g transform="translate({x:.1f} {y:.1f})">']
+    for i in range(7):
+        y0 = h * i / 7
+        out.append(f'<path d="M 0 {y0:.2f} Q {w * 0.3:.2f} {y0 - h * 0.12:.2f} {w * 0.55:.2f} {y0:.2f} T {w:.2f} {y0:.2f} L {w:.2f} {y0 + h / 7:.2f} Q {w * 0.75:.2f} {y0 + h / 7 + h * 0.12:.2f} {w * 0.55:.2f} {y0 + h / 7:.2f} T 0 {y0 + h / 7:.2f} Z" fill="{"#C8303A" if i % 2 == 0 else "#F6F0E6"}"/>')
+    out.append(f'<rect x="0" y="0" width="{w * 0.42:.2f}" height="{h * 4 / 7:.2f}" fill="#24345E"/></g>')
+    return "".join(out)
+
+
+def ch_tc_landmark(S, X0, X1, Z0, Z1):
+    """Near north-bank landmark: glazed white terra cotta, a two-storey arcade on the river walk, paired windows
+    between continuous piers, medallion frieze, deep cornice, balustrade with urns, a flag on the corner."""
+    t = dict(X0=X0, X1=X1, Z0=Z0, Z1=Z1, Y0=1.5, Y1=50.0, mat="tc", base="#F4E8D4", fh=3.9, bay=3.8, base_h=9.5,
+             arcade=True, piers=True, piers_full=False, pair=True, attic=3.4, cornice_d=1.5, cornice_h=2.1, balustrade=True,
+             lit=0.3, margin=1.6)
+    out = [ch_building(S, [t], 92)]
+    x, y = S.C(X0 + 3, 51.3, Z0 + 16)
+    _, yt = S.C(X0 + 3, 57.2, Z0 + 16)
+    out.append(f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{x:.1f}" y2="{yt:.1f}" stroke="#3A3040" stroke-width="1.1"/>'
+               f'<line x1="{x - 0.4:.1f}" y1="{y:.1f}" x2="{x - 0.4:.1f}" y2="{yt:.1f}" stroke="#FFE2B8" stroke-width="0.5"/>')
+    out.append(ch_flag(x, yt + 0.5, S.px(Z0 + 16) * 1.2))
+    return "".join(out)
+
+
+def ch_jewelers(S, X0, X1, Z0, Z1):
+    """Terra-cotta tower on Wacker with a set-back crown, four corner turrets and a domed temple on top."""
+    cx, cz = (X0 + X1) / 2, (Z0 + Z1) / 2
+    out = []
+    tiers = [dict(X0=X0, X1=X1, Z0=Z0, Z1=Z1, Y0=8, Y1=80, mat="tc", base="#E9D3AE", lit=0.28, bay=3.0, fh=3.8, piers=True, base_h=6, cornice_d=0.9),
+             dict(X0=X0 + 5, X1=X1 - 5, Z0=Z0 + 5, Z1=Z1 - 5, Y0=80, Y1=93, mat="tc", base="#E9D3AE", lit=0.3, bay=3.0, fh=3.8, base_h=1.0, cornice_d=0.6)]
+    R = 7.0
+    fog = S.fog(cz)
+    u = S.gid("dome")
+    ch_cylinder_grad(S, cx, cz, R, 100, "#FFF0D0", "#D8BC9C", "#8E7A86", "#A08EA0", fog, u)
+    ring = lambda Y, r: ch_ring(S, cx, cz, Y, lambda p: r, n=24, R=r)
+    out.append(f'<polygon points="{P(ring(93, R) + ring(105, R)[::-1])}" fill="url(#{u})"/>')
+    a0 = math.atan2(-(cx - CH_XC), -cz)
+    for i in range(-3, 4):
+        psi = a0 + i * 0.42
+        p1 = S.C(cx + R * math.sin(psi), 95, cz + R * math.cos(psi))
+        p2 = S.C(cx + R * math.sin(psi), 103, cz + R * math.cos(psi))
+        out.append(f'<line x1="{p1[0]:.1f}" y1="{p1[1]:.1f}" x2="{p2[0]:.1f}" y2="{p2[1]:.1f}" stroke="#4A3A44" stroke-width="{S.px(cz) * 1.4:.1f}" opacity="0.65"/>')
+    out.append(f'<polygon points="{P(ring(105, R + 0.8) + ring(106.5, R + 0.8)[::-1])}" fill="url(#{u})"/>')
+    dome = []
+    for j in range(8):
+        a = j / 8 * math.pi / 2
+        b = (j + 1) / 8 * math.pi / 2
+        dome.append(f'<polygon points="{P(ring(106.5 + R * 0.95 * math.sin(a), R * math.cos(a) + 0.01) + ring(106.5 + R * 0.95 * math.sin(b), R * math.cos(b) + 0.01)[::-1])}"/>')
+    out.append(f'<g fill="url(#{u})">' + "".join(dome) + "</g>")
+    lx, ly = S.C(cx, 106.5 + R * 0.95, cz)
+    _, ly2 = S.C(cx, 106.5 + R * 0.95 + 4, cz)
+    out.append(f'<line x1="{lx:.1f}" y1="{ly:.1f}" x2="{lx:.1f}" y2="{ly2:.1f}" stroke="#D8BC9C" stroke-width="{S.px(cz) * 0.8:.1f}"/>')
+    out.append(ch_building(S, tiers, 77))
+    for tx, tz in ((X0 + 5, Z0 + 5), (X1 - 5, Z0 + 5)):
+        ut = S.gid("tur")
+        ch_cylinder_grad(S, tx, tz, 2.0, 98, "#FFF0D0", "#D8BC9C", "#8E7A86", "#A08EA0", fog, ut)
+        rr = lambda Y, r: ch_ring(S, tx, tz, Y, lambda p: r, n=12, R=r)
+        out.append(f'<polygon points="{P(rr(93, 2.0) + rr(100, 2.0)[::-1])}" fill="url(#{ut})"/>')
+        out.append(f'<polygon points="{P(rr(100, 2.0) + rr(102.5, 1.2)[::-1])}" fill="url(#{ut})"/>')
+        p = S.C(tx, 104, tz)
+        q = S.C(tx, 102.5, tz)
+        out.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q[0]:.1f}" y2="{q[1]:.1f}" stroke="#D8BC9C" stroke-width="1"/>')
+    return "".join(out)
+
+
+def ch_water_reflections(S, water):
+    """Each river face mirrored in the water (Y -> -Y), fading with depth, flecked with its lit windows."""
+    out = []
+    for Z0, quad, col, litp in sorted(S.refl, key=lambda r: -r[0]):
+        mq = [(X, -Y, Z) for X, Y, Z in quad]
+        pts = [S.C(*q) for q in mq]
+        ys = [p[1] for p in pts]
+        if min(ys) > 444:
+            continue
+        gid = S.gid("rf")
+        S.defs.append(lg(gid, [(0, col, 0.7), (0.5, col, 0.42), (1, col, 0.08)], 0, round(min(ys), 1), 0, round(min(max(ys), 520), 1), units="userSpaceOnUse"))
+        out.append(f'<polygon points="{P(pts)}" fill="url(#{gid})"/>')
+        rnd = random.Random(int(Z0 * 7 + quad[0][0]))
+        X = quad[0][0]
+        Y0, Y1 = quad[0][1], quad[1][1]
+        Za, Zb = quad[0][2], quad[3][2]
+        for _ in range(int(30 * litp * min(1.0, 400 / Z0) + 2)):
+            Z = rnd.uniform(Za, Zb)
+            Y = rnd.uniform(Y0 + 2, Y1)
+            x, y = S.C(X, -Y, Z)
+            k = S.px(Z)
+            out.append(f'<rect x="{x - k * 0.5:.1f}" y="{y:.1f}" width="{k * 1.1:.1f}" height="{max(0.6, k * 0.35):.1f}" fill="{rnd.choice(LIT_WIN)}" opacity="{rnd.uniform(0.3, 0.6):.2f}"/>')
+    # the mirror image is broken into horizontal ripples: a shared clip of ragged strokes, finer toward the horizon
+    rnd = random.Random(77)
+    rows = ([], [])
+    y = 283.0
+    k = 0
+    while y < 444:
+        h = 0.45 + (y - 282) * 0.013
+        x = rnd.uniform(-20, 0)
+        sc = 0.35 + (y - 282) / 200
+        while x < 600:
+            L_ = rnd.uniform(8, 70) * sc
+            rows[k % 2].append(f"M{x:.0f} {y:.1f}h{L_:.0f}v{h * rnd.uniform(0.6, 1.2):.1f}h{-L_:.0f}z")
+            x += L_ + rnd.uniform(1, 5) * sc
+        y += h * rnd.uniform(1.15, 1.9)
+        k += 1
+    body = "".join(out)
+    cid = S.gid("water")
+    S.defs.append(f'<clipPath id="{cid}"><polygon points="{S.p(water)}"/></clipPath>')
+    res = [f'<g clip-path="url(#{cid})"><g opacity="0.35">{body}</g>']
+    # two interleaved sets of ripples, nudged apart sideways, so mirrored edges wobble like real water
+    for j, dx in enumerate((-1.3, 1.3)):
+        rid = S.gid("rip")
+        S.defs.append(f'<clipPath id="{rid}"><path d="{"".join(rows[j])}"/></clipPath>')
+        res.append(f'<g clip-path="url(#{rid})"><g transform="translate({dx} 0)">{body}</g></g>')
+    return "".join(res) + "</g>"
 
 
 def chicago():
@@ -1292,11 +1877,10 @@ def chicago():
     S.defs.append(lg(f"{u}-sky", [(0, "#2A3A70"), (0.22, "#4A5490"), (0.4, "#8A7AAE"), (0.52, "#D296A0"), (0.6, "#F4B58A"),
                                   (0.635, "#FCD69A"), (0.66, "#FDE5B4"), (1, "#FDE5B4")]))
     S.defs.append(lg(f"{u}-river", [(0, "#FBD9A0"), (0.06, "#F0B88C"), (0.25, "#A48AA4"), (0.6, "#4E5A80"), (1, "#25304E")], 0, 282, 0, 444, units="userSpaceOnUse"))
-    S.defs.append(lg(f"{u}-haze", [(0, CH_HAZE, 0), (0.7, "#F8CC9C", 0.55), (1, "#FCD8A4", 0.0)], 0, 200, 0, 296, units="userSpaceOnUse"))
-    S.defs.append(lg(f"{u}-walk", [(0, "#8A7470"), (1, "#5A4A50")], 0, 300, 0, 444, units="userSpaceOnUse"))
+    S.defs.append(lg(f"{u}-haze", [(0, CH_HAZE, 0), (0.7, "#F8CC9C", 0.5), (1, "#FCD8A4", 0.0)], 0, 220, 0, 296, units="userSpaceOnUse"))
+    S.defs.append(lg(f"{u}-walk", [(0, "#9A8478"), (1, "#5E4C50")], 0, 300, 0, 444, units="userSpaceOnUse"))
     out.append(f'<rect width="600" height="444" fill="url(#{u}-sky)"/>')
-    # sun low over the river's end, a big soft glow
-    sx, sy = 276, 238
+    sx, sy = 276, 240
     out.append(glow(sx, sy, 260, "#FFE0A0", f"{u}-sun", 0.85))
     out.append(glow(sx, sy, 70, "#FFF4D8", f"{u}-sun2", 0.9))
     out.append(f'<circle cx="{sx}" cy="{sy}" r="15" fill="#FFE7B0"/><circle cx="{sx}" cy="{sy}" r="12.5" fill="#FFF8E6"/>')
@@ -1311,235 +1895,251 @@ def chicago():
             cl.append(f'<ellipse cx="{cx_ + dx - 6:.0f}" cy="{cy_ + j * 2.2 + 2.6:.1f}" rx="{ww * 0.85:.0f}" ry="1.6" fill="#FFC898" opacity="0.75"/>')
     out.append("".join(cl))
     # far west-side skyline in the haze
-    far = []
     rnd = random.Random(9)
-    for i in range(26):
+    far = []
+    for i in range(30):
         X = rnd.uniform(-600, 600)
         Z = rnd.uniform(1900, 2600)
         w = rnd.uniform(25, 60)
         h = rnd.uniform(30, 150)
         if -260 < X < 120:
             h *= 0.35
-        far.append((Z, X, w, h))
+        far.append((Z, X + CH_XC, w, h))
     for Z, X, w, h in sorted(far, reverse=True):
         out.append(S.poly([(X - w / 2, 0, Z), (X - w / 2, h, Z), (X + w / 2, h, Z), (X + w / 2, 0, Z)], cmix("#A98EAC", CH_HAZE, 0.35)))
+        if rnd.random() < 0.5:
+            out.append(S.poly([(X - w / 2, h, Z), (X - w / 2, h + 0.6 * h / 10, Z), (X - w / 2 + w * 0.15, h + 0.6 * h / 10, Z), (X - w / 2 + w * 0.15, h, Z)], cmix("#FFD8B0", CH_HAZE, 0.3), ' opacity="0.6"'))
     out.append(ch_willis(S))
-    # ---- river, banks and the riverwalk
-    out.append(S.poly([(-30, 0, 2400), (30, 0, 2400), (30, 0, 30), (-30, 0, 30)], f"url(#{u}-river)"))
-    # mirrored reflections of the banks' faces, cobs and bridges, broken into brush strokes
+
+    # ---- the city, far to near (built first: its river faces are mirrored in the water)
+    items = []
+    Lb = [  # south bank, above Wacker Drive
+        (1700, [dict(X0=-150, X1=-46, Z0=1600, Z1=1700, Y0=0, Y1=60, mat="stone", base="#B89A8A", lit=0.3)]),
+        (1200, [dict(X0=-170, X1=-62, Z0=1200, Z1=1400, Y0=0, Y1=96, mat="glass", base="#6A7090", lit=0.08),
+                dict(X0=-160, X1=-72, Z0=1210, Z1=1390, Y0=96, Y1=122, mat="glass", base="#6A7090", lit=0.08)]),
+        (920, [dict(X0=-130, X1=-62, Z0=920, Z1=1160, Y0=8, Y1=70, mat="brick", base="#9A5A48", lit=0.3, bay=4)]),
+        (700, [dict(X0=-140, X1=-62, Z0=700, Z1=880, Y0=8, Y1=62, mat="brick", base="#8E4E40", lit=0.35, bay=3.5)]),
+        (492, [dict(X0=-140, X1=-62, Z0=492, Z1=660, Y0=8, Y1=118, mat="stone", base="#CDB8A0", lit=0.25, bay=4, piers=True),
+               dict(X0=-130, X1=-72, Z0=500, Z1=650, Y0=118, Y1=128, mat="stone", base="#CDB8A0", lit=0.2, bay=4, base_h=1.0)]),
+        (385, [dict(X0=-120, X1=-62, Z0=385, Z1=452, Y0=8, Y1=62, mat="brick", base="#9C5844", lit=0.32, bay=3.2, fh=3.6, tanks=[(-78, 420)])]),
+    ]
+    for Zk, tiers in Lb:
+        items.append((Zk, ch_building(S, tiers, int(Zk))))
+    items.append((318, ch_jewelers(S, -104, -62, 318, 372)))
+    # tall glass tower on Wacker: its shaded east wall mirrors the sunlit north bank
+    items.append((172, ch_building(S, [dict(X0=-150, X1=-66, Z0=172, Z1=232, Y0=8, Y1=196, mat="glass", base="#3E5A7A", lit=0.05, mull=1.6),
+                                       dict(X0=-144, X1=-72, Z0=178, Z1=226, Y0=196, Y1=232, mat="glass", base="#3E5A7A", lit=0.05, mull=1.6),
+                                       dict(X0=-136, X1=-80, Z0=184, Z1=220, Y0=232, Y1=244, mat="dark", base="#30364A", lit=0.0)], 175)))
+    items.append((244, ch_building(S, [dict(X0=-130, X1=-64, Z0=244, Z1=292, Y0=8, Y1=40, mat="brick", base="#8E5446", lit=0.3, bay=3.2, fh=3.7, tanks=[(-70, 270)])], 244)))
+    # the near limestone block: shops on Wacker, proud piers, a heavy cornice under a balustrade
+    items.append((90, ch_building(S, [dict(X0=-118, X1=-60, Z0=90, Z1=146, Y0=8, Y1=50, mat="stone", base="#DDAE80", lit=0.34, bay=3.4, fh=3.9,
+                                            piers=True, base_h=6.5, attic=2.6, cornice_d=1.2, cornice_h=1.9, balustrade=True, margin=1.4)], 90)))
+    Rb = [  # north bank
+        (1300, [dict(X0=36, X1=160, Z0=1300, Z1=1450, Y0=0, Y1=92, mat="brick", base="#B07860", lit=0.3, bay=5)]),
+        (1000, [dict(X0=40, X1=110, Z0=920, Z1=1150, Y0=0, Y1=74, mat="stone", base="#D0B494", lit=0.25, bay=4)]),
+        (700, [dict(X0=38, X1=96, Z0=700, Z1=860, Y0=0, Y1=105, mat="glass", base="#5E7E80", lit=0.06)]),
+        (492, [dict(X0=40, X1=92, Z0=492, Z1=552, Y0=1.5, Y1=212, mat="dark", base="#24242E", lit=0.04, mull=1.6, fh=3.6)]),
+        (320, [dict(X0=36, X1=72, Z0=320, Z1=380, Y0=1.5, Y1=22, mat="stone", base="#D8C8B0", lit=0.3, bay=3.5)]),
+    ]
+    for Zk, tiers in Rb:
+        items.append((Zk, ch_building(S, tiers, int(Zk) + 3)))
+    items.append((440, ch_corncob(S, 86, 440, 7)))
+    items.append((410, ch_corncob(S, 51, 410, 8)))
+    # glass tower behind the landmark (fills the top right with sunset glass)
+    items.append((200, ch_building(S, [dict(X0=100, X1=170, Z0=200, Z1=300, Y0=1.5, Y1=260, mat="glass", base="#5A7894", lit=0.05, mull=1.6)], 231)))
+    # brick loft block with shopfronts on the river and water tanks on the roof
+    items.append((170, ch_building(S, [dict(X0=36, X1=96, Z0=170, Z1=296, Y0=1.5, Y1=44, mat="brick", base="#A65E48", lit=0.32, bay=3.2, fh=3.8,
+                                            base_h=5.5, cornice_d=0.9, tanks=[(41, 214), (43, 268)], awning=("#2E5A4A", "#EFE6D2"))], 171)))
+    items.append((92, ch_tc_landmark(S, 36, 104, 92, 146)))
+    for k, (Zb, ppl) in enumerate(((150, 6), (300, 3), (470, 2), (680, 0), (900, 0), (1180, 0))):
+        items.append((Zb - 0.5, ch_bridge(S, Zb, people=ppl, seed=k + 1, cars=2 if Zb < 700 else 0, houses=Zb < 1000)))
+
+    # ---- river, mirrored city, glitter
+    water = [(-30, 0, 2400), (30, 0, 2400), (30, 0, 30), (-30, 0, 30)]
+    out.append(S.poly(water, f"url(#{u}-river)"))
+    # hand-placed mirrors for the round towers, the black tower, the bridges and the Wacker wall
+    S.refl.append((393, [(36, 4, 410), (36, 178, 410), (66, 178, 410), (66, 4, 410)], "#C8B4BC", 0.4))
+    S.refl.append((1400, [(-160, 0, 1400), (-160, 440, 1400), (-150, 440, 1400), (-150, 0, 1400)], "#4A3E50", 0.0))
+    S.refl.append((30, [(-42, 2, 47), (-42, 8, 47), (-42, 8, 700), (-42, 2, 700)], "#7A6878", 0.3))
+    out.append(ch_water_reflections(S, water))
     rf = []
-    rf.append(ch_reflect(S, [(34, 1.5, 40), (34, 38, 40), (34, 38, 112), (34, 1.5, 112)], "#F8DDB4", 1, 0.45))
-    rf.append(ch_reflect(S, [(36, 1.5, 126), (36, 64, 126), (36, 64, 205), (36, 1.5, 205)], "#F0B88E", 2, 0.4))
-    rf.append(ch_reflect(S, [(36, 1.5, 393), (36, 178, 393), (66, 178, 393), (66, 1.5, 393)], "#D8C4C4", 3, 0.45))
-    rf.append(ch_reflect(S, [(40, 1.5, 480), (40, 212, 480), (40, 212, 540), (40, 1.5, 540)], "#2E2C3C", 4, 0.45))
-    rf.append(ch_reflect(S, [(-62, 2, 56), (-62, 46, 56), (-62, 46, 150), (-62, 2, 150)], "#8E7C9C", 5, 0.4))
-    rf.append(ch_reflect(S, [(-92, 2, 175), (-92, 260, 175), (-92, 260, 240), (-92, 2, 240)], "#6E72A4", 6, 0.4))
-    rf.append(ch_reflect(S, [(-64, 2, 255), (-64, 92, 255), (-64, 92, 315), (-64, 2, 315)], "#C8A8A0", 7, 0.4))
     for k, Zb in enumerate((150, 300, 470, 680)):
         rf.append(ch_reflect(S, [(-30, 4.4, Zb), (-30, 9.6, Zb), (30, 9.6, Zb), (30, 4.4, Zb)], "#1E2236", 10 + k, 0.55))
     out.append("".join(rf))
-    # reflections and glitter go straight on the water (bridges and boats are drawn over them later)
     refl = []
-    # warm column under the sun
     rnd = random.Random(3)
-    for i in range(170):
-        Z = 46 * (1.025 ** i)
+    # warm column of sun-glitter
+    for i in range(190):
+        Z = 46 * (1.022 ** i)
         if Z > 2200:
             break
-        x, y = C(0, 0, Z)
-        X = (sx - 300) * Z / C.f
-        x = 300 + C.f * (X + rnd.uniform(-3.5, 3.5) * (Z / 300) ** 0.25) / Z
-        w = max(1.4, C.f * rnd.uniform(1.2, 5) / Z)
-        refl.append(f'<rect x="{x - w / 2:.1f}" y="{y:.1f}" width="{w:.1f}" height="{max(0.7, C.f * 0.12 / Z):.1f}" rx="0.5" fill="#FFF2C8" opacity="{rnd.uniform(0.45, 0.95):.2f}"/>')
-    # the lit north-bank facades stretch golden reflections down the right side of the river
-    for i in range(140):
-        Z = 46 * (1.03 ** i)
-        if Z > 900:
+        _, y = C(0, 0, Z)
+        Xs = (sx - 300) * Z / S.f + CH_XC
+        x = C(Xs + rnd.uniform(-3.5, 3.5) * (Z / 300) ** 0.25, 0, Z)[0]
+        w = max(1.4, S.f * rnd.uniform(1.2, 5) / Z)
+        refl.append(f'<rect x="{x - w / 2:.1f}" y="{y:.1f}" width="{w:.1f}" height="{max(0.7, S.f * 0.12 / Z):.1f}" rx="0.5" fill="#FFF2C8" opacity="{rnd.uniform(0.45, 0.95):.2f}"/>')
+    # ripples breaking the mirrored city: warm on the sunlit side, cool and dark elsewhere
+    for i in range(260):
+        Z = 46 * (1.018 ** i)
+        if Z > 1000:
             break
-        if i % 3 == 0:
-            continue
-        X = rnd.uniform(14, 29.5)
-        x, y = C(X, 0, Z)
-        w = C.f * rnd.uniform(2, 6) / Z
-        refl.append(f'<rect x="{x - w / 2:.1f}" y="{y:.1f}" width="{w:.1f}" height="{max(0.6, C.f * 0.1 / Z):.1f}" fill="{rnd.choice(["#F6C88E", "#F0B07A", "#FFDCA8"])}" opacity="{rnd.uniform(0.3, 0.7):.2f}"/>')
-    # cool ripples on the shaded south side
-    for i in range(140):
-        Z = 46 * (1.03 ** i)
-        if Z > 900:
-            break
-        X = rnd.uniform(-29.5, 8)
-        x, y = C(X, 0, Z)
-        w = C.f * rnd.uniform(2, 6) / Z
-        refl.append(f'<rect x="{x - w / 2:.1f}" y="{y:.1f}" width="{w:.1f}" height="{max(0.6, C.f * 0.1 / Z):.1f}" fill="{rnd.choice(["#7E86B0", "#9A92BA", "#2A3254"])}" opacity="{rnd.uniform(0.3, 0.6):.2f}"/>')
+        for _ in range(2):
+            X = rnd.uniform(-29.5, 29.5)
+            x, y = C(X, 0, Z)
+            w = S.f * rnd.uniform(1.5, 6) / Z
+            if X > 10:
+                cc = rnd.choice(["#F6C88E", "#F0B07A", "#FFDCA8", "#3A3A5E"])
+            else:
+                cc = rnd.choice(["#7E86B0", "#9A92BA", "#2A3254", "#3A4268"])
+            refl.append(f'<rect x="{x - w / 2:.1f}" y="{y:.1f}" width="{w:.1f}" height="{max(0.6, S.f * 0.09 / Z):.1f}" fill="{cc}" opacity="{rnd.uniform(0.3, 0.65):.2f}"/>')
     out.append("".join(refl))
-    # north bank: narrow dock walk; south bank: the Riverwalk, its granite wall, Wacker Drive above
+
+    # ---- banks. North: dock walk at the water, the street level behind. South: the Riverwalk, its granite wall
+    # with cafe arches, Wacker Drive above
     out.append(S.poly([(30, 0, 30), (30, 1.5, 30), (30, 1.5, 2400), (30, 0, 2400)], "#5A4A52"))
+    out.append(S.poly([(30, 1.5, 30), (400, 1.5, 30), (400, 1.5, 2400), (30, 1.5, 2400)], "#4E4048"))
     out.append(S.poly([(30, 1.5, 30), (34, 1.5, 30), (34, 1.5, 2400), (30, 1.5, 2400)], "#9A8278"))
     out.append(S.poly([(-30, 0, 30), (-30, 2.0, 30), (-30, 2.0, 2400), (-30, 0, 2400)], "#8A7A82"))
     out.append(S.poly([(-30, 2.0, 30), (-42, 2.0, 30), (-42, 2.0, 2400), (-30, 2.0, 2400)], f"url(#{u}-walk)"))
     out.append(S.poly([(-30, 2.0, 30), (-31, 2.0, 30), (-31, 2.0, 2400), (-30, 2.0, 2400)], "#C8B0A0"))
-    out.append(S.poly([(-42, 2.0, 30), (-42, 8.0, 30), (-42, 8.0, 2400), (-42, 2.0, 2400)], "#6E6070"))
-    out.append(S.poly([(-42, 8.0, 30), (-62, 8.0, 30), (-62, 8.0, 2400), (-42, 8.0, 2400)], "#5E5058"))
-    out.append(S.poly([(-42, 7.2, 30), (-42, 8.4, 30), (-42, 8.4, 2400), (-42, 7.2, 2400)], "#A89090"))
-    # granite paving joints and the riverwalk 'rooms': arched cafe openings glowing in the wall under Wacker
+    wall = [(-42, 2.0, 30), (-42, 8.0, 30), (-42, 8.0, 2400), (-42, 2.0, 2400)]
+    out.append(S.poly(wall, ch_vgrad(S, wall, [(0, "#8A7684"), (1, "#5E5062")])))
+    out.append(S.poly([(-42, 8.0, 30), (-400, 8.0, 30), (-400, 8.0, 2400), (-42, 8.0, 2400)], "#5E5058"))
+    out.append(S.poly([(-42, 7.2, 30), (-42, 8.4, 30), (-42, 8.4, 2400), (-42, 7.2, 2400)], "#B89C98"))
+    # granite blocks in the wall and paving joints on the walk
     pv = []
-    for Z in [30 * 1.045 ** i for i in range(60)]:
+    for Z in [30 * 1.04 ** i for i in range(80)]:
         if Z > 700:
             break
-        a_, b_ = C(-30.5, 2.0, Z), C(-42, 2.0, Z)
-        pv.append(f'<line x1="{a_[0]:.1f}" y1="{a_[1]:.1f}" x2="{b_[0]:.1f}" y2="{b_[1]:.1f}"/>')
-    out.append('<g stroke="#4A3A44" stroke-width="0.6" opacity="0.35">' + "".join(pv) + "</g>")
-    for Z in (34, 44, 56, 70, 86, 104, 126, 175, 215, 255, 340, 400):
+        pv.append(ch_line(S, (-30.5, 2.0, Z), (-42, 2.0, Z)))
+        if S.px(Z) * 1.2 > 2:
+            pv.append(ch_line(S, (-42, 2.0, Z), (-42, 7.2, Z)))
+    out.append('<g stroke="#3E303A" stroke-width="0.6" opacity="0.3">' + "".join(pv) + "</g>")
+    courses = [(2.0, 2.6, "#4E4050", 0.5), (2.6, 3.9, "#9A8494", 0.22), (3.9, 5.2, "#7A6878", 0.18), (5.2, 6.5, "#A08A98", 0.2), (6.5, 7.2, "#6A5868", 0.25)]
+    for v0, v1, cc, op in courses:
+        out.append(S.poly([(-42, v0, 47), (-42, v1, 47), (-42, v1, 900), (-42, v0, 900)], cc, f' opacity="{op}"'))
+    jt = Bk(S)
+    for v0, v1, cc, op in courses[1:]:
+        jt.line(0, (-42, v1, 47), (-42, v1, 500), "#3A2C38", 0.6, ' opacity="0.45"')
+        Z = 47 + (v0 * 0.7) % 1.8
+        while Z < 140:
+            jt.line(0, (-42, v0, Z), (-42, v1, Z), "#3A2C38", 0.6, ' opacity="0.35"')
+            Z += 1.8
+    out.append(jt.svg())
+    # Wacker balustrade along the top of the wall
+    bal = []
+    for Z in [40 * 1.012 ** i for i in range(200)]:
+        if Z > 600:
+            break
+        if S.px(Z) * 0.6 > 1.2:
+            bal.append(ch_line(S, (-42.3, 8.4, Z), (-42.3, 9.3, Z)))
+    out.append(f'<g stroke="#C8AEA4" stroke-width="1">' + "".join(bal) + "</g>")
+    out.append(S.poly([(-42.3, 9.3, 40), (-42.3, 9.7, 40), (-42.3, 9.7, 900), (-42.3, 9.3, 900)], "#D8BCAE"))
+    # the Riverwalk 'rooms': arched cafe openings glowing in the wall under Wacker
+    for Z in (49, 56.5, 64, 71.5, 79, 86.5, 94, 102, 110, 118, 126, 134, 176, 190, 212, 230, 252, 340, 400):
         W_ = 4.6
         arch = [(-42, 2.0, Z), (-42, 4.2, Z)] + [(-42, 4.2 + 2.3 * math.sin(math.pi * i / 10), Z + W_ / 2 - W_ / 2 * math.cos(math.pi * i / 10)) for i in range(11)] + [(-42, 2.0, Z + W_)]
         gid = S.gid("cafe")
         y0_, y1_ = C(-42, 6.5, Z)[1], C(-42, 2.0, Z)[1]
-        S.defs.append(lg(gid, [(0, "#FFD890"), (0.6, "#F2A458"), (1, "#B8643A")], 0, y0_, 0, y1_, units="userSpaceOnUse"))
+        S.defs.append(lg(gid, [(0, "#FFD890"), (0.6, "#F2A458"), (1, "#B8643A")], 0, round(y0_, 1), 0, round(y1_, 1), units="userSpaceOnUse"))
         out.append(S.poly(arch, f"url(#{gid})"))
-        # deep reveal on the far side of the opening, and a stone voussoir ring
         out.append(S.poly([(-42, 2.0, Z + W_), (-42, 4.2, Z + W_), (-43.2, 4.2, Z + W_), (-43.2, 2.0, Z + W_)], "#8A6A60"))
         ring = [C(*q) for q in arch[1:-1]]
-        out.append(f'<polyline points="{P(ring)}" fill="none" stroke="#A89494" stroke-width="{max(0.6, S.px(Z) * 0.35):.1f}"/>')
-        # diners inside, dark against the warm light
-        if Z < 140:
+        out.append(f'<polyline points="{P(ring)}" fill="none" stroke="#B8A0A0" stroke-width="{max(0.6, S.px(Z) * 0.35):.1f}"/>')
+        if Z < 140 and int(Z) % 3 != 1:
             for j, dz in enumerate((1.4, 3.0)):
                 x, b = C(-42.6, 2.0, Z + dz)
                 hh = S.px(Z + dz) * 1.25
                 out.append(f'<path d="M {x - hh * 0.22:.1f} {b:.1f} L {x - hh * 0.2:.1f} {b - hh * 0.62:.1f} Q {x:.1f} {b - hh * 0.75:.1f} {x + hh * 0.2:.1f} {b - hh * 0.62:.1f} L {x + hh * 0.22:.1f} {b:.1f} Z" fill="#5A3A34" opacity="0.8"/>'
                            f'<circle cx="{x:.1f}" cy="{b - hh * 0.86:.1f}" r="{hh * 0.13:.1f}" fill="#5A3A34" opacity="0.8"/>')
-        gx, gy = C(-38, 2.0, Z + 2.3)
-        out.append(glow(gx, gy, S.px(Z) * 5, "#FFC878", S.gid("cg"), 0.4))
-    # cafe tables with cream umbrellas out on the riverwalk
-    for Z in (50, 64, 82):
-        for dz in (0, 3.2):
-            x, b = C(-39.5, 2.0, Z + dz)
-            k = S.px(Z + dz)
-            out.append(f'<line x1="{x:.1f}" y1="{b:.1f}" x2="{x:.1f}" y2="{b - k * 2.4:.1f}" stroke="#3A2E30" stroke-width="{k * 0.08:.2f}"/>'
-                       f'<path d="M {x - k * 1.4:.1f} {b - k * 2.0:.1f} Q {x:.1f} {b - k * 2.9:.1f} {x + k * 1.4:.1f} {b - k * 2.0:.1f} Z" fill="#F2E4CC"/>'
-                       f'<path d="M {x:.1f} {b - k * 2.55:.1f} Q {x + k * 0.8:.1f} {b - k * 2.3:.1f} {x + k * 1.4:.1f} {b - k * 2.0:.1f} L {x:.1f} {b - k * 2.0:.1f} Z" fill="#B8A090" opacity="0.6"/>'
-                       f'<rect x="{x - k * 0.6:.1f}" y="{b - k * 0.8:.1f}" width="{k * 1.2:.1f}" height="{k * 0.15:.1f}" fill="#3A2E30"/>')
-    # ---- buildings and bridges, far to near
-    items = []
-    # south bank (left), Wacker Drive
-    L = [
-        (1700, [dict(X0=-150, X1=-40, Z0=1600, Z1=1700, Y0=0, Y1=60, mat="stone", base="#B89A8A", lit=0.3)]),
-        (1150, [dict(X0=-170, X1=-62, Z0=1100, Z1=1250, Y0=0, Y1=95, mat="glass", base="#6A7090", lit=0.08),
-                dict(X0=-160, X1=-72, Z0=1110, Z1=1240, Y0=95, Y1=120, mat="glass", base="#6A7090", lit=0.08)]),
-        (880, [dict(X0=-130, X1=-62, Z0=880, Z1=1000, Y0=8, Y1=70, mat="brick", base="#9A5A48", lit=0.3, bay=4)]),
-        (700, [dict(X0=-140, X1=-62, Z0=700, Z1=860, Y0=8, Y1=118, mat="stone", base="#CDB8A0", lit=0.25, bay=4, piers=True)]),
-        (560, [dict(X0=-120, X1=-64, Z0=560, Z1=680, Y0=8, Y1=62, mat="brick", base="#8E4E40", lit=0.35, bay=3.5, shop=True)]),
-        (440, [dict(X0=-120, X1=-64, Z0=440, Z1=540, Y0=8, Y1=84, mat="stone", base="#E2D6C6", lit=0.22, bay=3.2, piers=True),
-               dict(X0=-112, X1=-72, Z0=448, Z1=532, Y0=84, Y1=96, mat="stone", base="#E2D6C6", lit=0.1, bay=3.2, base_h=1.5)]),
-        (330, [dict(X0=-112, X1=-64, Z0=330, Z1=420, Y0=8, Y1=66, mat="glass", base="#4E6A8E", lit=0.07, mull=3.0),
-               dict(X0=-106, X1=-70, Z0=336, Z1=414, Y0=66, Y1=74, mat="dark", base="#30364A", lit=0.0)]),
-    ]
-    for Zk, tiers in L:
-        items.append((Zk, ch_building(S, tiers, int(Zk))))
-    # the domed terra-cotta tower on Wacker
-    items.append((255, ch_jewelers(S, -104, -64, 255, 315)))
-    items.append((175, ch_building(S, [dict(X0=-160, X1=-92, Z0=175, Z1=240, Y0=8, Y1=150, mat="glass", base="#3E5478", lit=0.05, mull=3.0),
-                                       dict(X0=-152, X1=-98, Z0=181, Z1=234, Y0=150, Y1=230, mat="glass", base="#3E5478", lit=0.05, mull=3.0),
-                                       dict(X0=-144, X1=-106, Z0=187, Z1=228, Y0=230, Y1=260, mat="glass", base="#3E5478", lit=0.03, mull=3.0)], 175)))
-    items.append((56, ch_building(S, [dict(X0=-110, X1=-62, Z0=56, Z1=150, Y0=8, Y1=38, mat="stone", base="#C9B08E", lit=0.45, bay=3.4, fh=4.2, piers=True, shop=True),
-                                      dict(X0=-104, X1=-68, Z0=62, Z1=144, Y0=38, Y1=46, mat="stone", base="#C9B08E", lit=0.5, bay=3.4, fh=4.0, base_h=1.0)], 56)))
-    # north bank (right)
-    R = [
-        (1300, [dict(X0=34, X1=160, Z0=1300, Z1=1450, Y0=0, Y1=92, mat="brick", base="#B07860", lit=0.3, bay=5)]),
-        (1000, [dict(X0=40, X1=110, Z0=1000, Z1=1150, Y0=0, Y1=130, mat="glass", base="#7A8AA0", lit=0.06)]),
-        (760, [dict(X0=36, X1=100, Z0=760, Z1=900, Y0=0, Y1=74, mat="stone", base="#D0B494", lit=0.25, bay=4)]),
-        (600, [dict(X0=36, X1=90, Z0=600, Z1=720, Y0=0, Y1=105, mat="glass", base="#5E7E80", lit=0.06)]),
-        (480, [dict(X0=40, X1=92, Z0=480, Z1=540, Y0=1.5, Y1=212, mat="dark", base="#24242E", lit=0.04, mull=1.6, fh=3.6)]),
-    ]
-    for Zk, tiers in R:
-        items.append((Zk, ch_building(S, tiers, int(Zk) + 3)))
-    items.append((443, ch_corncob(S, 86, 460, 7)))
-    items.append((393, ch_corncob(S, 51, 410, 8)))
-    items.append((230, ch_building(S, [dict(X0=96, X1=150, Z0=230, Z1=300, Y0=1.5, Y1=170, mat="glass", base="#5A7894", lit=0.05),
-                                       dict(X0=102, X1=146, Z0=236, Z1=294, Y0=170, Y1=230, mat="glass", base="#5A7894", lit=0.04),
-                                       dict(X0=108, X1=140, Z0=242, Z1=288, Y0=230, Y1=270, mat="glass", base="#5A7894", lit=0.03)], 231)))
-    items.append((126, ch_building(S, [dict(X0=36, X1=86, Z0=126, Z1=205, Y0=1.5, Y1=58, mat="glass", base="#6A8098", lit=0.08, fh=3.6),
-                                       dict(X0=40, X1=82, Z0=132, Z1=199, Y0=58, Y1=64, mat="dark", base="#3A3A4A", lit=0.0)], 126)))
-    items.append((40, ch_building(S, [dict(X0=34, X1=80, Z0=40, Z1=112, Y0=1.5, Y1=34, mat="stone", base="#F2E8DA", lit=0.3, bay=2.6, fh=4.0, piers=True, shop=True),
-                                      dict(X0=35.2, X1=78, Z0=43, Z1=109, Y0=34, Y1=39, mat="stone", base="#F2E8DA", lit=0.35, bay=2.6, fh=3.0, base_h=1.2, winw=0.4, cornice_d=0.6, cornice_h=0.9, piers=True)], 40)))
-    # bridges
-    for k, (Zb, ppl) in enumerate(((150, 5), (300, 3), (470, 2), (680, 0), (900, 0), (1180, 0))):
-        items.append((Zb - 0.5, ch_bridge(S, Zb, people=ppl, seed=k + 1, cars=2 if Zb < 700 else 0, houses=Zb < 1000)))
+        gx, gy = C(-39, 2.0, Z + 2.3)
+        out.append(glow(round(gx, 1), round(gy, 1), round(S.px(Z) * 5, 1), "#FFC878", S.gid("cg"), 0.4))
+
     for Zk, svg in sorted(items, key=lambda t: -t[0]):
         out.append(svg)
-    # horizon haze over the far city
-    out.append(f'<rect x="0" y="200" width="600" height="96" fill="url(#{u}-haze)"/>')
-    # ---- the riverwalk life: trees, lamps, people (near)
+    out.append(f'<rect x="0" y="220" width="600" height="76" fill="url(#{u}-haze)"/>')
+
+    # ---- near life: riverwalk railing, trees, lamps, cafe tables, people; the north-bank plaza
     near = []
-    for Z in (52, 66, 84, 108, 136):
-        x, b = C(-40.2, 2.0, Z)
-        near.append((Z, ch_tree(x, b, S.px(Z) * 8.5, int(Z))))
-        lx, lb = C(-31.6, 2.0, Z + 8)
-        lh = S.px(Z + 8) * 4.2
-        near.append((Z + 8, f'<line x1="{lx:.1f}" y1="{lb:.1f}" x2="{lx:.1f}" y2="{lb - lh:.1f}" stroke="#221C26" stroke-width="{max(0.7, lh * 0.035):.1f}"/>'
-                     + glow(lx, lb - lh, lh * 0.5, "#FFE2A0", S.gid("lamp"), 0.9) + f'<circle cx="{lx:.1f}" cy="{lb - lh:.1f}" r="{lh * 0.06:.1f}" fill="#FFF4D0"/>'))
+    rail = []
+    for Z in [36 * 1.03 ** i for i in range(120)]:
+        if Z > 420:
+            break
+        rail.append(ch_line(S, (-30.4, 2.0, Z), (-30.4, 3.1, Z)))
+    near.append((1000, f'<g stroke="#2A2230" stroke-width="0.9">' + "".join(rail) + "</g>"
+                 + f'<polyline points="{P([C(-30.4, 3.1, Z) for Z in (34, 40, 60, 100, 200, 420)])}" fill="none" stroke="#2A2230" stroke-width="1.4"/>'
+                 + f'<polyline points="{P([C(-30.4, 3.1, Z) for Z in (34, 40, 60, 100, 200, 420)])}" fill="none" stroke="#FFD6A8" stroke-width="0.5" opacity="0.6" transform="translate(0.6 -0.6)"/>'))
+    for Z in (56, 74, 96, 122, 152):
+        x, b = C(-40.4, 2.0, Z)
+        near.append((Z, ch_tree(x, b, S.px(Z) * 8.5, int(Z), lit="#D8C878")))
+    # festoon lights zig-zagging over the walk between the lamp posts and the wall
+    fest = []
+    bulbs = []
+    anchors = []
+    for Z in (46, 66, 88, 116, 148):
+        anchors.append((-31.2, 6.1, Z))
+        anchors.append((-41.8, 7.0, Z + 10))
+    for (a, b) in zip(anchors[:-2], anchors[1:-1]):
+        pts = []
+        for i in range(13):
+            s_ = i / 12
+            P3 = (a[0] + (b[0] - a[0]) * s_, a[1] + (b[1] - a[1]) * s_ - 1.1 * 4 * s_ * (1 - s_), a[2] + (b[2] - a[2]) * s_)
+            pts.append(C(*P3))
+            if 0 < i < 12 and i % 2 == 0:
+                bulbs.append((P3[2], pts[-1]))
+        fest.append(f'<polyline points="{P(pts)}"/>')
+    near.append((200, '<g fill="none" stroke="#2A2030" stroke-width="0.6" opacity="0.8">' + "".join(fest) + "</g>"
+                 + "".join(f'<circle cx="{x:.1f}" cy="{y + 0.6:.1f}" r="{max(0.6, S.px(Z) * 0.16):.1f}" fill="#FFE6A8"/>'
+                           f'<circle cx="{x:.1f}" cy="{y + 0.6:.1f}" r="{max(1.6, S.px(Z) * 0.5):.1f}" fill="#FFD890" opacity="0.3"/>' for Z, (x, y) in bulbs)))
+    # ivy spilling over the Wacker balustrade
+    rnd = random.Random(14)
+    ivy = []
+    for _ in range(90):
+        Z = 47 * (1 + rnd.random() * 1.6)
+        Y = 8.3 - rnd.random() ** 1.6 * 2.2
+        x, y = C(-41.8, Y, Z)
+        r = S.px(Z) * rnd.uniform(0.3, 0.6)
+        ivy.append(f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{r * 0.7:.1f}" ry="{r:.1f}" fill="{rnd.choice(["#3E5A3A", "#4E6E40", "#2E4630", "#6A8A4A"])}"/>')
+    near.append((210, "".join(ivy)))
+    for Z in (46, 66, 88, 116, 148):
+        lx, lb = C(-31.2, 2.0, Z)
+        lh = S.px(Z) * 4.2
+        near.append((Z, f'<line x1="{lx:.1f}" y1="{lb:.1f}" x2="{lx:.1f}" y2="{lb - lh:.1f}" stroke="#221C26" stroke-width="{max(0.7, lh * 0.035):.1f}"/>'
+                     + glow(round(lx, 1), round(lb - lh, 1), round(lh * 0.5, 1), "#FFE2A0", S.gid("lamp"), 0.9)
+                     + f'<circle cx="{lx:.1f}" cy="{lb - lh:.1f}" r="{lh * 0.06:.1f}" fill="#FFF4D0"/>'))
+    for Z in (60, 70, 84):
+        x, b = C(-39.5, 2.0, Z)
+        k = S.px(Z)
+        near.append((Z + 0.1, f'<line x1="{x:.1f}" y1="{b:.1f}" x2="{x:.1f}" y2="{b - k * 2.4:.1f}" stroke="#3A2E30" stroke-width="{k * 0.08:.2f}"/>'
+                     f'<path d="M {x - k * 1.4:.1f} {b - k * 2.0:.1f} Q {x:.1f} {b - k * 2.9:.1f} {x + k * 1.4:.1f} {b - k * 2.0:.1f} Z" fill="#F2E4CC"/>'
+                     f'<path d="M {x:.1f} {b - k * 2.55:.1f} Q {x + k * 0.8:.1f} {b - k * 2.3:.1f} {x + k * 1.4:.1f} {b - k * 2.0:.1f} L {x:.1f} {b - k * 2.0:.1f} Z" fill="#B8A090" opacity="0.6"/>'
+                     f'<rect x="{x - k * 0.6:.1f}" y="{b - k * 0.8:.1f}" width="{k * 1.2:.1f}" height="{k * 0.15:.1f}" fill="#3A2E30"/>'))
+    tint = ("#5A3E6A", 0.18)
+    walkers = [(-31.4, 34.5, "couple", 1), (-32.4, 39, "walk", -1), (-31.0, 44, "sit", 1), (-34.0, 47, "dog_walker", -1),
+               (-36.5, 52, "walk", 1), (-31.6, 55, "photo", 1), (-38.2, 60, "stand", 1), (-33.2, 66, "jog", -1),
+               (-35.6, 72, "walk", 1), (-37.4, 80, "walk", -1), (-32.4, 88, "stand_back", 1), (-35.0, 98, "walk", 1),
+               (-37.0, 110, "walk", -1), (-33.6, 124, "walk", 1), (-36.0, 140, "walk", -1), (-34.0, 160, "walk", 1)]
     rnd = random.Random(21)
-    walkers = [(-34.5, 58, "walk", 1), (-36.0, 62, "walk", 1), (-36.9, 62.4, "walk", 1), (-33.0, 74, "walk", -1), (-38.0, 80, "stand_back", 1), (-35.2, 92, "walk", 1),
-               (-31.6, 98, "stand_back", 1), (-37.0, 112, "walk", -1), (-34.0, 124, "walk", 1), (-36.5, 140, "walk", 1), (-33.0, 47.5, "stand", 1)]
     for i, (X, Z, pose, fc) in enumerate(walkers):
         x, b = C(X, 2.0, Z)
-        hh = S.px(Z) * rnd.uniform(1.62, 1.8)
-        near.append((Z, person(x, b, hh, pose, fc, None, 40 + i * 9, rim="#FFD6A0", light=-1) if hh > 8.5 else ch_mini(x, b, hh, 40 + i * 9)))
-    # people on the north-bank dock
-    for i, (X, Z) in enumerate(((32.5, 70), (31.8, 96), (32.6, 120))):
+        hh = S.px(Z) * rnd.uniform(1.66, 1.8)
+        if pose == "sit":
+            x, b = C(X, 2.45, Z)
+        near.append((Z, person(x, b, hh, pose, fc, None, 40 + i * 9, rim="#FFD6A0", light=1, tint=tint) if hh > 12.5 else ch_mini(x, b, hh, 40 + i * 9)))
+    # north-bank plaza by the landmark: honey locusts, a lamp, people on the dock
+    for X, Z in ((37.0, 84), (36.5, 72)):
         x, b = C(X, 1.5, Z)
-        near.append((Z, person(x, b, S.px(Z) * 1.72, "walk", -1, None, 90 + i, rim="#FFD6A0", light=-1) if Z < 90 else ch_mini(x, b, S.px(Z) * 1.72, 90 + i)))
+        near.append((Z, ch_tree(x, b, S.px(Z) * 8.0, int(Z) + 5, lit="#E0CC78")))
+    for i, (X, Z, pose) in enumerate(((32.2, 76, "walk"), (33.0, 88, "stand"), (31.8, 102, "walk"), (32.6, 118, "walk"), (33.2, 134, "walk"))):
+        x, b = C(X, 1.5, Z)
+        hh = S.px(Z) * 1.72
+        near.append((Z, ch_mini(x, b, hh, 90 + i)))
     for Z, svg in sorted(near, key=lambda t: -t[0]):
         out.append(svg)
     # ---- architecture tour boat heading upriver
-    out.append(ch_boat(S, -12.0, 70, 4))
-    # gulls riding the evening air
-    out.append(ch_gull(214, 156, 12, 0.2) + ch_gull(236, 176, 8, 0.7) + ch_gull(420, 214, 8, 0.4) + ch_gull(180, 222, 7, 0.9))
+    out.append(ch_boat(S, -5.0, 70, 4))
+    out.append(ch_gull(304, 150, 11, 0.2) + ch_gull(326, 170, 7, 0.7) + ch_gull(290, 196, 6, 0.4) + ch_gull(232, 232, 6, 0.9))
     return ch_compact(defs(*S.defs) + "\n" + "\n".join(out))
-
-
-def ch_jewelers(S, X0, X1, Z0, Z1):
-    """Terra-cotta tower on Wacker with a set-back crown, four corner turrets and a domed temple on top."""
-    cx, cz = (X0 + X1) / 2, (Z0 + Z1) / 2
-    out = []
-    tiers = [dict(X0=X0, X1=X1, Z0=Z0, Z1=Z1, Y0=8, Y1=78, mat="stone", base="#E8D2AE", lit=0.25, bay=3.0, fh=3.8, piers=True),
-             dict(X0=X0 + 5, X1=X1 - 5, Z0=Z0 + 5, Z1=Z1 - 5, Y0=78, Y1=92, mat="stone", base="#E8D2AE", lit=0.3, bay=3.0, fh=3.8, base_h=1.0)]
-    # dome temple (drawn first: the set-back tiers hide its foot)
-    R = 7.0
-    fog = S.fog(cz)
-    u = S.gid("dome")
-    ch_cylinder_grad(S, cx, cz, R, 100, "#FFF0D0", "#D8BC9C", "#8E7A86", "#A08EA0", fog, u)
-    ring = lambda Y, r: ch_ring(S, cx, cz, Y, lambda p: r, n=24)
-    out.append(f'<polygon points="{P(ring(92, R) + ring(104, R)[::-1])}" fill="url(#{u})"/>')
-    # colonnade: dark gaps between columns
-    a0 = math.atan2(-cx, -cz)
-    for i in range(-3, 4):
-        psi = a0 + i * 0.42
-        p1 = S.C(cx + R * math.sin(psi), 94, cz + R * math.cos(psi))
-        p2 = S.C(cx + R * math.sin(psi), 102, cz + R * math.cos(psi))
-        out.append(f'<line x1="{p1[0]:.1f}" y1="{p1[1]:.1f}" x2="{p2[0]:.1f}" y2="{p2[1]:.1f}" stroke="#4A3A44" stroke-width="{S.px(cz) * 1.4:.1f}" opacity="0.65"/>')
-    out.append(f'<polygon points="{P(ring(104, R + 0.8) + ring(105.5, R + 0.8)[::-1])}" fill="url(#{u})"/>')
-    # dome: stack of shrinking rings
-    dome = []
-    for j in range(8):
-        a = j / 8 * math.pi / 2
-        b = (j + 1) / 8 * math.pi / 2
-        dome.append(f'<polygon points="{P(ring(105.5 + R * 0.95 * math.sin(a), R * math.cos(a)) + ring(105.5 + R * 0.95 * math.sin(b), R * math.cos(b))[::-1])}"/>')
-    out.append(f'<g fill="url(#{u})">' + "".join(dome) + "</g>")
-    lx, ly = S.C(cx, 105.5 + R * 0.95, cz)
-    _, ly2 = S.C(cx, 105.5 + R * 0.95 + 4, cz)
-    out.append(f'<line x1="{lx:.1f}" y1="{ly:.1f}" x2="{lx:.1f}" y2="{ly2:.1f}" stroke="#D8BC9C" stroke-width="{S.px(cz) * 0.8:.1f}"/>')
-    out.append(ch_building(S, tiers, 77))
-    # corner turrets on the crown tier with little domes
-    for tx, tz in ((X0 + 5, Z0 + 5), (X1 - 5, Z0 + 5)):
-        ut = S.gid("tur")
-        ch_cylinder_grad(S, tx, tz, 2.0, 98, "#FFF0D0", "#D8BC9C", "#8E7A86", "#A08EA0", fog, ut)
-        rr = lambda Y, r: ch_ring(S, tx, tz, Y, lambda p: r, n=12)
-        out.append(f'<polygon points="{P(rr(92, 2.0) + rr(99, 2.0)[::-1])}" fill="url(#{ut})"/>')
-        out.append(f'<polygon points="{P(rr(99, 2.0) + rr(101.5, 1.2)[::-1] )}" fill="url(#{ut})"/>')
-        p = S.C(tx, 103, tz)
-        q = S.C(tx, 101.5, tz)
-        out.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q[0]:.1f}" y2="{q[1]:.1f}" stroke="#D8BC9C" stroke-width="1"/>')
-    return "".join(out)
 
 
 BUILD = {

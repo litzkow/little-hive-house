@@ -1,21 +1,24 @@
 """Night Sky, hand-painted edition: zodiac constellations, zodiac glyph medallions and celestial storybook pieces.
 
 Every magnet is painted, not drawn: brushed deep-night skies with nebula washes, stars of many sizes with soft
-glows, gold constellation lines over a delicate gold-ink figure of the sign, gilded glyphs, painted moons and suns,
-brush-textured lettering and grain on top. One palette for the whole series: midnight navy, indigo, violet, gold,
+glows, gilded glyphs, painted moons and suns, brush-textured lettering and grain on top. The constellations are
+plotted from real star coordinates (gnomonic projection, north up / east left, turned to fit), with the stars sized by
+magnitude and tinted by their true colour, a faint atlas grid and ecliptic, and the sign's figure painted in gold leaf
+around them. One palette for the whole series: midnight navy, indigo, violet, gold,
 cream; each element (fire, earth, air, water) gets its own nebula colour story so the twelve signs never feel
 interchangeable.
 
 Run from tools/designs:  python3 night_sky_painted.py [slug ...]
 """
 import math
+import os
 import random
 import sys
 
-from common import BEBAS, CINZEL, DMS, JOS, JOST, MONO, SERIF_IT, esc, fit_size, measure, save
-from gouache import blob, ink, jitter, smooth_closed, smooth_open, wash
-from halloween_gouache_b import (around, arc_word, body, brush, brush_rule, bword, clip, cloud, dabs, defs, eglow, glow,
-                                 grain_over, pmoon, puff_cloud, rim_lit, script, shade_in, swirl, twinkle)
+from common import CINZEL, JOST, MONO, SERIF_IT, esc, fit_size, measure, save
+from gouache import blob, ink, smooth_closed, smooth_open, wash
+from halloween_gouache_b import (around, arc_word, body, brush, brush_rule, bword, clip, dabs, defs, glow, grain_over, pmoon, script,
+                                 shade_in)
 from paint import lg, rg
 
 COL = "night-sky"
@@ -169,41 +172,6 @@ def finish(u, seed=9):
             + f'<rect width="600" height="600" fill="url(#{u}-vg)"/>' + grain_over(f"{u}-gr", seed, "#05040E", "#FFFFFF", 1.0))
 
 
-# ---------------------------------------------------------------- constellation pieces
-def figure(u, strokes, seed, col=GOLD, w=2.3, op=0.62, fills=(), fill_op=0.1):
-    """Delicate gold-ink figure behind the stars: faint gold wash in closed shapes and hand-inked lines."""
-    out = []
-    for d in fills:
-        out.append(f'<path d="{d}" fill="{col}" opacity="{fill_op}"/>')
-    g = []
-    for i, s in enumerate(strokes):
-        if isinstance(s, tuple):
-            d, ww = s
-        else:
-            d, ww = s, w
-        g.append(ink(d, col, ww, seed + i, 2, op))
-    out.append("".join(g))
-    return "".join(out)
-
-
-def constellation(u, lines, stars, bright, col=GOLD, star_col=STARC, lw=2.4):
-    """Gold constellation lines (drawn twice: a soft wide glow and a crisp line) and glowing stars."""
-    out = [defs(rg(f"{u}-cg", [(0, GOLD_L, 0.75), (0.3, GOLD, 0.3), (1, GOLD, 0)]))]
-    poly = "".join(f'<path d="M {" L ".join(f"{_f(x)} {_f(y)}" for x, y in ln)}"/>' for ln in lines)
-    out.append(f'<g fill="none" stroke="{GOLD_L}" stroke-width="{lw * 3.2:.1f}" stroke-linecap="round" stroke-linejoin="round" opacity="0.12">{poly}</g>')
-    out.append(f'<g fill="none" stroke="{col}" stroke-width="{lw}" stroke-linecap="round" stroke-linejoin="round" opacity="0.92">{poly}</g>')
-    for i, (x, y, r) in enumerate(stars):
-        out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r * 4.2)}" fill="url(#{u}-cg)"/>')
-        out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r + 1.4)}" fill="{GOLD}" opacity="0.9"/>')
-        out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r)}" fill="{star_col}"/>')
-    bx, by = bright
-    out.append(f'<circle cx="{_f(bx)}" cy="{_f(by)}" r="30" fill="url(#{u}-cg)"/>')
-    out.append(spark(bx, by, 24, STARC, 0.95, 0.14))
-    out.append(spark(bx, by, 12, GOLD_L, 0.9, 0.2, 45))
-    out.append(f'<circle cx="{_f(bx)}" cy="{_f(by)}" r="4.5" fill="#FFFFFF"/>')
-    return "".join(out)
-
-
 # ---------------------------------------------------------------- zodiac glyphs (unit box, stroked)
 GLYPH = {
     "aries": ["M 0 0.85 L 0 -0.15 C 0 -0.65 -0.25 -0.85 -0.5 -0.85 C -0.78 -0.85 -0.92 -0.6 -0.86 -0.38 C -0.8 -0.2 -0.62 -0.14 -0.52 -0.22",
@@ -211,8 +179,10 @@ GLYPH = {
     "taurus": ["M 0 0.92 A 0.44 0.44 0 1 1 0.001 0.92",
                "M -0.82 -0.82 C -0.72 -0.44 -0.42 -0.08 0 -0.08 C 0.42 -0.08 0.72 -0.44 0.82 -0.82"],
     "gemini": ["M -0.72 -0.82 Q 0 -0.56 0.72 -0.82", "M -0.72 0.82 Q 0 0.56 0.72 0.82", "M -0.34 -0.68 L -0.34 0.68", "M 0.34 -0.68 L 0.34 0.68"],
-    "cancer": ["M -0.82 -0.18 A 0.27 0.27 0 1 1 -0.28 -0.2 M -0.82 -0.2 C -0.7 -0.62 -0.3 -0.8 0.12 -0.76 C 0.46 -0.73 0.72 -0.58 0.88 -0.4",
-               "M 0.82 0.18 A 0.27 0.27 0 1 1 0.28 0.2 M 0.82 0.2 C 0.7 0.62 0.3 0.8 -0.12 0.76 C -0.46 0.73 -0.72 0.58 -0.88 0.4"],
+    "cancer": ["M -0.72 -0.3 A 0.22 0.22 0 1 1 -0.28 -0.3 A 0.22 0.22 0 1 1 -0.72 -0.3",
+               "M -0.5 -0.52 C -0.1 -0.76 0.52 -0.72 0.88 -0.34",
+               "M 0.72 0.3 A 0.22 0.22 0 1 1 0.28 0.3 A 0.22 0.22 0 1 1 0.72 0.3",
+               "M 0.5 0.52 C 0.1 0.76 -0.52 0.72 -0.88 0.34"],
     "leo": ["M -0.36 0.5 A 0.26 0.26 0 1 1 -0.36 0.49 M -0.12 0.38 C -0.32 0.02 -0.34 -0.44 -0.06 -0.7 C 0.2 -0.92 0.62 -0.82 0.66 -0.44 "
             "C 0.7 -0.08 0.34 0.2 0.32 0.5 C 0.3 0.78 0.56 0.92 0.82 0.72"],
     "virgo": ["M -0.88 -0.56 C -0.72 -0.66 -0.6 -0.56 -0.6 -0.4 L -0.6 0.66",
@@ -282,8 +252,301 @@ def gilded(u, ds, w, seed, light=(-1, -1), dark_line=INKN, shadow=True):
     return "".join(out)
 
 
-# ---------------------------------------------------------------- the twelve constellations
-# lines, stars (x, y, r), the brightest star, and the gold figure (strokes, closed fills)
+# ---------------------------------------------------------------- real star positions
+# Each constellation is drawn from real J2000 coordinates (RA hours, Dec degrees, visual magnitude), projected
+# gnomonically as seen on the sky (north up, east to the left), then turned by a fixed angle and fitted to the art box.
+CAT = {
+    "aries": dict(stars={"Hamal": (2.1196, 23.46, 2.0), "Sheratan": (1.9107, 20.81, 2.65), "Mesarthim": (1.8922, 19.29, 3.9),
+                         "41 Ari": (2.8330, 27.26, 3.6)},
+                  lines=[["41 Ari", "Hamal", "Sheratan", "Mesarthim"]], alpha="Hamal", rot=-20, box=(140, 175, 455, 250)),
+    "taurus": dict(stars={"Aldebaran": (4.5987, 16.51, 0.85), "Elnath": (5.4382, 28.61, 1.65), "zeta": (5.6274, 21.14, 3.0),
+                          "theta": (4.4783, 15.87, 3.4), "gamma": (4.3297, 15.63, 3.65), "delta": (4.3822, 17.54, 3.75),
+                          "epsilon": (4.4769, 19.18, 3.5), "lambda": (4.0112, 12.49, 3.4), "Pleiades": (3.7914, 24.11, 2.9)},
+                   lines=[["zeta", "Aldebaran", "theta", "gamma", "lambda"], ["Elnath", "epsilon", "delta", "gamma"]],
+                   alpha="Aldebaran", rot=60, box=(150, 95, 450, 335)),
+    "gemini": dict(stars={"Castor": (7.5767, 31.89, 1.6), "Pollux": (7.7553, 28.03, 1.15), "Alhena": (6.6285, 16.40, 1.9),
+                          "Mebsuta": (6.7322, 25.13, 3.0), "Tejat": (6.3827, 22.51, 2.9), "Propus": (6.2479, 22.51, 3.3),
+                          "Wasat": (7.3354, 21.98, 3.5), "kappa": (7.7408, 24.40, 3.6), "iota": (7.4287, 27.80, 3.8),
+                          "tau": (7.1857, 30.25, 4.4), "theta": (6.8798, 33.96, 3.6), "xi": (6.7548, 12.90, 3.35),
+                          "lambda": (7.3017, 16.54, 3.6), "Mekbuda": (7.0686, 20.57, 3.9), "nu": (6.4829, 20.21, 4.1),
+                          "upsilon": (7.5985, 26.90, 4.06)},
+                   lines=[["Castor", "tau", "Mebsuta", "Tejat", "Propus"], ["tau", "theta"], ["Mebsuta", "nu"],
+                          ["Pollux", "upsilon", "Wasat", "Mekbuda", "Alhena"], ["upsilon", "kappa"], ["upsilon", "iota", "tau"],
+                          ["Wasat", "lambda", "xi"]], alpha="Pollux", rot=60, box=(160, 106, 440, 384)),
+    "cancer": dict(stars={"Acubens": (8.9748, 11.86, 4.25), "Altarf": (8.2753, 9.19, 3.5), "Asellus Australis": (8.7448, 18.15, 3.9),
+                          "Asellus Borealis": (8.7215, 21.47, 4.65), "iota": (8.7782, 28.76, 4.0)},
+                   lines=[["Altarf", "Asellus Australis", "Acubens"], ["Asellus Australis", "Asellus Borealis", "iota"]],
+                   alpha="Altarf", rot=180, box=(150, 100, 450, 372), extra={"Beehive": (8.67, 19.67)}),
+    "leo": dict(stars={"Regulus": (10.1395, 11.97, 1.35), "eta": (10.1222, 16.76, 3.5), "Algieba": (10.3329, 19.84, 2.0),
+                       "Adhafera": (10.2782, 23.42, 3.4), "Rasalas": (9.8794, 26.01, 3.9), "epsilon": (9.7642, 23.77, 3.0),
+                       "Zosma": (11.2351, 20.52, 2.55), "Chertan": (11.2373, 15.43, 3.3), "Denebola": (11.8177, 14.57, 2.1)},
+                lines=[["Regulus", "eta", "Algieba", "Adhafera", "Rasalas", "epsilon"], ["Algieba", "Zosma", "Denebola", "Chertan", "Regulus"],
+                       ["Zosma", "Chertan"]], alpha="Regulus", rot=0, box=(100, 130, 470, 365)),
+    "virgo": dict(stars={"Spica": (13.4199, -11.16, 0.97), "Porrima": (12.6943, -1.45, 2.7), "delta": (12.9268, 3.40, 3.4),
+                         "Vindemiatrix": (13.0363, 10.96, 2.8), "zeta": (13.5783, -0.60, 3.4), "Zavijava": (11.8448, 1.76, 3.6),
+                         "Zaniah": (12.3318, -0.67, 3.9), "iota": (14.2668, -6.0, 4.1), "mu": (14.7177, -5.66, 3.9),
+                         "109 Vir": (14.7706, 1.89, 3.7), "tau": (14.0273, 1.54, 4.3), "theta": (13.1658, -5.54, 4.4)},
+                  lines=[["Zavijava", "Zaniah", "Porrima", "delta", "Vindemiatrix"], ["Porrima", "theta", "Spica"],
+                         ["delta", "zeta", "tau", "109 Vir"], ["zeta", "Spica"], ["Spica", "iota", "mu"]], alpha="Spica", rot=-90,
+                  box=(180, 100, 420, 388)),
+    "libra": dict(stars={"Zubenelgenubi": (14.8480, -16.04, 2.75), "Zubeneschamali": (15.2834, -9.38, 2.6), "sigma": (15.0678, -25.28, 3.3),
+                         "gamma": (15.5921, -14.79, 3.9), "upsilon": (15.6168, -28.13, 3.6), "tau": (15.6446, -29.78, 3.7)},
+                  lines=[["sigma", "Zubenelgenubi", "Zubeneschamali", "gamma", "Zubenelgenubi"], ["gamma", "upsilon", "tau"]],
+                  alpha="Zubeneschamali", rot=-7, box=(150, 95, 450, 375)),
+    "scorpio": dict(stars={"Antares": (16.4901, -26.43, 1.05), "Acrab": (16.0906, -19.81, 2.6), "Dschubba": (16.0056, -22.62, 2.3),
+                           "pi": (15.9809, -26.11, 2.9), "rho": (15.9488, -29.21, 3.9), "sigma": (16.3531, -25.59, 2.9),
+                           "tau": (16.5980, -28.22, 2.8), "epsilon": (16.8361, -34.29, 2.3), "mu": (16.8645, -38.05, 3.0),
+                           "zeta": (16.9097, -42.36, 3.6), "eta": (17.2026, -43.24, 3.3), "Sargas": (17.6219, -43.0, 1.85),
+                           "iota": (17.7930, -40.13, 3.0), "kappa": (17.7081, -39.03, 2.4), "Shaula": (17.5601, -37.10, 1.6),
+                           "Lesath": (17.5127, -37.30, 2.7), "nu": (16.1998, -19.46, 4.0)},
+                    lines=[["nu", "Acrab", "Dschubba", "pi", "rho"], ["Dschubba", "sigma", "Antares", "tau", "epsilon", "mu", "zeta", "eta",
+                                                                      "Sargas", "iota", "kappa", "Shaula", "Lesath"]],
+                    alpha="Antares", rot=0, box=(120, 100, 455, 378)),
+    "sagittarius": dict(stars={"Kaus Australis": (18.4029, -34.38, 1.85), "Kaus Media": (18.3499, -29.83, 2.7),
+                               "Kaus Borealis": (18.4661, -25.42, 2.8), "Nunki": (18.9211, -26.30, 2.05), "phi": (18.7609, -26.99, 3.2),
+                               "tau": (19.1157, -27.67, 3.3), "Ascella": (19.0435, -29.88, 2.6), "Alnasl": (18.0968, -30.42, 3.0),
+                               "eta": (18.2938, -36.76, 3.1), "mu": (18.2297, -21.06, 3.85)},
+                        lines=[["Alnasl", "Kaus Media", "Kaus Australis", "Alnasl"], ["Kaus Media", "Kaus Borealis", "phi", "Kaus Media"],
+                               ["Kaus Borealis", "mu"], ["phi", "Nunki", "tau", "Ascella", "phi"], ["Ascella", "Kaus Australis"],
+                               ["Kaus Australis", "eta"]], alpha="Kaus Australis", rot=0, box=(150, 110, 460, 372)),
+    "capricorn": dict(stars={"Algedi": (20.3009, -12.54, 3.6), "Dabih": (20.3502, -14.78, 3.05), "psi": (20.7683, -25.27, 4.1),
+                             "omega": (20.8636, -26.92, 4.1), "theta": (21.0991, -17.23, 4.1), "zeta": (21.4444, -22.41, 3.7),
+                             "Nashira": (21.6682, -16.66, 3.7), "Deneb Algedi": (21.7840, -16.13, 2.85), "iota": (21.3707, -16.83, 4.3)},
+                      lines=[["Algedi", "Dabih", "psi", "omega", "zeta", "Deneb Algedi", "Nashira", "iota", "theta", "Dabih"]],
+                      alpha="Deneb Algedi", rot=0, box=(120, 130, 470, 360)),
+    "aquarius": dict(stars={"Sadalsuud": (21.5260, -5.57, 2.9), "Sadalmelik": (22.0964, -0.32, 2.95), "Albali": (20.7946, -9.50, 3.8),
+                            "Sadachbia": (22.3609, -1.39, 3.85), "zeta": (22.4806, -0.02, 3.65), "eta": (22.5891, -0.12, 4.0),
+                            "pi": (22.4213, 1.38, 4.6), "theta": (22.2806, -7.78, 4.2), "lambda": (22.8769, -7.58, 3.7),
+                            "Skat": (22.9108, -15.82, 3.3), "tau": (22.8266, -13.59, 4.0), "phi": (23.2384, -6.05, 4.2),
+                            "psi": (23.2649, -9.09, 4.2), "88 Aqr": (23.1574, -21.17, 3.7), "98 Aqr": (23.3829, -20.10, 3.97),
+                            "iota": (22.1072, -13.87, 4.3)},
+                     lines=[["Albali", "Sadalsuud", "Sadalmelik", "Sadachbia", "zeta", "eta"], ["zeta", "pi"], ["Sadalsuud", "iota"],
+                            ["Sadalmelik", "theta", "lambda", "tau", "Skat", "88 Aqr"], ["lambda", "phi", "psi", "98 Aqr"]],
+                     alpha="Sadalsuud", rot=0, box=(120, 110, 470, 360)),
+    "pisces": dict(stars={"Alrescha": (2.0341, 2.76, 3.8), "Alpherg": (1.5248, 15.35, 3.6), "omicron": (1.7566, 9.16, 4.3),
+                          "tau": (1.1940, 30.09, 4.5), "upsilon": (1.3245, 27.26, 4.7), "phi": (1.2291, 24.58, 4.65),
+                          "chi": (1.1915, 21.03, 4.7),
+                          "gamma": (23.2864, 3.28, 3.7), "kappa": (23.4489, 1.26, 4.9), "lambda": (23.7006, 1.78, 4.5),
+                          "iota": (23.6658, 5.63, 4.1), "theta": (23.4662, 6.38, 4.3), "7 Psc": (23.3381, 5.38, 5.0),
+                          "omega": (23.9885, 6.86, 4.0), "delta": (0.8115, 7.59, 4.4), "epsilon": (1.0491, 7.89, 4.3),
+                          "zeta": (1.2291, 7.58, 5.2), "mu": (1.5030, 6.14, 4.8), "nu": (1.6905, 5.49, 4.4)},
+                   lines=[["gamma", "7 Psc", "theta", "iota", "lambda", "kappa", "gamma"],
+                          ["iota", "omega", "delta", "epsilon", "zeta", "mu", "nu", "Alrescha"],
+                          ["Alrescha", "omicron", "Alpherg", "chi", "phi", "upsilon", "tau", "phi"]], alpha="Alpherg", rot=0, box=(100, 104, 492, 372)),
+}
+
+# true star colours for the bright ones (spectral class), everything else is a warm white
+STAR_TINT = {"Aldebaran": "#FFB97A", "Antares": "#FF9466", "Pollux": "#FFD9A0", "Hamal": "#FFD39C", "Regulus": "#D6E4FF",
+             "Spica": "#C8DAFF", "Castor": "#E6EEFF", "Elnath": "#DCE6FF", "Denebola": "#EEF3FF", "Algieba": "#FFD8A0",
+             "Kaus Australis": "#E4ECFF", "Nunki": "#D8E4FF", "Shaula": "#D8E4FF", "Sargas": "#FFF0C8", "Alhena": "#E8F0FF",
+             "Deneb Algedi": "#F2F4FF", "Sadalsuud": "#FFF0C8", "Zubeneschamali": "#DCE8FF", "Alpherg": "#FFF2D6"}
+
+
+def _gn(ra, dec, ra0, dec0):
+    a, d, a0, d0 = math.radians(ra * 15), math.radians(dec), math.radians(ra0 * 15), math.radians(dec0)
+    c = math.sin(d0) * math.sin(d) + math.cos(d0) * math.cos(d) * math.cos(a - a0)
+    x = math.cos(d) * math.sin(a - a0) / c
+    y = (math.cos(d0) * math.sin(d) - math.sin(d0) * math.cos(d) * math.cos(a - a0)) / c
+    return -x, -y
+
+
+def sky_map(sign):
+    """-> (positions of the named stars, T(ra, dec) for any other point, magnitude dict)."""
+    cfg = CAT[sign]
+    st = cfg["stars"]
+    ref = next(iter(st.values()))[0]
+
+    def unwrap(r):
+        while r - ref > 12:
+            r -= 24
+        while ref - r > 12:
+            r += 24
+        return r
+    ra0 = sum(unwrap(v[0]) for v in st.values()) / len(st)
+    dec0 = sum(v[1] for v in st.values()) / len(st)
+    c, s = math.cos(math.radians(cfg["rot"])), math.sin(math.radians(cfg["rot"]))
+
+    def raw(ra, dec):
+        x, y = _gn(unwrap(ra), dec, ra0, dec0)
+        return x * c - y * s, x * s + y * c
+    pts = {n: raw(v[0], v[1]) for n, v in st.items()}
+    xs, ys = [p[0] for p in pts.values()], [p[1] for p in pts.values()]
+    x0, y0, x1, y1 = cfg["box"]
+    k = min((x1 - x0) / (max(xs) - min(xs)), (y1 - y0) / (max(ys) - min(ys)))
+    mx, my = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+
+    def T(ra, dec):
+        x, y = raw(ra, dec)
+        return ((x - mx) * k + (x0 + x1) / 2, (y - my) * k + (y0 + y1) / 2)
+    P = {n: T(v[0], v[1]) for n, v in st.items()}
+    for n, (ra, dec) in cfg.get("extra", {}).items():
+        P[n] = T(ra, dec)
+    return P, T, {n: v[2] for n, v in st.items()}
+
+
+def atlas_grid(u, T, sign):
+    """Faint dashed right-ascension / declination lines and the ecliptic, as on an antique star atlas."""
+    st = CAT[sign]["stars"].values()
+    ras = [v[0] for v in st]
+    decs = [v[1] for v in st]
+    ra_c = ras[0]
+    out = []
+
+    def poly(pts):
+        pts = [p for p in pts if -60 < p[0] < 660 and -60 < p[1] < 660]
+        return "M " + " L ".join(f"{_f(x)} {_f(y)}" for x, y in pts) if len(pts) > 1 else ""
+    d0 = int(min(decs) // 10) * 10 - 20
+    for dec in range(d0, d0 + 80, 10):
+        if abs(dec) >= 80:
+            continue
+        out.append(poly([T(ra_c + h / 10, dec) for h in range(-50, 51)]))
+    for h in range(-4, 5):
+        ra = round(ra_c) + h
+        out.append(poly([T(ra, dec / 2) for dec in range(2 * (d0 - 10), 2 * (d0 + 80))]))
+    g = (f'<g fill="none" stroke="{GOLD}" stroke-width="1.1" stroke-dasharray="1.5 5" stroke-linecap="round" opacity="0.32">'
+         + "".join(f'<path d="{d}"/>' for d in out if d) + "</g>")
+    ecl = []
+    eps = math.radians(23.44)
+    for i in range(0, 361):
+        lam = math.radians(i)
+        dec = math.degrees(math.asin(math.sin(eps) * math.sin(lam)))
+        ra = (math.degrees(math.atan2(math.cos(eps) * math.sin(lam), math.cos(lam))) / 15) % 24
+        ecl.append(T(ra, dec))
+    # keep only the run of points that is on (or near) the canvas, in order
+    run, best = [], []
+    for p in ecl:
+        if -80 < p[0] < 680 and -80 < p[1] < 680:
+            run.append(p)
+            if len(run) > len(best):
+                best = run
+        else:
+            run = []
+    if len(best) > 1:
+        g += (f'<path d="{L(*best)}" fill="none" stroke="{GOLD_L}" stroke-width="1.6" stroke-dasharray="8 7" '
+              f'stroke-linecap="round" opacity="0.32"/>')
+    return g
+
+
+def star_r(m):
+    return max(1.7, 1.6 + (4.6 - m) * 1.3)
+
+
+def star_layer(u, sign, P, mags, label=None):
+    """Gold constellation lines (a soft glow and a crisp line) and stars sized by real magnitude, in their true tints."""
+    cfg = CAT[sign]
+    out = [defs(rg(f"{u}-cg", [(0, GOLD_L, 0.7), (0.3, GOLD, 0.26), (1, GOLD, 0)]),
+                rg(f"{u}-wg", [(0, "#FFFFFF", 0.85), (0.25, "#E8EEFF", 0.3), (1, "#C8D4FF", 0)]))]
+    poly = "".join(f'<path d="M {" L ".join(f"{_f(P[n][0])} {_f(P[n][1])}" for n in ln)}"/>' for ln in cfg["lines"])
+    out.append(f'<g fill="none" stroke="{GOLD_L}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.1">{poly}</g>')
+    out.append(f'<g fill="none" stroke="#F4DB98" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">{poly}</g>')
+    alpha = cfg["alpha"]
+    for n, m in sorted(mags.items(), key=lambda kv: -kv[1]):
+        x, y = P[n]
+        r = star_r(m)
+        tint = STAR_TINT.get(n, "#FFF4DA")
+        if n == "Pleiades":
+            out.append(pleiades(f"{u}-m45", x, y))
+            continue
+        out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r * 4.6)}" fill="url(#{u}-cg)"/>')
+        if n == alpha:
+            out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="38" fill="url(#{u}-cg)"/>')
+            out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="16" fill="{tint}" opacity="0.28"/>')
+            out.append(spark(x, y, 27, "#FFFFFF", 0.95, 0.12))
+            out.append(spark(x, y, 13, tint, 0.9, 0.2, 45))
+            out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r + 1.5)}" fill="{tint}"/><circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r * 0.6)}" fill="#FFFFFF"/>')
+        else:
+            if m < 2.9:
+                out.append(spark(x, y, r * 3.2, "#FFFFFF", 0.85, 0.12))
+            out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r + 1.1)}" fill="{tint}" opacity="0.9"/>'
+                       f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(r * 0.62)}" fill="#FFFFFF"/>')
+    if label:
+        dx, dy, anc = label
+        x, y = P[alpha]
+        out.append(script(x + dx, y + dy, alpha, 19, CREAM, 200, anchor=anc, shadow="#05040E", sd=(1.5, 2)))
+    return "".join(out)
+
+
+def pleiades(u, x, y):
+    """The Seven Sisters: a tiny blue-white cluster with a reflection-nebula haze."""
+    pts = [(0, 0, 2.6), (-9, -4, 2.0), (-14, 3, 1.8), (7, -7, 1.7), (11, 2, 1.6), (-4, 8, 1.5), (3, 6, 1.3)]
+    out = [glow(f"{u}-h", x - 2, y, 30, "#A8C4FF", 0.35, 0.35)]
+    for dx, dy, r in pts:
+        out.append(f'<circle cx="{_f(x + dx)}" cy="{_f(y + dy)}" r="{_f(r * 2.8)}" fill="#C8D8FF" opacity="0.22"/>'
+                   f'<circle cx="{_f(x + dx)}" cy="{_f(y + dy)}" r="{_f(r)}" fill="#F2F6FF"/>')
+    return "".join(out)
+
+
+def beehive(u, x, y, seed):
+    rnd = random.Random(seed)
+    out = [glow(f"{u}-h", x, y, 18, "#FFF0C8", 0.35, 0.35)]
+    for _ in range(14):
+        out.append(f'<circle cx="{_f(x + rnd.gauss(0, 6))}" cy="{_f(y + rnd.gauss(0, 5))}" r="{rnd.uniform(0.7, 1.4):.2f}" fill="#FFF6E0" opacity="{rnd.uniform(0.6, 1):.2f}"/>')
+    return "".join(out)
+
+
+def gold_figure(u, fills=(), lines=(), seed=1, details=(), shade=(), angle=-35, glow_w=9, fade=None, fill_op=0.24):
+    """The sign's figure painted in gold leaf: a soft glow, a translucent gold wash with brush texture inside,
+    darker shade washes for volume, and hand-inked gold contours. fade=(y0, y1) dissolves it downwards."""
+    out = []
+    if fills:
+        out.append(defs(lg(f"{u}-fg", [(0, "#FBE3A0"), (0.5, "#E2B860"), (1, "#B5873A")], 0, 0, 0.3, 1)))
+        out.append(f'<g fill="none" stroke="{GOLD_L}" stroke-width="{glow_w}" stroke-linejoin="round" opacity="0.07">'
+                   + "".join(f'<path d="{d}"/>' for d in fills) + "</g>")
+        out.append(f'<g fill="url(#{u}-fg)" opacity="{fill_op}">' + "".join(f'<path d="{d}"/>' for d in fills) + "</g>")
+        out.append(brush(f"{u}-tx", list(fills), (60, 60, 540, 420), [GOLD_L, GOLD, CREAM, "#C99A48"], seed, 560,
+                         angle=angle, length=(10, 34), width=(1.2, 3.4), opacity=(0.08, 0.26), curve=0.25))
+        if shade:
+            out.append(shade_in(f"{u}-sh", list(fills), "".join(f'<path d="{d}" fill="{NAVY}"/>' for d in shade), NAVY, 0.3))
+    for i, s in enumerate(lines):
+        d, w, op = (s + (0.85,))[:3] if isinstance(s, tuple) else (s, 2.4, 0.85)
+        w *= 1.15
+        out.append(ink(d, GOLD_L, w * 3, seed + i, 1, 0.06))
+        out.append(ink(d, GOLD, w, seed + i, 2, min(1, op * 1.08)))
+    for i, s in enumerate(details):
+        d, w, op = (s + (0.7,))[:3] if isinstance(s, tuple) else (s, 1.6, 0.7)
+        out.append(ink(d, GOLD, w, seed + 50 + i, 1, op))
+    if fade:
+        y0, y1 = fade
+        return (defs(lg(f"{u}-fm", [(0, "#FFFFFF"), (y0 / 600, "#FFFFFF"), (y1 / 600, "#000000"), (1, "#000000")], 0, 0, 0, 1),
+                     f'<mask id="{u}-mk" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600">'
+                     f'<rect width="600" height="600" fill="url(#{u}-fm)"/></mask>')
+                + f'<g mask="url(#{u}-mk)">' + "".join(out) + "</g>")
+    return "".join(out)
+
+
+def tube(pts, w0, w1):
+    """Closed outline of a tapering limb along a polyline (width w0 at the start, w1 at the end)."""
+    n = len(pts)
+    left, right = [], []
+    for i, (x, y) in enumerate(pts):
+        a = pts[min(i + 1, n - 1)]
+        b = pts[max(i - 1, 0)]
+        dx, dy = a[0] - b[0], a[1] - b[1]
+        ln = math.hypot(dx, dy) or 1
+        nx, ny = -dy / ln, dx / ln
+        w = (w0 + (w1 - w0) * i / (n - 1)) / 2
+        left.append((x + nx * w, y + ny * w))
+        right.append((x - nx * w, y - ny * w))
+    return smooth_closed(left + right[::-1])
+
+
+def curls(cx, cy, rx, ry, seed, n=14, r=(5, 8), clipf=None):
+    """Little fleece / mane curls: open spiral hooks."""
+    rnd = random.Random(seed)
+    out = []
+    tries = 0
+    while len(out) < n and tries < n * 20:
+        tries += 1
+        x, y = cx + rnd.uniform(-rx, rx), cy + rnd.uniform(-ry, ry)
+        if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 > 1 or (clipf and not clipf(x, y)):
+            continue
+        rr = rnd.uniform(*r)
+        a0 = rnd.uniform(0, 6.28)
+        pts = [(x + rr * (1 - t * 0.6) * math.cos(a0 + t * 4.4), y + rr * (1 - t * 0.6) * math.sin(a0 + t * 4.4)) for t in [i / 7 for i in range(8)]]
+        out.append(L(*pts))
+    return out
+
+
 def ram_horn(cx, cy, r0, w0, a0=-120, turns=1.2, flip=1):
     """Curled ram horn: outer and inner edges of a tapering spiral plus ridge lines."""
     outer, inner, ridges = [], [], []
@@ -301,101 +564,174 @@ def ram_horn(cx, cy, r0, w0, a0=-120, turns=1.2, flip=1):
     return shape, ridges
 
 
-def fig_aries():
-    # scalloped fleece: bumps around an ellipse
-    cx, cy, rx, ry = 352, 264, 106, 56
-    n = 16
-    pts = []
-    for i in range(n * 4 + 1):
-        a = math.pi * 2 * i / (n * 4)
-        bump = 1 + 0.08 * abs(math.sin(a * n / 2))
-        pts.append((cx + rx * bump * math.cos(a), cy + ry * bump * math.sin(a)))
-    fleece = smooth_closed(pts)
-    curls = [L((cx + dx - 8, cy + dy), (cx + dx, cy + dy - 7), (cx + dx + 8, cy + dy)) for dx, dy in
-             ((-50, -22), (-10, -32), (32, -26), (70, -12), (-30, 8), (12, 2), (52, 14), (-4, 34), (38, 38), (-56, 30))]
-    head = C((226, 204), (204, 196), (182, 204), (160, 222), (140, 246), (136, 262), (148, 274), (170, 276), (196, 270), (224, 276), (246, 262), (248, 230))
-    horn, ridges = ram_horn(214, 222, 36, 15, -125, 1.15)
-    neck = L((246, 262), (262, 296), (290, 312))
-    legs = [L((284, 310), (280, 345), (282, 378)), L((310, 316), (310, 348), (314, 380)), L((398, 314), (402, 346), (398, 378)),
-            L((424, 308), (430, 342), (430, 376))]
-    hooves = [L((x - 7, y), (x + 7, y)) for x, y in ((282, 380), (314, 382), (398, 380), (430, 378))]
-    tail = L((456, 246), (472, 252), (474, 268), (464, 274))
-    eye = "M 162 236 q 6 -4 12 0"
-    nose = L((140, 258), (146, 262), (142, 268))
-    return ([(fleece, 2.4), head, (horn, 2.6), *ridges, neck, *curls, *legs, *hooves, tail, eye, nose], [fleece, head, horn])
+# ---------------------------------------------------------------- the twelve figures (screen coordinates of the fitted star maps)
+def fig_aries(P):
+    body_d = scallop(250, 244, 114, 56, 22, 0.07, 3)
+    hp = zoom([(368, 198), (394, 186), (422, 190), (444, 206), (462, 230), (476, 254), (470, 270), (452, 276), (428, 268), (404, 258),
+               (382, 252), (366, 230)], 372, 214, 1.18)
+    head = C(*hp)
+    neck = C((326, 204), (362, 192), (392, 218), (396, 262), (366, 280), (334, 260))
+    horn, ridges = ram_horn(392, 214, 44, 19, -112, 1.22, flip=-1)
+    ear = C((384, 246), (360, 258), (344, 276), (364, 274), (392, 258))
+    legs = [tube([(338, 286), (366, 302), (392, 308), (400, 304)], 19, 11), tube([(166, 292), (202, 310), (242, 318), (254, 314)], 21, 11)]
+    hooves = [blob(402, 304, 8, 6, 3, 0.1, 8), blob(256, 314, 8, 6, 4, 0.1, 8)]
+    tail = C((138, 228), (118, 232), (108, 250), (124, 256), (138, 244))
+    fleece = curls(248, 244, 98, 46, 7, 30, (5, 8))
+    k = 1.18
+    E = lambda x, y: (372 + (x - 372) * k, 214 + (y - 214) * k)  # noqa: E731
+    eye = L(E(424, 216), E(432, 221), E(441, 218))
+    nose = L(E(458, 248), E(465, 255), E(460, 262))
+    mouth = L(E(444, 268), E(456, 266))
+    return dict(fills=[tail, *legs, body_d, neck, head, ear, horn], lines=[tail, *[(d, 2.0) for d in legs], (body_d, 2.4), (head, 2.4), (ear, 1.8), (horn, 2.6)],
+                details=[*[(r, 1.8) for r in ridges], *fleece, (eye, 2.2), nose, mouth, *hooves],
+                shade=[C((130, 272), (250, 300), (390, 270), (400, 330), (120, 330))], angle=-10)
 
 
-def fig_taurus():
-    face = C((250, 204), (256, 262), (266, 316), (258, 346), (278, 364), (300, 368), (322, 364), (342, 346), (334, 316), (344, 262), (350, 204), (300, 190))
-    hornL = C((256, 200), (214, 190), (176, 160), (160, 112), (172, 130), (200, 162), (240, 180), (262, 186))
-    hornR = C((344, 200), (386, 190), (424, 160), (440, 112), (428, 130), (400, 162), (360, 180), (338, 186))
-    earL = C((252, 222), (222, 214), (196, 226), (220, 242), (254, 244))
-    earR = C((348, 222), (378, 214), (404, 226), (380, 242), (346, 244))
-    tuft = [L((276, 196), (284, 214), (278, 230)), L((298, 192), (302, 214), (296, 232)), L((320, 196), (316, 214), (324, 228))]
-    nost = [L((282, 344), (288, 338), (292, 346)), L((318, 344), (312, 338), (308, 346))]
-    neck = [L((236, 246), (206, 300), (186, 388)), L((364, 246), (394, 300), (414, 388))]
-    eyes = ["M 262 254 q 7 -5 14 0", "M 324 254 q 7 -5 14 0"]
-    return ([face, hornL, hornR, earL, earR, *tuft, *nost, *neck, *eyes], [face, hornL, hornR])
+def fig_taurus(P):
+    cx = 268
+    face = C((cx, 192), (cx + 30, 196), (cx + 44, 214), (cx + 46, 244), (cx + 38, 278), (cx + 30, 302), (cx + 16, 324), (cx - 16, 324),
+             (cx - 30, 302), (cx - 38, 278), (cx - 46, 244), (cx - 44, 214), (cx - 30, 196))
+    zx, zy = P["zeta"]
+    ex, ey = P["Elnath"]
+    hornL = C((cx - 40, 216), (cx - 72, 202), (cx - 88, 166), (zx - 20, zy + 26), (zx, zy), (zx + 8, zy + 30), (cx - 64, 168), (cx - 48, 194), (cx - 24, 204))
+    hornR = C((cx + 40, 216), (cx + 72, 202), (cx + 88, 166), (ex + 22, ey + 30), (ex, ey), (ex - 8, ey + 32), (cx + 64, 168), (cx + 48, 194), (cx + 24, 204))
+    rings = [L((cx - 62 - 4 * i, 196 - 9 * i), (cx - 44 - 6 * i, 190 - 12 * i)) for i in range(3)] + \
+            [L((cx + 62 + 4 * i, 196 - 9 * i), (cx + 44 + 6 * i, 190 - 12 * i)) for i in range(3)]
+    earL = C((cx - 42, 224), (cx - 76, 214), (cx - 100, 226), (cx - 80, 242), (cx - 44, 240))
+    earR = C((cx + 42, 224), (cx + 76, 214), (cx + 100, 226), (cx + 80, 242), (cx + 44, 240))
+    muzzle = blob(cx, 308, 30, 17, 5, 0.04, 14)
+    chest = C((cx - 40, 276), (cx - 76, 300), (cx - 104, 340), (cx - 116, 400), (cx + 162, 400), (cx + 156, 340), (cx + 136, 300),
+              (cx + 104, 286), (cx + 70, 292), (cx + 40, 276))
+    tuft = [L((cx - 16, 198), (cx - 8, 212), (cx - 16, 226)), L((cx + 2, 194), (cx + 6, 210), (cx, 226)), L((cx + 18, 198), (cx + 12, 212), (cx + 20, 224))]
+    al, ep = P["Aldebaran"], P["epsilon"]
+    lids = [L((al[0] - 11, al[1] - 3), (al[0], al[1] - 10), (al[0] + 10, al[1] - 4)), L((ep[0] - 10, ep[1] - 4), (ep[0], ep[1] - 10), (ep[0] + 11, ep[1] - 3))]
+    nost = [L((cx - 14, 302), (cx - 8, 309), (cx - 14, 316)), L((cx + 14, 302), (cx + 8, 309), (cx + 14, 316))]
+    folds = [L((cx - 52, 312), (cx - 38, 340), (cx - 30, 384)), L((cx + 52, 312), (cx + 40, 344), (cx + 34, 384)), L((cx + 100, 310), (cx + 110, 350), (cx + 120, 392))]
+    return dict(fills=[chest, earL, earR, hornL, hornR, face, muzzle], lines=[(chest, 2.0, 0.55), earL, earR, (hornL, 2.6), (hornR, 2.6), (face, 2.6), (muzzle, 2)],
+                details=[*rings, *tuft, *lids, *nost, *folds], angle=-80, fade=(330, 400))
 
 
-def fig_gemini():
-    out, fills = [], []
-    for hx, sgn in ((246, -1), (354, 1)):
-        head = blob(hx, 136, 20, 23, int(hx), 0.03, 14)
-        hair = [L((hx - 20, 130), (hx - 12, 112), (hx + 6, 110), (hx + 20, 122)), L((hx - 14, 116), (hx - 4, 106), (hx + 12, 112))]
-        neck = L((hx - 6, 158), (hx - 6, 168))
-        robe = C((hx - 34, 178), (hx - 40, 230), (hx - 46, 300), (hx - 54, 338), (hx, 344), (hx + 54, 338), (hx + 46, 300), (hx + 40, 230), (hx + 34, 178), (hx, 168))
-        folds = [L((hx - 18, 220), (hx - 22, 280), (hx - 28, 336)), L((hx + 6, 214), (hx + 8, 280), (hx + 10, 340)), L((hx + 24, 240), (hx + 30, 290), (hx + 34, 336))]
-        legs = [L((hx - 18, 344), (hx - 22, 378)), L((hx + 18, 344), (hx + 22, 378))]
-        outer = L((hx + sgn * 34, 182), (hx + sgn * 52, 228), (hx + sgn * 56, 272), (hx + sgn * 50, 290))
-        belt = L((hx - 40, 236), (hx, 244), (hx + 40, 236))
-        collar = L((hx - 20, 172), (hx, 186), (hx + 20, 172))
-        hem = L((hx - 50, 326), (hx - 20, 332), (hx + 10, 328), (hx + 48, 330))
-        curls = [blob(hx + dx, 122 + dy, 5, 5, int(hx + dx), 0.15, 8) for dx, dy in ((-16, 2), (-8, -8), (4, -11), (15, -4))]
-        out += [head, *hair, *curls, neck, robe, *folds, *legs, outer, belt, collar, hem]
-        fills += [head, robe]
-    arms = L((280, 186), (292, 210), (300, 222), (308, 210), (320, 186))
-    clasp = blob(300, 224, 8, 6, 3, 0.1, 8)
-    star_staff = L((196, 290), (190, 232), (182, 190))
-    return (out + [arms, clasp], fills)
+def fig_gemini(P):
+    pl, cs = P["Pollux"], P["Castor"]
+    wx, wy = P["Wasat"]
+    io = P["iota"]
+    fills, lines, det = [], [], []
+    # Pollux, the left twin: a lunging stance (knees at Mekbuda and lambda), one hand raised to kappa
+    hP = (pl[0] - 4, pl[1] - 6)
+    tunicP = C((hP[0] - 22, hP[1] + 32), (hP[0] + 20, hP[1] + 32), (hP[0] + 18, hP[1] + 66), (wx + 26, wy + 6), (wx + 30, wy + 46),
+               (wx + 8, wy + 52), (wx - 14, wy + 50), (wx - 34, wy + 44), (wx - 22, wy + 4), (hP[0] - 30, hP[1] + 66))
+    legP = [tube([(wx + 10, wy + 44), P["Mekbuda"], (P["Alhena"][0], P["Alhena"][1] - 8)], 16, 10),
+            tube([(wx - 16, wy + 40), (P["lambda"][0] + 4, P["lambda"][1] - 2), (P["xi"][0], P["xi"][1] - 8)], 16, 10)]
+    armP = [tube([(hP[0] - 20, hP[1] + 38), (hP[0] - 46, hP[1] + 58), (P["kappa"][0] - 4, P["kappa"][1] + 6)], 12, 8),
+            tube([(hP[0] + 16, hP[1] + 38), (io[0] - 10, io[1] - 6), io], 12, 8)]
+    # Castor, the right twin: standing tall, lyre in his outstretched hand at theta
+    hC = (cs[0] - 2, cs[1] - 6)
+    mx, my = P["Mebsuta"]
+    tunicC = C((hC[0] - 22, hC[1] + 32), (hC[0] + 22, hC[1] + 32), (hC[0] + 26, hC[1] + 80), (mx + 26, my - 22), (mx + 30, my),
+               (mx + 4, my + 4), (mx - 22, my + 2), (mx - 30, my - 20), (hC[0] - 26, hC[1] + 80))
+    legC = [tube([(mx + 12, my - 4), (P["Tejat"][0] + 2, P["Tejat"][1] - 6), (P["Propus"][0] - 4, P["Propus"][1] - 6)], 16, 10),
+            tube([(mx - 14, my - 4), (P["nu"][0] + 6, P["nu"][1] - 34), (P["nu"][0], P["nu"][1] - 8)], 16, 10)]
+    th = P["theta"]
+    armC = [tube([(hC[0] + 20, hC[1] + 38), (hC[0] + 50, hC[1] + 70), (th[0] - 14, th[1] + 4)], 12, 8),
+            tube([(hC[0] - 18, hC[1] + 38), (io[0] + 10, io[1] + 4), io], 12, 8)]
+    feet = [blob(P["Alhena"][0] - 2, P["Alhena"][1] - 4, 9, 5, 1, 0.1, 8), blob(P["xi"][0] - 4, P["xi"][1] - 4, 9, 5, 2, 0.1, 8),
+            blob(P["Propus"][0] + 2, P["Propus"][1] - 2, 9, 5, 3, 0.1, 8), blob(P["nu"][0] - 4, P["nu"][1] - 4, 9, 5, 4, 0.1, 8)]
+    heads = []
+    for (hx, hy), sg in ((hP, -1), (hC, 1)):
+        hair = scallop(hx - sg * 1, hy - 6, 19, 15, 9, 0.12, int(hx))
+        head = blob(hx, hy + 2, 15, 17, int(hx), 0.03, 14)
+        heads += [hair, head]
+        det.append(L((hx - 6, hy + 2), (hx - 2, hy + 4)))
+        det.append(L((hx + 3, hy + 2), (hx + 7, hy + 4)))
+        det.append(L((hx - 4, hy + 12), (hx + 1, hy + 14), (hx + 6, hy + 12)))
+    lyre = [L((th[0] - 6, th[1] + 26), (th[0] - 16, th[1] + 6), (th[0] - 12, th[1] - 18), (th[0] - 4, th[1] - 24)),
+            L((th[0] + 14, th[1] + 26), (th[0] + 22, th[1] + 6), (th[0] + 18, th[1] - 18), (th[0] + 10, th[1] - 24)),
+            L((th[0] - 12, th[1] - 12), (th[0] + 4, th[1] - 16), (th[0] + 18, th[1] - 12)), L((th[0] - 8, th[1] + 26), (th[0] + 16, th[1] + 26))]
+    strings = [L((th[0] - 4 + 6 * i, th[1] - 13), (th[0] - 4 + 6 * i, th[1] + 25)) for i in range(3)]
+    belts = [L((wx - 24, wy + 2), (wx + 2, wy + 10), (wx + 26, wy + 2)), L((mx - 26, my - 52), (mx + 2, my - 46), (mx + 28, my - 54))]
+    folds = [L((hP[0] - 12, hP[1] + 50), (wx - 10, wy + 14), (wx - 16, wy + 46)), L((hP[0] + 8, hP[1] + 52), (wx + 12, wy + 16), (wx + 14, wy + 48)),
+             L((hC[0] - 8, hC[1] + 56), (mx - 10, my - 40), (mx - 12, my)), L((hC[0] + 12, hC[1] + 54), (mx + 12, my - 40), (mx + 14, my))]
+    fills = [*legP, *legC, *feet, tunicP, tunicC, *armP, *armC, *heads]
+    lines = [*[(d, 2.0) for d in legP + legC + feet], (tunicP, 2.4), (tunicC, 2.4), *[(d, 2.0) for d in armP + armC], *[(d, 2.2) for d in heads]]
+    det += [*belts, *folds, *[(d, 2.2) for d in lyre], *[(d, 1.2) for d in strings]]
+    return dict(fills=fills, lines=lines, details=det, angle=-80)
 
 
-def fig_cancer():
-    shell = C((236, 250), (248, 214), (300, 198), (352, 214), (364, 250), (350, 290), (300, 306), (250, 290))
-    ridge = [L((256, 238), (300, 226), (344, 238)), L((262, 268), (300, 280), (338, 268))]
-    eyes = [L((282, 204), (276, 182)), L((318, 204), (324, 182))]
-    eyeb = [blob(276, 178, 5, 5, 1, 0.1, 8), blob(324, 178, 5, 5, 2, 0.1, 8)]
-    out = [shell, *ridge, *eyes, *eyeb]
-    for s in (-1, 1):
-        arm = L((300 + s * 52, 222), (300 + s * 92, 196), (300 + s * 116, 160))
-        arm2 = L((300 + s * 56, 232), (300 + s * 96, 206), (300 + s * 120, 172))
-        out += [arm, arm2, *pincer(300 + s * 124, 150, -90 + s * 30, 44)]
+def claw(cx, cy, ang, s):
+    """Crab / scorpion pincer pointing at ang degrees: swollen hand and two curved fingers."""
+    a = math.radians(ang)
+
+    def T(x, y):
+        return (cx + (x * math.cos(a) - y * math.sin(a)) * s, cy + (x * math.sin(a) + y * math.cos(a)) * s)
+    hand = C(T(-0.55, 0), T(-0.2, -0.36), T(0.3, -0.34), T(0.55, -0.1), T(0.52, 0.18), T(0.2, 0.36), T(-0.3, 0.3))
+    top = C(T(0.4, -0.3), T(0.85, -0.42), T(1.2, -0.22), T(1.28, 0.05), T(1.02, -0.08), T(0.6, -0.06))
+    bot = C(T(0.48, 0.12), T(0.84, 0.3), T(1.06, 0.2), T(0.86, 0.08), T(0.56, 0.02))
+    return hand, top, bot
+
+
+def fig_cancer(P):
+    cx, cy = 318, 252
+    shell = C((cx - 66, cy - 8), (cx - 54, cy - 36), (cx - 20, cy - 50), (cx + 20, cy - 50), (cx + 54, cy - 36), (cx + 66, cy - 8),
+              (cx + 54, cy + 26), (cx + 22, cy + 42), (cx - 22, cy + 42), (cx - 54, cy + 26))
+    ax, ay = P["Altarf"]
+    bx, by = P["Acubens"]
+    armL = tube([(cx - 46, cy - 30), (cx - 80, cy - 62), (ax + 2, ay + 64)], 15, 11)
+    armR = tube([(cx + 46, cy - 30), (cx + 66, cy - 66), (bx, by + 54)], 15, 11)
+    cL = claw(ax + 2, ay + 50, -95, 46)
+    cR = claw(bx, by + 40, -85, 44)
+    legs, fills = [], []
+    for sg in (-1, 1):
         for k in range(4):
-            y0 = 246 + k * 14
-            out.append(L((300 + s * 62, y0), (300 + s * (108 + k * 6), y0 - 14 + k * 8), (300 + s * (132 + k * 4), y0 + 30 + k * 8)))
-    return (out, [shell])
+            y0 = cy - 10 + k * 15
+            x0 = cx + sg * (58 - k * 4)
+            kx, ky = x0 + sg * (34 + k * 2), y0 - 16 + k * 6
+            tx, ty = kx + sg * (22 - k * 2), ky + 34 + k * 4
+            legs.append(tube([(x0, y0), (kx, ky), (tx, ty)], 9, 4))
+    eyes = [tube([(cx - 14, cy - 46), (cx - 18, cy - 64)], 5, 4), tube([(cx + 14, cy - 46), (cx + 18, cy - 64)], 5, 4)]
+    eyeb = [blob(cx - 18, cy - 68, 5.5, 5.5, 1, 0.1, 8), blob(cx + 18, cy - 68, 5.5, 5.5, 2, 0.1, 8)]
+    ridges = [L((cx - 46, cy - 18), (cx, cy - 30), (cx + 46, cy - 18)), L((cx - 40, cy + 12), (cx, cy + 22), (cx + 40, cy + 12)),
+              L((cx - 30, cy - 40), (cx - 40, cy - 8), (cx - 30, cy + 30)), L((cx + 30, cy - 40), (cx + 40, cy - 8), (cx + 30, cy + 30))]
+    mouth = L((cx - 10, cy - 50), (cx, cy - 46), (cx + 10, cy - 50))
+    return dict(fills=[*legs, armL, armR, *cL, *cR, shell, *eyes, *eyeb], lines=[*[(d, 1.8) for d in legs], armL, armR, *[(d, 2.2) for d in cL + cR],
+                                                                                  (shell, 2.6), *eyes, *eyeb],
+                details=[*ridges, mouth], shade=[C((cx - 70, cy + 10), (cx + 70, cy + 10), (cx + 70, cy + 60), (cx - 70, cy + 60))], angle=-90)
 
 
-def fig_leo():
-    mane_pts = []
-    cx, cy = 222, 198
-    for i in range(40):
-        a = 2 * math.pi * i / 40
-        rr = 62 + (10 if i % 2 else 0)
-        mane_pts.append((cx + rr * math.cos(a), cy + rr * 0.95 * math.sin(a)))
-    mane = smooth_closed(mane_pts)
-    face = C((206, 160), (176, 170), (150, 194), (142, 214), (156, 230), (184, 236), (212, 232), (230, 210), (228, 180))
-    back = L((272, 166), (330, 178), (400, 196), (452, 214), (474, 246), (470, 290), (476, 330), (494, 344))
-    belly = L((262, 300), (330, 318), (412, 318), (448, 312))
-    hind = L((448, 312), (440, 334), (452, 346), (494, 346))
-    fore = [L((248, 252), (240, 300), (206, 336), (150, 340), (138, 352), (170, 356), (226, 352), (268, 330), (288, 316)),
-            L((282, 268), (276, 316), (250, 346))]
-    tail = L((470, 236), (498, 242), (516, 270), (512, 304), (520, 318))
-    tuft = blob(518, 322, 7, 10, 4, 0.2, 8, rot=20)
-    eye = "M 176 196 q 6 -4 12 0"
-    nose = L((146, 210), (152, 216), (146, 222))
-    mouth = L((152, 226), (164, 230), (176, 226))
-    return ([(mane, 2.2), face, back, belly, hind, *fore, tail, tuft, eye, nose, mouth], [mane, face])
+def fig_leo(P):
+    hx, hy = 452, 202
+    mane = scallop(hx - 4, hy, 64, 62, 13, 0.14, 5)
+    mane_in = scallop(hx + 4, hy + 2, 44, 44, 11, 0.12, 6)
+    rnd = random.Random(5)
+    locks = []
+    for i in range(18):
+        a = 2 * math.pi * i / 18 + rnd.uniform(-0.1, 0.1)
+        r0, r1 = 40, 62
+        locks.append(L((hx - 4 + r0 * math.cos(a), hy + r0 * math.sin(a)),
+                       (hx - 4 + (r0 + r1) / 2 * math.cos(a + 0.1), hy + (r0 + r1) / 2 * math.sin(a + 0.1)),
+                       (hx - 4 + r1 * math.cos(a + 0.05), hy + r1 * math.sin(a + 0.05))))
+    fx, fy = hx + 18, hy + 4
+    face = C((fx - 22, fy - 30), (fx + 6, fy - 34), (fx + 26, fy - 22), (fx + 36, fy - 4), (fx + 46, fy + 10), (fx + 42, fy + 22),
+             (fx + 26, fy + 34), (fx + 4, fy + 40), (fx - 18, fy + 30), (fx - 30, fy + 8), (fx - 30, fy - 14))
+    ears = [blob(fx - 16, fy - 32, 9, 8, 3, 0.1, 8), blob(fx + 12, fy - 36, 8, 7, 4, 0.1, 8)]
+    body_d = C((404, 222), (350, 212), (290, 212), (238, 218), (204, 232), (188, 258), (194, 290), (224, 304), (262, 300), (300, 290),
+               (340, 292), (382, 304), (418, 300), (440, 272), (436, 238))
+    thigh = blob(212, 280, 30, 32, 9, 0.04, 14, rot=10)
+    hind = tube([(212, 300), (200, 334), (210, 360)], 22, 13)
+    hind2 = tube([(250, 288), (254, 326), (248, 360)], 18, 12)
+    fore = tube([(406, 272), (414, 316), (420, 360)], 26, 14)
+    fore2 = tube([(378, 290), (380, 326), (374, 360)], 18, 12)
+    paws = [blob(x + 7, 362, 14, 6, int(x), 0.1, 10) for x in (210, 248, 374, 420)]
+    dx, dy = P["Denebola"]
+    tail = tube([(192, 250), (160, 260), (132, 270), (dx + 14, dy - 8)], 9, 5)
+    tuft = blob(dx + 4, dy + 2, 10, 14, 6, 0.25, 10, rot=40)
+    eye = L((fx + 6, fy - 12), (fx + 14, fy - 16), (fx + 22, fy - 12))
+    nose = C((fx + 38, fy + 2), (fx + 48, fy + 4), (fx + 43, fy + 13))
+    mouth = L((fx + 43, fy + 14), (fx + 36, fy + 24), (fx + 22, fy + 25))
+    whisk = [L((fx + 30, fy + 14), (fx + 12, fy + 12)), L((fx + 30, fy + 18), (fx + 14, fy + 24))]
+    return dict(fills=[tail, tuft, hind2, fore2, body_d, thigh, hind, fore, mane, mane_in, *ears, face, *paws],
+                lines=[(tail, 1.8), tuft, (hind2, 2.0), (fore2, 2.0), (body_d, 2.4), (thigh, 2.0), (hind, 2.2), (fore, 2.2),
+                       (mane, 2.4), (mane_in, 1.6, 0.6), *ears, (face, 2.4), *paws],
+                details=[*locks, (eye, 2.2), nose, mouth, *whisk], shade=[C((180, 292), (440, 292), (440, 380), (180, 380))], angle=-5)
 
 
 def wheat_ear(x0, y0, x1, y1, n=6, size=11):
@@ -403,253 +739,335 @@ def wheat_ear(x0, y0, x1, y1, n=6, size=11):
     ang = math.atan2(y1 - y0, x1 - x0)
     dx, dy = math.cos(ang), math.sin(ang)
     nx, ny = -dy, dx
-    out = []
+    grains, awns = [], []
     for i in range(n):
         t = i / (n - 1)
         bx, by = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
         sz = size * (1 - 0.35 * t)
         for sg in (-1, 1):
             tip = (bx + dx * sz * 1.1 + nx * sg * sz * 0.7, by + dy * sz * 1.1 + ny * sg * sz * 0.7)
-            out.append(C((bx, by), (bx + dx * sz * 0.4 + nx * sg * sz * 0.55, by + dy * sz * 0.4 + ny * sg * sz * 0.55), tip,
-                         (bx + dx * sz * 0.7 + nx * sg * sz * 0.1, by + dy * sz * 0.7 + ny * sg * sz * 0.1)))
-            out.append(L(tip, (tip[0] + dx * sz * 1.2 + nx * sg * sz * 0.5, tip[1] + dy * sz * 1.2 + ny * sg * sz * 0.5)))
-    return out
+            grains.append(C((bx, by), (bx + dx * sz * 0.4 + nx * sg * sz * 0.55, by + dy * sz * 0.4 + ny * sg * sz * 0.55), tip,
+                            (bx + dx * sz * 0.7 + nx * sg * sz * 0.1, by + dy * sz * 0.7 + ny * sg * sz * 0.1)))
+            awns.append(L(tip, (tip[0] + dx * sz * 1.2 + nx * sg * sz * 0.5, tip[1] + dy * sz * 1.2 + ny * sg * sz * 0.5)))
+    return grains, awns
 
 
-def fig_virgo():
-    head = C((236, 110), (254, 114), (262, 126), (268, 138), (262, 142), (264, 148), (258, 157), (244, 162), (228, 156), (218, 140), (222, 122))
-    bun = blob(214, 120, 13, 12, 7, 0.08, 10)
-    hair = [L((222, 132), (206, 164), (200, 204), (190, 244), (198, 276)), L((218, 146), (214, 190), (206, 232), (212, 258)),
-            L((232, 112), (222, 124), (224, 140))]
-    circlet = [blob(x, y, 2.6, 2.6, int(x), 0.1, 6) for x, y in ((232, 112), (242, 111), (251, 114))]
-    eye = "M 252 132 q 4 -2 7 1"
-    neck = [L((238, 162), (236, 182)), L((252, 160), (256, 178))]
-    gown = C((226, 186), (214, 250), (206, 320), (220, 384), (330, 394), (440, 384), (360, 350), (312, 300), (288, 240), (272, 188), (250, 180))
-    folds = [L((238, 214), (236, 290), (254, 386)), L((264, 228), (282, 310), (318, 390)), L((300, 290), (340, 346), (390, 386)),
-             L((226, 300), (240, 340), (232, 388))]
-    sash = L((218, 236), (250, 246), (288, 240))
-    arm = [L((268, 192), (294, 232), (330, 262)), L((262, 206), (286, 240), (326, 270))]
-    hand = blob(334, 266, 8, 7, 3, 0.1, 8)
-    stalk = L((312, 236), (350, 278), (392, 322))
-    ear = wheat_ear(372, 300, 402, 334, 5, 10)
-    return ([head, bun, *hair, *circlet, eye, *neck, gown, *folds, sash, *arm, hand, stalk, *ear], [head, bun, gown])
+def fig_virgo(P):
+    hx, hy = P["Zavijava"][0], P["Zavijava"][1] + 2
+    head = C((hx - 15, hy - 4), (hx - 10, hy - 16), (hx + 4, hy - 19), (hx + 14, hy - 12), (hx + 17, hy - 2), (hx + 23, hy + 5),
+             (hx + 17, hy + 8), (hx + 17, hy + 13), (hx + 8, hy + 19), (hx - 6, hy + 17), (hx - 14, hy + 10))
+    hair = C((hx - 8, hy - 19), (hx - 22, hy - 12), (hx - 26, hy + 10), (hx - 30, hy + 44), (hx - 40, hy + 80), (hx - 34, hy + 110),
+             (hx - 22, hy + 90), (hx - 14, hy + 56), (hx - 10, hy + 26), (hx - 4, hy + 10))
+    gown = C((hx - 18, hy + 34), (hx + 26, hy + 34), (hx + 36, hy + 70), (hx + 32, hy + 104), (hx + 44, hy + 150), (hx + 62, hy + 200),
+             (hx + 76, hy + 250), (hx + 84, hy + 286), (hx + 30, hy + 294), (hx - 24, hy + 296), (hx - 44, hy + 284), (hx - 30, hy + 230),
+             (hx - 18, hy + 170), (hx - 8, hy + 128), (hx - 16, hy + 100), (hx - 24, hy + 66))
+    wl = C((hx - 10, hy + 40), (hx - 40, hy + 22), (hx - 72, hy - 2), (hx - 94, hy - 14), (hx - 88, hy + 10), (hx - 100, hy + 28),
+           (hx - 80, hy + 40), (hx - 92, hy + 60), (hx - 62, hy + 66), (hx - 34, hy + 64))
+    wr = C((hx + 28, hy + 40), (hx + 58, hy + 22), (hx + 90, hy - 2), (hx + 112, hy - 12), (hx + 106, hy + 12), (hx + 118, hy + 30),
+           (hx + 98, hy + 42), (hx + 108, hy + 62), (hx + 78, hy + 68), (hx + 50, hy + 64))
+    feathers = [L((hx - 30 - 14 * i, hy + 30 + 3 * i), (hx - 40 - 14 * i, hy + 56 - 2 * i)) for i in range(4)] + \
+               [L((hx + 46 + 14 * i, hy + 30 + 3 * i), (hx + 56 + 14 * i, hy + 56 - 2 * i)) for i in range(4)]
+    sx, sy = P["Spica"]
+    vx, vy = P["Vindemiatrix"]
+    armR = tube([(hx + 26, hy + 42), (hx + 46, hy + 96), (sx - 12, sy - 18)], 12, 8)
+    handR = blob(sx - 10, sy - 16, 7, 7, 3, 0.1, 8)
+    armL = tube([(hx - 16, hy + 44), (hx - 30, hy + 92), (vx + 14, vy - 2)], 12, 8)
+    handL = blob(vx + 10, vy - 2, 7, 7, 4, 0.1, 8)
+    grains, awns = wheat_ear(sx - 6, sy - 8, sx + 22, sy + 26, 5, 10)
+    stalk = L((sx - 22, sy - 30), (sx - 12, sy - 18), (sx - 4, sy - 6))
+    sprig = [L((vx + 8, vy), (vx - 10, vy + 14), (vx - 26, vy + 34))] + [L((vx - 4 - 7 * i, vy + 8 + 9 * i), (vx - 16 - 7 * i, vy + 2 + 9 * i)) for i in range(3)] + \
+            [L((vx - 4 - 7 * i, vy + 8 + 9 * i), (vx + 4 - 7 * i, vy + 18 + 9 * i)) for i in range(3)]
+    sash = L((hx - 14, hy + 104), (hx + 6, hy + 112), (hx + 32, hy + 100))
+    folds = [L((hx + 4, hy + 116), (hx + 10, hy + 200), (hx + 6, hy + 290)), L((hx + 22, hy + 112), (hx + 40, hy + 200), (hx + 50, hy + 288)),
+             L((hx - 10, hy + 120), (hx - 14, hy + 210), (hx - 26, hy + 286)), L((hx + 40, hy + 160), (hx + 62, hy + 230), (hx + 72, hy + 282))]
+    neckline = L((hx - 12, hy + 38), (hx + 4, hy + 50), (hx + 22, hy + 38))
+    eye = L((hx + 5, hy - 4), (hx + 10, hy - 6), (hx + 15, hy - 3))
+    circlet = [spark_d(hx - 6 + 8 * i, hy - 22 + abs(i - 1) * 2, 3.5) for i in range(3)]
+    return dict(fills=[wl, wr, hair, gown, head, armR, armL, handR, handL, *grains],
+                lines=[(wl, 2.0), (wr, 2.0), (hair, 2.0), (gown, 2.4), (head, 2.2), (armR, 2.0), (armL, 2.0), handR, handL, *[(g, 1.4) for g in grains]],
+                details=[*feathers, *folds, sash, neckline, (stalk, 2.4), *[(a, 1.2) for a in awns], *sprig, eye, *circlet], angle=-90)
 
 
-def fig_libra():
-    post = C((294, 148), (306, 148), (308, 350), (292, 350))
-    base = C((252, 378), (266, 356), (334, 356), (348, 378))
-    beam = L((166, 172), (230, 166), (300, 160), (370, 166), (434, 172))
-    finial = blob(300, 136, 11, 11, 4, 0.04, 12)
-    out = [post, base, (beam, 3.0), finial]
-    fills = [base, post]
-    for bx in (166, 434):
-        out.append(blob(bx, 172, 5, 5, bx, 0.1, 8))
-        out += [L((bx, 174), (bx - 44, 296)), L((bx, 174), (bx, 296)), L((bx, 174), (bx + 44, 296))]
-        pan = C((bx - 54, 296), (bx + 54, 296), (bx + 36, 318), (bx, 326), (bx - 36, 318))
-        out.append(pan)
-        fills.append(pan)
-    return (out, fills)
+def fig_libra(P):
+    gx, gy = P["gamma"]
+    zx, zy = P["Zubenelgenubi"]
+    cx = (gx + zx) / 2
+    by = (gy + zy) / 2
+    beam = tube([(gx - 8, gy), (cx, by - 6), (zx + 8, zy)], 9, 9)
+    column = C((cx - 7, by + 6), (cx + 7, by + 6), (cx + 9, 350), (cx - 9, 350))
+    base = C((cx - 54, 384), (cx - 40, 362), (cx - 14, 352), (cx + 14, 352), (cx + 40, 362), (cx + 54, 384))
+    knob = blob(cx, by - 12, 13, 13, 2, 0.03, 14)
+    finial = C((cx, by - 52), (cx + 7, by - 34), (cx + 3, by - 24), (cx - 3, by - 24), (cx - 7, by - 34))
+    bands = [L((cx - 10, 260), (cx + 10, 260)), L((cx - 10, 300), (cx + 10, 300)), L((cx - 12, 340), (cx + 12, 340))]
+    out_f, out_l, chains = [], [], []
+    for ex, ey in ((gx, gy), (zx, zy)):
+        pan = C((ex - 46, 292), (ex + 46, 292), (ex + 34, 312), (ex, 320), (ex - 34, 312))
+        out_f.append(pan)
+        out_l.append((pan, 2.4))
+        rim = L((ex - 46, 292), (ex, 286), (ex + 46, 292))
+        out_l.append((rim, 1.8))
+        for sx in (-40, 0, 40):
+            chains.append((f"M {_f(ex)} {_f(ey + 8)} L {_f(ex + sx)} 290", 1.6))
+        out_f.append(blob(ex, ey + 2, 7, 7, int(ex), 0.1, 8))
+    scroll = [L((gx - 8, gy), (gx - 22, gy - 4), (gx - 24, gy - 16), (gx - 14, gy - 18)), L((zx + 8, zy), (zx + 22, zy - 4), (zx + 24, zy - 16), (zx + 14, zy - 18))]
+    return dict(fills=[column, base, beam, knob, finial, *out_f], lines=[(column, 2.2), (base, 2.4), (beam, 2.2), (knob, 2.2), finial, *out_l],
+                details=[*chains, *bands, *[(s, 2.0) for s in scroll]], angle=-90)
 
 
-def pincer(cx, cy, ang, s):
-    """Crab / scorpion claw: a swollen hand and two curved jaws, pointing at ang degrees."""
-    a = math.radians(ang)
-    def T(x, y):
-        return (cx + (x * math.cos(a) - y * math.sin(a)) * s, cy + (x * math.sin(a) + y * math.cos(a)) * s)
-    hand = C(T(-0.3, 0), T(-0.05, -0.32), T(0.35, -0.3), T(0.5, 0), T(0.35, 0.3), T(-0.05, 0.3))
-    top = C(T(0.4, -0.22), T(0.8, -0.42), T(1.15, -0.25), T(1.22, 0.02), T(1.0, -0.14), T(0.62, -0.08))
-    bot = C(T(0.42, 0.18), T(0.78, 0.34), T(1.04, 0.22), T(0.86, 0.12), T(0.6, 0.08))
-    return [hand, top, bot]
-
-
-def fig_scorpio():
-    ceph = C((176, 172), (196, 156), (222, 160), (236, 182), (226, 206), (198, 212), (180, 198))
-    segs = []
-    pts = [(236, 200), (262, 226), (284, 256), (298, 290), (304, 328), (324, 362), (366, 380), (404, 366), (420, 336), (414, 306)]
-    for i, (x, y) in enumerate(pts):
-        w = 22 - i * 1.6
-        segs.append(blob(x, y, w * 0.85, w * 0.6, 50 + i, 0.05, 10,
-                         rot=math.degrees(math.atan2(pts[min(i + 1, len(pts) - 1)][1] - y, pts[min(i + 1, len(pts) - 1)][0] - x + 0.01))))
-    sting = L((414, 300), (404, 280), (386, 276))
-    out = [ceph, *segs, (sting, 2.8)]
-    for a in (-1, 1):
-        pass
-    clawU = [L((190, 160), (178, 138), (166, 124)), L((198, 162), (186, 140), (172, 128)), *pincer(160, 112, -120, 34)]
-    clawL = [L((178, 192), (156, 204), (138, 212)), L((180, 200), (158, 212), (140, 220)), *pincer(124, 214, 175, 34)]
+def fig_scorpio(P):
+    path = [(408, 158), P["sigma"], P["Antares"], P["tau"], (306, 236), P["epsilon"], P["mu"], P["zeta"], P["eta"], P["Sargas"],
+            P["iota"], P["kappa"], (P["Shaula"][0] - 4, P["Shaula"][1] + 6)]
+    segs, fills = [], []
+    for i in range(len(path) - 1):
+        (x0, y0), (x1, y1) = path[i], path[i + 1]
+        w = 34 - i * 1.6 if i < 5 else 17 - (i - 5) * 0.8
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        ln = math.hypot(x1 - x0, y1 - y0)
+        segs.append(blob(mx, my, ln * 0.58, w / 2, 40 + i, 0.03, 12, rot=math.degrees(math.atan2(y1 - y0, x1 - x0))))
+    head = C((404, 128), (424, 116), (444, 124), (452, 150), (446, 178), (426, 192), (404, 186), (396, 158))
+    ux, uy = P["Acrab"]
+    rx_, ry_ = P["rho"]
+    armU = tube([(436, 128), (452, 110), (ux + 26, uy - 2)], 11, 8)
+    armD = tube([(442, 182), (460, 202), (rx_ + 26, ry_ + 8)], 11, 8)
+    cU = claw(ux + 30, uy - 6, -40, 34)
+    cD = claw(rx_ + 30, ry_ + 10, 40, 34)
+    sx, sy = P["Shaula"]
+    sting = C((sx - 6, sy + 8), (sx + 2, sy - 6), (sx + 18, sy - 14), (sx + 30, sy - 12), (sx + 14, sy - 4), (sx + 6, sy + 10))
     legs = []
     for k in range(4):
-        x0, y0 = 220 + k * 16, 196 + k * 18
-        legs.append(L((x0, y0), (x0 + 30, y0 - 26), (x0 + 50, y0 - 18)))
-        legs.append(L((x0 - 6, y0 + 10), (x0 - 34, y0 + 30), (x0 - 40, y0 + 52)))
-    return (out + clawU + clawL + legs, [ceph] + segs)
+        bx, by = 396 - k * 18, 160 + k * 14
+        legs.append(tube([(bx, by - 8), (bx + 6, by - 40), (bx - 14, by - 58)], 7, 3.5))
+        legs.append(tube([(bx + 8, by + 10), (bx + 30, by + 34), (bx + 26, by + 62)], 7, 3.5))
+    eyes = [blob(436, 140, 3, 3, 1, 0.1, 6), blob(440, 168, 3, 3, 2, 0.1, 6)]
+    return dict(fills=[*legs, armU, armD, *cU, *cD, *segs, head, sting], lines=[*[(d, 1.6) for d in legs], armU, armD, *[(d, 2.0) for d in cU + cD],
+                                                                             *[(d, 2.0) for d in segs], (head, 2.4), (sting, 2.2)],
+                details=eyes, angle=-60)
 
 
-def bow_geom():
-    N = (172, 352)
-    T = (452, 106)
-    dx, dy = T[0] - N[0], T[1] - N[1]
-    ln = math.hypot(dx, dy)
-    d = (dx / ln, dy / ln)
-    p = (-d[1], d[0])
-    G = (N[0] + dx * 0.6, N[1] + dy * 0.6)
-    t1 = (G[0] + 150 * p[0] - 30 * d[0], G[1] + 150 * p[1] - 30 * d[1])
-    t2 = (G[0] - 150 * p[0] - 30 * d[0], G[1] - 150 * p[1] - 30 * d[1])
-    nock = (G[0] - 92 * d[0], G[1] - 92 * d[1])
-    return N, T, d, p, G, t1, t2, nock
+def fig_sagittarius(P):
+    bx, by = P["Kaus Borealis"]
+    gx, gy = P["Kaus Media"]
+    ax, ay = P["Kaus Australis"]
+    tx, ty = P["Alnasl"]
+    # recurve bow through the three Kaus stars, string drawn back to the archer's hand, arrow tipped by Alnasl
+    limb = tube([(bx - 10, by - 16), (bx - 2, by - 2), (gx - 4, gy - 40), (gx + 4, gy), (gx - 2, gy + 40), (ax - 2, ay + 2), (ax - 12, ay + 14)], 6, 6)
+    grip = blob(gx + 2, gy, 8, 14, 3, 0.05, 10)
+    nock = (274, 240)
+    string = L((bx - 4, by - 8), nock, (ax - 6, ay + 8))
+    shaft = L((nock[0] - 6, nock[1] - 0.5), (tx - 12, ty - 1))
+    head_ = C((tx + 6, ty), (tx - 16, ty - 9), (tx - 11, ty), (tx - 16, ty + 9))
+    ang = math.atan2(ty - nock[1], tx - nock[0])
+    ca, sa = math.cos(ang), math.sin(ang)
+
+    def A(u, v):
+        return (nock[0] + u * ca - v * sa, nock[1] + u * sa + v * ca)
+    fl = [C(A(-4, 0), A(4, -11), A(30, -11), A(24, 0)), C(A(-4, 0), A(4, 11), A(30, 11), A(24, 0))]
+    # the centaur archer: a man's torso drawing the bow above a horse's body
+    hx, hy = 290, 166
+    headc = C((hx - 12, hy - 8), (hx - 4, hy - 16), (hx + 8, hy - 15), (hx + 14, hy - 6), (hx + 19, hy + 2), (hx + 14, hy + 5),
+              (hx + 13, hy + 12), (hx + 4, hy + 18), (hx - 8, hy + 16), (hx - 14, hy + 6))
+    hair = C((hx - 10, hy - 14), (hx + 4, hy - 20), (hx + 14, hy - 14), (hx + 2, hy - 10), (hx - 6, hy - 2), (hx - 10, hy + 12),
+             (hx - 22, hy + 26), (hx - 20, hy + 6))
+    band = L((hx - 12, hy - 8), (hx + 2, hy - 13), (hx + 14, hy - 9))
+    torso = C((270, 190), (302, 188), (310, 216), (306, 248), (300, 278), (262, 282), (256, 250), (258, 218))
+    pecs = [L((276, 214), (288, 222), (300, 214)), L((282, 244), (284, 262))]
+    arm_front = tube([(304, 198), (334, 228), (gx - 8, gy - 2)], 13, 8)
+    arm_back = tube([(270, 198), (240, 218), (nock[0] - 4, nock[1] - 2)], 13, 8)
+    quiver = C((238, 176), (250, 172), (240, 232), (228, 234))
+    q_arrows = [L((242, 176), (246, 160)), L((246, 176), (252, 162)), L((238, 176), (238, 162))]
+    cape = C((272, 192), (246, 206), (220, 236), (204, 268), (226, 262), (240, 270), (256, 246), (262, 216))
+    horse = C((298, 272), (290, 306), (252, 324), (196, 326), (156, 318), (138, 296), (146, 270), (180, 262), (230, 266), (262, 272))
+    legs_h = [tube([(288, 302), (300, 334), (292, 372)], 14, 8), tube([(266, 316), (266, 346), (254, 372)], 12, 8),
+              tube([(176, 312), (162, 340), (170, 372)], 16, 8), tube([(154, 304), (136, 334), (144, 370)], 13, 8)]
+    hooves = [blob(x, 374, 7, 4, int(x), 0.1, 8) for x in (294, 254, 172, 146)]
+    tail = C((144, 280), (118, 292), (104, 322), (112, 352), (122, 326), (138, 300))
+    tail_l = [L((138, 288), (116, 312), (110, 340)), L((134, 296), (120, 322), (118, 346))]
+    eye = L((hx + 5, hy - 3), (hx + 10, hy - 4))
+    return dict(fills=[tail, *legs_h, horse, cape, quiver, torso, arm_back, hair, headc, arm_front, limb, grip, head_, *fl],
+                lines=[(tail, 1.8), *[(d, 1.8) for d in legs_h], (horse, 2.2), (cape, 1.8), (quiver, 1.8), (torso, 2.2), (arm_back, 2.0),
+                       (hair, 1.8), (headc, 2.2), (arm_front, 2.0), (limb, 2.6), grip, head_, *[(f, 1.8) for f in fl]],
+                details=[(string, 1.6, 0.9), (shaft, 3.0, 0.95), *hooves, *q_arrows, *pecs, band, eye, *tail_l], angle=-20)
 
 
-def fig_sagittarius():
-    N, T, d, p, G, t1, t2, nock = bow_geom()
-    def at(base, a, b):
-        return (base[0] + a * d[0] + b * p[0], base[1] + a * d[1] + b * p[1])
-    limb = C(at(t2, 6, -4), at(G, 6, -122), at(G, 30, -66), at(G, 22, 0), at(G, 30, 66), at(G, 6, 122), at(t1, 6, 4),
-             at(t1, 1, 0), at(G, 0, 116), at(G, 20, 64), at(G, 10, 0), at(G, 20, -64), at(G, 0, -116), at(t2, 1, 0))
-    limb_out = limb
-    limb_in = L(at(G, 25, -40), at(G, 16, 0), at(G, 25, 40))
-    tips = [L(at(t2, 5, -4), at(t2, 18, -14), at(t2, 30, -12)), L(at(t1, 5, 4), at(t1, 18, 14), at(t1, 30, 12))]
-    string = L(t2, nock, t1)
-    shaft = L(nock, T)
-    head = C(T, at(T, -26, 10), at(T, -18, 0), at(T, -26, -10))
-    fl = [C(at(nock, 4, 0), at(nock, 14, -14), at(nock, 40, -14), at(nock, 34, 0)),
-          C(at(nock, 4, 0), at(nock, 14, 14), at(nock, 40, 14), at(nock, 34, 0))]
-    grip = C(at(G, -2, -16), at(G, 12, -16), at(G, 12, 16), at(G, -2, 16))
-    return ([(limb_out, 2.6), limb_in, *tips, (string, 1.8), (shaft, 2.6), head, *fl, grip], [limb, limb, head])
+def fig_capricorn(P):
+    head = C((436, 162), (444, 140), (462, 128), (480, 132), (492, 150), (500, 174), (494, 186), (476, 182), (454, 176))
+    horns = tube([(452, 136), (440, 112), (418, 98), (396, 100), (384, 112)], 13, 4)
+    horn2 = tube([(462, 132), (456, 108), (436, 90), (414, 88)], 10, 3)
+    ear = C((446, 152), (420, 152), (408, 164), (432, 166))
+    beard = C((488, 184), (496, 204), (490, 216), (482, 198))
+    torso = C((446, 166), (414, 192), (370, 206), (334, 216), (322, 250), (344, 276), (390, 286), (430, 262), (452, 226), (458, 192))
+    tailpts = [(350, 236), (300, 270), (246, 290), (196, 280), (160, 250), (136, 218), (126, 200)]
+    tail = tube(tailpts, 62, 12)
+    fin = C((132, 204), (116, 180), (96, 156), (104, 184), (88, 208), (112, 206), (98, 232), (128, 216))
+    ruff = C((338, 214), (318, 228), (322, 244), (310, 258), (326, 266), (318, 282), (344, 278))
+    px_, py_ = P["psi"]
+    ox, oy = P["omega"]
+    leg1 = tube([(414, 270), (392, 298), (px_ + 8, py_ - 4), (px_ - 8, py_ + 4)], 19, 9)
+    leg2 = tube([(388, 280), (364, 312), (ox + 8, oy - 6), (ox - 8, oy + 2)], 17, 9)
+    hooves = [blob(px_ - 10, py_ + 6, 7, 5, 1, 0.1, 8), blob(ox - 10, oy + 4, 7, 5, 2, 0.1, 8)]
+    scales = []
+    for i, (x, y) in enumerate(tailpts[1:5]):
+        for off in (-12, 0, 12):
+            w = 9 - i
+            scales.append(L((x - w + 4, y + off - w * 0.6), (x + 4, y + off + 2), (x + w + 4, y + off - w * 0.6)))
+    finlines = [L((128, 206), (106, 180)), L((124, 210), (98, 208)), L((128, 214), (106, 228))]
+    eye = L((466, 150), (473, 147), (480, 152))
+    fur = [L((420, 196), (410, 220)), L((432, 206), (424, 232)), L((404, 206), (396, 230)), L((388, 214), (380, 238))]
+    return dict(fills=[leg2, tail, fin, torso, ruff, leg1, horns, horn2, ear, head, beard],
+                lines=[(leg2, 2.0), (tail, 2.4), (fin, 2.0), (torso, 2.4), (ruff, 1.8), (leg1, 2.0), (horns, 2.2), (horn2, 2.0), ear, (head, 2.4), beard],
+                details=[*scales, *finlines, (eye, 2.0), *hooves, *fur], angle=-15)
 
 
-def fig_capricorn():
-    head = C((206, 150), (186, 148), (160, 162), (140, 184), (144, 198), (164, 200), (186, 192), (212, 186))
-    horns = [L((206, 150), (220, 118), (246, 96), (276, 92), (296, 104)), L((212, 158), (230, 128), (256, 110), (286, 108), (300, 118))]
-    ear = C((214, 166), (240, 168), (252, 182), (230, 182))
-    beard = L((150, 198), (156, 222), (164, 230))
-    neck = [L((212, 186), (222, 230), (236, 262)), L((226, 154), (262, 176), (300, 200))]
-    leg1 = L((236, 262), (204, 280), (168, 290), (152, 310))
-    leg2 = L((262, 272), (236, 304), (212, 320), (206, 344))
-    tail = L((300, 200), (372, 216), (436, 246), (470, 290), (466, 336), (432, 364), (392, 362), (370, 340), (378, 316), (402, 312))
-    under = L((262, 272), (320, 296), (380, 300), (420, 312))
-    fin = C((402, 312), (430, 292), (462, 302), (440, 322), (468, 340), (430, 342), (402, 322))
-    scales = [L((x - 10, y), (x, y + 8), (x + 10, y)) for x, y in ((330, 236), (362, 248), (394, 262), (346, 268), (378, 280), (420, 286), (442, 316))]
-    eye = "M 176 172 q 6 -4 12 0"
-    return ([head, *horns, ear, beard, *neck, leg1, leg2, tail, under, fin, *scales, eye], [head, fin])
+def fig_aquarius(P):
+    ux, uy = 236, 150
+    a = math.radians(-62)
 
-
-def fig_aquarius():
-    cx, cy, k, rot = 222, 196, 72, 58
-    a = math.radians(rot)
     def T(x, y):
-        return (cx + (x * math.cos(a) - y * math.sin(a)) * k, cy + (x * math.sin(a) + y * math.cos(a)) * k)
-    urn = C(T(0.18, -0.95), T(0.2, -0.7), T(0.5, -0.45), T(0.6, -0.05), T(0.45, 0.45), T(0.16, 0.8), T(0.2, 0.96), T(-0.2, 0.96), T(-0.16, 0.8),
-            T(-0.45, 0.45), T(-0.6, -0.05), T(-0.5, -0.45), T(-0.2, -0.7), T(-0.18, -0.95))
-    lip = C(T(-0.3, -0.95), T(0.3, -0.95), T(0.28, -1.05), T(-0.28, -1.05))
-    handles = [L(T(-0.2, -0.78), T(-0.55, -0.82), T(-0.62, -0.5), T(-0.5, -0.38)), L(T(0.2, -0.78), T(0.55, -0.82), T(0.62, -0.5), T(0.5, -0.38))]
-    bands = [L(T(-0.5, -0.3), T(0, -0.24), T(0.5, -0.3)), L(T(-0.56, 0.08), T(0, 0.14), T(0.56, 0.08)), L(T(-0.44, 0.4), T(0, 0.46), T(0.44, 0.4))]
-    zig = L(T(-0.5, -0.12), T(-0.3, -0.02), T(-0.1, -0.12), T(0.1, -0.02), T(0.3, -0.12), T(0.5, -0.02))
-    mouth = T(0, -1.05)
-    waves = []
-    for j, off in enumerate((-14, 0, 14)):
-        pts = []
-        for i in range(13):
-            t = i / 12
-            x = mouth[0] + 8 + t * 168 + off * (1 - t * 0.4)
-            y = mouth[1] + 4 + (t ** 1.5) * 240 + off * 0.3
-            pts.append((x + 7 * math.sin(t * 9 + j * 1.3), y))
-        waves.append(L(*pts))
-    pool = [L((404, 384), (430, 376), (456, 384), (482, 376), (508, 384)), L((386, 396), (414, 390), (442, 396), (470, 390))]
-    drops = [blob(x, y, 4, 5.5, x, 0.1, 8) for x, y in ((376, 352), (492, 352), (506, 330), (388, 324))]
-    return ([urn, lip, *handles, *bands, zig, *waves, *pool, *drops], [urn, lip])
+        return (ux + (x * math.cos(a) - y * math.sin(a)) * 50, uy + (x * math.sin(a) + y * math.cos(a)) * 50)
+    urn = C(T(0.32, -1.0), T(0.3, -0.75), T(0.62, -0.4), T(0.7, 0.05), T(0.52, 0.5), T(0.2, 0.82), T(0.24, 1.0), T(-0.24, 1.0), T(-0.2, 0.82),
+            T(-0.52, 0.5), T(-0.7, 0.05), T(-0.62, -0.4), T(-0.3, -0.75), T(-0.32, -1.0))
+    lip = C(T(-0.42, -0.98), T(0.42, -0.98), T(0.38, -1.14), T(-0.38, -1.14))
+    foot_ = C(T(-0.34, 0.98), T(0.34, 0.98), T(0.4, 1.12), T(-0.4, 1.12))
+    handle = L(T(0.36, -0.7), T(0.9, -0.62), T(0.86, -0.2), T(0.62, -0.1))
+    bands = [L(T(-0.66, -0.2), T(0, -0.14), T(0.66, -0.2)), L(T(-0.6, 0.3), T(0, 0.36), T(0.6, 0.3))]
+    wave = L(*[T(-0.6 + 0.1 * i, 0.05 + (0.06 if i % 2 else -0.06)) for i in range(13)])
+    mouth = T(0, -1.12)
+    w1, c1 = ribbon([mouth, (186, 168), P["lambda"], P["tau"], P["Skat"], (164, 314), P["88 Aqr"]], 13, 6, 3, 4, 1.3)
+    w2, c2 = ribbon([mouth, (166, 166), P["phi"], P["psi"], (126, 280), P["98 Aqr"]], 11, 5, 4, 4, 1.5)
+    pool = [L((84, 352), (108, 344), (132, 352), (156, 344), (180, 352), (202, 346)), L((96, 366), (120, 360), (144, 366), (168, 360), (188, 366))]
+    drops = [blob(x, y, 3.2, 4.5, int(x), 0.1, 8) for x, y in ((206, 326), (98, 314), (192, 342), (124, 300))]
+    hx, hy = 324, 110
+    head = C((hx - 14, hy - 4), (hx - 12, hy - 16), (hx + 2, hy - 20), (hx + 14, hy - 12), (hx + 16, hy + 4), (hx + 10, hy + 18),
+             (hx - 2, hy + 20), (hx - 12, hy + 14), (hx - 18, hy + 8), (hx - 16, hy + 2))
+    hair = scallop(hx + 4, hy - 8, 16, 12, 8, 0.14, 4)
+    sx, sy = P["Sadalsuud"]
+    torso = C((296, 140), (322, 132), (350, 142), (364, 170), (sx + 6, sy + 14), (356, 232), (326, 232), (306, 206), (294, 172))
+    th = P["theta"]
+    arm1 = tube([(300, 148), (th[0] + 6, th[1] - 8), (250, 182)], 14, 9)
+    alx, aly = P["Albali"]
+    arm2 = tube([(348, 150), (400, 192), (alx - 8, aly - 4)], 13, 8)
+    hand2 = blob(alx - 4, aly - 2, 7, 6, 5, 0.1, 8)
+    ix, iy = P["iota"]
+    thigh = tube([(346, 228), (ix + 30, iy - 8), (ix, iy)], 28, 17)
+    shin = tube([(ix, iy), (ix - 2, iy + 40), (ix - 6, iy + 70)], 17, 11)
+    foot = blob(ix - 14, iy + 72, 13, 6, 6, 0.1, 8)
+    thigh2 = tube([(364, 230), (380, 290), (384, 334)], 26, 16)
+    shin2 = tube([(384, 334), (420, 338), (452, 334)], 15, 10)
+    skirt = C((322, 214), (370, 208), (382, 240), (396, 278), (372, 290), (344, 282), (318, 288), (300, 270), (310, 240))
+    sash = C((298, 150), (316, 140), (370, 214), (356, 222))
+    skirt_f = [L((334, 236), (330, 280)), L((352, 236), (356, 284)), L((368, 232), (382, 276))]
+    return dict(fills=[w1, w2, thigh2, shin2, thigh, shin, foot, torso, skirt, sash, arm2, hand2, head, hair, urn, lip, foot_, arm1],
+                lines=[(w1, 1.8, 0.7), (w2, 1.8, 0.7), (thigh2, 2.0), (shin2, 2.0), (thigh, 2.0), (shin, 2.0), foot, (torso, 2.2), (skirt, 2.0),
+                       (sash, 1.6), (arm2, 2.0), hand2, (head, 2.2), (hair, 1.8), (urn, 2.6), lip, foot_, (arm1, 2.0)],
+                details=[handle, *bands, (wave, 1.4), (c1, 1.2, 0.6), (c2, 1.2, 0.6), *pool, *drops, *skirt_f], angle=-60)
 
 
-def fish(cx, cy, length, ang, seed):
-    """A gold-ink fish outline (unit fish rotated to ang degrees)."""
+def fish_shape(cx, cy, length, ang, seed):
     a = math.radians(ang)
     ca, sa = math.cos(a), math.sin(a)
+
     def T(x, y):
         return (cx + (x * ca - y * sa) * length, cy + (x * sa + y * ca) * length)
-    body_d = C(T(0.5, 0), T(0.3, -0.2), T(0, -0.24), T(-0.3, -0.14), T(-0.42, 0), T(-0.3, 0.14), T(0, 0.24), T(0.3, 0.2))
-    tail_d = C(T(-0.4, 0), T(-0.62, -0.2), T(-0.56, 0), T(-0.62, 0.2))
-    fin = C(T(0.02, -0.22), T(-0.08, -0.38), T(-0.18, -0.2))
-    gill = L(T(0.28, -0.16), T(0.22, 0), T(0.28, 0.16))
-    eye = blob(*T(0.38, -0.05), length * 0.025, length * 0.025, seed, 0.1, 8)
-    sc = [L(T(x - 0.05, -0.08), T(x, 0), T(x - 0.05, 0.08)) for x in (0.12, 0.0, -0.12, -0.24)]
-    return [body_d, tail_d, fin, gill, eye, *sc], [body_d, tail_d], T
+    body_d = C(T(0.5, 0.02), T(0.36, -0.2), T(0.06, -0.27), T(-0.26, -0.16), T(-0.42, 0), T(-0.26, 0.16), T(0.06, 0.27), T(0.36, 0.2))
+    tail_d = C(T(-0.38, 0), T(-0.64, -0.24), T(-0.56, 0), T(-0.64, 0.24))
+    fin_t = C(T(0.1, -0.24), T(-0.04, -0.42), T(-0.2, -0.36), T(-0.16, -0.18))
+    fin_b = C(T(0.0, 0.24), T(-0.1, 0.36), T(-0.2, 0.2))
+    gill = L(T(0.28, -0.17), T(0.22, 0), T(0.28, 0.17))
+    eye = blob(*T(0.38, -0.05), length * 0.03, length * 0.03, seed, 0.1, 8)
+    sc = [L(T(x - 0.06, -0.12 + dy), T(x, dy), T(x - 0.06, 0.12 + dy)) for x in (0.14, 0.02, -0.1, -0.22) for dy in (0,)]
+    fins = [L(T(-0.42, 0), T(-0.6, -0.16)), L(T(-0.42, 0), T(-0.6, 0.16)), L(T(-0.42, 0), T(-0.6, 0))]
+    return [fin_t, fin_b, tail_d, body_d], [gill, *sc, *fins], eye, T
 
 
-def fig_pisces():
-    a, fa, Ta = fish(232, 132, 150, -60, 1)
-    b, fb, Tb = fish(430, 300, 150, 10, 2)
-    k = (176, 362)
-    cord1 = L(Ta(-0.6, 0), (196, 270), (184, 320), k)
-    cord2 = L(Tb(-0.6, 0), (330, 330), (250, 350), k)
-    knot = blob(176, 362, 8, 7, 9, 0.15, 8)
-    return (a + b + [cord1, cord2, knot], fa + fb)
+def fig_pisces(P):
+    nf, nd, ne, Tn = fish_shape(224, 150, 136, -86, 1)
+    wf, wd, we, Tw = fish_shape(462, 350, 128, 6, 2)
+    ax, ay = P["Alrescha"]
+    tn = Tn(-0.5, 0)
+    tw = Tw(-0.5, 0)
+    cords = []
+    for path in ([tn, P["Alpherg"], P["omicron"], (ax + 4, ay - 6)], [tw, P["omega"], P["delta"], P["epsilon"], P["zeta"], P["mu"], P["nu"], (ax + 6, ay - 2)]):
+        for off in (-2.5, 2.5):
+            cords.append((L(*[(x, y + off) for x, y in path]), 1.6, 0.8))
+    knot = [C((ax - 2, ay - 4), (ax - 22, ay - 16), (ax - 26, ay - 2), (ax - 6, ay + 2)), C((ax + 2, ay + 4), (ax - 4, ay + 26), (ax + 10, ay + 28), (ax + 8, ay + 6))]
+    return dict(fills=[*nf, *wf, *knot], lines=[*[(d, 2.2) for d in nf + wf], *knot],
+                details=[*nd, *wd, (ne, 2.2), (we, 2.2), *cords], angle=-20)
 
 
-SIGNS = {
-    # slug: name, english, dates, figure fn, lines, stars, bright, nebulae, band
-    "aries": ("ARIES", "the Ram", "MAR 21 – APR 19", fig_aries,
-              [[(440, 218), (236, 186), (196, 204), (176, 236)]],
-              [(440, 218, 4), (236, 186, 6), (196, 204, 4.5), (176, 236, 3.5)], (236, 186),
-              [(150, 150, 220, 130, -20), (470, 330, 200, 120, 30)], (40, 400, 560, 60, 40)),
-    "taurus": ("TAURUS", "the Bull", "APR 20 – MAY 20", fig_taurus,
-               [[(166, 114), (268, 252), (300, 302), (332, 252), (434, 114)], [(300, 302), (300, 350), (270, 392)], [(268, 252), (284, 270)]],
-               [(166, 114, 5.5), (268, 252, 4), (284, 270, 3), (300, 302, 4), (434, 114, 4.5), (300, 350, 3.5), (270, 392, 3.5), (332, 252, 7),
-                (452, 316, 2.6), (462, 306, 2.2), (470, 318, 2.8), (458, 328, 2.2), (446, 324, 2), (474, 306, 1.8)], (332, 252),
-               [(460, 140, 230, 130, 15), (130, 330, 200, 120, -25)], (60, 60, 560, 380, 40)),
-    "gemini": ("GEMINI", "the Twins", "MAY 21 – JUN 20", fig_gemini,
-               [[(246, 124), (240, 196), (232, 266), (226, 336), (210, 378)], [(354, 128), (360, 200), (366, 266), (376, 336), (392, 376)],
-                [(240, 196), (196, 186)], [(360, 200), (404, 186)], [(232, 266), (300, 230), (366, 266)]],
-               [(246, 124, 5.5), (354, 128, 7), (240, 196, 4), (232, 266, 4.5), (226, 336, 4), (210, 378, 4), (360, 200, 4), (366, 266, 4.5),
-                (376, 336, 5), (392, 376, 4), (196, 186, 3.5), (404, 186, 3.5), (300, 230, 3)], (354, 128),
-               [(140, 130, 210, 130, 25), (470, 300, 210, 130, -20)], (30, 260, 570, 120, 40)),
-    "cancer": ("CANCER", "the Crab", "JUN 21 – JUL 22", fig_cancer,
-               [[(284, 150), (296, 236), (306, 274), (348, 368)], [(306, 274), (230, 332)], [(296, 236), (420, 128)]],
-               [(284, 150, 4.5), (296, 236, 4.5), (306, 274, 4.5), (348, 368, 6), (230, 332, 5.5), (420, 128, 3.5),
-                (296, 254, 1.6), (304, 250, 1.4), (300, 260, 1.6), (292, 262, 1.2), (310, 258, 1.2)], (348, 368),
-               [(150, 300, 220, 120, 20), (460, 150, 210, 130, -30)], (40, 120, 560, 420, 40)),
-    "leo": ("LEO", "the Lion", "JUL 23 – AUG 22", fig_leo,
-            [[(226, 302), (220, 256), (240, 214), (232, 174), (206, 154), (180, 166)], [(240, 214), (392, 198), (466, 236), (390, 258), (226, 302)],
-             [(392, 198), (390, 258)]],
-            [(226, 302, 7), (220, 256, 4), (240, 214, 5.5), (232, 174, 4), (206, 154, 4), (180, 166, 4), (392, 198, 4.5), (466, 236, 5.5),
-             (390, 258, 4)], (226, 302),
-            [(430, 140, 240, 130, -15), (120, 360, 180, 110, 20)], (60, 380, 560, 100, 40)),
-    "virgo": ("VIRGO", "the Maiden", "AUG 23 – SEP 22", fig_virgo,
-              [[(250, 150), (252, 204), (300, 240), (348, 270), (400, 326)], [(300, 240), (330, 206), (362, 168)], [(348, 270), (330, 330), (300, 372)],
-               [(252, 204), (200, 240)]],
-              [(250, 150, 4), (252, 204, 4.5), (300, 240, 5), (348, 270, 4.5), (400, 326, 7), (330, 206, 4), (362, 168, 4.5), (330, 330, 4),
-               (300, 372, 3.5), (200, 240, 3.5)], (400, 326),
-              [(450, 150, 220, 130, 20), (140, 340, 200, 120, -20)], (40, 300, 560, 100, 40)),
-    "libra": ("LIBRA", "the Scales", "SEP 23 – OCT 22", fig_libra,
-              [[(166, 174), (300, 134), (434, 174), (300, 238), (166, 174)], [(166, 174), (150, 306)], [(434, 174), (446, 310)]],
-              [(166, 174, 5.5), (300, 134, 7), (434, 174, 5), (300, 238, 4), (150, 306, 4), (446, 310, 4)], (300, 134),
-              [(300, 250, 260, 120, 0), (120, 120, 160, 100, 30)], (40, 120, 560, 300, 40)),
-    "scorpio": ("SCORPIO", "the Scorpion", "OCT 23 – NOV 21", fig_scorpio,
-                [[(150, 96), (196, 160), (130, 210)], [(196, 160), (240, 196), (264, 228), (286, 258), (298, 292), (304, 330), (324, 362),
-                                                      (366, 380), (404, 366), (420, 336), (414, 306), (398, 282)]],
-                [(150, 96, 4), (196, 160, 4.5), (130, 210, 4), (240, 196, 4), (264, 228, 7.5), (286, 258, 4), (298, 292, 4), (304, 330, 4),
-                 (324, 362, 4.5), (366, 380, 4), (404, 366, 4.5), (420, 336, 4.5), (414, 306, 4), (398, 282, 5)], (264, 228),
-                [(420, 170, 240, 140, -30), (150, 380, 200, 100, 10)], (60, 520, 540, 60, 40)),
-    "sagittarius": ("SAGITTARIUS", "the Archer", "NOV 22 – DEC 21", fig_sagittarius,
-                    [[(240, 150), (338, 222), (446, 112)], [(338, 222), (392, 334), (282, 312), (268, 256), (338, 222)], [(268, 256), (240, 150)],
-                     [(268, 256), (206, 246), (214, 300), (282, 312)]],
-                    [(240, 150, 4.5), (338, 222, 4.5), (446, 112, 4.5), (392, 334, 7), (282, 312, 4.5), (268, 256, 4), (206, 246, 5), (214, 300, 4)],
-                    (392, 334),
-                    [(170, 150, 220, 140, 30), (460, 300, 200, 140, -10)], (80, 560, 520, 40, 40)),
-    "capricorn": ("CAPRICORN", "the Sea-Goat", "DEC 22 – JAN 19", fig_capricorn,
-                  [[(186, 150), (204, 186), (240, 262), (292, 318), (362, 302), (456, 222), (424, 218), (332, 214), (204, 186)]],
-                  [(186, 150, 4.5), (204, 186, 5), (240, 262, 4), (292, 318, 4), (362, 302, 4.5), (456, 222, 6.5), (424, 218, 4.5), (332, 214, 3.5)],
-                  (456, 222),
-                  [(130, 330, 220, 120, -15), (470, 120, 200, 120, 20)], (60, 80, 560, 440, 40)),
-    "aquarius": ("AQUARIUS", "the Water-Bearer", "JAN 20 – FEB 18", fig_aquarius,
-                 [[(150, 206), (236, 168), (296, 128), (318, 110)], [(296, 128), (334, 140)], [(236, 168), (330, 222), (370, 290), (402, 336), (448, 368)],
-                  [(370, 290), (330, 330)]],
-                 [(150, 206, 4.5), (236, 168, 6.5), (296, 128, 4), (318, 110, 3.5), (334, 140, 3.5), (330, 222, 4), (370, 290, 4.5), (402, 336, 4),
-                  (448, 368, 4.5), (330, 330, 3.5)], (236, 168),
-                 [(440, 160, 230, 130, -20), (140, 360, 200, 110, 15)], (40, 380, 560, 120, 40)),
-    "pisces": ("PISCES", "the Fish", "FEB 19 – MAR 20", fig_pisces,
-               [[(176, 362), (196, 296), (206, 226), (226, 166), (244, 118)], [(176, 362), (262, 344), (340, 322), (392, 306)],
-                [(392, 306), (414, 286), (446, 284), (466, 300), (450, 320), (414, 322), (392, 306)]],
-               [(176, 362, 6.5), (196, 296, 4), (206, 226, 4), (226, 166, 4), (244, 118, 4.5), (262, 344, 4), (340, 322, 4), (392, 306, 4),
-                (414, 286, 3.5), (446, 284, 3.5), (466, 300, 3.5), (450, 320, 3.5), (414, 322, 3.5)], (176, 362),
-               [(460, 140, 230, 140, 10), (140, 250, 180, 110, -30)], (60, 560, 540, 40, 40)),
+def scallop(cx, cy, rx, ry, n, amp, seed=1):
+    """Fluffy outline: an ellipse with n soft bumps (fleece, clouds, manes)."""
+    rnd = random.Random(seed)
+    pts = []
+    m = n * 4
+    for i in range(m):
+        a = 2 * math.pi * i / m
+        k = 1 + amp * abs(math.sin(a * n / 2)) + rnd.uniform(-0.01, 0.01)
+        pts.append((cx + rx * k * math.cos(a), cy + ry * k * math.sin(a)))
+    return smooth_closed(pts)
+
+
+def ribbon(pts, w0, w1, seed, amp=4, freq=1.6):
+    """A wavy tapering stream (water) along a path: densified, gently sinuous, as a closed shape and its centre line."""
+    rnd = random.Random(seed)
+    dense = []
+    for i in range(len(pts) - 1):
+        (x0, y0), (x1, y1) = pts[i], pts[i + 1]
+        for t in [j / 5 for j in range(5)]:
+            dense.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t))
+    dense.append(pts[-1])
+    out = []
+    ph = rnd.uniform(0, 6)
+    for i, (x, y) in enumerate(dense):
+        a = dense[min(i + 1, len(dense) - 1)]
+        b = dense[max(i - 1, 0)]
+        dx, dy = a[0] - b[0], a[1] - b[1]
+        ln = math.hypot(dx, dy) or 1
+        nx, ny = -dy / ln, dx / ln
+        o = amp * math.sin(i * freq + ph)
+        out.append((x + nx * o, y + ny * o))
+    return tube(out, w0, w1), L(*out)
+
+
+def spark_d(x, y, r):
+    pts = []
+    for i in range(4):
+        a = math.radians(-90 + 90 * i)
+        b = math.radians(-45 + 90 * i)
+        pts.append(f"{_f(x + r * math.cos(a))} {_f(y + r * math.sin(a))}")
+        pts.append(f"{_f(x + r * 0.2 * math.cos(b))} {_f(y + r * 0.2 * math.sin(b))}")
+    return f"M {pts[0]} L {' L '.join(pts[1:])} Z"
+
+
+def zoom(d_pts, cx, cy, k):
+    return [(cx + (x - cx) * k, cy + (y - cy) * k) for x, y in d_pts]
+
+
+FIGS = dict(aries=fig_aries, taurus=fig_taurus, gemini=fig_gemini, cancer=fig_cancer, leo=fig_leo, virgo=fig_virgo, libra=fig_libra,
+            scorpio=fig_scorpio, sagittarius=fig_sagittarius, capricorn=fig_capricorn, aquarius=fig_aquarius, pisces=fig_pisces)
+
+META = {
+    "aries": ("ARIES", "the Ram", "MAR 21 – APR 19"), "taurus": ("TAURUS", "the Bull", "APR 20 – MAY 20"),
+    "gemini": ("GEMINI", "the Twins", "MAY 21 – JUN 20"), "cancer": ("CANCER", "the Crab", "JUN 21 – JUL 22"),
+    "leo": ("LEO", "the Lion", "JUL 23 – AUG 22"), "virgo": ("VIRGO", "the Maiden", "AUG 23 – SEP 22"),
+    "libra": ("LIBRA", "the Scales", "SEP 23 – OCT 22"), "scorpio": ("SCORPIO", "the Scorpion", "OCT 23 – NOV 21"),
+    "sagittarius": ("SAGITTARIUS", "the Archer", "NOV 22 – DEC 21"), "capricorn": ("CAPRICORN", "the Sea-Goat", "DEC 22 – JAN 19"),
+    "aquarius": ("AQUARIUS", "the Water-Bearer", "JAN 20 – FEB 18"), "pisces": ("PISCES", "the Fish", "FEB 19 – MAR 20"),
+}
+
+# per sign: nebulae (cx, cy, rx, ry, rot), milky-way band or None, alpha-star label (dx, dy, anchor)
+LOOK = {
+    "aries": ([(160, 120, 230, 120, -15), (470, 330, 200, 110, 25)], None, (0, -30, "middle")),
+    "taurus": ([(460, 150, 210, 140, 20), (120, 330, 190, 120, -25)], (40, 80, 560, 330, 50), (-36, 44, "end")),
+    "gemini": ([(130, 140, 200, 130, 25), (480, 300, 200, 130, -20)], (60, 20, 560, 380, 50), (-26, -16, "end")),
+    "cancer": ([(140, 300, 210, 120, 20), (470, 160, 200, 130, -30)], None, (-34, 8, "end")),
+    "leo": ([(420, 120, 240, 110, -10), (120, 160, 170, 100, 20)], None, (0, 50, "middle")),
+    "virgo": ([(460, 140, 200, 120, 25), (130, 300, 200, 110, -20)], None, (22, 8, "start")),
+    "libra": ([(300, 240, 260, 120, 0), (110, 120, 160, 100, 30)], None, (-20, -8, "end")),
+    "scorpio": ([(200, 160, 220, 120, -30), (470, 330, 180, 100, 10)], (40, 560, 560, 40, 50), (-24, -12, "end")),
+    "sagittarius": ([(450, 160, 200, 130, -20), (170, 160, 180, 110, 30)], (100, 600, 520, 0, 60), (22, 8, "start")),
+    "capricorn": ([(150, 330, 200, 100, -15), (300, 110, 220, 90, 5)], None, (6, -22, "middle")),
+    "aquarius": ([(440, 330, 200, 110, -20), (420, 110, 200, 90, 15)], None, (20, 26, "start")),
+    "pisces": ([(360, 160, 240, 110, 10), (110, 180, 160, 100, -30)], None, (-20, 6, "end")),
 }
 
 DESIGNS = {}
@@ -663,29 +1081,39 @@ def design(slug):
 
 
 def zodiac_constellation(slug, k):
-    name, eng, dates, figfn, lines, st, bright, nebs, band = SIGNS[slug]
+    name, eng, dates = META[slug]
     el = SIGN_EL[slug]
     u = f"nsp-{slug}"
-    strokes, fills = figfn()
-    out = [sky(u, 100 + k * 13, el, nebs, band, 120)]
-    out.append(figure(f"{u}-fg", strokes, 200 + k, fills=fills))
-    out.append(constellation(f"{u}-cn", lines, st, bright))
+    P, T, mags = sky_map(slug)
+    nebs, band, lab = LOOK[slug]
+    out = [sky(u, 100 + k * 13, el, nebs, band, 110)]
+    out.append(defs(lg(f"{u}-gm", [(0, "#FFFFFF"), (0.6, "#FFFFFF"), (0.7, "#000000"), (1, "#000000")], 0, 0, 0, 1),
+                    f'<mask id="{u}-gk" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600"><rect width="600" height="600" fill="url(#{u}-gm)"/></mask>')
+               + f'<g mask="url(#{u}-gk)">' + atlas_grid(f"{u}-ag", T, slug) + "</g>")
+    fig = FIGS[slug](P)
+    out.append(gold_figure(f"{u}-fg", fig.get("fills", ()), fig.get("lines", ()), 200 + k, fig.get("details", ()), fig.get("shade", ()),
+                           fig.get("angle", -35), fade=fig.get("fade")))
+    if slug == "cancer":
+        out.append(beehive(f"{u}-m44", *P["Beehive"], 5))
+    out.append(star_layer(f"{u}-cn", slug, P, mags, lab))
+    if os.environ.get("NS_DEBUG"):
+        out.append("".join(f'<text x="{_f(x + 5)}" y="{_f(y - 5)}" font-size="11" fill="#7FFFD4" font-family="sans-serif">{n}</text>' for n, (x, y) in P.items()))
     # type: brush-gold sign name, english name in italic, dates between two tiny glyphs
     size = fit_size(name, CINZEL, 70, 440, 8)
-    out.append(bword(f"{u}-nm", 304, 462, name, CINZEL, size, GOLD, [GOLD_L, GOLD_D, "#F6D88E", "#C99A48"], 300 + k, max_w=440, ls=8,
+    out.append(bword(f"{u}-nm", 304, 466, name, CINZEL, size, GOLD, [GOLD_L, GOLD_D, "#F6D88E", "#C99A48"], 300 + k, max_w=440, ls=8,
                      shadow="#05040E", sd=0.04, angle=-14))
-    out.append(script(300, 500, eng, 30, CREAM, 360, ls=1))
+    out.append(script(300, 508, eng, 30, CREAM, 360, ls=1, shadow="#05040E", sd=(1.5, 2)))
     dsz = fit_size(dates, MONO, 19, 300, 3)
     dw = measure(dates, MONO, dsz, 3)
-    out.append(f'<text x="{301.5:.1f}" y="535" text-anchor="middle" {MONO} font-size="{dsz}" letter-spacing="3" fill="{GOLD_L}">{esc(dates)}</text>')
+    out.append(f'<text x="301.5" y="536" text-anchor="middle" {MONO} font-size="{dsz}" letter-spacing="3" fill="{GOLD_L}">{esc(dates)}</text>')
     for sg in (-1, 1):
         gx = 300 + sg * (dw / 2 + 24)
-        out.append(gilded(f"{u}-tg{sg + 1}", glyph_d(slug, gx, 529, 10), 2.4, 1, shadow=False))
+        out.append(gilded(f"{u}-tg{sg + 1}", glyph_d(slug, gx, 530, 10), 2.4, 1, shadow=False))
     out.append(finish(u, 400 + k))
     return "".join(out)
 
 
-for _k, _slug in enumerate(SIGNS):
+for _k, _slug in enumerate(META):
     design(_slug)((lambda s, kk: (lambda: zodiac_constellation(s, kk)))(_slug, _k))
 
 
@@ -801,7 +1229,7 @@ def ornament(u, el, cx, cy, R, seed):
 def zodiac_symbol(sign, k):
     el = SIGN_EL[sign]
     u = f"nsg-{sign}"
-    name, eng, dates = SIGNS[sign][0], SIGNS[sign][1], SIGNS[sign][2]
+    name, eng, dates = META[sign]
     cx, cy, R = 300, 262, 148
     E = ELEMENTS[el]
     nebs = [(140 + (k % 3) * 40, 120, 220, 120, -20 + k * 7), (460 - (k % 2) * 40, 420, 220, 120, 25 - k * 4)]
@@ -816,12 +1244,14 @@ def zodiac_symbol(sign, k):
              dabs(E["tint"] + [E["neb"][0]], 820 + k, (cx - R, cy - R, cx + R, cy + R), 160, around(cx, cy), (30, 80), (4, 10), (0.1, 0.3), 0.1, 10),
              nebula(f"{u}-dn", cx + 30, cy - 40, R * 0.8, R * 0.45, E["neb"], 830 + k, -25, 0.3, 120)]
     # the sign's constellation, faint, behind the glyph
-    lines, st = SIGNS[sign][4], SIGNS[sign][5]
+    SP, _, mags = sky_map(sign)
+    bx0, by0, bx1, by1 = CAT[sign]["box"]
     def T(p):
-        return (cx + (p[0] - 300) * 0.6, cy + 6 + (p[1] - 245) * 0.6)
-    poly = "".join(f'<path d="M {" L ".join(f"{_f(T(q)[0])} {_f(T(q)[1])}" for q in ln)}"/>' for ln in lines)
+        return (cx + (p[0] - (bx0 + bx1) / 2) * 0.62, cy + 4 + (p[1] - (by0 + by1) / 2) * 0.62)
+    poly = "".join(f'<path d="M {" L ".join(f"{_f(T(SP[q])[0])} {_f(T(SP[q])[1])}" for q in ln)}"/>' for ln in CAT[sign]["lines"])
     inner.append(f'<g fill="none" stroke="{GOLD_L}" stroke-width="1.6" opacity="0.35" stroke-linejoin="round">{poly}</g>')
-    inner.append("".join(f'<circle cx="{_f(T((x, y))[0])}" cy="{_f(T((x, y))[1])}" r="{_f(r * 0.55 + 0.6)}" fill="{STARC}" opacity="0.6"/>' for x, y, r in st))
+    inner.append("".join(f'<circle cx="{_f(T(SP[n])[0])}" cy="{_f(T(SP[n])[1])}" r="{_f(star_r(m) * 0.5 + 0.6)}" fill="{STARC}" opacity="0.6"/>'
+                         for n, m in mags.items()))
     inner.append(field_stars(f"{u}-is", 840 + k, 40, (cx - R, cy - R, cx + R, cy + R), big=3))
     out.append(clip(f"{u}-dc", disc) + f'<g clip-path="url(#{u}-dc)">' + "".join(inner) + "</g>")
     # ring band with the dates on its lower arc
@@ -853,7 +1283,7 @@ def zodiac_symbol(sign, k):
     return "".join(out)
 
 
-for _k, _slug in enumerate(SIGNS):
+for _k, _slug in enumerate(META):
     design(f"{_slug}-symbol")((lambda s, kk: (lambda: zodiac_symbol(s, kk)))(_slug, _k))
 
 
@@ -891,6 +1321,9 @@ def d_phases():
     out.append(f'<path d="{L((-10, 444), (40, 432), (90, 428), (150, 436), (190, 444))} L 190 446 L -10 446 Z" fill="#141846"/>')
     out.append(f'<path d="{L((420, 444), (470, 430), (530, 426), (580, 434), (610, 440))} L 610 446 L 420 446 Z" fill="#141846"/>')
     out.append(sea(f"{u}-sea", 444, 1003))
+    out.append(sailboat_sil(f"{u}-boat", 468, 492, 0.95, 1004))
+    out.append("".join(f'<circle cx="{x}" cy="{y}" r="1.8" fill="{GOLD_L}"/>' + glow(f"{u}-sl{i}", x, y, 7, GOLD_L, 0.6, 0.3)
+                       for i, (x, y) in enumerate(((52, 437), (66, 439), (150, 440), (476, 434), (540, 437)))))
     # dotted orbit through the moons
     a0, a1 = math.radians(angs[0]), math.radians(angs[-1])
     out.append(f'<path d="M {_f(cx + R * math.cos(a0))} {_f(cy + R * math.sin(a0))} A {R} {R} 0 0 1 {_f(cx + R * math.cos(a1))} {_f(cy + R * math.sin(a1))}" '
@@ -1124,8 +1557,8 @@ def d_over_the_moon():
     out = [sky(u, 1201, "air", [(300, 300, 280, 160, -10), (480, 120, 160, 100, 20)], None, 120,
                keep=lambda x, y: not (200 < x < 460 and 80 < y < 220))]
     out.append(painted_crescent(f"{u}-cr", 300, 328, 122, 64, 1210))
-    out.append(puff_cloud(f"{u}-c1", 150, 436, 170, 46, 1211, "#6A6AAE", ["#8A88C8", "#5A5A9E", "#A8A6DC"], line=None, light="#C8C6F0"))
-    out.append(puff_cloud(f"{u}-c2", 470, 410, 150, 40, 1212, "#5E5EA4", ["#8A88C8", "#4E4E92", "#A8A6DC"], line=None, light="#C8C6F0"))
+    out.append(night_cloud(f"{u}-c1", 150, 438, 190, 70, 1211, rim_side=1))
+    out.append(night_cloud(f"{u}-c2", 476, 414, 160, 58, 1212, rim_side=-1))
     out.append(cow(f"{u}-cow", 1220, 0, 6))
     for x, y, r in ((470, 74, 9), (100, 220, 8), (520, 250, 7), (90, 90, 6)):
         out.append(spark(x, y, r, GOLD_L, 0.95))
@@ -1229,6 +1662,237 @@ def d_shoot_for_the_moon():
     out.append(bword(f"{u}-mn2", 178, 250, "MOON", CINZEL, 70, GOLD, [GOLD_L, GOLD_D, "#F6D88E", "#C99A48"], 1331, max_w=232, ls=6,
                      shadow="#05040E", sd=0.04, angle=-14))
     out.append(finish(u, 1340))
+    return "".join(out)
+
+
+def night_cloud(u, x, y, w, h, seed, base="#4E4C92", light="#B9B6EE", dark="#2A2860", rim=GOLD_L, rim_side=-1, op=1.0):
+    """Painted night cloud: overlapping puffs graded from a moonlit top to a shadowed base, soft brushwork,
+    a thin moonlit rim along the true top silhouette and faint shadow creases between the puffs."""
+    rnd = random.Random(seed)
+    puffs = []
+    n = 6
+    for i in range(n):
+        t = i / (n - 1)
+        r = h * (0.32 + 0.4 * math.sin(math.pi * t) ** 0.8) * rnd.uniform(0.85, 1.1)
+        px = x - w / 2 + r * 0.8 + (w - r * 1.6) * t
+        py = y - r * 0.55 - h * 0.1 * math.sin(math.pi * t)
+        puffs.append((px, py, r))
+    base_d = smooth_closed([(x - w / 2 + 6, y - h * 0.18), (x + w / 2 - 6, y - h * 0.18), (x + w / 2 - 2, y + 2), (x + w * 0.2, y + h * 0.14),
+                            (x - w * 0.25, y + h * 0.12), (x - w / 2 + 2, y + 2)])
+    shapes = [blob(px, py, r, r * 0.92, rnd.randrange(999), 0.04, 14) for px, py, r in puffs] + [base_d]
+    gid = f"{u}-g"
+    out = [f'<g opacity="{op}">', defs(f'<linearGradient id="{gid}" x1="0" y1="{_f(y - h)}" x2="0" y2="{_f(y + h * 0.15)}" gradientUnits="userSpaceOnUse">'
+                                      f'<stop offset="0" stop-color="{light}"/><stop offset="0.5" stop-color="{base}"/><stop offset="1" stop-color="{dark}"/></linearGradient>')]
+    out.append(f'<g fill="url(#{gid})">' + "".join(f'<path d="{d}"/>' for d in shapes) + "</g>")
+    inner = [dabs([light, base, dark], seed + 3, (x - w / 2, y - h, x + w / 2, y + h * 0.2), int(w * h / 60), -4, (12, 34), (1.5, 4), (0.1, 0.28), 0.25, 10)]
+    for i, (px, py, r) in enumerate(puffs):
+        if 0 < i < n - 1 or True:
+            a0, a1 = (math.radians(20), math.radians(120)) if rim_side < 0 else (math.radians(60), math.radians(160))
+            inner.append(f'<path d="M {_f(px + r * 0.95 * math.cos(a0))} {_f(py + r * 0.95 * math.sin(a0))} A {_f(r * 0.95)} {_f(r * 0.95)} 0 0 1 '
+                         f'{_f(px + r * 0.95 * math.cos(a1))} {_f(py + r * 0.95 * math.sin(a1))}" fill="none" stroke="{dark}" stroke-width="{_f(r * 0.18)}" '
+                         f'stroke-linecap="round" opacity="0.28"/>')
+    top = []
+    for k in range(int(w) + 1):
+        xx = x - w / 2 + k
+        best = None
+        for px, py, r in puffs:
+            if abs(xx - px) < r:
+                yy = py - math.sqrt(r * r - (xx - px) ** 2) * 0.92
+                best = yy if best is None else min(best, yy)
+        if best is not None:
+            top.append((xx, best + 2.5))
+    if top:
+        sx = [p for p in top[::3]]
+        fade = (f'<linearGradient id="{u}-rf" x1="{_f(x - w / 2)}" y1="0" x2="{_f(x + w / 2)}" y2="0" gradientUnits="userSpaceOnUse">'
+                f'<stop offset="0" stop-color="{rim}" stop-opacity="{0.9 if rim_side < 0 else 0.15}"/>'
+                f'<stop offset="1" stop-color="{rim}" stop-opacity="{0.15 if rim_side < 0 else 0.9}"/></linearGradient>')
+        inner.append(defs(fade) + f'<path d="M {" L ".join(f"{_f(a)} {_f(b)}" for a, b in sx)}" fill="none" stroke="url(#{u}-rf)" stroke-width="3" '
+                     f'stroke-linecap="round" stroke-linejoin="round"/>')
+    out.append(clip(f"{u}-c", shapes) + f'<g clip-path="url(#{u}-c)">' + "".join(inner) + "</g>")
+    out.append("</g>")
+    return "".join(out)
+
+
+def sailboat_sil(u, x, y, s, seed):
+    """Small moonlit sailboat on the water, with a broken reflection."""
+    hull = C((x - 30 * s, y - 4 * s), (x + 30 * s, y - 4 * s), (x + 22 * s, y + 6 * s), (x - 22 * s, y + 6 * s))
+    sail1 = f"M {_f(x - 2 * s)} {_f(y - 8 * s)} L {_f(x - 2 * s)} {_f(y - 62 * s)} Q {_f(x + 14 * s)} {_f(y - 40 * s)} {_f(x + 24 * s)} {_f(y - 8 * s)} Z"
+    sail2 = f"M {_f(x - 6 * s)} {_f(y - 10 * s)} L {_f(x - 6 * s)} {_f(y - 52 * s)} Q {_f(x - 18 * s)} {_f(y - 30 * s)} {_f(x - 26 * s)} {_f(y - 10 * s)} Z"
+    out = [f'<path d="{hull}" fill="#0A0C26"/>', f'<path d="{sail1}" fill="{CREAM}" opacity="0.92"/>', f'<path d="{sail2}" fill="#C8C2E8" opacity="0.85"/>',
+           f'<path d="M {_f(x - 4 * s)} {_f(y - 66 * s)} L {_f(x - 4 * s)} {_f(y - 4 * s)}" stroke="#0A0C26" stroke-width="{_f(2 * s)}"/>',
+           ink(sail1, GOLD_D, 1.4, seed, 1, 0.6)]
+    rnd = random.Random(seed)
+    for i in range(6):
+        yy = y + 10 * s + i * 6 * s
+        w = (26 - i * 3) * s
+        out.append(f'<path d="M {_f(x - w / 2 + rnd.uniform(-3, 3))} {_f(yy)} l {_f(w)} 0" stroke="{CREAM}" stroke-width="{_f(2 * s)}" stroke-linecap="round" opacity="{0.4 - i * 0.05:.2f}"/>')
+    return "".join(out)
+
+
+def balloon(u, cx, cy, s, seed):
+    """Painted hot-air balloon: striped envelope with shading and highlight, ropes, a wicker basket and a heart pennant."""
+    env = C((cx, cy - 46 * s), (cx + 30 * s, cy - 38 * s), (cx + 40 * s, cy - 10 * s), (cx + 32 * s, cy + 20 * s), (cx + 12 * s, cy + 42 * s),
+            (cx - 12 * s, cy + 42 * s), (cx - 32 * s, cy + 20 * s), (cx - 40 * s, cy - 10 * s), (cx - 30 * s, cy - 38 * s))
+    out = [glow(f"{u}-gl", cx, cy, 70 * s, GOLD_L, 0.22, 0.3)]
+    stripes = []
+    cols = ["#E07A8E", "#F4E2B8", "#E8B04A", "#F4E2B8", "#E07A8E", "#F4E2B8", "#E8B04A"]
+    for i, col in enumerate(cols):
+        x0 = cx - 42 * s + i * 12 * s
+        stripes.append(f'<path d="M {_f(x0)} {_f(cy - 50 * s)} Q {_f(cx + (x0 - cx) * 1.25)} {_f(cy)} {_f(cx + (x0 - cx) * 0.3)} {_f(cy + 46 * s)} '
+                       f'L {_f(cx + (x0 + 12 * s - cx) * 0.3)} {_f(cy + 46 * s)} Q {_f(cx + (x0 + 12 * s - cx) * 1.25)} {_f(cy)} {_f(x0 + 12 * s)} {_f(cy - 50 * s)} Z" fill="{col}"/>')
+    inner = "".join(stripes)
+    inner += f'<path d="{blob(cx + 22 * s, cy + 8 * s, 30 * s, 44 * s, seed, 0.05, 12)}" fill="#2A1E58" opacity="0.35"/>'
+    inner += f'<path d="M {_f(cx - 26 * s)} {_f(cy - 20 * s)} Q {_f(cx - 22 * s)} {_f(cy - 36 * s)} {_f(cx - 8 * s)} {_f(cy - 42 * s)}" stroke="#FFFFFF" stroke-width="{_f(4 * s)}" fill="none" stroke-linecap="round" opacity="0.6"/>'
+    inner += dabs(["#FFFFFF", "#C0508A", "#F6D88E"], seed + 2, (cx - 40 * s, cy - 46 * s, cx + 40 * s, cy + 42 * s), 50, -90, (8 * s, 20 * s), (1, 2.5), (0.1, 0.3), 0.15)
+    out.append(clip(f"{u}-ec", env) + f'<g clip-path="url(#{u}-ec)">{inner}</g>')
+    out.append(ink(env, "#2A1E46", 2.4, seed, 2, 0.9))
+    for dx in (-10, -3, 3, 10):
+        out.append(ink(f"M {_f(cx + dx * 1.2 * s)} {_f(cy + 42 * s)} L {_f(cx + dx * 0.8 * s)} {_f(cy + 58 * s)}", "#2A1E46", 1.5, seed + 1, 1, 0.9))
+    basket = C((cx - 11 * s, cy + 57 * s), (cx + 11 * s, cy + 57 * s), (cx + 9 * s, cy + 72 * s), (cx - 9 * s, cy + 72 * s))
+    out.append(body(f"{u}-bk", basket, (cx - 12 * s, cy + 56 * s, cx + 12 * s, cy + 73 * s), "#B9773A", ["#8E5426", "#D9A060"], seed + 4, n=16, angle=0,
+                    length=(4, 9), width=(0.8, 1.6), line="#2A1E46", lw=1.8))
+    out.append(ink(f"M {_f(cx - 10 * s)} {_f(cy + 63 * s)} L {_f(cx + 10 * s)} {_f(cy + 63 * s)}", "#5A3418", 1.2, seed, 1, 0.8))
+    # pennant with a heart trailing from the basket
+    out.append(ink(f"M {_f(cx + 10 * s)} {_f(cy + 66 * s)} q {_f(16 * s)} {_f(4 * s)} {_f(30 * s)} {_f(-2 * s)}", CREAM, 1.4, seed, 1, 0.8))
+    from common import heart
+    out.append(heart(cx + 44 * s, cy + 62 * s, 7 * s, "#E07A8E"))
+    return "".join(out)
+
+
+@design("to-the-moon-and-back")
+def d_moon_and_back():
+    u = "nsc-tmb"
+    mx, my, mr = 418, 176, 80
+    out = [sky(u, 1401, "fire", [(400, 170, 240, 150, -15), (120, 300, 180, 110, 20)], (40, 330, 560, 60, 40), 120,
+               keep=lambda x, y: math.hypot(x - mx, y - my) > mr + 12)]
+    out.append(pmoon(f"{u}-mn", mx, my, mr, 1410, halo_r=2.3, halo_op=0.55))
+    # a dotted orbit from the balloon, round the moon and back again
+    a = math.radians(-14)
+    ocx, ocy, orx, ory = 318, 196, 226, 104
+    pts = []
+    for i in range(0, 361, 3):
+        t = math.radians(i)
+        x, y = orx * math.cos(t), ory * math.sin(t)
+        pts.append((ocx + x * math.cos(a) - y * math.sin(a), ocy + x * math.sin(a) + y * math.cos(a)))
+    front = [p for i, p in enumerate(pts) if not (math.hypot(p[0] - mx, p[1] - my) < mr + 4 and i * 3 < 180)]
+    out.append(f'<path d="{L(*front[:-1])}" fill="none" stroke="{GOLD_L}" stroke-width="2.4" stroke-dasharray="1 9" stroke-linecap="round" opacity="0.9"/>')
+    for i in (14, 44, 80, 104):
+        x0, y0 = pts[i]
+        x1, y1 = pts[i + 1]
+        ang = math.degrees(math.atan2(y1 - y0, x1 - x0))
+        out.append(f'<path d="M -6 -5 L 3 0 L -6 5" fill="none" stroke="{GOLD_L}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" '
+                   f'transform="translate({_f(x0)} {_f(y0)}) rotate({ang:.0f})" opacity="0.9"/>')
+    out.append(balloon(f"{u}-bl", 132, 172, 1.2, 1420))
+    for x, y, r in ((520, 330, 9), (300, 80, 7), (90, 330, 6), (250, 290, 5), (540, 70, 6)):
+        out.append(spark(x, y, r, GOLD_L, 0.95))
+    out.append(night_cloud(f"{u}-c1", 470, 286, 170, 64, 1430, rim_side=-1, op=0.95))
+    # lettering: three lines, script / gilded caps / script
+    out.append(script(300, 398, "love you", 58, CREAM, 360, shadow="#05040E", sd=(2, 3)))
+    out.append(bword(f"{u}-tx", 304, 466, "TO THE MOON", CINZEL, 64, GOLD, [GOLD_L, GOLD_D, "#F6D88E", "#C99A48"], 1440, max_w=450, ls=6,
+                     shadow="#05040E", sd=0.04, angle=-14))
+    out.append(label_rules(300, 520, "AND BACK", MONO, 22, GOLD_L, 7, 1450, gap=14, line_w=40))
+    out.append(finish(u, 1460))
+    return "".join(out)
+
+
+def dandelion(u, cx, cy, r, seed, gone=(-50, 40)):
+    """A dandelion clock: glowing seed head of pappus umbrellas on fine stalks, a few already blown away (angles in gone)."""
+    rnd = random.Random(seed)
+    out = [glow(f"{u}-gl", cx, cy, r * 1.9, "#FFF2CC", 0.32, 0.3)]
+    stalks, tufts = [], []
+    k = 0
+    for ring, (rr, n) in enumerate(((r, 34), (r * 0.82, 26))):
+        for i in range(n):
+            a = 360 * i / n + rnd.uniform(-4, 4) + ring * 6
+            aa = ((a + 180) % 360) - 180
+            if gone[0] < aa < gone[1] and rnd.random() < 0.8:
+                continue
+            ar = math.radians(a)
+            ex, ey = cx + rr * math.cos(ar), cy + rr * math.sin(ar)
+            stalks.append(f"M {_f(cx + 6 * math.cos(ar))} {_f(cy + 6 * math.sin(ar))} L {_f(ex)} {_f(ey)}")
+            for j in range(-2, 3):
+                b = ar + j * 0.32
+                tufts.append(f"M {_f(ex)} {_f(ey)} l {_f(9 * math.cos(b))} {_f(9 * math.sin(b))}")
+            k += 1
+    out.append(f'<g stroke="{CREAM}" stroke-width="1.2" opacity="0.7" stroke-linecap="round">' + "".join(f'<path d="{d}"/>' for d in stalks) + "</g>")
+    out.append(f'<g stroke="#FFFFFF" stroke-width="1.3" opacity="0.85" stroke-linecap="round">' + "".join(f'<path d="{d}"/>' for d in tufts) + "</g>")
+    out.append(f'<path d="{blob(cx, cy, 8, 8, seed, 0.1, 10)}" fill="{GOLD_D}"/><path d="{blob(cx - 1, cy - 1, 4.5, 4.5, seed + 1, 0.1, 8)}" fill="{GOLD_L}"/>')
+    return "".join(out)
+
+
+def seed_float(x, y, ang, s, op=1.0):
+    """One drifting dandelion seed: stalk and umbrella."""
+    a = math.radians(ang)
+    tx, ty = x + 14 * s * math.cos(a), y + 14 * s * math.sin(a)
+    out = [f'<path d="M {_f(x)} {_f(y)} L {_f(tx)} {_f(ty)}" stroke="{CREAM}" stroke-width="1.3" stroke-linecap="round" opacity="{op * 0.85:.2f}"/>',
+           f'<circle cx="{_f(x)}" cy="{_f(y)}" r="1.6" fill="{GOLD_L}" opacity="{op:.2f}"/>']
+    for j in range(-3, 4):
+        b = a + j * 0.3
+        out.append(f'<path d="M {_f(tx)} {_f(ty)} l {_f(8 * s * math.cos(b))} {_f(8 * s * math.sin(b))}" stroke="#FFFFFF" stroke-width="1.2" '
+                   f'stroke-linecap="round" opacity="{op * 0.9:.2f}"/>')
+    return "".join(out)
+
+
+@design("make-a-wish")
+def d_make_a_wish():
+    u = "nsc-wish"
+    out = [sky(u, 1501, "air", [(330, 200, 280, 130, -10), (120, 420, 160, 90, 20)], (40, 470, 560, 120, 50), 120, text_shade=False)]
+    # a shooting star across the top
+    sx0, sy0, sx1, sy1 = 410, 66, 520, 104
+    out.append(defs(lg(f"{u}-ss", [(0, "#FFFFFF", 0), (1, "#FFF6DA", 0.9)], 0, 0, 1, 0)))
+    ang = math.degrees(math.atan2(sy1 - sy0, sx1 - sx0))
+    ln = math.hypot(sx1 - sx0, sy1 - sy0)
+    out.append(f'<path d="M 0 -1 L {_f(ln)} -3.2 L {_f(ln)} 3.2 L 0 1 Z" fill="url(#{u}-ss)" transform="translate({sx0} {sy0}) rotate({ang:.1f})"/>')
+    out.append(glow(f"{u}-sg", sx1, sy1, 26, GOLD_L, 0.6, 0.3) + spark(sx1, sy1, 14, "#FFFFFF", 1))
+    # hill with grass, the dandelion clock on its stem, leaves
+    hill = f'M -10 600 L -10 520 {L((-10, 520), (120, 498), (260, 512), (400, 536), (520, 526), (610, 512))[1:].replace("M", "L", 1)} L 610 600 Z'
+    out.append(defs(lg(f"{u}-hl", [(0, "#1E2258"), (1, "#0A0C26")])) + f'<path d="{hill}" fill="url(#{u}-hl)"/>')
+    out.append(f'<path d="{L((-10, 520), (120, 498), (260, 512), (400, 536), (520, 526), (610, 512))}" fill="none" stroke="#8A88D0" stroke-width="2" opacity="0.5"/>')
+    rnd = random.Random(1502)
+    blades = []
+    for _ in range(140):
+        x = rnd.uniform(-5, 605)
+        y0 = 520 - 22 * math.sin(math.pi * min(max(x, 0), 400) / 520) + rnd.uniform(-2, 14)
+        h = rnd.uniform(8, 20)
+        blades.append(f'<path d="M {_f(x)} {_f(y0)} q {_f(rnd.uniform(-3, 3))} {_f(-h / 2)} {_f(rnd.uniform(-6, 6))} {_f(-h)}" stroke="{rnd.choice(["#2E3474", "#3A3E88", "#1A1E50"])}" '
+                      f'stroke-width="{rnd.uniform(1.2, 2.4):.1f}" fill="none" stroke-linecap="round"/>')
+    out.append("".join(blades))
+    hx, hy, hr = 196, 352, 66
+    stem = tube([(178, 560), (172, 500), (180, 430), (hx, hy + 8)], 7, 4)
+    out.append(f'<path d="{stem}" fill="#2C3A5A"/>' + ink(stem, "#9AB2C8", 1.4, 1503, 1, 0.5))
+    for side, (lx, ly, ang) in ((-1, (176, 540, -150)), (1, (180, 546, -30)), (1, (176, 556, -10))):
+        pts = []
+        for i in range(9):
+            t = i / 8
+            d = 70 * t
+            w = 10 * math.sin(math.pi * t) * (1.4 if i % 2 else 0.6)
+            a = math.radians(ang)
+            pts.append((lx + d * math.cos(a) - w * math.sin(a), ly + d * math.sin(a) + w * math.cos(a)))
+        for i in range(8, -1, -1):
+            t = i / 8
+            d = 70 * t
+            w = 4 * math.sin(math.pi * t)
+            a = math.radians(ang)
+            pts.append((lx + d * math.cos(a) + w * math.sin(a), ly + d * math.sin(a) - w * math.cos(a)))
+        out.append(f'<path d="{smooth_closed(pts)}" fill="#26305A"/>' + ink(smooth_closed(pts), "#7A92B8", 1.2, 1504, 1, 0.45))
+    out.append(dandelion(f"{u}-dd", hx, hy, hr, 1505))
+    # seeds drifting away and turning into stars
+    path = [(hx + 56, hy - 26), (300, 330), (360, 316), (420, 350), (470, 330), (520, 300)]
+    for i in range(16):
+        t = i / 15
+        seg = min(int(t * (len(path) - 1)), len(path) - 2)
+        f = t * (len(path) - 1) - seg
+        x = path[seg][0] + (path[seg + 1][0] - path[seg][0]) * f + rnd.uniform(-22, 22)
+        y = path[seg][1] + (path[seg + 1][1] - path[seg][1]) * f + rnd.uniform(-34, 34)
+        if t < 0.6:
+            out.append(seed_float(x, y, -90 + rnd.uniform(-40, 40), 1.0 - 0.3 * t))
+        else:
+            out.append(glow(f"{u}-st{i}", x, y, 14, GOLD_L, 0.5, 0.3) + spark(x, y, 4 + 7 * (t - 0.6) * 2.5, "#FFFFFF" if i % 2 else GOLD_L, 0.95))
+    # lettering: centred at the top
+    out.append(script(300, 142, "make a", 60, CREAM, 360, shadow="#05040E", sd=(2, 3)))
+    out.append(bword(f"{u}-tx", 306, 246, "WISH", CINZEL, 116, GOLD, [GOLD_L, GOLD_D, "#F6D88E", "#C99A48"], 1510, max_w=330, ls=14,
+                     shadow="#05040E", sd=0.035, angle=-14))
+    out.append(finish(u, 1520))
     return "".join(out)
 
 

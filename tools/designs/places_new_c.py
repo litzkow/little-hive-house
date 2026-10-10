@@ -538,6 +538,9 @@ def key_west():
     for x, h, c, pose, sd in ((330, 46, "#2A3A4A", "stand_back", 612), (346, 38, "#7A3A4A", "stand_back", 613), (446, 42, "#3A2A3E", "photo", 614)):
         out.append(person(x, 392 - (x + 10) * 16 / 620, h, c, pose=pose, facing=-1, light=1 if x < 388 else -1, seed=sd, pal={"season": "summer", "form": "f" if x == 346 else None}, **kw))
     out.append(person(358, 392 - 368 * 16 / 620, 24, "#E86A5A", pose="child_back", light=-1, seed=615, **dict(kw, rim="#FFD8A0")))
+    # a couple strolling across the boards to join the crowd, painted large in the foreground
+    out.append('<ellipse cx="138" cy="433" rx="40" ry="4" fill="#1E0E1A" opacity="0.3"/>')
+    out.append(F.couple(138, 432, 80, "back", {"season": "summer"}, seed=618, rim="#FFB878", light=1, tint=("#2A1A34", 0.3), gap=32))
     # a Key West rooster on the nearest piling
     yb = 388 - 520 * 16 / 620
     out.append(rooster(510, yb - 34, 0.85, flip=True))
@@ -1418,10 +1421,10 @@ def flats_skiff(x, y, s=1.0):
             '<path d="M -36 -4 L -36 -16 M -24 -4 L -24 -16 M -38 -16 L -22 -16" stroke="#C8CCD0" stroke-width="1.8"/>'
             # guide on the poling platform
             '<line x1="-46" y1="10" x2="-14" y2="-62" stroke="#3A3A3A" stroke-width="1.4"/>'
-            + F.person(-31, -16, 27, "stand_side", 1, {"top": "#E8E4D8", "top_kind": "long", "bottom": "#4A5A6A", "bottom_kind": "trousers", "hat_kind": "cap", "hat": "#E8E0C8", "form": "m", "skin": "#C88A60"}, seed=651, shadow=0, rim="#FFF4D8", light=1)
+            + F.person(-31, -16, 31, "stand_side", 1, {"top": "#E8E4D8", "top_kind": "long", "bottom": "#4A5A6A", "bottom_kind": "trousers", "hat_kind": "cap", "hat": "#E8E0C8", "form": "m", "skin": "#C88A60"}, seed=651, shadow=0, rim="#FFF4D8", light=1)
             # angler at the bow
-            + F.person(30, -4, 26, "point", 1, {"top": "#5A8AC8", "top_kind": "long", "bottom": "#E8E4D8", "bottom_kind": "shorts", "hat_kind": "sunhat", "hat": "#E8E0C8", "form": "m", "skin": "#C88A60"}, seed=652, shadow=0, rim="#FFF4D8", light=1) +
-            '<path d="M 35 -30 L 50 -48" stroke="#2A2A2A" stroke-width="1.2"/><path d="M 50 -48 Q 70 -40 86 -6" stroke="#FFFFFF" stroke-width="0.9" fill="none" opacity="0.8"/>'
+            + F.person(28, -4, 30, "point", 1, {"top": "#5A8AC8", "top_kind": "long", "bottom": "#E8E4D8", "bottom_kind": "shorts", "hat_kind": "sunhat", "hat": "#E8E0C8", "form": "m", "skin": "#C88A60"}, seed=652, shadow=0, rim="#FFF4D8", light=1) +
+            '<path d="M 35 -30 L 50 -48" stroke="#2A2A2A" stroke-width="1.2"/><path d="M 50 -48 Q 62 -40 68 -5" stroke="#FFFFFF" stroke-width="0.9" fill="none" opacity="0.8"/>'
             '</g>')
 
 
@@ -1546,8 +1549,10 @@ def keys():
     out.append("".join(f'<circle cx="{rm.uniform(mx0 + 4, mx1 - 4):.1f}" cy="{my - 18 - rm.uniform(0, 8):.1f}" r="{rm.uniform(3, 6):.1f}" fill="#7AAA5A" opacity="0.7"/>' for _ in range(14)))
     out.append(f'<ellipse cx="{(mx0 + mx1) / 2}" cy="{my + 3}" rx="{(mx1 - mx0) / 2 + 6}" ry="3" fill="#2E6A5A" opacity="0.35"/>')
     # flats skiff poling along the edge of the channel
-    out.append(flats_skiff(408, 304, 0.78))
-    out.append(f'<path d="M 380 308 q 30 4 66 0" stroke="#FFFFFF" stroke-width="1.4" fill="none" opacity="0.7"/>')
+    out.append(f'<ellipse cx="350" cy="324" rx="70" ry="5" fill="#1E6A7A" opacity="0.25"/>')
+    out.append(flats_skiff(350, 318, 1.3))
+    out.append(f'<path d="M 294 324 q 50 6 110 0" stroke="#FFFFFF" stroke-width="1.8" fill="none" opacity="0.7"/>'
+               f'<path d="M 288 320 q -30 2 -56 8 M 290 326 q -26 6 -48 14" stroke="#FFFFFF" stroke-width="1.3" fill="none" opacity="0.5"/>')
     # the pelican on an old piling in the foreground
     out.append(f'<rect x="488" y="352" width="22" height="100" fill="#7A6450"/><rect x="498" y="352" width="12" height="100" fill="#5A4A3A"/>'
                f'<ellipse cx="499" cy="352" rx="11" ry="3.5" fill="#A88E72"/><rect x="488" y="410" width="22" height="34" fill="#4A6A5A" opacity="0.5"/>')

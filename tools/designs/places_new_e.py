@@ -385,8 +385,16 @@ def rocky_mountains():
         out.append(f'<ellipse cx="{bx}" cy="{by}" rx="{r * 1.4}" ry="{r * 0.8}" fill="#6E6A66"/><ellipse cx="{bx - r * 0.4}" cy="{by - r * 0.3}" rx="{r * 0.8}" ry="{r * 0.35}" fill="#A8A29A"/>')
     out.append(grass(170, 13, (-10, 398, 610, 444), ["#C9A24A", "#A88A3A", "#E2C06A", "#7A6A30"], h=(8, 22)))
     # photographer with a tripod waiting for the light
-    out.append(figure(254, 412, 26, body="#B8463A", pack="#2E3A4A", pose="stand_side", rim="#FFD8A0", light=-1, pal={"hat_kind": "beanie", "hat": "#2E3A4A", "season": "winter"}))
-    out.append('<path d="M 266 384 L 260 412 M 266 384 L 272 412 M 266 384 L 266 412" stroke="#1E1C24" stroke-width="1.6"/><rect x="261" y="378" width="10" height="7" rx="1.5" fill="#1E1C24"/>')
+    fx_, fb_, fh_ = 250, 424, 50
+    tx_, ty_ = fx_ + 0.42 * fh_, fb_ - 0.84 * fh_
+    out.append(f'<ellipse cx="{fx_ + 10}" cy="{fb_ + 1}" rx="26" ry="3" fill="#3A3020" opacity="0.3"/>')
+    tx_, ty_ = fx_ + 0.34 * fh_, fb_ - 0.86 * fh_
+    out.append(figure(fx_, fb_, fh_, body="#B8463A", pack="#2E3A4A", pose="stand_side", rim="#FFD8A0", light=-1,
+                      pal={"hat_kind": "beanie", "hat": "#2E3A4A", "top_kind": "jacket", "bottom": "#3A3A4A", "bottom_kind": "trousers", "form": "m", "shoes": "#4A3A2A"}))
+    out.append(f'<path d="M {tx_:.1f} {ty_:.1f} L {tx_ - 0.2 * fh_:.1f} {fb_} M {tx_:.1f} {ty_:.1f} L {tx_ + 0.18 * fh_:.1f} {fb_ + 1} M {tx_:.1f} {ty_:.1f} L {tx_ + 0.02 * fh_:.1f} {fb_ + 2}" '
+               f'stroke="#1E1C24" stroke-width="2.2" stroke-linecap="round"/>'
+               f'<rect x="{tx_ - 4:.1f}" y="{ty_ - 6:.1f}" width="10" height="7" rx="1.5" fill="#1E1C24"/><rect x="{tx_ + 5:.1f}" y="{ty_ - 4.5:.1f}" width="4" height="4" rx="1" fill="#3E3A44"/>'
+               f'<rect x="{tx_ - 3:.1f}" y="{ty_ - 5:.1f}" width="4" height="1.4" fill="#FFD8A0" opacity="0.7"/>')
     for x, b, h, sd, ln in ((-6, 444, 190, 1, 0.03), (40, 440, 150, 2, -0.02), (92, 444, 120, 3, 0.04),
                             (510, 444, 160, 4, -0.03), (562, 442, 200, 5, 0.02), (604, 444, 140, 6, -0.04)):
         out.append(aspen(x, b, h, sd, lean=ln))

@@ -1082,7 +1082,7 @@ def seattle():
 
 
 
-# ---------------------------------------------------------------- Boston (Acorn Street, Beacon Hill, in autumn)
+# ---------------------------------------------------------------- Boston (the Charles River at golden hour, from the Cambridge bank)
 def leaf_scatter(n, seed, box, cols, s=(2.5, 5), opacity=(0.7, 1)):
     rnd = random.Random(seed)
     x0, y0, x1, y1 = box
@@ -1122,225 +1122,361 @@ def ivy(box, seed, sz, cols=("#C8402A", "#E86A2E", "#9A2A24", "#F2A040", "#6E2A2
             + leaf_scatter(n, seed + 1, box, list(cols), s=(sz * 0.7, sz * 1.15), opacity=(0.9, 1)))
 
 
+def bo_sailboat(x, y, h, seed, sail="#FFF6E8", shade="#B8B0C8", hull="#F4EEE6", heel=6, jib=True, rim="#FFE2B0"):
+    """Small racing dinghy: mainsail + jib lit from the right, a low hull and its broken reflection.
+    (x, y) = waterline under the mast, h = mast height in px."""
+    t = math.tan(math.radians(heel))
+    top = (x + h * t, y - h)
+    boom = (x - h * 0.42, y - h * 0.1)
+    mast_foot = (x, y - h * 0.08)
+    out = []
+    # reflection first (under everything)
+    out.append(f'<polygon points="{P([(x - h * 0.4, y + 1.5), (x + h * 0.3, y + 1.5), (top[0] * 0.15 + x * 0.85, y + h * 0.75)])}" fill="{sail}" opacity="0.22"/>')
+    # mainsail: luff along the mast, curved leech to the boom end
+    out.append(f'<path d="M {mast_foot[0]:.1f} {mast_foot[1]:.1f} L {top[0]:.1f} {top[1]:.1f} Q {x - h * 0.22 + h * t * 0.5:.1f} {y - h * 0.5:.1f} {boom[0]:.1f} {boom[1]:.1f} Z" fill="{shade}"/>')
+    out.append(f'<path d="M {mast_foot[0] - 0.6:.1f} {mast_foot[1]:.1f} L {top[0] - 0.6:.1f} {top[1] + 2:.1f} Q {x - h * 0.12 + h * t * 0.5:.1f} {y - h * 0.45:.1f} {x - h * 0.2:.1f} {y - h * 0.1:.1f} Z" fill="{sail}"/>')
+    if jib:
+        jt = (x + h * t * 0.8, y - h * 0.78)
+        out.append(f'<path d="M {jt[0]:.1f} {jt[1]:.1f} L {x + h * 0.34:.1f} {y - h * 0.06:.1f} Q {x + h * 0.14:.1f} {y - h * 0.3:.1f} {x + 1:.1f} {y - h * 0.1:.1f} Z" fill="{sail}"/>')
+        out.append(f'<path d="M {jt[0]:.1f} {jt[1]:.1f} L {x + h * 0.34:.1f} {y - h * 0.06:.1f}" stroke="{rim}" stroke-width="{max(1, h * 0.03):.1f}" fill="none"/>')
+    out.append(f'<line x1="{mast_foot[0]:.1f}" y1="{mast_foot[1]:.1f}" x2="{top[0]:.1f}" y2="{top[1]:.1f}" stroke="#4A4250" stroke-width="{max(1, h * 0.025):.1f}"/>')
+    # hull with a lit topside and a shadow on the water line
+    hw = h * 0.42
+    out.append(f'<path d="M {x - hw:.1f} {y - h * 0.08:.1f} L {x + hw:.1f} {y - h * 0.08:.1f} Q {x + hw * 0.7:.1f} {y + 1:.1f} {x + hw * 0.4:.1f} {y + 1:.1f} L {x - hw * 0.8:.1f} {y + 1:.1f} Z" fill="{hull}"/>')
+    out.append(f'<rect x="{x - hw * 0.8:.1f}" y="{y - 0.5:.1f}" width="{hw * 1.4:.1f}" height="1.5" fill="#3A4060" opacity="0.5"/>')
+    # sailors hiking out on the high side
+    for k in range(2 if h > 26 else 1):
+        sx = x - hw * 0.2 + k * hw * 0.45
+        out.append(f'<ellipse cx="{sx:.1f}" cy="{y - h * 0.14:.1f}" rx="{h * 0.045:.1f}" ry="{h * 0.07:.1f}" fill="{["#C8402E", "#2E4A7A"][k]}"/>'
+                   f'<circle cx="{sx:.1f}" cy="{y - h * 0.22:.1f}" r="{h * 0.035:.1f}" fill="#3A2A22"/>')
+    return "".join(out)
+
+
+def bo_salt_pepper(x, base, top, w, u, k):
+    """One of the Longfellow Bridge's round granite towers: a stout shaft rising from the pier, belt courses,
+    a ring of arched lookout openings and a rounded shaker-top cap with a finial, lit from the right."""
+    out = []
+    cap_h = w * 0.62
+    body_top = top + cap_h
+    gid = f"{u}-spt"
+    out.append(f'<rect x="{x - w / 2:.1f}" y="{body_top:.1f}" width="{w:.1f}" height="{base - body_top:.1f}" fill="url(#{gid})"/>')
+    # coursed granite: faint joints, and the belt courses
+    out.append(f'<g stroke="#6E6478" stroke-width="0.7" opacity="0.35">' + "".join(
+        f'<line x1="{x - w / 2:.1f}" y1="{y:.1f}" x2="{x + w / 2:.1f}" y2="{y:.1f}"/>' for y in [body_top + w * 0.9 + i * 3.2 for i in range(int((base - body_top - w) / 3.2))]) + "</g>")
+    for t in (0.0, 0.3, 0.62):
+        y = body_top + (base - body_top) * t + (w * 0.75 if t == 0 else 0)
+        out.append(f'<rect x="{x - w / 2 - 1:.1f}" y="{y:.1f}" width="{w + 2:.1f}" height="{max(1.4, w * 0.09):.1f}" fill="#857C90"/>')
+        out.append(f'<rect x="{x + w * 0.1:.1f}" y="{y:.1f}" width="{w * 0.4 + 1:.1f}" height="{max(0.7, w * 0.04):.1f}" fill="#FFE8C4" opacity="0.8"/>')
+    # ring of arched lookout openings under the cap
+    oy = body_top + w * 0.12
+    for dx in (-0.36, -0.08, 0.2):
+        ox = x + dx * w
+        ow = w * 0.15
+        out.append(f'<path d="M {ox:.1f} {oy + w * 0.55:.1f} L {ox:.1f} {oy + ow * 0.6:.1f} Q {ox + ow / 2:.1f} {oy - ow * 0.2:.1f} {ox + ow:.1f} {oy + ow * 0.6:.1f} L {ox + ow:.1f} {oy + w * 0.55:.1f} Z" fill="#3E3448"/>')
+    # cornice + rounded cap (shaded left, warm right), finial
+    out.append(f'<rect x="{x - w / 2 - 1.8:.1f}" y="{body_top - 2:.1f}" width="{w + 3.6:.1f}" height="3" fill="#9A90A0"/>')
+    out.append(f'<path d="M {x - w / 2 - 0.5:.1f} {body_top - 2:.1f} C {x - w / 2:.1f} {top + cap_h * 0.2:.1f} {x - w * 0.2:.1f} {top:.1f} {x:.1f} {top:.1f} C {x + w * 0.2:.1f} {top:.1f} {x + w / 2:.1f} {top + cap_h * 0.2:.1f} {x + w / 2 + 0.5:.1f} {body_top - 2:.1f} Z" fill="#8A8094"/>')
+    out.append(f'<path d="M {x + w * 0.05:.1f} {top + 0.3:.1f} C {x + w * 0.25:.1f} {top + 0.5:.1f} {x + w / 2:.1f} {top + cap_h * 0.25:.1f} {x + w / 2 + 0.5:.1f} {body_top - 2:.1f} L {x + w * 0.12:.1f} {body_top - 2:.1f} Z" fill="#F2D2A8"/>')
+    out.append(f'<ellipse cx="{x:.1f}" cy="{top - w * 0.12:.1f}" rx="{w * 0.1:.1f}" ry="{w * 0.14:.1f}" fill="#9A90A0"/>')
+    out.append(f'<line x1="{x:.1f}" y1="{top - w * 0.2:.1f}" x2="{x:.1f}" y2="{top - w * 0.42:.1f}" stroke="#6A6070" stroke-width="1.3"/>')
+    # rim light down the sunny side
+    out.append(f'<rect x="{x + w / 2 - max(1.2, w * 0.1):.1f}" y="{body_top:.1f}" width="{max(1.2, w * 0.1):.1f}" height="{base - body_top:.1f}" fill="#FFE6C0" opacity="0.85"/>')
+    return "".join(out)
+
+
+def bo_rowhouses(x0, x1, base, hmin, hmax, seed, wall_cols, u, lit_edge="#FFD9A0", win_glint=0.18, roof="#3E3446", wmin=12, wmax=22):
+    """A terrace of brick and brownstone row houses with flat or mansard roofs, chimneys and rows of windows;
+    the street faces toward us in soft shade, each house's sunny (right) edge catching the low light."""
+    rnd = random.Random(seed)
+    out = []
+    x = x0
+    while x < x1:
+        w = rnd.uniform(wmin, wmax)
+        h = rnd.uniform(hmin, hmax)
+        col = rnd.choice(wall_cols)
+        top = base - h
+        out.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="{w + 0.6:.1f}" height="{h:.1f}" fill="{col}"/>')
+        kind = rnd.random()
+        if kind < 0.4:      # mansard
+            out.append(f'<path d="M {x:.1f} {top:.1f} L {x + 1.5:.1f} {top - h * 0.18:.1f} L {x + w - 1.5:.1f} {top - h * 0.18:.1f} L {x + w + 0.6:.1f} {top:.1f} Z" fill="{roof}"/>')
+            for dx in (0.3, 0.65):
+                out.append(f'<rect x="{x + w * dx:.1f}" y="{top - h * 0.13:.1f}" width="{max(1.2, w * 0.12):.1f}" height="{h * 0.1:.1f}" fill="#E8D2B0" opacity="0.6"/>')
+        else:               # flat roof with a cornice
+            out.append(f'<rect x="{x - 0.5:.1f}" y="{top - 1.4:.1f}" width="{w + 1.6:.1f}" height="2" fill="#E8D8C4" opacity="0.55"/>')
+        if rnd.random() < 0.5:
+            out.append(f'<rect x="{x + w * rnd.uniform(0.1, 0.8):.1f}" y="{top - h * 0.3:.1f}" width="2.2" height="{h * 0.3:.1f}" fill="{roof}"/>')
+        # windows: rows, a few catching the sun as gold
+        rows = max(2, int(h / 7))
+        cols_ = max(2, int(w / 5.5))
+        for r in range(rows):
+            for c in range(cols_):
+                wx = x + (c + 0.5) * w / cols_ - 0.9
+                wy = top + 3 + r * (h - 5) / rows
+                g = rnd.random()
+                fill = "#FFD27A" if g < win_glint else "#3A3044"
+                out.append(f'<rect x="{wx:.1f}" y="{wy:.1f}" width="1.8" height="{min(3.2, (h - 5) / rows * 0.6):.1f}" fill="{fill}" opacity="{0.95 if g < win_glint else 0.55}"/>')
+        out.append(f'<rect x="{x + w - 1.6:.1f}" y="{top:.1f}" width="1.6" height="{h:.1f}" fill="{lit_edge}" opacity="0.55"/>')
+        x += w
+    return "".join(out)
+
+
+def bo_shell(x, y, n, sp, u, rim="#FFD9A0", light=1):
+    """A sweep-oared shell rowing left (bow on the left): n rowers facing the stern on sliding seats,
+    oars alternating sides, a coxswain in the stern; puddles where the blades bite and a long wake."""
+    out = []
+    L = (n + 1.6) * sp
+    bow, stern = x, x + L
+    # wake behind the stern and the bow wave
+    out.append(f'<path d="M {stern - 6:.1f} {y + 2:.1f} Q {stern + 40:.1f} {y + 5:.1f} {stern + 90:.1f} {y + 5:.1f}" stroke="#F6E6D2" stroke-width="2" fill="none" opacity="0.45"/>')
+    out.append(f'<path d="M {stern - 10:.1f} {y + 3:.1f} Q {stern + 34:.1f} {y + 10:.1f} {stern + 76:.1f} {y + 13:.1f}" stroke="#F6E6D2" stroke-width="1.4" fill="none" opacity="0.3"/>')
+    # reflection of the crew
+    out.append(f'<rect x="{bow + 6:.1f}" y="{y + 2:.1f}" width="{L - 12:.1f}" height="5" fill="#2A2438" opacity="0.25"/>')
+    # far-side oars (behind the crew): shafts angled up and away, blades in the water further out
+    rowers = [bow + sp * (1.0 + i) for i in range(n)]
+    far = []
+    near = []
+    for i, rx in enumerate(rowers):
+        hand = (rx + sp * 0.32, y - sp * 0.42)
+        if i % 2 == 0:
+            blade = (rx - sp * 0.55, y - 1)
+            far.append((hand, blade))
+        else:
+            blade = (rx - sp * 0.85, y + sp * 0.22)
+            near.append((hand, blade))
+    for hand, blade in far:
+        out.append(f'<line x1="{hand[0]:.1f}" y1="{hand[1]:.1f}" x2="{blade[0]:.1f}" y2="{blade[1]:.1f}" stroke="#3A3440" stroke-width="1.5"/>')
+        out.append(f'<ellipse cx="{blade[0]:.1f}" cy="{blade[1]:.1f}" rx="3.5" ry="1.4" fill="#C8402E"/>')
+        out.append(f'<ellipse cx="{blade[0] - 2:.1f}" cy="{blade[1] + 1:.1f}" rx="6" ry="1.2" fill="#FFF4E4" opacity="0.6"/>')
+    # hull: long needle with a lit deck line
+    out.append(f'<path d="M {bow:.1f} {y - 1:.1f} Q {bow + 10:.1f} {y - 3.2:.1f} {bow + 30:.1f} {y - 3.4:.1f} L {stern - 20:.1f} {y - 3.4:.1f} Q {stern - 6:.1f} {y - 3.2:.1f} {stern:.1f} {y - 1.5:.1f} Q {stern - 20:.1f} {y + 1.4:.1f} {stern - 40:.1f} {y + 1.4:.1f} L {bow + 24:.1f} {y + 1.4:.1f} Q {bow + 8:.1f} {y + 1:.1f} {bow:.1f} {y - 1:.1f} Z" fill="#F2EAD8"/>')
+    out.append(f'<path d="M {bow + 4:.1f} {y - 2.6:.1f} L {stern - 6:.1f} {y - 2.6:.1f}" stroke="#C8402E" stroke-width="1.2"/>')
+    out.append(f'<path d="M {bow + 20:.1f} {y + 1.2:.1f} L {stern - 30:.1f} {y + 1.2:.1f}" stroke="#8A8494" stroke-width="1" opacity="0.7"/>')
+    # rowers: seated, facing the stern (right), arms reaching for the oar handles
+    pals = [{"top": "#C8402E", "bottom": "#26242C", "top_kind": "tank", "bottom_kind": "shorts", "hat_kind": None},
+            {"top": "#F2E6D0", "bottom": "#26242C", "top_kind": "tee", "bottom_kind": "shorts", "hat_kind": None},
+            {"top": "#C8402E", "bottom": "#26242C", "top_kind": "tank", "bottom_kind": "shorts", "hat_kind": "cap", "hat": "#F2E6D0"},
+            {"top": "#F2E6D0", "bottom": "#26242C", "top_kind": "tee", "bottom_kind": "shorts", "hat_kind": None}]
+    for i, rx in enumerate(rowers):
+        out.append(F.person(rx - sp * 0.15, y - 2.5, sp * 1.25, "paddle", 1, pals[i % 4], seed=60 + i, rim=rim, light=light, shadow=0))
+    # coxswain in the stern, facing forward
+    out.append(F.person(stern - sp * 0.55, y - 2.5, sp * 1.0, "sit_side", -1, {"top": "#2E3A58", "bottom": "#26242C", "hat_kind": "cap", "hat": "#C8402E"}, seed=71, rim=rim, light=light, shadow=0))
+    for hand, blade in near:
+        out.append(f'<line x1="{hand[0]:.1f}" y1="{hand[1]:.1f}" x2="{blade[0]:.1f}" y2="{blade[1]:.1f}" stroke="#2A2430" stroke-width="2"/>')
+        out.append(f'<ellipse cx="{blade[0]:.1f}" cy="{blade[1]:.1f}" rx="4.5" ry="1.8" fill="#D8483A"/>')
+        out.append(f'<ellipse cx="{blade[0] - 3:.1f}" cy="{blade[1] + 1.5:.1f}" rx="8" ry="1.6" fill="#FFF4E4" opacity="0.65"/>')
+    return "".join(out)
+
+
+def bo_crown(cx, cy, r, seed, base, dark, mid, light, light_dir=(0.6, -0.4), squash=0.8):
+    """Full broadleaf crown: a solid mass of overlapping lobes (no see-through gaps), shaded away from the light,
+    then painterly leaf dabs, and bright dabs on the sunward edge."""
+    rnd = random.Random(seed)
+    lobes = []
+    for i in range(14):
+        a = rnd.uniform(0, 2 * math.pi)
+        d = r * math.sqrt(rnd.random()) * 0.62
+        lobes.append((cx + d * math.cos(a), cy + d * math.sin(a) * squash, r * rnd.uniform(0.3, 0.46)))
+    out = [f'<g fill="{base}">' + "".join(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{rr:.1f}"/>' for x, y, rr in lobes) + "</g>"]
+    lx, ly = light_dir
+    out.append(f'<g fill="{dark[0]}" opacity="0.6">' + "".join(f'<circle cx="{x - lx * rr * 0.3:.1f}" cy="{y - ly * rr * 0.3:.1f}" r="{rr * 0.8:.1f}"/>' for x, y, rr in lobes) + "</g>")
+    out.append(foliage(cx + lx * r * 0.08, cy + ly * r * 0.08, r * 0.92, seed + 1, dark, mid, light, light_dir=light_dir, n=int(90 + r * 3.5), squash=squash))
+    return "".join(out)
+
+
 def boston():
     u = "bo"
-    C = Cam(f=235, cx=306, vpy=222, eye=1.6)
-    g = lambda Z: -0.075 * max(0, Z - 3)          # the lane drops away downhill
-    XL, XR = -2.7, 2.5
-    def Q(X, Z0, Z1, Y0, Y1, rel=True):
-        """Facade rectangle in plane X; Y relative to the sloping ground under each edge when rel."""
-        b0, b1 = (g(Z0), g(Z1)) if rel else (0, 0)
-        return [C(X, b0 + Y0, Z0), C(X, b0 + Y1, Z0), C(X, b1 + Y1, Z1), C(X, b1 + Y0, Z1)]
-    def QF(X, Z0, Z1, Y0, Y1, base):
-        """Rectangle on a building whose floor levels are flat (base = ground at its downhill... uphill start)."""
-        return [C(X, base + Y0, Z0), C(X, base + Y1, Z0), C(X, base + Y1, Z1), C(X, base + Y0, Z1)]
-    def joints(X, z0, z1, y0, y1, base_fn, row=0.3, brick=0.62, zmax=16):
-        """Staggered vertical mortar joints so near walls read as brick, not siding."""
-        res = []
-        z1c = min(z1, zmax)
-        if z0 >= z1c:
-            return ""
-        rr_ = random.Random(int(z0 * 10 + X))
-        for i in range(int((y1 - y0) / row)):
-            yy = y0 + i * row
-            z = z0 + (brick / 2 if i % 2 else 0) + rr_.uniform(0, 0.05)
-            while z < z1c:
-                a_, b_ = C(X, base_fn(z) + yy, z), C(X, base_fn(z) + yy + row, z)
-                res.append(f"M {a_[0]:.1f} {a_[1]:.1f} L {b_[0]:.1f} {b_[1]:.1f}")
-                z += brick
-        return f'<path d="{" ".join(res)}" stroke="#5A2A22" stroke-opacity="0.3" stroke-width="1" fill="none"/>'
+    WL = 292                       # far waterline
     out = [defs(
-        lg(f"{u}-sky", [(0, "#6E9CCB"), (0.5, "#B8C8D8"), (0.85, "#F4D6A8"), (1, "#FCE2B0")]),
-        lg(f"{u}-sun", [(0, "#FFF2C8", 0.0), (1, "#FFD890", 0.5)], 0, 0, 0, 1),
-        lg(f"{u}-brickL", [(0, "#7A3A2E"), (1, "#B05A40")], 0, 0, 1, 0),
-        lg(f"{u}-brickR", [(0, "#C4704E"), (1, "#8A4232")], 0, 0, 1, 0),
-        lg(f"{u}-lane", [(0, "#C8A884"), (0.4, "#8A7464"), (1, "#4A3E3A")], 0, 222, 0, 444, units="userSpaceOnUse"),
-        lg(f"{u}-shade", [(0, "#2A1E2A", 0.45), (0.5, "#2A1E2A", 0.15), (1, "#2A1E2A", 0)], 0, 0, 1, 0),
-        lg(f"{u}-glass", [(0, "#2E3442"), (0.6, "#5A6478"), (1, "#2A2E3A")]),
+        lg(f"{u}-sky", [(0, "#4C6FA6"), (0.3, "#7D97C2"), (0.58, "#C7B4C6"), (0.8, "#F0C49E"), (1, "#F8DAAA")], 0, 40, 0, WL, units="userSpaceOnUse"),
+        lg(f"{u}-water", [(0, "#F4D4A8"), (0.1, "#D2B6B6"), (0.38, "#8090B4"), (0.75, "#4A5E8E"), (1, "#2E3E6A")], 0, WL, 0, 444, units="userSpaceOnUse"),
+        lg(f"{u}-cloud", [(0, "#B49CB8"), (0.5, "#E8C2BE"), (1, "#FFE6C4")], 0, 0, 1, 0),
+        lg(f"{u}-hazeb", [(0, "#B8A8C4"), (1, "#D8BCC0")]),
+        lg(f"{u}-glassL", [(0, "#A8C0E0"), (0.5, "#7C98C8"), (1, "#5A74A8")]),
+        lg(f"{u}-glassR", [(0, "#FFD6A0"), (0.6, "#F2A274"), (1, "#C8786A")]),
+        lg(f"{u}-pru", [(0, "#8A8098"), (0.75, "#A8988E"), (1, "#E8C29A")], 0, 0, 1, 0),
+        lg(f"{u}-dome", [(0, "#8A5A1E"), (0.35, "#D49A30"), (0.7, "#FFE07A"), (0.88, "#FFF4C8"), (1, "#E8B040")], 0, 0, 1, 0),
+        lg(f"{u}-spt", [(0, "#8E8696"), (0.6, "#C2B4AE"), (1, "#F2D8B8")], 0, 0, 1, 0),
+        lg(f"{u}-pier", [(0, "#7E7488"), (1, "#B8A8A4")], 0, 0, 1, 0),
+        lg(f"{u}-bank", [(0, "#7A8A3E"), (1, "#3E4A26")]),
+        lg(f"{u}-hill", [(0, "#9A5A48"), (1, "#7A4A48")]),
+        lg(f"{u}-hhaze", [(0, "#E8C4B4", 0.45), (0.6, "#E8C4B4", 0.12), (1, "#E8C4B4", 0)], 0, 236, 0, 292, units="userSpaceOnUse"),
     )]
     out.append(f'<rect width="600" height="444" fill="url(#{u}-sky)"/>')
-    out.append(glow(312, 226, 200, "#FFE8B0", f"{u}-glow", 0.9))
-    # the far end: across West Cedar Street, a sunlit brick house and a blazing maple
-    zf = 64
-    out.append(poly(QF(-14, zf, zf, 0, 0, 0)[:0] + [C(-10, g(zf) - 0.5, zf), C(-10, g(zf) + 11, zf), C(10, g(zf) + 11, zf), C(10, g(zf) - 0.5, zf)], "#D49068"))
-    rw = random.Random(1)
-    for i in range(4):
-        for j in range(3):
-            a_, b_ = C(-6 + i * 3.6, g(zf) + 2.4 + j * 3, zf), C(-6 + i * 3.6 + 1.3, g(zf) + 4.2 + j * 3, zf)
-            out.append(f'<rect x="{a_[0]:.1f}" y="{b_[1]:.1f}" width="{b_[0] - a_[0]:.1f}" height="{a_[1] - b_[1]:.1f}" fill="#5A4A50"/>')
-    mx, my = C(1.8, g(zf) + 6, zf - 4)
-    out.append(foliage(mx, my - 12, 22, 3, ["#B8502A", "#C8602A"], ["#E8782A", "#F2A030"], ["#FFD060", "#FFE890"], light_dir=(0, -0.6)))
-    out.append(f'<rect x="{mx - 1.5:.1f}" y="{my:.1f}" width="3" height="{C(0, g(zf - 4), zf - 4)[1] - my:.1f}" fill="#4A3028"/>')
-    out.append(f'<rect x="0" y="150" width="600" height="110" fill="url(#{u}-sun)"/>')
-    # the lane: rounded river-stone cobbles running downhill
-    out.append(poly([C(XL + 1.0, g(70), 70), C(XR, g(70), 70), C(XR, g(1.6), 1.6), C(XL + 1.0, g(1.6), 1.6)], f"url(#{u}-lane)"))
-    rc = random.Random(11)
-    cob = []
-    z = 1.7
-    while z < 62:
-        dz = 0.17 * (z / 2) ** 0.3
-        X = XL + 1.0 + rc.uniform(0, 0.1)
-        while X < XR:
-            w = rc.uniform(0.15, 0.24) * (z / 2) ** 0.3
-            p0, p1 = C(X + 0.02, g(z), z + 0.02), C(X + w - 0.02, g(z + dz), z + dz - 0.02)
-            if -5 < p1[0] and p0[0] < 605 and p0[1] < 450:
-                x0_, x1_, y0_, y1_ = p0[0], p1[0], p1[1], p0[1]
-                hgt = y1_ - y0_
-                lit = 1 - min(1, z / 50)
-                cob.append(f'<ellipse cx="{(x0_ + x1_) / 2:.1f}" cy="{(y0_ + y1_) / 2:.1f}" rx="{abs(x1_ - x0_) / 2:.1f}" ry="{hgt / 2:.1f}" fill="{rc.choice(["#7A6A60", "#8E7A6A", "#6A5A52", "#9A8676", "#5E504A"])}"/>')
-                if hgt > 2.5:
-                    cob.append(f'<ellipse cx="{(x0_ + x1_) / 2:.1f}" cy="{y0_ + hgt * 0.32:.1f}" rx="{abs(x1_ - x0_) * 0.3:.1f}" ry="{hgt * 0.16:.1f}" fill="#FFE6B8" opacity="{0.25 + 0.3 * (1 - lit):.2f}"/>')
-            X += w
-        z += dz
-    out.append("".join(cob))
-    # brick sidewalk along the left houses
-    out.append(poly([C(XL, g(70), 70), C(XL + 1.0, g(70) + 0.12, 70), C(XL + 1.0, g(1.6) + 0.12, 1.6), C(XL, g(1.6), 1.6)], "#9A5A44"))
-    out.append(poly([C(XL + 1.0, g(70) + 0.12, 70), C(XL + 1.0, g(70), 70), C(XL + 1.0, g(1.6), 1.6), C(XL + 1.0, g(1.6) + 0.12, 1.6)], "#C8B8A4"))
-    # ---- left: Federal rowhouses stepping down the hill
-    houses = [(1.0, 7.4, 12.5, "#9A4634"), (7.4, 13.6, 12.0, "#A8523C"), (13.6, 19.6, 12.6, "#8E3E30"), (19.6, 25.4, 11.8, "#B05C44"),
-              (25.4, 31.4, 12.2, "#94443A"), (31.4, 37.6, 11.6, "#A44E3A"), (37.6, 44, 12.0, "#8A4034"), (44, 52, 11.4, "#A85A44"), (52, 62, 11.8, "#94483A")]
-    lamps = []
-    for k, (z0, z1, h, col) in enumerate(reversed(houses)):
-        base = g(z0)
-        face = QF(XL, z0, z1, g(z1) - base - 0.3, h, base)
-        out.append(poly(face, col))
-        zm = (z0 + z1) / 2
-        sw = max(0.5, C.f * 0.03 / zm)
-        # brick courses
-        out.append(f'<g stroke="#5A2A22" stroke-opacity="0.35" stroke-width="{sw:.1f}">' + "".join(
-            f'<line x1="{C(XL, base + y, z0)[0]:.1f}" y1="{C(XL, base + y, z0)[1]:.1f}" x2="{C(XL, base + y, z1)[0]:.1f}" y2="{C(XL, base + y, z1)[1]:.1f}"/>'
-            for y in [0.32 * i for i in range(int(h / 0.32))]) + "</g>")
-        rb = random.Random(k * 17)
-        out.append(joints(XL, z0, z1, 0, h, lambda z, b=base: b))
-        out.append(blobs(int(40 * 10 / zm) + 6, k, (min(p[0] for p in face), min(p[1] for p in face), max(p[0] for p in face), max(p[1] for p in face)),
-                         ["#C86A50", "#6A2E24", "#B8604A"], r=(0.6, 2.2 * 10 / zm + 0.5), opacity=(0.2, 0.45), squash=0.4))
-        # cornice
-        out.append(poly(QF(XL, z0, z1, h - 0.5, h, base), "#E8E0D2"))
-        out.append(poly(QF(XL, z0, z1, h - 0.8, h - 0.5, base), "#000", ' opacity="0.25"'))
-        # granite stoop + black door with fanlight and white surround (on the uphill side)
-        dz0, dz1 = z0 + 0.6, z0 + 1.7
-        out.append(poly(QF(XL + 0.02, dz0 - 0.25, dz1 + 0.25, 0.3, 2.9, base), "#EFE8DA"))
-        out.append(poly(QF(XL + 0.03, dz0, dz1, 0.3, 2.35, base), "#16161C"))
-        out.append(poly(QF(XL + 0.03, dz0, dz1, 2.42, 2.82, base), "#F0C878"))
-        kx, ky = C(XL + 0.04, base + 1.5, (dz0 + dz1) / 2)
-        out.append(f'<circle cx="{kx:.1f}" cy="{ky:.1f}" r="{max(0.6, C.f * 0.06 / zm):.1f}" fill="#E8C060"/>')
-        for st in range(2):
-            out.append(poly([C(XL, base + 0.15 * st, dz0 - 0.3), C(XL, base + 0.15 * st, dz1 + 0.3), C(XL + 0.5 - st * 0.2, base + 0.15 * st, dz1 + 0.3), C(XL + 0.5 - st * 0.2, base + 0.15 * st, dz0 - 0.3)], "#C8C0B4"))
-            out.append(poly([C(XL + 0.5 - st * 0.2, base + 0.15 * st, dz0 - 0.3), C(XL + 0.5 - st * 0.2, base + 0.15 * (st + 1), dz0 - 0.3), C(XL + 0.5 - st * 0.2, base + 0.15 * (st + 1), dz1 + 0.3), C(XL + 0.5 - st * 0.2, base + 0.15 * st, dz1 + 0.3)], "#A8A094"))
-        # 6-over-6 windows with black shutters on three floors
-        for fy0, fy1 in ((0.9, 2.6), (3.9, 6.0), (7.2, 9.2), (10.0, 11.4)):
-            for wz0 in (z0 + 2.4, z0 + 4.4) if fy0 < 1 else (z0 + 0.8, z0 + 2.6, z0 + 4.4):
-                wz1 = wz0 + 1.0
-                if wz1 > z1 - 0.3:
-                    continue
-                out.append(poly(QF(XL + 0.01, wz0 - 0.08, wz1 + 0.08, fy0 - 0.12, fy1 + 0.1, base), "#F2EEE6"))
-                out.append(poly(QF(XL + 0.02, wz0, wz1, fy0, fy1, base), f"url(#{u}-glass)"))
-                if zm < 30:
-                    mz = (wz0 + wz1) / 2
-                    a_, b_ = C(XL + 0.02, base + fy0, mz), C(XL + 0.02, base + fy1, mz)
-                    out.append(f'<line x1="{a_[0]:.1f}" y1="{a_[1]:.1f}" x2="{b_[0]:.1f}" y2="{b_[1]:.1f}" stroke="#F2EEE6" stroke-width="{sw:.1f}"/>')
-                    a_, b_ = C(XL + 0.02, base + (fy0 + fy1) / 2, wz0), C(XL + 0.02, base + (fy0 + fy1) / 2, wz1)
-                    out.append(f'<line x1="{a_[0]:.1f}" y1="{a_[1]:.1f}" x2="{b_[0]:.1f}" y2="{b_[1]:.1f}" stroke="#F2EEE6" stroke-width="{sw * 1.4:.1f}"/>')
-                for s0, s1 in ((wz0 - 0.5, wz0 - 0.08), (wz1 + 0.08, wz1 + 0.5)):
-                    out.append(poly(QF(XL + 0.03, s0, s1, fy0, fy1, base), "#1E1E22"))
-                if fy0 < 4.5 and rb.random() < 0.7:     # window box: mums and trailing ivy
-                    out.append(poly(QF(XL + 0.25, wz0 - 0.1, wz1 + 0.1, fy0 - 0.45, fy0 - 0.08, base), "#2A2A2E"))
-                    p0, p1 = C(XL + 0.25, base + fy0 + 0.2, wz0 - 0.1), C(XL + 0.25, base + fy0 - 0.1, wz1 + 0.1)
-                    out.append(blobs(12, k * 7 + int(fy0), (min(p0[0], p1[0]), p0[1], max(p0[0], p1[0]), p1[1]), ["#E8782A", "#F2A030", "#C8402A", "#FFD25A"],
-                                     r=(C.f * 0.07 / zm, C.f * 0.14 / zm), opacity=(0.95, 1), squash=0.85))
-        # party wall line, then the gas lamp on its bracket
-        out.append(poly(QF(XL, z0, z0 + 0.15, g(z1) - base - 0.3, h, base), "#000", ' opacity="0.25"'))
-        lamps.append((z0 + 2.0, base))
-    # Boston ivy turned crimson, climbing the first houses
-    for z0, z1, y0, y1, sd in ((13.6, 15.4, 0, 8, 2), (31.4, 33.0, 0, 6, 3)):
-        p0, p1 = C(XL, g(z0) + y1, z0), C(XL, g(z1) + y0, z1)
-        out.append(ivy((min(p0[0], p1[0]), p0[1], max(p0[0], p1[0]), p1[1]), sd, max(1.6, C.f * 0.1 / z0)))
-    out.append(poly([C(XL, -0.2, 1), C(XL, 14, 1), C(XL, 14, 70), C(XL, g(70) - 0.2, 70)], f"url(#{u}-shade)"))
-    for z, base in lamps:
-        x, y = C(XL + 0.45, base + 3.3, z)
-        s = C.f / z
-        out.append(glow(x, y, s * 1.2, "#FFD488", f"{u}-gl{int(z * 10)}", 0.7))
-        a_ = C(XL, base + 3.0, z)
-        out.append(f'<path d="M {a_[0]:.1f} {a_[1]:.1f} Q {x:.1f} {a_[1]:.1f} {x:.1f} {y - s * 0.28:.1f}" fill="none" stroke="#141418" stroke-width="{max(0.6, s * 0.05):.1f}"/>')
-        out.append(f'<path d="M {x - s * 0.15:.1f} {y - s * 0.26:.1f} L {x + s * 0.15:.1f} {y - s * 0.26:.1f} L {x + s * 0.11:.1f} {y + s * 0.2:.1f} L {x - s * 0.11:.1f} {y + s * 0.2:.1f} Z" fill="#FFE8A8" stroke="#141418" stroke-width="{max(0.5, s * 0.035):.1f}"/>')
-        out.append(f'<path d="M {x - s * 0.2:.1f} {y - s * 0.26:.1f} L {x:.1f} {y - s * 0.42:.1f} L {x + s * 0.2:.1f} {y - s * 0.26:.1f} Z" fill="#141418"/>')
-    # ---- right: high garden walls with doors, trees leaning over, then houses further down
-    segs = [(1.0, 9.0, "wall"), (9.0, 15.0, "house"), (15.0, 24.0, "wall"), (24.0, 30.0, "house"), (30.0, 40.0, "wall"), (40.0, 62.0, "house")]
-    for k, (z0, z1, kind) in enumerate(reversed(segs)):
-        base = g(z0)
-        zm = (z0 + z1) / 2
-        sw = max(0.5, C.f * 0.03 / zm)
-        if kind == "wall":
-            hh = 3.6
-            out.append(poly(Q(XR, z0, z1, -0.3, hh), "#A85A42"))
-            out.append(f'<g stroke="#5A2A22" stroke-opacity="0.3" stroke-width="{sw:.1f}">' + "".join(
-                f'<line x1="{C(XR, g(z0) + y, z0)[0]:.1f}" y1="{C(XR, g(z0) + y, z0)[1]:.1f}" x2="{C(XR, g(z1) + y, z1)[0]:.1f}" y2="{C(XR, g(z1) + y, z1)[1]:.1f}"/>' for y in [0.3 * i for i in range(int(3.6 / 0.3))]) + "</g>")
-            out.append(joints(XR, z0, z1, 0, hh, g))
-            out.append(poly(Q(XR, z0, z1, hh - 0.2, hh), "#D8C8B4"))
-            # arched garden door
-            dz0 = z0 + (z1 - z0) * 0.45
-            dz1 = dz0 + 1.1
-            d = Q(XR - 0.02, dz0, dz1, 0, 2.5)
-            out.append(poly(d, "#2E4A3A"))
-            out.append(poly(Q(XR - 0.03, dz0 + 0.1, dz1 - 0.1, 0.2, 2.3), "#3E5E4A"))
-            # trees in the gardens behind
-            for t in range(2):
-                tz = z0 + (z1 - z0) * (t + 0.5) / 2
-                tx, ty = C(XR + 3.5, g(tz) + 7.5, tz + 2)
-                r = C.f * 3.4 / (tz + 2)
-                out.append(foliage(tx, ty, r, k * 9 + t, ["#9A4222", "#A8502A"], ["#E8862A", "#D86A28", "#F2A438"], ["#FFD060", "#FFE08A", "#F8C048"], light_dir=(-0.6, -0.6)))
-            # ivy cascading over the coping
-            p0, p1 = C(XR, g(z0) + hh + 0.3, z0), C(XR, g(z1) + hh - 1.8, z1)
-            sz = max(1.6, C.f * 0.1 / (z0 + 3))
-            # a cascade hanging from the coping: denser near the top
-            top_pts = [C(XR, g(z) + hh + 0.2, z) for z in (z0, z1)]
-            zs = max(z0, 5.0)
-            for j in range(6):
-                t = j / 6
-                za, zb = zs + (z1 - zs) * t, zs + (z1 - zs) * (t + 0.14)
-                drop = random.Random(k * 31 + j).uniform(0.3, 1.3)
-                a_, b_ = C(XR, g(za) + hh + 0.15, za), C(XR, g(zb) + hh - drop, min(zb, z1))
-                out.append(ivy((min(a_[0], b_[0]), min(a_[1], b_[1]), max(a_[0], b_[0]), max(a_[1], b_[1])), k * 50 + j, sz, cols=("#D8482E", "#E86A2E", "#F2A040", "#B8302A"), base="#A83A28", density=1.0))
-        else:
-            h = 12.0
-            face = QF(XR, z0, z1, g(z1) - base - 0.3, h, base)
-            out.append(poly(face, "#B86448"))
-            out.append(f'<g stroke="#5A2A22" stroke-opacity="0.3" stroke-width="{sw:.1f}">' + "".join(
-                f'<line x1="{C(XR, base + y, z0)[0]:.1f}" y1="{C(XR, base + y, z0)[1]:.1f}" x2="{C(XR, base + y, z1)[0]:.1f}" y2="{C(XR, base + y, z1)[1]:.1f}"/>' for y in [0.32 * i for i in range(int(12 / 0.32))]) + "</g>")
-            out.append(poly(QF(XR, z0, z1, h - 0.5, h, base), "#E8E0D2"))
-            for fy0, fy1 in ((1.0, 2.7), (3.9, 6.0), (7.2, 9.2), (10.0, 11.4)):
-                wz = z0 + 0.7
-                while wz + 1.0 < z1 - 0.4:
-                    out.append(poly(QF(XR - 0.01, wz - 0.08, wz + 1.08, fy0 - 0.1, fy1 + 0.1, base), "#F2EEE6"))
-                    out.append(poly(QF(XR - 0.02, wz, wz + 1.0, fy0, fy1, base), f"url(#{u}-glass)"))
-                    wz += 2.0
-            dz = z0 + 0.3
-            out.append(poly(QF(XR - 0.03, dz, dz + 1.0, 0.2, 2.4, base), "#16161C"))
-            out.append(poly(QF(XR, z0, z0 + 0.15, g(z1) - base - 0.3, h, base), "#000", ' opacity="0.2"'))
-    # the low sun at the end of the lane gilds the right-hand wall tops
-    out.append(poly([C(XR, -0.2, 1), C(XR, 14, 1), C(XR, 14, 70), C(XR, g(70) - 0.2, 70)], "#FFD890", ' opacity="0.08"'))
-    # fallen leaves on the cobbles, a pumpkin on the stoop, a cat, a walker heading down the hill
-    lane = [C(XL + 1.0, g(70), 70), C(XR, g(70), 70), C(XR, g(1.6), 1.6), C(XL + 1.0, g(1.6), 1.6)]
-    out.append(f'<clipPath id="{u}-lc"><polygon points="{P(lane)}"/></clipPath>')
-    out.append(f'<g clip-path="url(#{u}-lc)">' + leaf_scatter(150, 4, (0, 300, 600, 444), ["#E8782A", "#F2A030", "#C8402A", "#FFC850", "#B8502A"], s=(2, 5))
-               + leaf_scatter(70, 5, (200, 236, 440, 300), ["#E8782A", "#F2A030", "#C8402A"], s=(1, 2.2)) + "</g>")
-    px, py = C(XL + 0.55, g(2.2) + 0.32, 2.4)
-    out.append(f'<g transform="translate({px:.1f} {py:.1f})"><ellipse cx="0" cy="-14" rx="24" ry="17" fill="#E8742A"/><path d="M -10 -30 Q -16 -14 -10 2 M 0 -31 L 0 3 M 10 -30 Q 16 -14 10 2" stroke="#B8501E" stroke-width="2" fill="none"/>'
-               '<ellipse cx="-8" cy="-20" rx="5" ry="8" fill="#FFA850" opacity="0.6"/><path d="M -1 -31 q 2 -8 6 -9" stroke="#4A5A2A" stroke-width="3.4" fill="none" stroke-linecap="round"/></g>')
-    cx_, cy_ = C(XL + 0.6, g(8) + 0.32, 8.0)
-    out.append(f'<g transform="translate({cx_:.1f} {cy_:.1f}) scale(0.9)"><path d="M -8 0 Q -10 -16 -2 -20 Q 6 -22 8 -12 Q 10 -4 8 0 Z" fill="#1E1A1E"/><circle cx="2" cy="-23" r="5.5" fill="#1E1A1E"/>'
-               '<path d="M -2 -27 l -1 -6 l 4 4 Z M 5 -27 l 2 -6 l 1 5 Z" fill="#1E1A1E"/><path d="M 8 -2 q 10 0 8 -12" stroke="#1E1A1E" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
-               '<circle cx="0.5" cy="-23.5" r="0.9" fill="#E8D060"/><circle cx="4" cy="-23.5" r="0.9" fill="#E8D060"/><path d="M -8 -2 Q -10 -14 -3 -19" stroke="#FFD890" stroke-width="1" fill="none" opacity="0.6"/></g>')
-    for X, Z, h, c, sk in ((0.6, 26, 1.7, "#2E4A6A", False), (0.2, 44, 1.65, "#C86A4A", True)):
-        x, b = C(X, g(Z), Z)
-        out.append(f'<ellipse cx="{x:.1f}" cy="{b + 1:.1f}" rx="{C.f * 0.5 / Z:.1f}" ry="{C.f * 0.08 / Z:.1f}" fill="#2A1E1A" opacity="0.4"/>')
-        out.append(figure(x, b, C.f * h / Z, c, skirt=sk, rim="#FFE0A0", pose="stand_back", light=1, seed=int(Z), pal={"season": "winter"}))
-    dx_, dy_ = C(1.0, g(26.5), 26.5)
-    out.append(f'<g transform="translate({dx_:.1f} {dy_:.1f}) scale({C.f / 26.5 / 40:.3f})"><ellipse cx="0" cy="-10" rx="12" ry="5" fill="#C8904A"/><circle cx="10" cy="-15" r="4.5" fill="#C8904A"/><path d="M -8 -6 l -1 6 M -4 -6 l 0 6 M 5 -6 l 0 6 M 8 -6 l 1 6" stroke="#8A5A2A" stroke-width="2"/></g>')
-    # falling leaves caught mid-air in the light
-    out.append(leaf_scatter(14, 9, (140, 150, 480, 300), ["#F2A030", "#FFC850", "#E8782A"], s=(2.5, 4)))
-    return "\n".join(out)
+    # the low sun just out of frame to the right (west, upriver)
+    out.append(glow(640, 236, 380, "#FFD08A", f"{u}-sun", 0.75))
+    # golden-hour cumulus, lit on their sunward side
+    out.append(cumulus(250, 112, 200, 46, 3, f"{u}-cloud", hi="#FFF0D4", hi_op=0.75, shade="#9C8AB0", shade_op=0.3))
+    out.append(cumulus(92, 150, 130, 28, 5, f"{u}-cloud", hi="#FFF0D4", hi_op=0.7, shade="#9C8AB0", shade_op=0.3))
+    out.append('<g fill="#F6C8A0" opacity="0.55">' + "".join(
+        f'<ellipse cx="{x}" cy="{y}" rx="{w}" ry="3.2"/>' for x, y, w in ((420, 176, 70), (470, 186, 50), (120, 206, 80), (300, 214, 60))) + "</g>")
+    out.append(gulls([(300, 160, 9), (318, 170, 6), (152, 182, 7)], "#4A4060", sw=1.8))
+    # ---- far city beyond Back Bay: pale, hazy blocks
+    rnd = random.Random(7)
+    x = 250
+    while x < 610:
+        w = rnd.uniform(14, 30)
+        h = rnd.uniform(14, 40)
+        out.append(f'<rect x="{x:.1f}" y="{WL - 22 - h:.1f}" width="{w + 0.5:.1f}" height="{h + 22:.1f}" fill="url(#{u}-hazeb)"/>')
+        x += w
+    # ---- Back Bay towers (generic): a mid-rise or two, the tall mirror-glass slab and the boxy tower with the mast
+    for bx, bw, bt, c in ((300, 26, 214, "#A898B0"), (392, 30, 188, "#9A8CA8"), (486, 34, 206, "#A090AA"), (522, 30, 226, "#AE9CB0"), (334, 22, 228, "#B0A0B4")):
+        out.append(f'<rect x="{bx}" y="{bt}" width="{bw}" height="{WL - bt}" fill="{c}"/>')
+        out.append(f'<rect x="{bx + bw - 4}" y="{bt}" width="4" height="{WL - bt}" fill="#F4C49A" opacity="0.7"/>')
+        r2 = random.Random(bx)
+        out.append("".join(f'<rect x="{xx}" y="{yy}" width="2" height="2.4" fill="#FFE0A0" opacity="{r2.uniform(0.5, 1):.2f}"/>'
+                           for xx in range(bx + 3, bx + bw - 5, 4) for yy in range(bt + 4, WL - 30, 5) if r2.random() < 0.12))
+    # mirror-glass slab: a cool sky-reflecting broad face, a hot sunset-reflecting narrow face, the notch
+    gx0, gx1, gx2, gt = 350, 378, 388, 104
+    out.append(poly([(gx0, WL), (gx0, gt + 4), (gx1, gt), (gx1, WL)], f"url(#{u}-glassL)"))
+    out.append(poly([(gx1, WL), (gx1, gt), (gx2, gt + 3), (gx2, WL)], f"url(#{u}-glassR)"))
+    out.append(f'<rect x="{gx1 - 2.5}" y="{gt + 2}" width="2.5" height="{WL - gt}" fill="#3E4C78" opacity="0.7"/>')
+    out.append('<g stroke="#DCE6F6" stroke-width="0.8" opacity="0.35">' + "".join(f'<line x1="{gx0}" y1="{y}" x2="{gx1 - 3}" y2="{y - 0.5}"/>' for y in range(gt + 12, WL, 6)) + "</g>")
+    out.append(f'<polygon points="{P([(gx0, 196), (gx1 - 3, 170), (gx1 - 3, 210), (gx0, 236)])}" fill="#FFE2C0" opacity="0.28"/>')
+    out.append(f'<line x1="{gx2 - 0.8}" y1="{gt + 3}" x2="{gx2 - 0.8}" y2="{WL}" stroke="#FFF0D8" stroke-width="1.4" opacity="0.8"/>')
+    # boxy tower: ribbed shaft, wider top floors, a tall mast
+    px0, px1, pt = 424, 472, 142
+    out.append(f'<rect x="{px0}" y="{pt}" width="{px1 - px0}" height="{WL - pt}" fill="url(#{u}-pru)"/>')
+    out.append(f'<g fill="#4A4258" opacity="0.55">' + "".join(f'<rect x="{xx}" y="{pt + 8}" width="1.6" height="{WL - pt - 8}"/>' for xx in range(px0 + 3, px1 - 2, 4)) + "</g>")
+    out.append(f'<rect x="{px0 - 2}" y="{pt - 2}" width="{px1 - px0 + 4}" height="9" fill="#6E6478"/>')
+    out.append(f'<rect x="{px0 - 2}" y="{pt + 7}" width="{px1 - px0 + 4}" height="2" fill="#3E3448" opacity="0.6"/>')
+    out.append(f'<rect x="{px1 - 6}" y="{pt - 2}" width="8" height="{WL - pt + 2}" fill="#FFD4A0" opacity="0.55"/>')
+    out.append(f'<rect x="{px0 + 10}" y="{pt - 10}" width="{px1 - px0 - 20}" height="8" fill="#6E6478"/>')
+    out.append(f'<polygon points="{P([(446, pt - 10), (450, pt - 10), (448.8, pt - 46), (447.2, pt - 46)])}" fill="#5A5068"/>')
+    out.append(f'<line x1="449" y1="{pt - 10}" x2="449" y2="{pt - 44}" stroke="#FFD8A8" stroke-width="0.8" opacity="0.8"/>')
+    out.append(glow(448, pt - 46, 6, "#FF5A4A", f"{u}-bcn", 0.8) + f'<circle cx="448" cy="{pt - 46}" r="1.4" fill="#FF6A5A"/>')
+    r3 = random.Random(40)
+    out.append("".join(f'<rect x="{xx + 0.6}" y="{yy}" width="2.4" height="2.4" fill="#FFE2A0" opacity="{r3.uniform(0.45, 0.95):.2f}"/>'
+                       for xx in range(px0 + 3, px1 - 2, 4) for yy in range(pt + 12, WL - 30, 5) if r3.random() < 0.14))
+    # ---- Back Bay row houses along the river, then the Esplanade trees
+    out.append(bo_rowhouses(262, 612, WL - 6, 18, 30, 11, ["#A85A44", "#B86A4A", "#8E4E44", "#C29070", "#9A5E4E", "#B07A5E"], u, wmin=12, wmax=20))
+    rt = random.Random(12)
+    for i in range(30):
+        tx = 250 + i * 12.6 + rt.uniform(-4, 4)
+        r = rt.uniform(8, 13)
+        out.append(foliage(tx, WL - 6 - r * 0.3, r, 300 + i, ["#3E5232", "#4A5A30"], ["#6E7A3A", "#8A8A3E", "#B07A34", "#5E6E34"],
+                           ["#E8C060", "#F2A848", "#D8C870"], light_dir=(0.7, -0.6), n=60))
+    # ---- Beacon Hill: brick houses climbing to the gold dome
+    hill = [(90, WL), (110, 270), (150, 252), (190, 240), (232, 236), (272, 244), (306, 258), (330, 274), (340, WL)]
+    out.append(f'<path d="M {P(hill)} Z" fill="url(#{u}-hill)"/>')
+    rh = random.Random(21)
+    for row, (y0, x0, x1) in enumerate(((WL - 4, 96, 340), (WL - 16, 112, 326), (WL - 28, 134, 312), (WL - 40, 158, 292), (WL - 50, 178, 276))):
+        out.append(bo_rowhouses(x0, x1, y0, 12, 18, 30 + row, ["#A04E3C", "#B4603E", "#8A4A42", "#C27A56", "#94503E", "#7E4E4E"], u,
+                                wmin=8, wmax=13, win_glint=0.12, roof="#4A3440"))
+    out.append(f'<path d="M {P(hill)} Z" fill="url(#{u}-hhaze)"/>')
+    # street trees tucked between the rows
+    for i in range(22):
+        tx, ty = rh.uniform(110, 335), rh.uniform(WL - 44, WL - 4)
+        out.append(foliage(tx, ty, rh.uniform(5, 9), 400 + i, ["#3E5232"], ["#6E7A3A", "#9A7A34"], ["#E8B850", "#F2A040"], light_dir=(0.7, -0.6), n=24))
+    # the State House: brick top floors and pediment, a colonnaded drum and the gilded dome catching the sun
+    sx = 222
+    out.append(f'<g transform="translate({sx} 254) scale(1.22) translate({-sx} -254)">')
+    out.append(f'<rect x="{sx - 40}" y="232" width="80" height="22" fill="#B05E40"/>')
+    out.append(f'<rect x="{sx + 30}" y="232" width="10" height="22" fill="#E8A070" opacity="0.6"/>')
+    out.append('<g fill="#3A2C38" opacity="0.6">' + "".join(f'<rect x="{x}" y="238" width="3" height="5"/>' for x in range(sx - 36, sx + 38, 7)) + "</g>")
+    out.append(f'<rect x="{sx - 42}" y="230" width="84" height="3" fill="#F2E6D4"/>')
+    out.append(poly([(sx - 24, 230), (sx, 219), (sx + 24, 230)], "#F2E6D4"))
+    out.append(poly([(sx - 19, 229), (sx, 221.5), (sx + 19, 229)], "#C8B8B0"))
+    out.append(poly([(sx, 219), (sx + 24, 230), (sx, 230)], "#FFF4E0", ' opacity="0.5"'))
+    # drum
+    out.append(f'<rect x="{sx - 18}" y="206" width="36" height="14" fill="#EFE2CE"/>')
+    out.append(f'<rect x="{sx - 18}" y="206" width="12" height="14" fill="#B8A8A8" opacity="0.6"/>')
+    out.append('<g fill="#6A5A60">' + "".join(f'<rect x="{x}" y="209" width="2" height="8"/>' for x in range(sx - 15, sx + 17, 5)) + "</g>")
+    out.append(f'<rect x="{sx - 20}" y="204" width="40" height="3" fill="#F6ECDC"/>')
+    # dome
+    out.append(glow(sx, 192, 46, "#FFD870", f"{u}-dg", 0.55))
+    out.append(f'<path d="M {sx - 19} 205 C {sx - 19} 188 {sx - 11} 178 {sx} 177 C {sx + 11} 178 {sx + 19} 188 {sx + 19} 205 Z" fill="url(#{u}-dome)"/>')
+    out.append('<g fill="none" stroke="#A86E1E" stroke-width="0.9" opacity="0.6">' + "".join(
+        f'<path d="M {sx + dx} 205 Q {sx + dx * 0.9} 186 {sx} 177"/>' for dx in (-12, -6, 6, 12)) + "</g>")
+    out.append(f'<path d="M {sx + 8} 181 C {sx + 14} 185 {sx + 17} 192 {sx + 17} 200" stroke="#FFFBE6" stroke-width="2.4" fill="none" stroke-linecap="round" opacity="0.9"/>')
+    # lantern and pine-cone finial
+    out.append(f'<rect x="{sx - 5}" y="167" width="10" height="11" fill="#F2E6D4"/>')
+    out.append(f'<rect x="{sx - 5}" y="167" width="3.5" height="11" fill="#B8A8A8" opacity="0.7"/>')
+    out.append(f'<rect x="{sx - 1.5}" y="169" width="3" height="7" fill="#6A5A60"/>')
+    out.append(f'<path d="M {sx - 7} 168 Q {sx} 158 {sx + 7} 168 Z" fill="#E8B040"/><path d="M {sx} 160 Q {sx + 6} 162 {sx + 7} 168 L {sx + 2} 168 Z" fill="#FFF0B0"/>')
+    out.append(f'<ellipse cx="{sx}" cy="157" rx="2" ry="3.2" fill="#F2C048"/><line x1="{sx}" y1="154" x2="{sx}" y2="150" stroke="#E8B040" stroke-width="1.2"/>')
+    out.append('</g>')
+    out.append(bo_rowhouses(150, 300, WL - 31, 9, 14, 61, ["#A04E3C", "#B4603E", "#8A4A42", "#C27A56", "#94503E"], u, wmin=8, wmax=13, win_glint=0.14, roof="#4A3440"))
+    for i, tx in enumerate((168, 196, 254, 286)):
+        out.append(foliage(tx, WL - 32, 7, 470 + i, ["#3E5232"], ["#6E7A3A", "#9A7A34"], ["#E8B850", "#F2A040"], light_dir=(0.7, -0.6), n=30))
+    # ---- the Longfellow Bridge: steel arches between granite piers, the salt-and-pepper towers mid-river
+    def deck(x):           # deck top line receding from the near (left) end to the Boston abutment
+        return 262 + (x + 10) * (278 - 262) / 210
 
+    def wl(x):
+        return 304 - (x + 10) * (304 - WL) / 210
+    xs = [-10, 26, 64, 106, 136, 160, 180, 196]
+    out.append(poly([(-10, deck(-10)), (200, deck(200)), (200, wl(200)), (-10, wl(-10))], "#4A3E58"))
+    for i, (a, b) in enumerate(zip(xs, xs[1:])):
+        top_a, top_b = deck(a) + 6, deck(b) + 6
+        bot = (wl(a) + wl(b)) / 2
+        rise = (bot - top_a) * 0.62
+        out.append(f'<path d="M {a + 4:.1f} {wl(a):.1f} Q {(a + b) / 2:.1f} {bot - rise * 2:.1f} {b - 4:.1f} {wl(b):.1f} Z" fill="url(#{u}-water)"/>')
+        out.append(f'<path d="M {a + 4:.1f} {wl(a):.1f} Q {(a + b) / 2:.1f} {bot - rise * 2:.1f} {b - 4:.1f} {wl(b):.1f}" fill="none" stroke="#6E7084" stroke-width="{max(1.4, (b - a) * 0.07):.1f}"/>')
+        # spandrel posts between arch and deck
+        for t in (0.2, 0.35, 0.5, 0.65, 0.8):
+            px = a + 4 + (b - a - 8) * t
+            yy = (1 - t) ** 2 * wl(a) + 2 * t * (1 - t) * (bot - rise * 2) + t ** 2 * wl(b)
+            out.append(f'<line x1="{px:.1f}" y1="{deck(px) + 5:.1f}" x2="{px:.1f}" y2="{yy:.1f}" stroke="#5E5670" stroke-width="1"/>')
+    for a in xs[1:-1]:      # granite piers
+        out.append(poly([(a - 4, deck(a) + 5), (a + 4, deck(a) + 5), (a + 5, wl(a) + 1), (a - 5, wl(a) + 1)], f"url(#{u}-pier)"))
+    out.append(poly([(-10, deck(-10)), (200, deck(200)), (200, deck(200) + 5), (-10, deck(-10) + 6)], "#8A8098"))
+    out.append(f'<line x1="-10" y1="{deck(-10):.1f}" x2="200" y2="{deck(200):.1f}" stroke="#FFE2B8" stroke-width="1.2" opacity="0.7"/>')
+    # a Red Line train crossing on the centre reservation
+    tx0 = 122
+    for c in range(2):
+        a = tx0 + c * 30
+        out.append(poly([(a, deck(a) - 7), (a + 28, deck(a + 28) - 7), (a + 28, deck(a + 28)), (a, deck(a))], "#D8D4D8"))
+        out.append(poly([(a, deck(a) - 3.5), (a + 28, deck(a + 28) - 3.5), (a + 28, deck(a + 28) - 2), (a, deck(a) - 2)], "#C8302A"))
+        out.append("".join(f'<rect x="{a + 3 + j * 6:.1f}" y="{deck(a + 3 + j * 6) - 6.2:.1f}" width="3.5" height="2" fill="#3A3448"/>' for j in range(4)))
+    # the two towers framing the main channel (the near pair; their twins hide behind)
+    out.append(bo_salt_pepper(64, wl(64) + 1, 222, 19, u, 1))
+    out.append(bo_salt_pepper(106, wl(106) + 1, 234, 15.5, u, 1))
+    # ---- the river
+    out.append(f'<rect x="-10" y="{WL}" width="620" height="{444 - WL}" fill="url(#{u}-water)"/>')
+    # reflections: the dome, the towers, the lit windows, the sky glow on the right
+    out.append(reflect_streaks(31, [sx - 8, sx, sx + 8, sx + 14], WL + 3, 360, ["#FFD870", "#F2B848", "#FFE8A0"], w=(4, 9), op=(0.5, 0.9), step=(3, 6)))
+    out.append(reflect_streaks(32, [356, 364, 372, 384], WL + 3, 350, ["#9AB2DA", "#F6B07A"], w=(3, 7), op=(0.35, 0.7), step=(3, 6)))
+    out.append(reflect_streaks(33, [434, 446, 458, 466], WL + 3, 340, ["#C8B0A0", "#F2C49A"], w=(3, 7), op=(0.3, 0.6), step=(3, 7)))
+    out.append(reflect_streaks(34, list(range(262, 600, 9)), WL + 2, 312, ["#B85A44", "#6E7A3A", "#E8B060"], w=(3, 6), op=(0.25, 0.5), step=(3, 5)))
+    out.append(reflect_streaks(35, [58, 64, 70, 102, 108], wl(64) + 2, 350, ["#E8D0B8", "#8E8696"], w=(3, 7), op=(0.25, 0.55), step=(3, 6)))
+    out.append(ripples(160, 36, (-10, WL + 4, 610, 444), ["#FFE4BC", "#F6CFA0", "#B8C4E0"], w=(6, 22), opacity=(0.25, 0.7), persp=(WL, 444)))
+    out.append(ripples(70, 37, (440, WL + 2, 610, 360), ["#FFF0D0", "#FFE2A8"], w=(4, 16), opacity=(0.5, 0.95), persp=(WL, 444)))
+    # sailboats out on the basin (racing dinghies), smallest farthest
+    for bx, by, bh, sd, sail in ((318, 306, 20, 1, "#FFF6E8"), (262, 316, 30, 2, "#FFF6E8"), (512, 304, 17, 3, "#FFF6E8"),
+                                 (410, 322, 38, 4, "#FFF6E8"), (154, 326, 32, 5, "#F2D27A"), (560, 316, 26, 6, "#FFF6E8"), (484, 344, 54, 7, "#FFF6E8")):
+        out.append(bo_sailboat(bx, by, bh, sd, sail=sail, heel=4 + sd % 3 * 3))
+    # a crew rowing upriver across the foreground
+    out.append(bo_shell(78, 394, 4, 34, u))
+    # ---- Cambridge bank in the foreground (bottom right): grass, the riverside path, a bench, a maple turning
+    out.append(f'<path d="M 318 444 Q 400 414 500 400 Q 560 392 610 388 L 610 444 Z" fill="url(#{u}-bank)"/>')
+    out.append(f'<path d="M 318 444 Q 400 414 500 400 Q 560 392 610 388" stroke="#D8C070" stroke-width="2.2" fill="none" opacity="0.7"/>')
+    out.append(grass(90, 41, (330, 404, 610, 444), ["#8E9440", "#6E7A3A", "#A8A048", "#5A6830"], h=(3, 7), sw=1.3))
+    out.append(f'<path d="M 404 444 Q 470 424 560 414 Q 590 411 610 410 L 610 424 Q 560 428 500 436 Q 470 440 452 444 Z" fill="#C8B49A"/>')
+    out.append(f'<path d="M 404 444 Q 470 424 560 414 Q 590 411 610 410" stroke="#F2DEC0" stroke-width="1.4" fill="none" opacity="0.8"/>')
+    # maple: a leaning trunk at the right edge, limbs reaching in, the crown backlit and turning
+    out.append('<path d="M 578 444 C 582 390 574 330 566 262 C 562 236 556 214 548 196 L 562 192 C 572 214 580 240 584 268 C 592 330 600 390 600 444 Z" fill="#3A2A28"/>')
+    out.append('<path d="M 584 268 C 592 330 600 390 600 444 L 597 444 C 596 390 589 330 581 270 Z" fill="#FFC890" opacity="0.45"/>')
+    out.append('<g fill="none" stroke="#3A2A28" stroke-linecap="round"><path d="M 556 200 Q 530 160 504 140" stroke-width="5"/><path d="M 560 196 Q 566 140 590 96" stroke-width="5"/>'
+               '<path d="M 570 250 Q 600 220 612 200" stroke-width="4"/><path d="M 520 152 Q 500 150 484 162" stroke-width="2.5"/></g>')
+    for cx, cy, r, sd in ((604, 200, 32, 9), (512, 138, 34, 8), (572, 84, 60, 7)):
+        out.append(bo_crown(cx, cy, r, sd, "#5A3A22", ["#7A3A1E", "#6A5A26"], ["#D8682A", "#E8902E", "#A89A3E", "#7A8A34", "#C8502A"],
+                            ["#FFD060", "#FFE890", "#F8B848"]))
+    out.append(leaf_scatter(14, 9, (420, 160, 590, 380), ["#F2A030", "#FFC850", "#E8782A", "#C8402A"], s=(2.5, 4.5)))
+    out.append(leaf_scatter(18, 10, (440, 404, 610, 440), ["#E8782A", "#F2A030", "#C8402A", "#FFC850"], s=(2.5, 4)))
+    # a park bench on the bank, a couple watching the boats; a jogger on the path
+    vis = dict(rim="#FFD49A", light=1, tint=("#4A3A5E", 0.1))
+    def seat(x):
+        return 408 - (x - 448) * 6 / 92
+    out.append('<g fill="#26302A">' + "".join(f'<rect x="{x - 1.6:.1f}" y="{seat(x) - 16:.1f}" width="3.2" height="{24:.1f}"/>' for x in (452, 536)) + "</g>")
+    out.append(f'<polygon points="{P([(446, seat(446)), (542, seat(542)), (542, seat(542) + 3), (446, seat(446) + 3)])}" fill="#3A4636"/>')
+    out.append(F.person(478, seat(478) + 1, 58, "sit_back", 1, {"top": "#2E4A6A", "bottom": "#3E5274", "form": "m", "hair": "#4A2E1E"}, seed=81, **vis))
+    out.append(F.person(508, seat(508) + 1, 54, "sit_back", 1, {"top": "#C8573E", "form": "f", "hair_style": "long", "hair": "#9A6634"}, seed=84, **vis))
+    for dy in (-15, -9):     # backrest slats in front of them, armrests at the ends
+        out.append(f'<polygon points="{P([(446, seat(446) + dy), (542, seat(542) + dy), (542, seat(542) + dy + 4), (446, seat(446) + dy + 4)])}" fill="#4A5A3E"/>')
+        out.append(f'<line x1="446" y1="{seat(446) + dy:.1f}" x2="542" y2="{seat(542) + dy:.1f}" stroke="#E8C890" stroke-width="1.1" opacity="0.8"/>')
+    out.append('<g fill="#26302A">' + "".join(f'<rect x="{x - 1.4:.1f}" y="{seat(x) - 17:.1f}" width="2.8" height="{26:.1f}"/>' for x in (447, 541)) + "</g>")
+    out.append(F.person(428, 442, 58, "jog", -1, {"top": "#E8B040", "bottom": "#26242C", "form": "f", "hair_style": "ponytail"}, seed=88, **vis))
+    return "\n".join(out)
 
 
 # ---------------------------------------------------------------- Philadelphia (Independence Hall from the square)
@@ -1673,9 +1809,11 @@ def yosemite():
     for x, b, h, sd in ((34, 446, 250, 61), (566, 446, 230, 62), (526, 446, 150, 63)):
         out.append(conifer(x, b, h, "#142020", sd, width=0.36, trunk="#2A1E1A"))
     # two hikers at the rail, and a raven riding the evening air
-    for x, c, h in ((300, "#C8574A", 26), (314, "#3E5A7A", 28)):
-        out.append(figure(x, 414, h, c, rim="#F8C8A0", pose="lean_back", light=1, seed=x, pal={"pack": True, "bag": "#3A4A3A" if x < 310 else "#B8573E", "season": "any"}))
-    out.append('<path d="M 304 396 L 318 404" stroke="#3A3A3A" stroke-width="1.6"/>')
+    out.append('<ellipse cx="306" cy="434" rx="40" ry="4" fill="#2A2830" opacity="0.35"/>')
+    out.append(figure(290, 433, 56, "#C8574A", rim="#F8C8A0", pose="stand_back", light=1, seed=300,
+                      pal={"pack": True, "bag": "#3A4A3A", "top_kind": "jacket", "bottom": "#4A4038", "bottom_kind": "trousers", "form": "f", "hair_style": "ponytail"}))
+    out.append(figure(322, 434, 60, "#3E5A7A", rim="#F8C8A0", pose="stand_back", light=1, seed=314,
+                      pal={"pack": True, "bag": "#B8573E", "top_kind": "long", "bottom": "#B8A078", "bottom_kind": "shorts", "form": "m", "hat_kind": "cap", "hat": "#2E3A2E"}))
     out.append(gulls([(250, 160, 12), (230, 150, 7)], "#2A2430", 2.2))
     return "\n".join(out)
 
