@@ -13,7 +13,7 @@ from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, PRICE, SEASONS, VOLUME
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "6"
+VERSION = "7"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -103,7 +103,16 @@ def head(pg, title, desc, path):
 <meta property="og:title" content="{E(full)}">
 <meta property="og:description" content="{E(desc)}">
 <meta property="og:type" content="website">
+<link rel="icon" href="https://littlehivehouse.com/favicon.ico" sizes="48x48">
 <link rel="icon" href="{pg.p}assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{pg.p}assets/favicon-96.png" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="https://littlehivehouse.com/apple-touch-icon.png">
+<meta property="og:image" content="https://littlehivehouse.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Little Hive House">
+<meta property="og:url" content="https://littlehivehouse.com/{path}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="https://littlehivehouse.com/site.webmanifest">
 <script>(function(){{var h=new Date().getHours(),t=(h>=6&&h<19)?'light':'dark';try{{var m=JSON.parse(localStorage.getItem('lhh-theme2')||'null');if(m&&m.until>Date.now()&&(m.t==='light'||m.t==='dark'))t=m.t;localStorage.removeItem('lhh-theme')}}catch(e){{}}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter',T={DECOR_JS};for(var i=0;i<T.length;i++)if(k>=T[i][0]&&k<=T[i][1])z=T[i][2];document.documentElement.setAttribute('data-season',z)}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -138,6 +147,12 @@ def header(pg, active):
         <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg>
         <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z"/></svg>
       </button>
+      <!-- store: account icon (assets/store.js shows the signed-in initial) -->
+      <a class="acct-btn" href="{pg.p}account.html" data-account aria-label="Your account">
+        <svg class="i-person" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="7" r="3.4"/><path d="M3.6 17.2c.9-3.1 3.4-4.8 6.4-4.8s5.5 1.7 6.4 4.8"/></svg>
+        <span class="acct-initial" data-account-initial hidden></span>
+      </a>
+      <!-- /store -->
       <button type="button" class="cart-btn" data-open-cart aria-haspopup="dialog">
         Cart <span class="cart-count" data-cart-count>0</span>
       </button>
@@ -146,6 +161,9 @@ def header(pg, active):
   <div class="mobile-menu" id="mobile-menu" hidden>
     <nav class="wrap" aria-label="Mobile">
 {mobile}
+      <a class="acct-link" href="{pg.p}account.html" data-account-menu>Your account</a>
+      <a class="acct-link" href="{pg.p}favorites.html">Favorites</a>
+      <a class="acct-link" href="{pg.p}track.html">Track an order</a>
 {subs}
     </nav>
   </div>
@@ -244,14 +262,18 @@ def footer(pg):
       <div>
         <h2>Help</h2>
         <ul>
-          <li><a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a></li>
-          <li><a href="{pg.p}big-orders.html#faq">Shipping &amp; orders</a></li>
+          <li><a href="{pg.p}track.html">Track your order</a></li>
+          <li><a href="{pg.p}account.html">Your account</a></li>
+          <li><a href="{pg.p}contact.html">Contact us</a></li>
+          <li><a href="{pg.p}shipping.html">Shipping</a></li>
+          <li><a href="{pg.p}returns.html">Returns &amp; refunds</a></li>
           <li><a href="{pg.p}index.html#about">About us</a></li>
+          <li><a href="mailto:support@littlehivehouse.com">support@<wbr>littlehivehouse.com</a></li>
         </ul>
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Little Hive House</span>
+      <span>© 2026 Little Hive House · <a href="{pg.p}privacy.html">Privacy</a> · <a href="{pg.p}terms.html">Terms</a></span>
       <span>Shipping $4.95 · free on US orders over $35</span>
     </div>
   </div>
@@ -260,7 +282,7 @@ def footer(pg):
 
 
 def chrome_end(pg, extra_js=()):
-    scripts = "\n".join(f'<script src="{pg.p}assets/{s}?v={VERSION}"></script>' for s in ("site.js",) + tuple(extra_js))
+    scripts = "\n".join(f'<script src="{pg.p}assets/{s}?v={VERSION}"></script>' for s in ("firebase-config.js", "site.js", "store.js", "checkout.js") + tuple(extra_js))
     return f"""
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" hidden>
@@ -283,7 +305,25 @@ def chrome_end(pg, extra_js=()):
     <div class="grand"><span>Total</span><span id="t-total">$0</span></div>
     <p class="ship-note" id="ship-note"></p>
     <p class="ship-note" id="vol-note" hidden></p>
+    <!-- store: checkout extras (assets/checkout.js shows them once the store is connected) -->
+    <div class="co" id="co" hidden>
+      <details class="co-extras">
+        <summary>Add a gift message or a note</summary>
+        <label class="co-label" for="co-gift">Gift message <small>optional, we tuck it in the box</small></label>
+        <textarea id="co-gift" maxlength="300" rows="2" placeholder="Happy birthday, Mom!"></textarea>
+        <label class="co-label" for="co-notes">Note for us <small>optional</small></label>
+        <textarea id="co-notes" maxlength="1000" rows="2" placeholder="Anything we should know"></textarea>
+      </details>
+      <label class="check co-mkt" for="co-mkt"><input type="checkbox" id="co-mkt"><span>Email me about new designs and offers</span></label>
+      <div class="co-progress" id="co-progress" hidden>
+        <p id="co-progress-label">Uploading your photos</p>
+        <div class="co-bar" role="progressbar" id="co-bar" aria-labelledby="co-progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="co-bar-fill"></span></div>
+      </div>
+      <p class="co-error" id="co-error" role="alert" hidden></p>
+    </div>
+    <!-- /store -->
     <button type="button" class="btn btn-honey" id="checkout" disabled>Checkout opens soon</button>
+    <p class="co-secure" id="co-secure" hidden>Secure payment with Stripe. You can review everything before you pay.</p>
   </div>
 </aside>
 
@@ -496,6 +536,12 @@ def page_home():
   </section>
 </main>
 {footer(pg)}"""
+    ld = ('<script type="application/ld+json">{"@context":"https://schema.org","@graph":['
+          '{"@type":"Organization","@id":"https://littlehivehouse.com/#org","name":"Little Hive House","url":"https://littlehivehouse.com/",'
+          '"logo":"https://littlehivehouse.com/assets/icon-512.png","email":"support@littlehivehouse.com",'
+          '"description":"Handmade fridge magnets and gifts, designed, printed and pressed in a small family studio near Atlanta, Georgia."},'
+          '{"@type":"WebSite","name":"Little Hive House","url":"https://littlehivehouse.com/","publisher":{"@id":"https://littlehivehouse.com/#org"}}]}</script>\n')
+    body = ld + body
     write("index.html", head(pg, None, f"Handmade fridge magnets: {TOTAL} original designs in {len(COLLECTIONS)} collections, plus custom photo magnets and big orders for weddings and businesses.", "") + body + chrome_end(pg))
 
 
@@ -761,16 +807,35 @@ PACKAGES = [
 ]
 
 
+# store: package ids used by the cart, catalog.json and createCheckout ("weddings-50")
+PACKAGE_IDS = {"Weddings": "weddings", "Business": "business", "Party or event": "parties", "Team or school": "teams"}
+
+
 def page_big():
     pg = Page("")
     cards = []
     for title, key, desc, tiers, pick in PACKAGES:
-        rows = "".join(f"<tr><td>{n} magnets</td><td>${p}</td><td>${p / n:.2f} each</td></tr>" for n, p in tiers)
-        cards.append(f"""<li class="pkg">
+        # store: every tier is buyable (cart line kind "package", id like "weddings-50"); the quote button stays
+        pid = PACKAGE_IDS[key]
+        chosen = min(tiers, key=lambda t: abs(t[0] - pick))[0]
+        rows = "".join(
+            f'<label class="tier"><input type="radio" name="pkg-{pid}" value="{pid}-{n}" data-size="{n}" data-price="{p}" data-title="{E(title)}"'
+            f'{" checked" if n == chosen else ""}><span class="t-n">{n} magnets</span><span class="t-p">${p}</span><span class="t-e">${p / n:.2f} each</span></label>'
+            for n, p in tiers)
+        price = dict(tiers)[chosen]
+        cards.append(f"""<li class="pkg" data-package="{pid}">
           <h3>{E(title)}</h3>
           <p>{E(desc)}</p>
-          <table class="tiers"><thead><tr><th scope="col">Pack</th><th scope="col">Price</th><th scope="col">Per magnet</th></tr></thead><tbody>{rows}</tbody></table>
-          <button type="button" class="btn btn-small" data-pkg="{E(key)}" data-qty="{pick}">Request this package</button>
+          <fieldset class="tier-pick">
+            <legend class="visually-hidden">Pack size for {E(title)}</legend>
+            <div class="tier-head" aria-hidden="true"><span>Pack</span><span>Price</span><span>Per magnet</span></div>
+            {rows}
+          </fieldset>
+          <div class="pkg-actions">
+            <button type="button" class="btn btn-honey btn-small" data-buy-package>Buy now · ${price}</button>
+            <button type="button" class="btn btn-ghost btn-small" data-pkg="{E(key)}" data-qty="{chosen}">Ask for a quote</button>
+          </div>
+          <p class="pkg-note">After checkout we email you within one business day to plan the design. You approve a proof before we print.</p>
         </li>""")
     options = "<option>Mix &amp; match</option>" + "".join(f"<option>{E(k)}</option>" for _, k, _, _, _ in PACKAGES) + "<option>Something else</option>"
     vol_rows = "".join(f"<li><strong>{n}+ magnets</strong><span>{pct}% off the whole order</span></li>" for n, pct in reversed(VOLUME))
@@ -779,7 +844,7 @@ def page_big():
   <div class="wrap page-head">
     <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Big orders</li></ol>
     <h1>Big orders, made by hand</h1>
-    <p class="lede">Wedding favors, save the dates, logo magnets and party keepsakes. Every package includes a custom design with your names, date, logo or photos, and a proof to approve before we print.</p>
+    <p class="lede">Wedding favors, save the dates, logo magnets and party keepsakes. Every package includes a custom design with your names, date, logo or photos, and a proof to approve before we print. Buy a package now and we plan the design together after checkout, or ask us for a quote first.</p>
   </div>
   <section class="tight">
     <div class="wrap">
@@ -805,7 +870,7 @@ def page_big():
         <li><strong>Custom design</strong><span>We design it with your names, date, logo or photos.</span></li>
         <li><strong>A proof first</strong><span>You approve the design before we print a single magnet.</span></li>
         <li><strong>Mix and match</strong><span>Use several photos or designs in one order.</span></li>
-        <li><strong>Free US shipping</strong><span>Every package ships free.</span></li>
+        <li><strong>Free US shipping</strong><span>On every order over $35.</span></li>
       </ul>
     </div>
   </section>
@@ -836,7 +901,7 @@ def page_big():
         <details><summary>How long do big orders take?</summary><p>Most big orders ship 7 to 10 business days after you approve the proof. Need them sooner? Ask us and we will tell you honestly if we can make it.</p></details>
         <details><summary>Can I use your designs instead of my own?</summary><p>Yes. Any design from the shop can be ordered in bulk at package prices, and we can add your names or date to most of them.</p></details>
         <details><summary>Do you have envelopes for save the dates?</summary><p>Yes, kraft envelopes can be added for $0.25 each. Postage is not included.</p></details>
-        <details><summary>How much is shipping?</summary><p>Shipping in the US is $4.95 and free on orders over $35, so every big order ships free.</p></details>
+        <details><summary>How much is shipping?</summary><p>Shipping in the US is $4.95 and free on orders over $35, so almost every big order ships free.</p></details>
         <details><summary>What is the smallest order?</summary><p>Packages start at 12 magnets. For smaller sets, use our <a href="photo-magnets.html">photo magnet packs</a> or the <a href="shop.html">shop</a>.</p></details>
       </div>
     </div>
@@ -861,6 +926,32 @@ def page_404():
     write("404.html", head(pg, "Page not found", "Page not found.", "404.html") + body + chrome_end(pg))
 
 
+# ---- store backend: functions/catalog.json (server-side prices; must match assets/site.js totals()) ----
+STORE_PHOTO_PACKS = [(4, 14), (9, 25), (16, 40), (25, 65), (50, 120)]   # same as the pack radios on photo-magnets.html
+STORE_SHIPPING, STORE_FREE_SHIP_AT = 4.95, 35
+
+
+def export_store_catalog():
+    import json as _json
+    ids = globals().get("PACKAGE_IDS") or {}
+    frames = _json.loads((ROOT / "assets" / "frames" / "frames.json").read_text(encoding="utf-8"))
+    cat = {
+        "designs": {f'{c["slug"]}/{s}': {"title": title_for(c, s), "collection": c["slug"], "collectionName": c["name"], "price": PRICE}
+                    for c in COLLECTIONS for s in c["order"]},
+        "packs": {str(n): {"size": n, "price": p, "title": f"Custom photo magnets (pack of {n})"} for n, p in STORE_PHOTO_PACKS},
+        "packages": {f'{ids.get(key) or title.split()[0].lower()}-{n}': {"title": f"{title}, {n} magnets", "group": ids.get(key) or title.split()[0].lower(),
+                                                                         "size": n, "price": p}
+                     for title, key, _, tiers, _ in PACKAGES for n, p in tiers},
+        "rules": {"designPrice": PRICE, "bundle": {"size": BUNDLE[0], "price": BUNDLE[1]},
+                  "volume": [{"min": n, "pct": pct} for n, pct in VOLUME], "shipping": STORE_SHIPPING,
+                  "freeShippingAt": STORE_FREE_SHIP_AT, "currency": "usd"},
+        "frames": {f["id"]: {"name": f["name"], "captionMax": (f.get("caption") or {}).get("max", 0)} for f in frames},
+    }
+    out = ROOT / "functions" / "catalog.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(_json.dumps(cat, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
 if __name__ == "__main__":
     page_home()
     page_shop()
@@ -870,4 +961,11 @@ if __name__ == "__main__":
     page_photo()
     page_big()
     page_404()
+    # store: customer pages (account, orders, tracking, policies...) live in tools/store_pages.py
+    import sys as _sys
+    import store_pages
+    store_pages.build(_sys.modules[__name__])
+    export_store_catalog()   # store backend prices -> functions/catalog.json
+    import admin_icons       # admin/icons/*.png for the installable admin (only drawn when missing)
+    admin_icons.main()
     print(f"built {TOTAL} designs in {len(COLLECTIONS)} collections")

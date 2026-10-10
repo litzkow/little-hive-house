@@ -10,12 +10,21 @@
 <meta property="og:title" content="Home Notes magnets · Little Hive House">
 <meta property="og:description" content="Home Notes: Gentle words in soft colors for moms, grandmas and anyone who needs a little sunshine.">
 <meta property="og:type" content="website">
+<link rel="icon" href="https://littlehivehouse.com/favicon.ico" sizes="48x48">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-96.png" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="https://littlehivehouse.com/apple-touch-icon.png">
+<meta property="og:image" content="https://littlehivehouse.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Little Hive House">
+<meta property="og:url" content="https://littlehivehouse.com/collections/home-notes.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="https://littlehivehouse.com/site.webmanifest">
 <script>(function(){var h=new Date().getHours(),t=(h>=6&&h<19)?'light':'dark';try{var m=JSON.parse(localStorage.getItem('lhh-theme2')||'null');if(m&&m.until>Date.now()&&(m.t==='light'||m.t==='dark'))t=m.t;localStorage.removeItem('lhh-theme')}catch(e){}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter',T=[[1226,1231,'newyear'],[101,103,'newyear'],[104,131,'winter'],[201,214,'valentine'],[215,229,'winter'],[301,317,'stpatricks'],[318,531,'spring'],[601,621,'summer'],[622,704,'july4'],[705,831,'summer'],[901,1014,'fall'],[1015,1031,'halloween'],[1101,1127,'thanksgiving'],[1128,1225,'christmas']];for(var i=0;i<T.length;i++)if(k>=T[i][0]&&k<=T[i][1])z=T[i][2];document.documentElement.setAttribute('data-season',z)})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600&family=DM+Mono:wght@500&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=6">
+<link rel="stylesheet" href="../assets/site.css?v=7">
 </head>
 <body>
 <a class="visually-hidden" href="#main">Skip to content</a>
@@ -47,6 +56,12 @@
         <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg>
         <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z"/></svg>
       </button>
+      <!-- store: account icon (assets/store.js shows the signed-in initial) -->
+      <a class="acct-btn" href="../account.html" data-account aria-label="Your account">
+        <svg class="i-person" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="7" r="3.4"/><path d="M3.6 17.2c.9-3.1 3.4-4.8 6.4-4.8s5.5 1.7 6.4 4.8"/></svg>
+        <span class="acct-initial" data-account-initial hidden></span>
+      </a>
+      <!-- /store -->
       <button type="button" class="cart-btn" data-open-cart aria-haspopup="dialog">
         Cart <span class="cart-count" data-cart-count>0</span>
       </button>
@@ -58,6 +73,9 @@
       <a href="../collections/index.html">Collections</a>
       <a href="../photo-magnets.html">Photo magnets</a>
       <a href="../big-orders.html">Big orders</a>
+      <a class="acct-link" href="../account.html" data-account-menu>Your account</a>
+      <a class="acct-link" href="../favorites.html">Favorites</a>
+      <a class="acct-link" href="../track.html">Track an order</a>
       <a class="sub" href="../collections/places.html">USA Places</a>
       <a class="sub" href="../collections/world.html">World Places</a>
       <a class="sub" href="../collections/ink-cities.html">Ink Cities</a>
@@ -476,14 +494,18 @@
       <div>
         <h2>Help</h2>
         <ul>
-          <li><a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a></li>
-          <li><a href="../big-orders.html#faq">Shipping &amp; orders</a></li>
+          <li><a href="../track.html">Track your order</a></li>
+          <li><a href="../account.html">Your account</a></li>
+          <li><a href="../contact.html">Contact us</a></li>
+          <li><a href="../shipping.html">Shipping</a></li>
+          <li><a href="../returns.html">Returns &amp; refunds</a></li>
           <li><a href="../index.html#about">About us</a></li>
+          <li><a href="mailto:support@littlehivehouse.com">support@<wbr>littlehivehouse.com</a></li>
         </ul>
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Little Hive House</span>
+      <span>© 2026 Little Hive House · <a href="../privacy.html">Privacy</a> · <a href="../terms.html">Terms</a></span>
       <span>Shipping $4.95 · free on US orders over $35</span>
     </div>
   </div>
@@ -510,7 +532,25 @@
     <div class="grand"><span>Total</span><span id="t-total">$0</span></div>
     <p class="ship-note" id="ship-note"></p>
     <p class="ship-note" id="vol-note" hidden></p>
+    <!-- store: checkout extras (assets/checkout.js shows them once the store is connected) -->
+    <div class="co" id="co" hidden>
+      <details class="co-extras">
+        <summary>Add a gift message or a note</summary>
+        <label class="co-label" for="co-gift">Gift message <small>optional, we tuck it in the box</small></label>
+        <textarea id="co-gift" maxlength="300" rows="2" placeholder="Happy birthday, Mom!"></textarea>
+        <label class="co-label" for="co-notes">Note for us <small>optional</small></label>
+        <textarea id="co-notes" maxlength="1000" rows="2" placeholder="Anything we should know"></textarea>
+      </details>
+      <label class="check co-mkt" for="co-mkt"><input type="checkbox" id="co-mkt"><span>Email me about new designs and offers</span></label>
+      <div class="co-progress" id="co-progress" hidden>
+        <p id="co-progress-label">Uploading your photos</p>
+        <div class="co-bar" role="progressbar" id="co-bar" aria-labelledby="co-progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="co-bar-fill"></span></div>
+      </div>
+      <p class="co-error" id="co-error" role="alert" hidden></p>
+    </div>
+    <!-- /store -->
     <button type="button" class="btn btn-honey" id="checkout" disabled>Checkout opens soon</button>
+    <p class="co-secure" id="co-secure" hidden>Secure payment with Stripe. You can review everything before you pay.</p>
   </div>
 </aside>
 
@@ -536,6 +576,9 @@
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-<script src="../assets/site.js?v=6"></script>
+<script src="../assets/firebase-config.js?v=7"></script>
+<script src="../assets/site.js?v=7"></script>
+<script src="../assets/store.js?v=7"></script>
+<script src="../assets/checkout.js?v=7"></script>
 </body>
 </html>

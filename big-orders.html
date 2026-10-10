@@ -10,12 +10,21 @@
 <meta property="og:title" content="Big orders · Little Hive House">
 <meta property="og:description" content="Custom magnet packages for weddings, businesses, parties, teams and schools. Custom design and proof included.">
 <meta property="og:type" content="website">
+<link rel="icon" href="https://littlehivehouse.com/favicon.ico" sizes="48x48">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-96.png" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="https://littlehivehouse.com/apple-touch-icon.png">
+<meta property="og:image" content="https://littlehivehouse.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Little Hive House">
+<meta property="og:url" content="https://littlehivehouse.com/big-orders.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="https://littlehivehouse.com/site.webmanifest">
 <script>(function(){var h=new Date().getHours(),t=(h>=6&&h<19)?'light':'dark';try{var m=JSON.parse(localStorage.getItem('lhh-theme2')||'null');if(m&&m.until>Date.now()&&(m.t==='light'||m.t==='dark'))t=m.t;localStorage.removeItem('lhh-theme')}catch(e){}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter',T=[[1226,1231,'newyear'],[101,103,'newyear'],[104,131,'winter'],[201,214,'valentine'],[215,229,'winter'],[301,317,'stpatricks'],[318,531,'spring'],[601,621,'summer'],[622,704,'july4'],[705,831,'summer'],[901,1014,'fall'],[1015,1031,'halloween'],[1101,1127,'thanksgiving'],[1128,1225,'christmas']];for(var i=0;i<T.length;i++)if(k>=T[i][0]&&k<=T[i][1])z=T[i][2];document.documentElement.setAttribute('data-season',z)})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600&family=DM+Mono:wght@500&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=6">
+<link rel="stylesheet" href="assets/site.css?v=7">
 </head>
 <body>
 <a class="visually-hidden" href="#main">Skip to content</a>
@@ -47,6 +56,12 @@
         <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg>
         <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z"/></svg>
       </button>
+      <!-- store: account icon (assets/store.js shows the signed-in initial) -->
+      <a class="acct-btn" href="account.html" data-account aria-label="Your account">
+        <svg class="i-person" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="7" r="3.4"/><path d="M3.6 17.2c.9-3.1 3.4-4.8 6.4-4.8s5.5 1.7 6.4 4.8"/></svg>
+        <span class="acct-initial" data-account-initial hidden></span>
+      </a>
+      <!-- /store -->
       <button type="button" class="cart-btn" data-open-cart aria-haspopup="dialog">
         Cart <span class="cart-count" data-cart-count>0</span>
       </button>
@@ -58,6 +73,9 @@
       <a href="collections/index.html">Collections</a>
       <a href="photo-magnets.html">Photo magnets</a>
       <a href="big-orders.html">Big orders</a>
+      <a class="acct-link" href="account.html" data-account-menu>Your account</a>
+      <a class="acct-link" href="favorites.html">Favorites</a>
+      <a class="acct-link" href="track.html">Track an order</a>
       <a class="sub" href="collections/places.html">USA Places</a>
       <a class="sub" href="collections/world.html">World Places</a>
       <a class="sub" href="collections/ink-cities.html">Ink Cities</a>
@@ -84,7 +102,7 @@
   <div class="wrap page-head">
     <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Big orders</li></ol>
     <h1>Big orders, made by hand</h1>
-    <p class="lede">Wedding favors, save the dates, logo magnets and party keepsakes. Every package includes a custom design with your names, date, logo or photos, and a proof to approve before we print.</p>
+    <p class="lede">Wedding favors, save the dates, logo magnets and party keepsakes. Every package includes a custom design with your names, date, logo or photos, and a proof to approve before we print. Buy a package now and we plan the design together after checkout, or ask us for a quote first.</p>
   </div>
   <section class="tight">
     <div class="wrap">
@@ -98,29 +116,61 @@
         <ul class="occasions"><li><strong>20+ magnets</strong><span>10% off the whole order</span></li><li><strong>50+ magnets</strong><span>20% off the whole order</span></li><li><strong>100+ magnets</strong><span>25% off the whole order</span></li><li><strong>Any 3 designs</strong><span>for $12, always</span></li></ul>
       </div>
       <ul class="pkg-grid">
-        <li class="pkg">
+        <li class="pkg" data-package="weddings">
           <h3>Weddings &amp; save the dates</h3>
           <p>Favors with your names and date, or save-the-date photo magnets for every guest.</p>
-          <table class="tiers"><thead><tr><th scope="col">Pack</th><th scope="col">Price</th><th scope="col">Per magnet</th></tr></thead><tbody><tr><td>25 magnets</td><td>$55</td><td>$2.20 each</td></tr><tr><td>50 magnets</td><td>$95</td><td>$1.90 each</td></tr><tr><td>100 magnets</td><td>$175</td><td>$1.75 each</td></tr><tr><td>150 magnets</td><td>$250</td><td>$1.67 each</td></tr></tbody></table>
-          <button type="button" class="btn btn-small" data-pkg="Weddings" data-qty="100">Request this package</button>
+          <fieldset class="tier-pick">
+            <legend class="visually-hidden">Pack size for Weddings &amp; save the dates</legend>
+            <div class="tier-head" aria-hidden="true"><span>Pack</span><span>Price</span><span>Per magnet</span></div>
+            <label class="tier"><input type="radio" name="pkg-weddings" value="weddings-25" data-size="25" data-price="55" data-title="Weddings &amp; save the dates"><span class="t-n">25 magnets</span><span class="t-p">$55</span><span class="t-e">$2.20 each</span></label><label class="tier"><input type="radio" name="pkg-weddings" value="weddings-50" data-size="50" data-price="95" data-title="Weddings &amp; save the dates"><span class="t-n">50 magnets</span><span class="t-p">$95</span><span class="t-e">$1.90 each</span></label><label class="tier"><input type="radio" name="pkg-weddings" value="weddings-100" data-size="100" data-price="175" data-title="Weddings &amp; save the dates" checked><span class="t-n">100 magnets</span><span class="t-p">$175</span><span class="t-e">$1.75 each</span></label><label class="tier"><input type="radio" name="pkg-weddings" value="weddings-150" data-size="150" data-price="250" data-title="Weddings &amp; save the dates"><span class="t-n">150 magnets</span><span class="t-p">$250</span><span class="t-e">$1.67 each</span></label>
+          </fieldset>
+          <div class="pkg-actions">
+            <button type="button" class="btn btn-honey btn-small" data-buy-package>Buy now · $175</button>
+            <button type="button" class="btn btn-ghost btn-small" data-pkg="Weddings" data-qty="100">Ask for a quote</button>
+          </div>
+          <p class="pkg-note">After checkout we email you within one business day to plan the design. You approve a proof before we print.</p>
         </li>
-<li class="pkg">
+<li class="pkg" data-package="business">
           <h3>Business &amp; real estate</h3>
           <p>Your logo or listing on the fridge all year. A favorite closing gift for realtors and a cheap, lasting ad for small businesses.</p>
-          <table class="tiers"><thead><tr><th scope="col">Pack</th><th scope="col">Price</th><th scope="col">Per magnet</th></tr></thead><tbody><tr><td>50 magnets</td><td>$90</td><td>$1.80 each</td></tr><tr><td>100 magnets</td><td>$160</td><td>$1.60 each</td></tr><tr><td>250 magnets</td><td>$350</td><td>$1.40 each</td></tr><tr><td>500 magnets</td><td>$650</td><td>$1.30 each</td></tr></tbody></table>
-          <button type="button" class="btn btn-small" data-pkg="Business" data-qty="100">Request this package</button>
+          <fieldset class="tier-pick">
+            <legend class="visually-hidden">Pack size for Business &amp; real estate</legend>
+            <div class="tier-head" aria-hidden="true"><span>Pack</span><span>Price</span><span>Per magnet</span></div>
+            <label class="tier"><input type="radio" name="pkg-business" value="business-50" data-size="50" data-price="90" data-title="Business &amp; real estate"><span class="t-n">50 magnets</span><span class="t-p">$90</span><span class="t-e">$1.80 each</span></label><label class="tier"><input type="radio" name="pkg-business" value="business-100" data-size="100" data-price="160" data-title="Business &amp; real estate" checked><span class="t-n">100 magnets</span><span class="t-p">$160</span><span class="t-e">$1.60 each</span></label><label class="tier"><input type="radio" name="pkg-business" value="business-250" data-size="250" data-price="350" data-title="Business &amp; real estate"><span class="t-n">250 magnets</span><span class="t-p">$350</span><span class="t-e">$1.40 each</span></label><label class="tier"><input type="radio" name="pkg-business" value="business-500" data-size="500" data-price="650" data-title="Business &amp; real estate"><span class="t-n">500 magnets</span><span class="t-p">$650</span><span class="t-e">$1.30 each</span></label>
+          </fieldset>
+          <div class="pkg-actions">
+            <button type="button" class="btn btn-honey btn-small" data-buy-package>Buy now · $160</button>
+            <button type="button" class="btn btn-ghost btn-small" data-pkg="Business" data-qty="100">Ask for a quote</button>
+          </div>
+          <p class="pkg-note">After checkout we email you within one business day to plan the design. You approve a proof before we print.</p>
         </li>
-<li class="pkg">
+<li class="pkg" data-package="parties">
           <h3>Parties &amp; events</h3>
           <p>Birthdays, baby showers, graduations, reunions and memorials. A keepsake every guest takes home.</p>
-          <table class="tiers"><thead><tr><th scope="col">Pack</th><th scope="col">Price</th><th scope="col">Per magnet</th></tr></thead><tbody><tr><td>20 magnets</td><td>$45</td><td>$2.25 each</td></tr><tr><td>40 magnets</td><td>$80</td><td>$2.00 each</td></tr><tr><td>75 magnets</td><td>$140</td><td>$1.87 each</td></tr></tbody></table>
-          <button type="button" class="btn btn-small" data-pkg="Party or event" data-qty="40">Request this package</button>
+          <fieldset class="tier-pick">
+            <legend class="visually-hidden">Pack size for Parties &amp; events</legend>
+            <div class="tier-head" aria-hidden="true"><span>Pack</span><span>Price</span><span>Per magnet</span></div>
+            <label class="tier"><input type="radio" name="pkg-parties" value="parties-20" data-size="20" data-price="45" data-title="Parties &amp; events"><span class="t-n">20 magnets</span><span class="t-p">$45</span><span class="t-e">$2.25 each</span></label><label class="tier"><input type="radio" name="pkg-parties" value="parties-40" data-size="40" data-price="80" data-title="Parties &amp; events" checked><span class="t-n">40 magnets</span><span class="t-p">$80</span><span class="t-e">$2.00 each</span></label><label class="tier"><input type="radio" name="pkg-parties" value="parties-75" data-size="75" data-price="140" data-title="Parties &amp; events"><span class="t-n">75 magnets</span><span class="t-p">$140</span><span class="t-e">$1.87 each</span></label>
+          </fieldset>
+          <div class="pkg-actions">
+            <button type="button" class="btn btn-honey btn-small" data-buy-package>Buy now · $80</button>
+            <button type="button" class="btn btn-ghost btn-small" data-pkg="Party or event" data-qty="40">Ask for a quote</button>
+          </div>
+          <p class="pkg-note">After checkout we email you within one business day to plan the design. You approve a proof before we print.</p>
         </li>
-<li class="pkg">
+<li class="pkg" data-package="teams">
           <h3>Teams &amp; schools</h3>
           <p>A magnet for every player, student or teacher, with their photo, name and number.</p>
-          <table class="tiers"><thead><tr><th scope="col">Pack</th><th scope="col">Price</th><th scope="col">Per magnet</th></tr></thead><tbody><tr><td>12 magnets</td><td>$30</td><td>$2.50 each</td></tr><tr><td>20 magnets</td><td>$48</td><td>$2.40 each</td></tr><tr><td>30 magnets</td><td>$69</td><td>$2.30 each</td></tr></tbody></table>
-          <button type="button" class="btn btn-small" data-pkg="Team or school" data-qty="20">Request this package</button>
+          <fieldset class="tier-pick">
+            <legend class="visually-hidden">Pack size for Teams &amp; schools</legend>
+            <div class="tier-head" aria-hidden="true"><span>Pack</span><span>Price</span><span>Per magnet</span></div>
+            <label class="tier"><input type="radio" name="pkg-teams" value="teams-12" data-size="12" data-price="30" data-title="Teams &amp; schools"><span class="t-n">12 magnets</span><span class="t-p">$30</span><span class="t-e">$2.50 each</span></label><label class="tier"><input type="radio" name="pkg-teams" value="teams-20" data-size="20" data-price="48" data-title="Teams &amp; schools" checked><span class="t-n">20 magnets</span><span class="t-p">$48</span><span class="t-e">$2.40 each</span></label><label class="tier"><input type="radio" name="pkg-teams" value="teams-30" data-size="30" data-price="69" data-title="Teams &amp; schools"><span class="t-n">30 magnets</span><span class="t-p">$69</span><span class="t-e">$2.30 each</span></label>
+          </fieldset>
+          <div class="pkg-actions">
+            <button type="button" class="btn btn-honey btn-small" data-buy-package>Buy now · $48</button>
+            <button type="button" class="btn btn-ghost btn-small" data-pkg="Team or school" data-qty="20">Ask for a quote</button>
+          </div>
+          <p class="pkg-note">After checkout we email you within one business day to plan the design. You approve a proof before we print.</p>
         </li>
       </ul>
     </div>
@@ -133,7 +183,7 @@
         <li><strong>Custom design</strong><span>We design it with your names, date, logo or photos.</span></li>
         <li><strong>A proof first</strong><span>You approve the design before we print a single magnet.</span></li>
         <li><strong>Mix and match</strong><span>Use several photos or designs in one order.</span></li>
-        <li><strong>Free US shipping</strong><span>Every package ships free.</span></li>
+        <li><strong>Free US shipping</strong><span>On every order over $35.</span></li>
       </ul>
     </div>
   </section>
@@ -164,7 +214,7 @@
         <details><summary>How long do big orders take?</summary><p>Most big orders ship 7 to 10 business days after you approve the proof. Need them sooner? Ask us and we will tell you honestly if we can make it.</p></details>
         <details><summary>Can I use your designs instead of my own?</summary><p>Yes. Any design from the shop can be ordered in bulk at package prices, and we can add your names or date to most of them.</p></details>
         <details><summary>Do you have envelopes for save the dates?</summary><p>Yes, kraft envelopes can be added for $0.25 each. Postage is not included.</p></details>
-        <details><summary>How much is shipping?</summary><p>Shipping in the US is $4.95 and free on orders over $35, so every big order ships free.</p></details>
+        <details><summary>How much is shipping?</summary><p>Shipping in the US is $4.95 and free on orders over $35, so almost every big order ships free.</p></details>
         <details><summary>What is the smallest order?</summary><p>Packages start at 12 magnets. For smaller sets, use our <a href="photo-magnets.html">photo magnet packs</a> or the <a href="shop.html">shop</a>.</p></details>
       </div>
     </div>
@@ -219,14 +269,18 @@
       <div>
         <h2>Help</h2>
         <ul>
-          <li><a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a></li>
-          <li><a href="big-orders.html#faq">Shipping &amp; orders</a></li>
+          <li><a href="track.html">Track your order</a></li>
+          <li><a href="account.html">Your account</a></li>
+          <li><a href="contact.html">Contact us</a></li>
+          <li><a href="shipping.html">Shipping</a></li>
+          <li><a href="returns.html">Returns &amp; refunds</a></li>
           <li><a href="index.html#about">About us</a></li>
+          <li><a href="mailto:support@littlehivehouse.com">support@<wbr>littlehivehouse.com</a></li>
         </ul>
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Little Hive House</span>
+      <span>© 2026 Little Hive House · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></span>
       <span>Shipping $4.95 · free on US orders over $35</span>
     </div>
   </div>
@@ -253,7 +307,25 @@
     <div class="grand"><span>Total</span><span id="t-total">$0</span></div>
     <p class="ship-note" id="ship-note"></p>
     <p class="ship-note" id="vol-note" hidden></p>
+    <!-- store: checkout extras (assets/checkout.js shows them once the store is connected) -->
+    <div class="co" id="co" hidden>
+      <details class="co-extras">
+        <summary>Add a gift message or a note</summary>
+        <label class="co-label" for="co-gift">Gift message <small>optional, we tuck it in the box</small></label>
+        <textarea id="co-gift" maxlength="300" rows="2" placeholder="Happy birthday, Mom!"></textarea>
+        <label class="co-label" for="co-notes">Note for us <small>optional</small></label>
+        <textarea id="co-notes" maxlength="1000" rows="2" placeholder="Anything we should know"></textarea>
+      </details>
+      <label class="check co-mkt" for="co-mkt"><input type="checkbox" id="co-mkt"><span>Email me about new designs and offers</span></label>
+      <div class="co-progress" id="co-progress" hidden>
+        <p id="co-progress-label">Uploading your photos</p>
+        <div class="co-bar" role="progressbar" id="co-bar" aria-labelledby="co-progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="co-bar-fill"></span></div>
+      </div>
+      <p class="co-error" id="co-error" role="alert" hidden></p>
+    </div>
+    <!-- /store -->
     <button type="button" class="btn btn-honey" id="checkout" disabled>Checkout opens soon</button>
+    <p class="co-secure" id="co-secure" hidden>Secure payment with Stripe. You can review everything before you pay.</p>
   </div>
 </aside>
 
@@ -279,7 +351,10 @@
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-<script src="assets/site.js?v=6"></script>
-<script src="assets/quote.js?v=6"></script>
+<script src="assets/firebase-config.js?v=7"></script>
+<script src="assets/site.js?v=7"></script>
+<script src="assets/store.js?v=7"></script>
+<script src="assets/checkout.js?v=7"></script>
+<script src="assets/quote.js?v=7"></script>
 </body>
 </html>

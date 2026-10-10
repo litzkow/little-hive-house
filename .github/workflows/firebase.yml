@@ -1,0 +1,86 @@
+# Deploys the store backend (Cloud Functions, Firestore rules + indexes, Storage rules) to Firebase.
+# The website itself is still published by GitHub Pages; this only runs when backend files change.
+# Needs two repository secrets (see SETUP.md): FIREBASE_SERVICE_ACCOUNT and FUNCTIONS_ENV.
+# Optional repository variable FIREBASE_PROJECT (defaults to little-hive-house).
+name: Deploy store backend (Firebase)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "functions/**"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "storage.rules"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/firebase.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROJECT: ${{ vars.FIREBASE_PROJECT || 'little-hive-house' }}
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+          HAS_ENV: ${{ secrets.FUNCTIONS_ENV != '' }}
+        run: |
+          if [ "$HAS_SA" != "true" ] || [ "$HAS_ENV" != "true" ]; then
+            echo "::notice title=Firebase deploy skipped::Add the FIREBASE_SERVICE_ACCOUNT and FUNCTIONS_ENV secrets (see SETUP.md) to deploy the store backend."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+
+      - name: Test (prices, webhook signatures, refunds, order view)
+        if: steps.check.outputs.ready == 'true'
+        working-directory: functions
+        run: npm test
+
+      - name: Write functions/.env and the service account key
+        if: steps.check.outputs.ready == 'true'
+        env:
+          FUNCTIONS_ENV: ${{ secrets.FUNCTIONS_ENV }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          umask 077
+          printf '%s\n' "$FUNCTIONS_ENV" | tr -d '\r' > functions/.env
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          for k in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY ADMIN_EMAILS SITE_URL MAIL_FROM MAIL_ADMIN MAIL_POSTAL_ADDRESS UNSUBSCRIBE_SECRET; do
+            grep -q "^$k=." functions/.env || echo "::warning title=FUNCTIONS_ENV::$k is missing or empty"
+          done
+          for k in USPS_CLIENT_ID USPS_CLIENT_SECRET; do
+            grep -q "^$k=." functions/.env || echo "::notice title=FUNCTIONS_ENV::$k is empty, so automatic USPS tracking is off (SETUP.md part 3b)"
+          done
+
+      - name: Install function dependencies
+        if: steps.check.outputs.ready == 'true'
+        working-directory: functions
+        run: |
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+
+      - name: Deploy
+        if: steps.check.outputs.ready == 'true'
+        run: npx --yes firebase-tools@13 deploy --only functions,firestore,storage --project "$PROJECT" --non-interactive --force
+
+      - name: Clean up secrets
+        if: always()
+        run: rm -f functions/.env "$RUNNER_TEMP/sa.json"

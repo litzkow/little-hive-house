@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Hive Admin · Little Hive House</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#2B2118">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hive Admin">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700&display=swap">
+<link rel="stylesheet" href="admin.css?v=1">
+<script>try { var t = localStorage.getItem('lhh-admin-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
+</head>
+<body>
+<div id="app"><div class="loading"><svg class="spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><span>Opening the hive…</span></div></div>
+<section class="slip" id="slip" aria-hidden="true"></section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="tip" id="tip" hidden></div>
+<script src="../assets/firebase-config.js"></script>
+<script src="reports.js?v=1"></script>
+<script src="zip.js?v=1"></script>
+<script src="admin.js?v=1"></script>
+<script src="admin-order.js?v=1"></script>
+<script src="admin-more.js?v=1"></script>
+<script>
+/* installable phone app: sw.js caches only the app shell, never order data */
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__hiveInstall = e; document.dispatchEvent(new Event('hive-installable')); });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>

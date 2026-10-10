@@ -136,7 +136,7 @@
   function addFiles(files) {
     Array.prototype.forEach.call(files, function (f) {
       if (f.type.indexOf('image/') !== 0) return;
-      var p = { name: f.name, url: URL.createObjectURL(f), low: false, frame: defaultFrame, caption: '' };
+      var p = { name: f.name, url: URL.createObjectURL(f), blob: f, low: false, frame: defaultFrame, caption: '' };
       photos.push(p);
       /* a 2 in magnet wraps about 2.5 in of print; under 600 px on the short side it prints soft */
       var probe = new Image();
@@ -288,7 +288,8 @@
     var size = packSize();
     var lines = photos.map(function (p, i) {
       var f = frameOf(p);
-      return { n: i + 1, file: p.name, frame: f.id, frameName: f.name, caption: f.caption ? p.caption.trim().slice(0, f.caption.max) : '' };
+      return { n: i + 1, file: p.name, frame: f.id, frameName: f.name, caption: f.caption ? p.caption.trim().slice(0, f.caption.max) : '',
+               blob: p.blob, url: p.url };  /* blob/url: uploaded at checkout (assets/checkout.js) */
     });
     var names = [];
     lines.forEach(function (l) { if (names.indexOf(l.frameName) < 0) names.push(l.frameName); });

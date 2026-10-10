@@ -4,6 +4,8 @@
   var SHIPPING = 4.95, FREE_SHIP_AT = 35;
   var VOLUME = [[100, 25], [50, 20], [20, 10]];
   var KEY = 'lhh-cart';
+  /* store: a package line, or a photo pack already uploaded to the store (it survives a canceled checkout) */
+  function keep(l) { return l && (l.kind === 'package' || (l.kind === 'custom' && !!l.uploaded && Array.isArray(l.photos))); }
   var $ = function (id) { return document.getElementById(id); };
   var money = function (n) { return '$' + (Math.round(n * 100) / 100).toFixed(n % 1 ? 2 : 0); };
 
@@ -12,7 +14,8 @@
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || '[]');
     if (Array.isArray(saved)) {
-      cart = saved.filter(function (l) { return l && (l.kind === 'design' || l.kind === 'place') && l.qty > 0; })
+      /* store: packages, and photo packs whose photos are already uploaded, also persist (see keep()) */
+      cart = saved.filter(function (l) { return l && (l.kind === 'design' || l.kind === 'place' || keep(l)) && l.qty > 0; })
         .map(function (l) {
           if (l.kind === 'place') { l.kind = 'design'; if (l.id.indexOf('/') < 0) l.id = 'places/' + l.id; }
           return l;
@@ -21,7 +24,14 @@
   } catch (e) {}
 
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(cart.filter(function (l) { return l.kind === 'design'; }))); } catch (e) {}
+    try {
+      localStorage.setItem(KEY, JSON.stringify(cart.filter(function (l) { return l.kind === 'design' || keep(l); }).map(function (l) {
+        if (!l.photos) return l;
+        var c = {}; for (var k in l) c[k] = l[k];   /* Blobs and blob: URLs only live on this page */
+        c.photos = l.photos.map(function (ph) { return { n: ph.n, file: ph.file, frame: ph.frame, frameName: ph.frameName, caption: ph.caption, path: ph.path }; });
+        return c;
+      })));
+    } catch (e) {}
   }
 
   var toastTimer;
@@ -238,10 +248,42 @@
     }
   }
 
+  /* ---- store: big-order packages (big-orders.html), one buyable line per package size ---- */
+  function pkgPicked(card) { return card.querySelector('.tier input:checked') || card.querySelector('.tier input'); }
+  document.addEventListener('change', function (e) {
+    var r = e.target.closest && e.target.closest('.tier input'); if (!r) return;
+    var card = r.closest('[data-package]');
+    var buy = card.querySelector('[data-buy-package]'); if (buy) buy.textContent = 'Buy now · ' + money(Number(r.getAttribute('data-price')));
+    var q = card.querySelector('[data-pkg]'); if (q) q.setAttribute('data-qty', r.getAttribute('data-size'));
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-buy-package]'); if (!b) return;
+    var r = pkgPicked(b.closest('[data-package]')); if (!r) return;
+    var size = Number(r.getAttribute('data-size'));
+    addLine({ id: r.value, kind: 'package', name: r.getAttribute('data-title'), count: size, price: Number(r.getAttribute('data-price')),
+              detail: size + ' magnets · we plan the design with you by email after checkout' }, true);
+    openCart();
+  });
+  function addLine(line, quiet) {   /* quiet: the cart drawer opens right after, so no toast over it */
+    var same = line.kind !== 'custom' && cart.find(function (l) { return l.id === line.id && l.kind === line.kind; });
+    if (same) same.qty += line.qty || 1;
+    else { if (!line.qty) line.qty = 1; cart.push(line); }
+    save(); render(); if (!quiet) toast(line.name + ' added to cart');
+  }
+  /* ---- /store ---- */
+
   window.LHH = {
     addCustom: function (item) { item.kind = 'custom'; item.qty = 1; cart.push(item); render(); toast('Photo magnets added to cart'); openCart(); },
     money: money,
-    toast: toast
+    toast: toast,
+    /* store: used by assets/store.js, checkout.js and orders.js */
+    cart: function () { return cart; },
+    totals: totals,
+    addLine: addLine,
+    save: function () { save(); render(); },
+    clear: function () { cart.length = 0; save(); render(); },
+    openCart: openCart,
+    closeCart: closeCart
   };
   render();
 })();
