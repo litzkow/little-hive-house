@@ -1,12 +1,12 @@
 """American Places, painted edition (batch F): Los Angeles, San Diego, Portland, Maui, St. Louis, Brooklyn,
-Mount Rushmore and Annapolis. Same painterly approach as places_painted.py — graded skies, a real light direction,
+Badlands and Annapolis. Same painterly approach as places_painted.py — graded skies, a real light direction,
 atmospheric depth, reflections, and small storytelling details — each with its own hour and palette."""
 import math
 import random
 import sys
 
 from paint import (P, blobs, conifer, dots, glow, grass, lg, mist, rg, ridge_poly, rough, streaks, tree_line, y_on)
-from places_painted import Cam, defs, puff_column, facade_windows
+from places_painted import Cam, bison, defs, puff_column, facade_windows
 from poster import poster
 
 
@@ -1172,164 +1172,248 @@ def brooklyn():
     return "\n".join(out)
 
 
-# ---------------------------------------------------------------- Mount Rushmore (the carved granite in morning light)
-def carved_head(cx, cy, s, kind, u, tilt=0.0):
-    """A stylised granite portrait as carved in the mountain. Two-plane sculptural lighting (the morning sun from the
-    left), soft sockets with the carved light-catching pupils, a cut recess behind the head and rough unfinished rock
-    over the crown, all in the granite's own colours."""
-    rock, lit, mid, shade, deep = "#CFC4BC", "#F4EADE", "#C2B6B2", "#8E8296", "#5E5468"
-    sil = "M -30 -44 Q -2 -56 28 -46 Q 34 -16 30 14 Q 26 34 14 44 Q 4 52 -6 50 Q -20 46 -27 30 Q -34 6 -30 -44 Z"
-    if kind == "lincoln":
-        sil = "M -28 -46 Q 0 -56 28 -46 Q 34 -16 31 16 Q 28 40 14 50 Q 2 56 -10 52 Q -24 44 -28 24 Q -32 0 -28 -46 Z"
-    g = []
-    # recess cut into the mountain behind the head
-    g.append(f'<path d="{sil}" fill="{deep}" opacity="0.5" transform="translate(7 5) scale(1.12)"/>')
-    g.append(f'<path d="{sil}" fill="{mid}"/>')
-    # lit plane (left of the nose line) and shadow plane (right)
-    g.append(f'<path d="M -30 -44 Q -16 -50 4 -50 L 6 -16 L 9 14 L 5 24 L 3 50 Q -6 50 -6 50 Q -20 46 -27 30 Q -34 6 -30 -44 Z" fill="{lit}" opacity="0.75"/>')
-    g.append(f'<path d="M 6 -16 L 9 14 L 5 24 L 3 50 Q 4 52 14 44 Q 26 34 30 14 Q 34 -16 28 -46 Q 18 -50 4 -50 Z" fill="{shade}" opacity="0.55"/>')
-    # brow, sockets and the carved pupils
-    g.append(f'<path d="M -26 -20 Q -12 -26 0 -19 Q 10 -26 26 -19 L 24 -14 Q 11 -19 0 -13 Q -12 -19 -25 -14 Z" fill="{lit}" opacity="0.6"/>')
-    for ex, op, pop in ((-12, 0.3, 0.9), (13, 0.42, 0.5)):
-        g.append(f'<path d="M {ex - 10} -12 Q {ex} -16 {ex + 10} -12 Q {ex + 8} -2 {ex} -3 Q {ex - 8} -2 {ex - 10} -12 Z" fill="{deep}" opacity="{op}"/>')
-        g.append(f'<path d="M {ex - 6} -4 Q {ex} -1 {ex + 6} -4" stroke="{lit}" stroke-width="1" fill="none" opacity="0.4"/>')
-        g.append(f'<rect x="{ex - 1:.1f}" y="-11" width="2" height="4.4" rx="1" fill="{lit}" opacity="{pop}"/>')
-    # nose: bright ridge on the lit side, shadow cast to the right, nostril shade
-    g.append(f'<path d="M 0 -14 L -6 12 Q -2 16 4 15 L 9 14 L 6 -16 Z" fill="{lit}" opacity="0.55"/>')
-    g.append(f'<path d="M 6 -16 L 9 14 L 16 12 Q 12 -2 8 -16 Z" fill="{deep}" opacity="0.35"/>')
-    g.append(f'<path d="M -5 15 Q 2 19 9 15" stroke="{deep}" stroke-width="2" fill="none" opacity="0.6"/>')
-    # cheekbone light and mouth
-    g.append(f'<path d="M -24 -2 Q -14 4 -10 18" stroke="{deep}" stroke-width="1.4" fill="none" opacity="0.25"/>')
-    if kind == "roosevelt":
-        g.append(f'<path d="M -11 21 Q 0 17 13 21 Q 7 26 1 24 Q -5 26 -11 21 Z" fill="{deep}" opacity="0.55"/>')
-        g.append(f'<g fill="none" stroke="{lit}" stroke-width="1.2" opacity="0.55"><path d="M -21 -9 Q -12 -17 -3 -9 Q -12 -2 -21 -9 Z"/><path d="M 4 -9 Q 13 -17 22 -9 Q 13 -2 4 -9 Z"/><path d="M -3 -10 L 4 -10"/></g>')
-    else:
-        g.append(f'<path d="M -9 26 Q 1 28 11 25" stroke="{deep}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>')
-        g.append(f'<path d="M -8 23 Q 1 21 10 23" stroke="{lit}" stroke-width="1.3" fill="none" opacity="0.7"/>')
-    g.append(f'<path d="M -8 34 Q -2 31 4 34" stroke="{deep}" stroke-width="1.2" fill="none" opacity="0.3"/>')
-    # under-jaw shadow
-    g.append(f'<path d="M -27 30 Q -18 50 -2 52 Q 12 50 20 40 Q 8 58 -4 58 Q -20 56 -27 30 Z" fill="{deep}" opacity="0.55"/>')
-    if kind == "washington":
-        g.append(f'<g fill="none" stroke="{shade}" stroke-width="2.2" opacity="0.6"><path d="M -30 -26 q -7 7 0 14"/><path d="M -32 -8 q -7 7 0 14"/></g>')
-        g.append(f'<path d="M -34 48 L -8 56 L -2 76 L -46 76 Z" fill="{lit}" opacity="0.85"/><path d="M 30 44 L 8 56 L 4 76 L 46 76 Z" fill="{shade}"/>')
-        g.append(f'<path d="M -8 56 L -2 70 L 8 56" stroke="{deep}" stroke-width="2" fill="none" opacity="0.5"/>')
-    if kind == "jefferson":
-        g.append(f'<g fill="none" stroke="{shade}" stroke-width="2.2" opacity="0.55"><path d="M 28 -36 q 8 6 4 14"/><path d="M 32 -20 q 7 6 3 14"/></g>')
-    if kind == "lincoln":
-        g.append(f'<path d="M -26 22 Q -22 46 -4 54 Q 16 52 28 22 Q 22 36 12 38 Q 0 42 -12 36 Q -22 30 -26 22 Z" fill="{shade}" opacity="0.5"/>')
-        g.append(f'<g stroke="{deep}" stroke-width="1.2" opacity="0.4">' + "".join(f'<line x1="{x}" y1="{32 + abs(x) * 0.2:.0f}" x2="{x + 1}" y2="{44 + (16 - abs(x)) * 0.4:.0f}"/>' for x in range(-18, 24, 4)) + "</g>")
-        g.append(f'<path d="M -17 2 Q -11 12 -13 20" stroke="{shade}" stroke-width="2" fill="none" opacity="0.6"/>')
-    # rough unfinished rock over the crown, merging the head into the mountain
-    rnd = random.Random(len(kind) * 13)
-    cap = [(-46, -80), (46, -80)] + [(x, -44 + rnd.uniform(-6, 5) - (8 if abs(x) > 26 else 0)) for x in range(46, -47, -8)]
-    g.append(f'<polygon points="{P(cap)}" fill="{rock}"/>')
-    g.append(f'<polyline points="{P(cap[2:])}" fill="none" stroke="{deep}" stroke-width="1.4" opacity="0.4"/>')
-    g.append(streaks(18, len(kind), (-46, -80, 46, -44), ["#9A8E98", "#F6EDE2"], w=(0.8, 2), length=(6, 20), opacity=(0.3, 0.6), slant=0.1))
-    return f'<g transform="translate({cx} {cy}) rotate({tilt}) scale({s})">' + "".join(g) + "</g>"
+# ---------------------------------------------------------------- Badlands (banded spires at sunset, a bighorn ram on the ledge)
+def poly(pts, fill, extra=""):
+    return f'<polygon points="{P(pts)}" fill="{fill}"{extra}/>'
 
 
-def ponderosa(x, base, h, seed, dark="#2C4434", lit="#6E8E52"):
-    """Ponderosa pine: straight orange-brown trunk, open clumpy crown, lit on the left."""
+def spire_line(x0, x1, base, peaks, seed, step=3, amp=1.5, plinth=0.0, teeth=1.0):
+    """Badlands skyline: broad eroded masses with concave, flaring skirts, crowned by a saw-tooth of small
+    pinnacles; peaks = [(cx, top, half_width, sharpness)]."""
     rnd = random.Random(seed)
-    out = [f'<rect x="{x - h * 0.025:.1f}" y="{base - h * 0.75:.1f}" width="{h * 0.05:.1f}" height="{h * 0.75:.1f}" fill="#7A4E36"/>']
-    for i in range(9):
-        t = i / 8
-        cy = base - h * (0.38 + 0.6 * t)
-        w = h * 0.2 * (1 - 0.6 * t) * rnd.uniform(0.7, 1.1)
-        cx = x + rnd.uniform(-0.06, 0.06) * h
-        out.append(f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{w:.1f}" ry="{h * 0.07:.1f}" fill="{dark}"/>')
-        out.append(f'<ellipse cx="{cx - w * 0.35:.1f}" cy="{cy - h * 0.02:.1f}" rx="{w * 0.5:.1f}" ry="{h * 0.035:.1f}" fill="{lit}" opacity="0.7"/>')
+    tops = []                               # small pinnacles riding on the masses
+    x = x0
+    while x < x1:
+        tops.append((x, rnd.uniform(4, 13), rnd.uniform(0.25, 1.0)))
+        x += rnd.uniform(6, 15)
+
+    def mass(x):
+        h = plinth * min(1.0, (x - x0) / 36, (x1 - x) / 36) ** 0.6 if x0 < x < x1 else 0.0
+        for cx, top, hw, sh in peaks:
+            d = abs(x - cx) / hw
+            if d < 1:
+                h = max(h, (base - top) * (1 - d) ** sh)
+        return h
+
+    hmax = max(base - t for _, t, _, _ in peaks)
+    pts = []
+    x = x0
+    while x <= x1 + 0.1:
+        h = mass(x)
+        k = (h / hmax) ** 0.7
+        t = 0.0
+        for tx, tw, th in tops:
+            d = abs(x - tx) / tw
+            if d < 1:
+                t = max(t, th * 26 * teeth * k * (1 - d) ** 1.3)
+        pts.append((x, base - h - t + (rnd.uniform(-amp, amp) if h > 3 else 0)))
+        x += step
+    for cx, top, hw, sh in peaks:           # keep each crest as a true pinnacle so the shadow facets meet it
+        i = min(range(len(pts)), key=lambda j: abs(pts[j][0] - cx))
+        pts[i] = (cx, min(pts[i][1], top - 10 * teeth))
+    return pts
+
+
+def formation(u, k, line, base, peaks, bands, seed, shade="#5E3E6E", shade_op=0.42, lit="#FFE2B0", lit_op=0.8,
+              streak_cols=("#9A6A6A", "#FFF0DC", "#B88070"), n_streaks=None, haze=None):
+    """One banded badlands formation: horizontal strata (same absolute heights across a layer), erosion rills,
+    a violet shadow facet on the right of every pinnacle and a warm lit rim on the sun-facing slopes."""
+    rnd = random.Random(seed)
+    shape = line + [(line[-1][0], base + 2), (line[0][0], base + 2)]
+    cid = f"{u}-f{k}"
+    x0, x1 = line[0][0], line[-1][0]
+    top = min(y for _, y in line)
+    g = [f'<rect x="{x0}" y="{top - 2:.0f}" width="{x1 - x0}" height="{base - top + 4:.0f}" fill="{bands[0][1]}"/>']
+    for by, col in bands[1:]:
+        ph = rnd.uniform(0, 6)
+        wav = [(x, by + 1.6 * math.sin(x / 19 + ph) + 1.0 * math.sin(x / 7 + ph * 2)) for x in range(int(x0) - 2, int(x1) + 4, 4)]
+        g.append(poly(wav + [(x1 + 4, base + 4), (x0 - 2, base + 4)], col))
+        # a thin pale parting line at the top of each stratum
+        g.append(f'<polyline points="{P(wav)}" fill="none" stroke="#FFF2E2" stroke-width="1" opacity="0.35"/>')
+    n = n_streaks or int((x1 - x0) * (base - top) / 320)
+    g.append(streaks(n, seed + 1, (x0, top, x1, base), list(streak_cols), w=(0.8, 2.2), length=(8, 40), opacity=(0.12, 0.34), slant=0.06))
+    # corrugated rills: a dark gully with a sunlit rib beside it, running down from the crest line
+    rills = []
+    for _ in range(int((x1 - x0) / 3)):
+        rx = rnd.uniform(x0, x1)
+        ry = (y_on(line, rx) or base) + rnd.uniform(1, 6)
+        L = (base - ry) * rnd.uniform(0.3, 0.8)
+        if L < 6:
+            continue
+        wob = rnd.uniform(-3, 3)
+        rills.append(f'<path d="M {rx:.1f} {ry:.1f} q {wob:.1f} {L / 2:.1f} {wob * 0.4:.1f} {L:.1f}" stroke="{shade}" stroke-width="{rnd.uniform(0.9, 1.8):.1f}" opacity="{rnd.uniform(0.18, 0.4):.2f}"/>'
+                     f'<path d="M {rx - 1.6:.1f} {ry + 2:.1f} q {wob:.1f} {L * 0.4:.1f} {wob * 0.4:.1f} {L * 0.7:.1f}" stroke="{lit}" stroke-width="1" opacity="{rnd.uniform(0.15, 0.35):.2f}"/>')
+    g.append('<g fill="none" stroke-linecap="round">' + "".join(rills) + "</g>")
+    # shadow facets: from each crest, down the right-hand flank to the next valley, then down a gully to the base
+    for cx, ptop, hw, sh in peaks:
+        i = min(range(len(line)), key=lambda j: abs(line[j][0] - cx))
+        j = i + 1
+        while j < len(line) - 1 and line[j + 1][1] >= line[j][1] - 0.5:
+            j += 1
+        right = line[i:j + 1]
+        gx = right[-1][0]
+        mid = [(cx + (base - ptop) * 0.05 * t + rnd.uniform(-2, 2), ptop + (base - ptop) * t) for t in (0.15, 0.35, 0.55, 0.8, 1.0)]
+        g.append(poly(right + [(gx + rnd.uniform(-3, 3), base + 2)] + mid[::-1], shade, f' opacity="{shade_op}"'))
+    if haze:
+        g.append(f'<rect x="{x0}" y="{top - 2:.0f}" width="{x1 - x0}" height="{base - top + 4:.0f}" fill="url(#{haze})"/>')
+    out = [f'<clipPath id="{cid}"><polygon points="{P(shape)}"/></clipPath>', poly(shape, bands[0][1]), f'<g clip-path="url(#{cid})">' + "".join(g) + "</g>"]
+    # lit rim on slopes that face the low sun (rising to the right)
+    seg = []
+    for (ax, ay), (bx, by) in zip(line, line[1:]):
+        if by < ay - 0.3:
+            seg.append(f'M {ax:.1f} {ay:.1f} L {bx:.1f} {by:.1f}')
+    out.append(f'<path d="{" ".join(seg)}" stroke="{lit}" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="{lit_op}"/>')
     return "".join(out)
 
 
-def forest_canopy(n, seed, line, ybot, colors, lit, r=(5, 10)):
-    """Dense pine canopy texture filling the slope below a ridgeline."""
+def bighorn(x, base, s, coat="#7A5640", dark="#3E2A22", rim="#FFC27A", horn="#CDB088", horn_dk="#8A6E52"):
+    """Bighorn ram in profile facing left (toward the low sun), heavy curled horns, pale muzzle and rump patch."""
+    g = []
+    # far legs
+    g.append(f'<path d="M -10 -20 L -9 -1 L -6 -1 L -5 -20 Z M 20 -20 L 22 -1 L 25 -1 L 24 -20 Z" fill="{dark}"/>')
+    # body
+    g.append(f'<path d="M -20 -30 Q -19 -41 -6 -42 L 16 -41 Q 29 -41 31 -31 Q 32 -22 26 -18 L 10 -17 Q -2 -16 -14 -18 Q -21 -22 -20 -30 Z" fill="url(#bl-ram)"/>')
+    rnd = random.Random(5)
+    g.append(f'<g stroke="{dark}" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.35">' + "".join(
+        f'<path d="M {fx:.1f} {fy:.1f} q 1.5 2.5 0.5 {rnd.uniform(4, 7):.1f}"/>' for fx, fy in [(rnd.uniform(-14, 26), rnd.uniform(-38, -24)) for _ in range(16)]) + "</g>")
+    g.append(f'<path d="M -14 -18 Q -2 -15 10 -17 L 26 -18 Q 28 -22 27 -24 Q 10 -21 -16 -23 Z" fill="{dark}" opacity="0.55"/>')
+    g.append(f'<path d="M 26 -38 Q 33 -32 31 -22 Q 27 -20 24 -22 Q 27 -30 24 -37 Z" fill="#EDE2D0"/>')        # rump patch
+    # near legs with pale stockings
+    g.append(f'<path d="M -16 -24 Q -12 -16 -14.4 -8 L -14 0 L -10.5 0 L -10 -8 Q -8 -16 -8 -24 Z M 14 -23 Q 19 -16 16 -8 L 16 0 L 19.5 0 L 20 -8 Q 23 -16 22 -23 Z" fill="{coat}"/>')
+    g.append(f'<path d="M -14.4 -8 L -14 0 L -10.5 0 L -10.2 -8 Z M 15.6 -8 L 16 0 L 19.5 0 L 19.8 -8 Z" fill="#E6DAC8"/>')
+    g.append(f'<path d="M -14.5 0 h 4.6 M 15.6 0 h 4.4" stroke="#1E1612" stroke-width="2"/>')
+    # thick neck and head, muzzle pointing forward-down
+    g.append(f'<path d="M -10 -40 Q -18 -48 -24 -54 L -34 -54 Q -38 -46 -30 -38 Q -24 -30 -20 -26 Z" fill="{coat}"/>')
+    g.append(f'<path d="M -24 -56 Q -32 -60 -38 -55 L -44 -48 Q -45 -43 -40 -42 L -33 -44 Q -26 -47 -24 -56 Z" fill="{coat}"/>')
+    g.append(f'<path d="M -44 -48 Q -45 -43 -40 -42 L -35 -43.5 Q -38 -47 -41 -50 Z" fill="#E8DCCA"/>')        # pale muzzle
+    g.append(f'<circle cx="-33" cy="-53" r="1.3" fill="#1A120E"/>')
+    # the great curled horn: a tapering spiral back and down around the ear
+    g.append(f'<path d="M -28 -57 Q -24 -66 -14 -64 Q -4 -61 -4 -50 Q -5 -40 -14 -40 Q -22 -41 -22 -48 Q -21 -53 -16 -53" stroke="{horn}" stroke-width="7" fill="none" stroke-linecap="round"/>')
+    g.append(f'<path d="M -27 -59 Q -23 -66 -14 -64 Q -4 -61 -4 -50 Q -5 -40 -14 -40" stroke="#F4E2C0" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8"/>')
+    g.append(f'<g stroke="{horn_dk}" stroke-width="1.1" opacity="0.8">' + "".join(
+        f'<line x1="{-14 + 9 * math.cos(a):.1f}" y1="{-52 + 10 * math.sin(a):.1f}" x2="{-14 + 13 * math.cos(a):.1f}" y2="{-52 + 14 * math.sin(a):.1f}"/>'
+        for a in [math.radians(d) for d in range(-150, 100, 22)]) + "</g>")
+    # warm sunset rim on the chest, face and back
+    g.append(f'<path d="M -33 -51 Q -36.5 -46 -29.5 -38.5 Q -24 -31 -20.5 -27 M -38 -55 L -43.5 -48.5 M -19 -36 Q -16 -42 -6 -42 L 16 -41" stroke="{rim}" stroke-width="1.8" fill="none" stroke-linecap="round"/>')
+    g.append(f'<path d="M -15 -22 L -14 -2" stroke="{rim}" stroke-width="1.2" opacity="0.8"/>')
+    d = lg("bl-ram", [(0, "#9A6E4E"), (0.5, coat), (1, "#5A3E30")], 0, 0, 1, 0)
+    return f'<defs>{d}</defs><g transform="translate({x} {base}) scale({s})">' + "".join(g) + "</g>"
+
+
+def yucca(x, base, h, seed, col="#6E7A4A", lit="#D8C878"):
     rnd = random.Random(seed)
     out = []
-    for _ in range(n):
-        x = rnd.uniform(-10, 610)
-        top = y_on(line, x) or ybot
-        y = rnd.uniform(top + 2, ybot)
-        rr = rnd.uniform(*r) * (0.7 + 0.6 * (y - top) / max(1, ybot - top))
-        out.append(f'<path d="M {x:.1f} {y - rr * 2.2:.1f} Q {x + rr:.1f} {y - rr:.1f} {x + rr * 0.9:.1f} {y:.1f} L {x - rr * 0.9:.1f} {y:.1f} Q {x - rr:.1f} {y - rr:.1f} {x:.1f} {y - rr * 2.2:.1f} Z" fill="{rnd.choice(colors)}"/>')
-        out.append(f'<path d="M {x:.1f} {y - rr * 2.2:.1f} Q {x - rr:.1f} {y - rr:.1f} {x - rr * 0.9:.1f} {y:.1f}" stroke="{lit}" stroke-width="{max(0.8, rr * 0.25):.1f}" fill="none" opacity="0.6"/>')
+    for _ in range(16):
+        a = math.radians(rnd.uniform(-75, 75))
+        L = h * rnd.uniform(0.6, 1.0)
+        ex, ey = x + L * math.sin(a), base - L * math.cos(a) * 0.9
+        out.append(f'<path d="M {x:.1f} {base:.1f} L {ex:.1f} {ey:.1f}" stroke="{rnd.choice([col, lit, col])}" stroke-width="{rnd.uniform(1.6, 2.6):.1f}" stroke-linecap="round"/>')
+    out.append(f'<path d="M {x:.1f} {base - h * 0.4:.1f} Q {x + 4:.1f} {base - h * 1.4:.1f} {x + 2:.1f} {base - h * 1.9:.1f}" stroke="#8A6A3A" stroke-width="1.8" fill="none"/>')
+    out.append("".join(f'<ellipse cx="{x + 3 + (i % 2) * 3 - 1.5:.1f}" cy="{base - h * (1.25 + i * 0.12):.1f}" rx="2.4" ry="1.6" fill="#F4E6C0"/>' for i in range(5)))
     return "".join(out)
 
 
-def mountain_goat(x, base, s):
-    return (f'<g transform="translate({x} {base}) scale({s})">'
-            '<path d="M -20 -18 Q -22 -30 -10 -32 L 12 -32 Q 22 -32 24 -24 L 26 -30 Q 30 -40 36 -38 L 38 -30 Q 38 -24 32 -20 L 28 -14 L 24 -18 L 22 -4 L 18 -4 L 18 -16 L -8 -16 L -10 -2 L -14 -2 L -14 -16 Q -20 -14 -20 -18 Z" fill="#F4EEE4"/>'
-            '<path d="M -20 -18 Q -22 -30 -10 -32 L 12 -32 Q 22 -32 24 -24 L 22 -18 Q 10 -22 -20 -18 Z" fill="#FFFFFF"/>'
-            '<path d="M -8 -16 L -10 -2 L -14 -2 L -14 -16 Z M 22 -16 L 22 -4 L 18 -4 L 18 -16 Z" fill="#D8D0C8"/>'
-            '<path d="M 33 -38 Q 30 -46 26 -46" stroke="#2A2228" stroke-width="2" fill="none" stroke-linecap="round"/>'
-            '<path d="M 32 -20 Q 30 -14 31 -10" stroke="#E8E0D8" stroke-width="3" stroke-linecap="round"/>'
-            '<circle cx="34" cy="-32" r="1" fill="#2A2228"/><path d="M -12 -2 L -12 0 M 20 -4 L 20 0" stroke="#2A2228" stroke-width="2"/>'
-            '<path d="M -20 -18 Q -22 -30 -10 -32 L 12 -32" stroke="#FFE8C0" stroke-width="1.4" fill="none"/></g>')
-
-
-def mount_rushmore():
-    u = "mr"
+def badlands():
+    u = "bl"
     out = [defs(
-        lg(f"{u}-sky", [(0, "#4C86C2"), (0.5, "#8EBCE0"), (0.85, "#D8E8EE"), (1, "#F4EAD6")], 0, 40, 0, 330, units="userSpaceOnUse"),
-        lg(f"{u}-rock", [(0, "#EADFD2"), (0.45, "#CFC4BC"), (1, "#8E8496")], 0, 0, 1, 0),
-        lg(f"{u}-talus", [(0, "#E4D8CC"), (1, "#B8ACA8")]),
-        lg(f"{u}-far", [(0, "#7A98B8"), (1, "#9AB4C8")]),
-        lg(f"{u}-mid", [(0, "#3E5E4E"), (1, "#2E4A3E")]),
-        lg(f"{u}-cl", [(0, "#FFFFFF"), (1, "#E8EEF4")]),
-        lg(f"{u}-fg", [(0, "#5A6E3E"), (1, "#3A4A2A")]),
+        lg(f"{u}-sky", [(0, "#2C2A5C"), (0.3, "#5C4684"), (0.58, "#B8688E"), (0.8, "#F09A6C"), (1, "#FFD088")], 0, 40, 0, 300, units="userSpaceOnUse"),
+        lg(f"{u}-hzF", [(0, "#E8A0A0", 0.55), (1, "#F8C090", 0.25)]),
+        lg(f"{u}-hzL", [(0, "#F0A890", 0.1), (1, "#F6B890", 0.45)]),
+        lg(f"{u}-prairie", [(0, "#C8A458"), (0.4, "#A88A44"), (1, "#6E5A30")], 0, 330, 0, 444, units="userSpaceOnUse"),
+        lg(f"{u}-ledge", [(0, "#F2D2B0"), (1, "#C89884")]),
     )]
     out.append(f'<rect width="600" height="444" fill="url(#{u}-sky)"/>')
-    out.append(glow(60, 170, 240, "#FFF4D8", f"{u}-sun", 0.6))
-    for x, y, w, h_ in ((470, 104, 160, 10), (110, 88, 120, 8), (540, 164, 90, 7), (300, 70, 100, 6)):
-        out.append(f'<path d="M {x - w / 2} {y} q {w * 0.25} {-h_ * 1.6} {w * 0.5} {-h_ * 0.7} q {w * 0.2} {-h_ * 1.3} {w * 0.5} {h_ * 0.4} q {-w * 0.5} {h_ * 0.9} {-w} {h_ * 0.3} Z" fill="url(#{u}-cl)" opacity="0.9"/>'
-                   f'<path d="M {x - w / 2 + 8} {y + 1} q {w * 0.45} {h_ * 0.7} {w - 16} 0" stroke="#B8C4D8" stroke-width="1.5" fill="none" opacity="0.6"/>')
-    # far Black Hills, hazy blue
-    poly, far = ridge_poly([(-10, 258), (70, 244), (160, 254), (260, 242), (360, 252), (460, 238), (540, 248), (610, 242)], 3, base=330, amp=5, fill=f"url(#{u}-far)")
-    out.append(poly)
-    out.append(tree_line(far, 4, ["#7090AE", "#6A88A6"], density=1.4, hmin=4, hmax=8))
-    # the granite massif: low left shoulder, rough summit ridge just above the heads, fluted cliffs to the right
-    mass = rough([(70, 330), (96, 270), (122, 214), (146, 166), (166, 128), (196, 112), (236, 100), (282, 104), (330, 96), (380, 108), (428, 100),
-                  (470, 116), (500, 150), (514, 196), (530, 250), (556, 330)], 7, amp=7, depth=3)
-    cid = f"{u}-ms"
-    out.append(f'<clipPath id="{cid}"><polygon points="{P(mass)}"/></clipPath>')
-    out.append(f'<polygon points="{P(mass)}" fill="url(#{u}-rock)"/>')
-    rock = [streaks(260, 11, (70, 96, 556, 330), ["#9A8E98", "#F6EDE2", "#B4A8AC", "#7E7488"], w=(0.8, 2.6), length=(8, 60), opacity=(0.25, 0.6), slant=0.1)]
-    for pts, op in (([(456, 116), (500, 150), (520, 220), (540, 330), (488, 330), (476, 230)], 0.38), ([(150, 170), (128, 240), (110, 330), (92, 330), (118, 240)], 0.22)):
-        rock.append(f'<polygon points="{P(pts)}" fill="#6E6480" opacity="{op}"/>')
-    for x in (150, 470, 490, 510):
-        rock.append(f'<path d="M {x} 140 Q {x + 6} 220 {x - 4} 330" stroke="#6E6480" stroke-width="2" fill="none" opacity="0.4"/>')
-    out.append(f'<g clip-path="url(#{cid})">{"".join(rock)}</g>')
-    out.append(f'<polyline points="{P([p for p in mass if p[0] < 330])}" fill="none" stroke="#FFF6E6" stroke-width="2" opacity="0.7"/>')
-    # the four carved heads, back to front: Roosevelt deep in his recess, Jefferson, Washington, Lincoln
-    heads = (f'<path d="M 306 136 Q 334 120 366 132 L 374 222 Q 338 236 306 222 Z" fill="#5A5068" opacity="0.5"/>'
-             + carved_head(338, 176, 0.88, "roosevelt", u)
-             + carved_head(266, 162, 1.0, "jefferson", u, tilt=-8)
-             + carved_head(194, 172, 1.1, "washington", u)
-             + carved_head(414, 176, 1.06, "lincoln", u))
-    out.append(f'<g clip-path="url(#{cid})">{heads}</g>')
-    # talus fan of broken granite spilling below the sculpture
-    tal = rough([(132, 268), (200, 250), (280, 240), (360, 244), (440, 252), (500, 270), (520, 330), (110, 330)], 21, amp=6, depth=3)
-    out.append(f'<polygon points="{P(tal)}" fill="url(#{u}-talus)"/>')
-    out.append(f'<clipPath id="{u}-tc"><polygon points="{P(tal)}"/></clipPath><g clip-path="url(#{u}-tc)">'
-               + "".join(f'<polygon points="{P([(x, y), (x + w, y - w * 0.4), (x + w * 1.4, y + w * 0.2), (x + w * 0.4, y + w * 0.5)])}" fill="{c}" opacity="0.85"/>'
-                         for x, y, w, c in [(random.Random(i).uniform(110, 520), random.Random(i + 50).uniform(224, 330), random.Random(i + 9).uniform(3, 9), random.Random(i + 3).choice(["#F4EADE", "#A89CA4", "#C8BCB8", "#8E8296"])) for i in range(160)])
-               + "</g>")
-    # forested slopes: a dense pine canopy, then individual ponderosas nearer
-    poly, mid = ridge_poly([(-10, 286), (60, 272), (130, 286), (200, 292), (300, 282), (400, 290), (480, 278), (560, 266), (610, 272)], 13, base=444, amp=5, fill=f"url(#{u}-mid)")
-    out.append(poly)
-    out.append(forest_canopy(520, 14, mid, 380, ["#2E4A3E", "#365444", "#2A4238", "#3E5E48"], "#7E9E5E", r=(4, 9)).replace('opacity="0.6"', 'opacity="0.4"'))
-    poly, fg = ridge_poly([(-10, 384), (80, 370), (170, 380), (260, 392), (360, 390), (440, 374), (520, 362), (610, 368)], 31, base=444, amp=5, fill=f"url(#{u}-fg)")
-    out.append(poly)
-    out.append(grass(170, 32, (-10, 370, 610, 444), ["#8A9A56", "#AAB060", "#6E7E46", "#D0C080"], h=(6, 14)))
-    # granite outcrop with a mountain goat surveying the view
-    out.append(f'<path d="M 440 444 L 452 392 Q 470 372 500 374 L 540 380 Q 570 384 580 400 L 600 444 Z" fill="#B8ACA8"/><path d="M 452 392 Q 470 372 500 374 L 540 380 L 520 392 Q 486 384 452 392 Z" fill="#F0E6DA"/>'
-               f'<path d="M 540 380 Q 570 384 580 400 L 600 444 L 560 444 Q 550 410 520 392 Z" fill="#8E8496"/>'
-               + streaks(20, 5, (450, 380, 600, 444), ["#8E8496", "#F4EADE"], w=(0.8, 2), length=(8, 24), opacity=(0.3, 0.6)))
-    out.append(mountain_goat(498, 380, 0.9))
-    for x, h, sd in ((44, 150, 41), (96, 104, 42), (594, 120, 43), (380, 70, 44)):
-        y = y_on(fg, x) or 384
-        out.append(conifer(x, y + 22, h, "#26402E", sd, width=0.42, trunk="#6A4430", light="#7E9E5A"))
-    out.append(gulls([(150, 104, 12), (172, 112, 8)], "#3A3E4E", sw=2))
+    out.append(dots(22, 3, (300, 40, 600, 120), "#FFF0E0", r=(0.6, 1.2), opacity=(0.3, 0.8)))
+    # the sun setting into the far wall, and a wide warm glow
+    out.append(glow(214, 272, 300, "#FFD898", f"{u}-sunG", 0.8))
+    out.append('<circle cx="214" cy="270" r="20" fill="#FFF2CC"/>')
+    # thin sunset clouds lit from beneath
+    out.append('<g fill="#F4A08A" opacity="0.6">' + "".join(f'<ellipse cx="{x}" cy="{y}" rx="{w}" ry="{h}"/>' for x, y, w, h in (
+        (140, 196, 110, 4), (90, 208, 60, 3), (330, 178, 80, 3.5), (520, 150, 90, 4), (560, 164, 50, 3), (240, 228, 50, 2.5))) + "</g>")
+    out.append('<g fill="#FFE0B8" opacity="0.6">' + "".join(f'<ellipse cx="{x}" cy="{y}" rx="{w}" ry="1.6"/>' for x, y, w in ((150, 199, 70), (330, 180, 40), (240, 230, 30))) + "</g>")
+    # pale crescent moon rising in the east
+    out.append(glow(520, 104, 26, "#FFF0E0", f"{u}-moonG", 0.35))
+    out.append('<path d="M 516 94 A 10 10 0 1 0 530 108 A 8.6 8.6 0 1 1 516 94 Z" fill="#FFF4E4"/>')
+
+    # --- far wall of the Badlands, hazy pink-lavender
+    pk = [(10, 244, 70, 1.1), (110, 252, 60, 1.0), (300, 250, 70, 1.1), (400, 240, 60, 1.2), (500, 248, 70, 1.0), (590, 238, 60, 1.1)]
+    line = spire_line(-10, 610, 302, pk, 3, step=3, amp=1, plinth=24, teeth=0.45)
+    out.append(formation(u, 0, line, 302, pk, [(0, "#E6B4B4"), (256, "#DEA8AE"), (270, "#E8BCB2"), (286, "#D6A0A8")], 4,
+                         shade="#8A6A9E", shade_op=0.3, lit="#FFE4C4", lit_op=0.55, streak_cols=("#B88898", "#FFE8DC"), haze=f"{u}-hzF"))
+
+    out.append(f'<rect x="-10" y="298" width="620" height="60" fill="#E2B49A"/><rect x="-10" y="298" width="620" height="3" fill="#FFE2B8" opacity="0.7"/>')
+    # --- left formation, nearer, in the sun's glare
+    pk = [(10, 196, 80, 1.2), (96, 226, 64, 1.1), (160, 256, 44, 1.0)]
+    line = spire_line(-12, 250, 336, pk, 5, step=3, amp=1.5, plinth=30, teeth=0.8)
+    out.append(formation(u, 1, line, 336, pk, [(0, "#F2D8C0"), (214, "#EBB8A6"), (234, "#F2D6BC"), (254, "#CF8A72"), (258, "#EBB49E"), (282, "#ECC090"), (306, "#F0D6B8"), (322, "#DDB49C")], 6,
+                         shade="#6A4A7A", shade_op=0.38, streak_cols=("#A8706E", "#FFF0DC", "#C08A78"), haze=f"{u}-hzL"))
+
+    # --- the hero wall of spires: broad fluted masses with flaring skirts, crowned by saw-tooth pinnacles,
+    #     the same strata running level through every one
+    pk = [(268, 222, 60, 1.1), (330, 160, 80, 1.25), (414, 132, 90, 1.35), (500, 162, 70, 1.2), (566, 140, 80, 1.3), (624, 176, 50, 1.1)]
+    line = spire_line(222, 612, 344, pk, 9, step=2.5, amp=1.2, plinth=40, teeth=1.0)
+    bands = [(0, "#F6E4CC"), (150, "#F0C4AE"), (170, "#F4DABE"), (192, "#EAB09C"), (208, "#CC7E68"), (212, "#ECB49E"), (234, "#F3D3B2"),
+             (254, "#E8B678"), (268, "#F1D6B4"), (292, "#DCB0A8"), (314, "#E6B878"), (332, "#CDA290")]
+    out.append(formation(u, 2, line, 344, pk, bands, 10, shade="#643C6A", shade_op=0.34, streak_cols=("#9A6266", "#FFF2E0", "#B8806E", "#7A5262")))
+
+    # --- the Yellow Mounds: soft rounded ochre and rose hills in front of the wall
+    for k, (pts, col, band) in enumerate((
+            ([(40, 352), (80, 326), (130, 316), (180, 322), (230, 334), (270, 352)], "#E2B060", "#D88A6E"),
+            ([(200, 356), (250, 334), (300, 326), (360, 330), (420, 346), (450, 358)], "#E8BC6E", "#E0987E"))):
+        ln = rough(pts, 50 + k, amp=3, depth=3)
+        shape = ln + [(ln[-1][0], 364), (ln[0][0], 364)]
+        cid = f"{u}-ym{k}"
+        out.append(f'<clipPath id="{cid}"><polygon points="{P(shape)}"/></clipPath>' + poly(shape, col)
+                   + f'<g clip-path="url(#{cid})">'
+                   + poly([(x, y + 10 + 2 * math.sin(x / 15)) for x, y in ln] + [(ln[-1][0], 364), (ln[0][0], 364)], band, ' opacity="0.8"')
+                   + poly([(x, y + 18 + 2 * math.sin(x / 11)) for x, y in ln] + [(ln[-1][0], 364), (ln[0][0], 364)], "#F2D49A", ' opacity="0.7"')
+                   + streaks(60, 60 + k, (pts[0][0], 316, pts[-1][0], 364), ["#B8805A", "#FFF0D0"], w=(0.8, 2), length=(6, 20), opacity=(0.2, 0.45), slant=0.1)
+                   + poly([(pts[2][0], pts[2][1] - 2)] + [p for p in ln if p[0] > pts[2][0]] + [(ln[-1][0], 364), (pts[2][0] + 10, 364)], "#6A4A6E", ' opacity="0.3"')
+                   + "</g>")
+        out.append(f'<polyline points="{P([p for p in ln if p[0] < pts[2][0]])}" fill="none" stroke="#FFE6B0" stroke-width="1.6" opacity="0.8"/>')
+
+    # --- the prairie floor with grazing bison far off
+    pl, pr = ridge_poly([(-10, 350), (120, 346), (260, 354), (420, 356), (610, 350)], 61, base=444, amp=2, fill=f"url(#{u}-prairie)")
+    out.append(pl)
+    out.append(grass(260, 62, (-10, 350, 610, 380), ["#D8BC6A", "#B89A4E", "#E8D08A", "#8E7A3E"], h=(3, 7), sw=1.2))
+    for bx, by, bs, fl in ((104, 370, 0.17, False), (140, 374, 0.19, False), (200, 367, 0.15, True)):
+        out.append(f'<ellipse cx="{bx + 150 * bs * 0.5 + 18:.1f}" cy="{by:.1f}" rx="{150 * bs * 0.7:.1f}" ry="1.6" fill="#4A3A2A" opacity="0.4"/>')
+        out.append(bison(bx if not fl else bx + 150 * bs, by, bs, rim="#FFC27A", flip=fl))
+    out.append(grass(420, 63, (-10, 372, 610, 444), ["#D8BC6A", "#C8A454", "#E8D08A", "#9A843E", "#F2DC98"], h=(8, 20), sw=1.6))
+
+    # --- foreground ledge of banded rock on the right, a bighorn ram watching the sun go down
+    ledge = rough([(300, 444), (318, 404), (346, 392), (392, 384), (450, 382), (510, 384), (560, 378), (610, 380)], 71, amp=3, depth=3)
+    shape = ledge + [(610, 446), (300, 446)]
+    cid = f"{u}-ld"
+    out.append(f'<clipPath id="{cid}"><polygon points="{P(shape)}"/></clipPath>' + poly(shape, f"url(#{u}-ledge)"))
+    lb = [(392, "#F2D8BC"), (402, "#E2A28E"), (414, "#F0CCA8"), (422, "#C87A62"), (428, "#E8B488"), (440, "#E0A066")]
+    g = []
+    for by, col in lb:
+        g.append(poly([(x, by + 1.5 * math.sin(x / 13 + by)) for x in range(296, 616, 6)] + [(612, 446), (296, 446)], col))
+    g.append(streaks(70, 72, (300, 380, 610, 444), ["#9A6266", "#FFF2E0", "#B8806E"], w=(1, 2.4), length=(8, 26), opacity=(0.15, 0.4), slant=0.05))
+    # cracks and a few loose blocks on the ledge face
+    g.append('<g stroke="#7A4A5A" stroke-width="1.4" fill="none" opacity="0.5"><path d="M 360 396 l 4 14 l -3 12"/><path d="M 432 392 l -3 16 l 5 10 l -2 14"/><path d="M 528 390 l 2 20 l 6 8"/></g>')
+    # flat lit top of the ledge, and its shaded right-hand face
+    g.append(poly(ledge[1:] + [(x, y + 7) for x, y in ledge[1:]][::-1], "#FBE6C8", ' opacity="0.8"'))
+    g.append(poly([(560, 378), (610, 380), (610, 446), (574, 446)], "#5A3A6E", ' opacity="0.35"'))
+    out.append(f'<g clip-path="url(#{cid})">' + "".join(g) + "</g>")
+    out.append(f'<polyline points="{P(ledge[:len(ledge) - 2])}" fill="none" stroke="#FFE6B8" stroke-width="2" opacity="0.9"/>')
+    # the ram's long shadow stretching away from the sun across the ledge
+    rx_, rb = 470, 384
+    out.append(f'<path d="M {rx_ - 12} {rb} L {rx_ + 30} {rb - 1} L {rx_ + 124} {rb + 3} Q {rx_ + 136} {rb + 5} {rx_ + 126} {rb + 7} L {rx_ + 26} {rb + 4} Z" fill="#6A3E5E" opacity="0.38"/>')
+    out.append(bighorn(rx_, rb, 1.3))
+    # sage and yucca in the foreground grass, lit seed heads
+    out.append('<g fill="#5A3E4E" opacity="0.28">' + "".join(f'<path d="M {x - 10} {y} L {x + L} {y + 2} L {x + L - 6} {y + 5} L {x - 8} {y + 4} Z"/>'
+               for x, y, L in ((96, 436, 70), (250, 440, 56), (40, 414, 60), (150, 424, 60), (200, 410, 54), (286, 430, 50))) + "</g>")
+    out.append(yucca(96, 436, 26, 81))
+    out.append(yucca(250, 440, 20, 82))
+    for k, (cx, cy) in enumerate(((40, 414), (150, 424), (200, 410), (286, 430))):     # sagebrush clumps, lit on top
+        out.append(blobs(18, 83 + k, (cx - 14, cy - 8, cx + 14, cy + 4), ["#8A8C66", "#9A9A72", "#74785A"], r=(2.5, 5), opacity=(0.9, 1), squash=0.8))
+        out.append(blobs(10, 90 + k, (cx - 12, cy - 10, cx + 8, cy - 2), ["#C8CCA0", "#E0D8A8"], r=(1.6, 3), opacity=(0.7, 1), squash=0.8))
+    out.append(grass(120, 84, (-10, 410, 300, 446), ["#F2DC98", "#E8C878", "#C8A454"], h=(10, 24), sw=1.8))
+    # a hawk riding the last thermals
+    out.append('<path d="M 112 132 q 10 -8 20 -2 q 4 -1 6 2 q 2 -3 6 -2 q 10 -6 20 2 q -12 0 -20 3 q -2 3 -6 0 q -8 -3 -26 -3 Z" fill="#3A2A44"/>')
+    out.append(gulls([(70, 162, 7), (84, 156, 5)], "#3A2A44", sw=1.6))
     return "\n".join(out)
 
 
@@ -1496,7 +1580,7 @@ BUILD = {
     "portland": (portland, "PORTLAND", "OREGON · USA", "#1E2E4A", "#F08AA0", "#FBEBD4", "#F6B6B8"),
     "maui": (maui, "MAUI", "HAWAII · USA", "#22183A", "#FF9A52", "#FBEBD4", "#FFB45E"),
     "brooklyn": (brooklyn, "BROOKLYN", "NEW YORK · USA", "#2A2030", "#D8704A", "#FBEBD4", "#F2C49A"),
-    "mount-rushmore": (mount_rushmore, "MOUNT RUSHMORE", "SOUTH DAKOTA · USA", "#22303A", "#E8B060", "#FBEBD4", "#F2D8A8"),
+    "badlands": (badlands, "BADLANDS", "SOUTH DAKOTA · NATIONAL PARK", "#2E2240", "#F09A6C", "#FBEBD4", "#F6C49A"),
     "annapolis": (annapolis, "ANNAPOLIS", "MARYLAND · USA", "#14284A", "#E8B04A", "#FBEBD4", "#F2C878"),
     "st-louis": (st_louis, "ST. LOUIS", "MISSOURI · USA", "#1C2238", "#F5A04A", "#FBEBD4", "#FFC478"),
 }
