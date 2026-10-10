@@ -23,6 +23,12 @@ FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&famil
 import raster  # noqa: E402
 raster.main()
 
+# Site decoration season by date (inclusive MMDD ranges); the spotlight uses catalog.SEASONS.
+DECOR = [(1226, 1231, "newyear"), (101, 103, "newyear"), (104, 131, "winter"), (201, 214, "valentine"), (215, 229, "winter"),
+         (301, 317, "stpatricks"), (318, 531, "spring"), (601, 621, "summer"), (622, 704, "july4"), (705, 831, "summer"),
+         (901, 1014, "fall"), (1015, 1031, "halloween"), (1101, 1127, "thanksgiving"), (1128, 1225, "christmas")]
+DECOR_JS = "[" + ",".join(f"[{a},{b},'{c}']" for a, b, c in DECOR) + "]"
+
 BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
 CUR = ' aria-current="page"'
 TOTAL = sum(len(c["order"]) for c in COLLECTIONS)
@@ -98,7 +104,7 @@ def head(pg, title, desc, path):
 <meta property="og:description" content="{E(desc)}">
 <meta property="og:type" content="website">
 <link rel="icon" href="{pg.p}assets/favicon.svg" type="image/svg+xml">
-<script>(function(){{var t;try{{t=localStorage.getItem('lhh-theme')}}catch(e){{}}if(t!=='light'&&t!=='dark'){{var h=new Date().getHours();t=(h>=6&&h<19)?'light':'dark'}}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter';if(k>=201&&k<=214)z='valentine';else if(k>=301&&k<=531)z='spring';else if(k>=601&&k<=831)z='summer';else if(k>=1015&&k<=1031)z='halloween';else if((k>=901&&k<=1014)||(k>=1101&&k<=1127))z='fall';else if(k>=1128)z='christmas';document.documentElement.setAttribute('data-season',z)}})();</script>
+<script>(function(){{var t;try{{t=localStorage.getItem('lhh-theme')}}catch(e){{}}if(t!=='light'&&t!=='dark'){{var h=new Date().getHours();t=(h>=6&&h<19)?'light':'dark'}}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter',T={DECOR_JS};for(var i=0;i<T.length;i++)if(k>=T[i][0]&&k<=T[i][1])z=T[i][2];document.documentElement.setAttribute('data-season',z)}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">

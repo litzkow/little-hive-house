@@ -124,7 +124,8 @@
     var season = document.documentElement.getAttribute('data-season');
     var sets = { fall: ['fall-leaf1', 'fall-leaf2', 'fall-leaf3', 'fall-leaf4'], halloween: ['halloween-bat', 'fall-leaf1', 'fall-leaf3'],
                  christmas: ['snow1', 'snow2', 'snow3'], winter: ['snow1', 'snow2', 'snow3'], valentine: ['heart1', 'heart2'],
-                 spring: ['petal1', 'petal2', 'petal3'], summer: [] };
+                 spring: ['petal1', 'petal2', 'petal3'], summer: [], thanksgiving: ['fall-leaf1', 'fall-leaf2', 'fall-leaf3', 'fall-leaf4'],
+                 newyear: ['confetti1', 'confetti2', 'confetti3'], stpatricks: ['clover1', 'clover2'], july4: ['star1', 'star2', 'confetti1'] };
     var list = sets[season];
     if (!hero || !list || !list.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var me = document.querySelector('script[src*="site.js"]');
