@@ -231,7 +231,7 @@ footer { padding-block: 48px 64px; }
 .menu-btn { display: none; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: transparent; color: var(--ink); font: 600 15px var(--body); cursor: pointer; align-items: center; gap: 8px; }
 .menu-btn svg { width: 18px; height: 18px; }
 @media (max-width: 860px) { .nav a { display: none; } .menu-btn { display: inline-flex; } }
-.mobile-menu { border-top: 1px solid var(--line); background: var(--bg); }
+.mobile-menu { border-top: 1px solid var(--line); background: var(--bg); max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .mobile-menu nav { display: grid; gap: 4px; padding-block: 12px 18px; }
 .mobile-menu a { display: flex; align-items: center; min-height: 44px; text-decoration: none; font-weight: 600; font-size: 18px; border-bottom: 1px solid var(--line); }
 .mobile-menu .sub { font-weight: 500; font-size: 16px; color: var(--muted); padding-left: 14px; min-height: 40px; }
