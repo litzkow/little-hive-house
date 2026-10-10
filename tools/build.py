@@ -13,7 +13,7 @@ from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, PRICE, SEASONS, VOLUME
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "5"
+VERSION = "6"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -104,7 +104,7 @@ def head(pg, title, desc, path):
 <meta property="og:description" content="{E(desc)}">
 <meta property="og:type" content="website">
 <link rel="icon" href="{pg.p}assets/favicon.svg" type="image/svg+xml">
-<script>(function(){{var t;try{{t=localStorage.getItem('lhh-theme')}}catch(e){{}}if(t!=='light'&&t!=='dark'){{var h=new Date().getHours();t=(h>=6&&h<19)?'light':'dark'}}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter',T={DECOR_JS};for(var i=0;i<T.length;i++)if(k>=T[i][0]&&k<=T[i][1])z=T[i][2];document.documentElement.setAttribute('data-season',z)}})();</script>
+<script>(function(){{var h=new Date().getHours(),t=(h>=6&&h<19)?'light':'dark';try{{var m=JSON.parse(localStorage.getItem('lhh-theme2')||'null');if(m&&m.until>Date.now()&&(m.t==='light'||m.t==='dark'))t=m.t;localStorage.removeItem('lhh-theme')}}catch(e){{}}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter',T={DECOR_JS};for(var i=0;i<T.length;i++)if(k>=T[i][0]&&k<=T[i][1])z=T[i][2];document.documentElement.setAttribute('data-season',z)}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">

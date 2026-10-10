@@ -13,7 +13,7 @@ import sys
 from common import BEBAS, CINZEL, DMS, JOS, JOST, MONO, SERIF_IT, esc, fit_size, measure, save
 from gouache import blob, blob_pts, grain, ink, jitter, paper, smooth_closed, smooth_open
 from fall_gouache_b import (brush, dabs, form, glow, shadow, bg, vignette, btext, plain, hand_rule, sparkle, heart_path,
-                            lgrad, wobble_line)
+                            lgrad, wobble_line, hill, fruit_tree, deckle, sunflower, sf_leaf, steam, painted_heart)
 from poster import ANTON
 
 COL = "bee-kind"
@@ -63,195 +63,296 @@ def finish(u, color=INK, op=0.8, seed=9):
 
 
 # ================================================================ the painted bee
-def bee(u, cx, cy, s, seed, rot=0, flip=False, mood="smile", wings="up", body=HONEY, stripe=NOIR, cheek="#F08A78",
-        legs=True, arms=None, fuzz=True, wing_tint="#EAF4F6", shadow_op=0.0, ink_px=2.2, crown=False, eye_dir=(0, 0),
-        stripes=3, pollen=False, buzz=False, under="", over="", head_over=""):
-    """A fuzzy storybook bee seen from the side, head toward -x (or +x with flip).
-    s = half the body length in px.  mood: smile | grin | wow | sleep | wink | calm.
-    wings: up | flat | spread.  arms: None | 'forward' | 'up' | 'hug' (short dark limbs from under the head)."""
+def cr_sample(pts, per=8):
+    """Dense points along a closed Catmull-Rom curve (same curve smooth_closed draws)."""
+    n = len(pts)
+    out = []
+    for i in range(n):
+        p0, p1, p2, p3 = pts[i - 1], pts[i], pts[(i + 1) % n], pts[(i + 2) % n]
+        for j in range(per):
+            t = j / per
+            t2, t3 = t * t, t * t * t
+            out.append(tuple(0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 +
+                                    (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3) for k in (0, 1)))
+    return out
+
+
+def fur(samples, centre, color_at, seed, L=(3, 7), w=(0.8, 1.8), inset=3.5, reps=1, spread=0.4, op=0.9):
+    """Tapered hairs bristling outward along a silhouette. color_at(x, y) -> colour."""
     rnd = random.Random(seed)
-    k = s / 100.0                       # everything below is drawn at s=100, then scaled
-    iw = lambda px: px / k               # stroke width in local units for a given on-paper px width
+    cx, cy = centre
+    groups = {}
+    for (x, y) in samples:
+        for _ in range(reps):
+            a = math.atan2(y - cy, x - cx) + rnd.uniform(-spread, spread)
+            nx, ny = math.cos(a), math.sin(a)
+            ln, ww = rnd.uniform(*L), rnd.uniform(*w)
+            px, py = x + rnd.uniform(-1.2, 1.2), y + rnd.uniform(-1.2, 1.2)
+            sx, sy = px - nx * inset, py - ny * inset
+            ex, ey = px + nx * ln, py + ny * ln
+            groups.setdefault(color_at(px, py), []).append(
+                f"M{_f(sx - ny * ww)} {_f(sy + nx * ww)}L{_f(ex)} {_f(ey)}L{_f(sx + ny * ww)} {_f(sy - nx * ww)}Z")
+    return "".join(f'<path d="{"".join(v)}" fill="{c}" opacity="{op}"/>' for c, v in groups.items())
+
+
+def wing_d(L, W):
+    """A bee wing in its own frame: base at (0,0), reaching up (-y); leading edge on the -x side."""
+    pts = [(0, 0), (-W * 0.2, -L * 0.12), (-W * 0.42, -L * 0.42), (-W * 0.44, -L * 0.72), (-W * 0.22, -L * 0.95), (W * 0.06, -L),
+           (W * 0.38, -L * 0.86), (W * 0.56, -L * 0.6), (W * 0.48, -L * 0.3), (W * 0.22, -L * 0.08)]
+    return smooth_closed(pts)
+
+
+def wing_veins(L, W):
+    p = lambda fx, fy: f"{_f(fx * W)} {_f(fy * L)}"
+    return (f"M {p(-0.1, -0.04)} Q {p(-0.46, -0.36)} {p(-0.34, -0.74)} "            # costa (leading edge)
+            f"M {p(-0.02, -0.05)} Q {p(-0.22, -0.4)} {p(-0.06, -0.66)} "            # radius
+            f"M {p(-0.34, -0.74)} Q {p(-0.18, -0.78)} {p(-0.06, -0.66)} "           # marginal cell
+            f"M {p(0.06, -0.06)} Q {p(0.14, -0.34)} {p(0.22, -0.56)} "              # cubitus
+            f"M {p(-0.2, -0.43)} Q {p(-0.04, -0.44)} {p(0.12, -0.38)} "              # cross veins -> submarginal cells
+            f"M {p(-0.12, -0.58)} Q {p(0.04, -0.6)} {p(0.2, -0.54)} "
+            f"M {p(0.22, -0.56)} Q {p(0.3, -0.62)} {p(0.36, -0.7)} "
+            f"M {p(0.1, -0.06)} Q {p(0.32, -0.18)} {p(0.42, -0.36)}")
+
+
+def bee(u, cx, cy, s, seed, rot=0, flip=False, mood="smile", wings="up", body=HONEY, stripe=NOIR, cheek="#F08A78",
+        legs=True, arms=None, fuzz=True, wing_tint="#EAF4F8", shadow_op=0.0, ink_px=2.0, crown=False, eye_dir=(0, 0),
+        stripes=3, pollen=False, buzz=False, under="", over="", head_over="", pose="fly", lashes=False, thorax=None, knee=None):
+    """A fuzzy storybook honeybee seen from the side, head toward -x (or +x with flip); s = half the body length in px.
+    Head, a fluffy golden thorax and a striped, tapering abdomen; elbowed antennae; four translucent veined wings
+    (two behind the body, two in front); six jointed legs.  mood: smile | grin | wow | sleep | wink | calm.
+    wings: up | flat | spread.  pose: fly (legs trail) | stand (legs reach down to y=96) | tuck.
+    arms: None | 'forward' | 'up' | 'hug' | list of path strings (front legs used as arms)."""
+    rnd = random.Random(seed)
+    k = s / 100.0
+    iw = lambda px: px / k                      # local width for a given on-paper px width
+    lw = lambda local, px_min: max(local, iw(px_min))
     o = []
     tr = f"translate({_f(cx)} {_f(cy)}) rotate({rot}) scale({'-' if flip else ''}{k:.4f} {k:.4f})"
     o.append(f'<g transform="{tr}">')
     if shadow_op:
-        o.append(f'<ellipse cx="0" cy="96" rx="92" ry="12" fill="#2A1608" opacity="{shadow_op}"/>')
+        o.append(f'<ellipse cx="0" cy="104" rx="96" ry="12" fill="#2A1608" opacity="{shadow_op}"/>')
+    bodyc, bdark, blight = body
+    thx = thorax or ("#E6A23A", "#A8661C", "#FFD486")
 
-    def wing(cxw, cyw, rx, ry, ang, back):
-        wid = u("w")
-        pts = blob_pts(cxw, cyw, rx, ry, seed + int(cxw), 0.03, 16, ang)
-        d = smooth_closed(pts)
-        a = math.radians(ang)
-        # base of wing = end of major axis nearest the body
-        bx, by = cxw - ry * math.sin(-a) * 0.0, cyw + ry * 0.92
-        bx, by = rot_pt(cxw, cyw + ry * 0.94, cxw, cyw, ang)
-        tx, ty = rot_pt(cxw, cyw - ry * 0.94, cxw, cyw, ang)
-        lx, ly = rot_pt(cxw - rx * 0.9, cyw - ry * 0.1, cxw, cyw, ang)
-        rx_, ry_ = rot_pt(cxw + rx * 0.9, cyw - ry * 0.1, cxw, cyw, ang)
-        mx, my = rot_pt(cxw, cyw + ry * 0.05, cxw, cyw, ang)
-        veins = (f"M {_f(bx)} {_f(by)} Q {_f(mx - 6)} {_f(my)} {_f(lx)} {_f(ly)} "
-                 f"M {_f(bx)} {_f(by)} Q {_f(mx)} {_f(my - 10)} {_f(tx)} {_f(ty)} "
-                 f"M {_f(bx)} {_f(by)} Q {_f(mx + 8)} {_f(my)} {_f(rx_)} {_f(ry_)} ")
-        c1 = rot_pt(cxw - rx * 0.6, cyw - ry * 0.35, cxw, cyw, ang)
-        c2 = rot_pt(cxw + rx * 0.55, cyw - ry * 0.4, cxw, cyw, ang)
-        c3 = rot_pt(cxw, cyw - ry * 0.55, cxw, cyw, ang)
-        veins += f"M {_f(c1[0])} {_f(c1[1])} Q {_f(c3[0])} {_f(c3[1] - 6)} {_f(c2[0])} {_f(c2[1])} "
-        hi1 = rot_pt(cxw - rx * 0.45, cyw - ry * 0.55, cxw, cyw, ang)
-        hi2 = rot_pt(cxw - rx * 0.7, cyw + ry * 0.05, cxw, cyw, ang)
-        hi3 = rot_pt(cxw - rx * 0.4, cyw + ry * 0.45, cxw, cyw, ang)
-        op = 0.62 if back else 0.55
-        r = [f'<defs><clipPath id="{wid}"><path d="{d}"/></clipPath></defs>',
-             f'<path d="{d}" fill="{wing_tint}" opacity="{op}"/>',
+    # ---- wings
+    def wing(bx, by, L, W, ang, near):
+        wid, gid = u("w"), u("wg")
+        d = wing_d(L, W)
+        op = 0.62 if near else 0.42
+        r = [f'<g transform="translate({_f(bx)} {_f(by)}) rotate({ang})">',
+             f'<defs><clipPath id="{wid}"><path d="{d}"/></clipPath>'
+             f'<linearGradient id="{gid}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#C8DCE6" stop-opacity="0.95"/>'
+             f'<stop offset="0.55" stop-color="{wing_tint}" stop-opacity="0.75"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.55"/></linearGradient></defs>',
+             f'<path d="{d}" fill="url(#{gid})" opacity="{op}"/>',
              f'<g clip-path="url(#{wid})">',
-             f'<path d="{blob(cxw + rx * 0.3, cyw + ry * 0.3, rx * 0.8, ry * 0.7, seed + 3, 0.1, 12, ang)}" fill="#BFD6E0" opacity="0.35"/>',
-             brush((cxw - rx, cyw - ry, cxw + rx, cyw + ry), ["#FFFFFF", "#D6E8EE", "#FFFFFF"], seed + int(rx), 14, ang - 90,
-                   (ry * 0.3, ry * 0.8), (1.5, 3.5), (0.25, 0.55), 0.2),
+             f'<ellipse cx="{_f(W * 0.25)}" cy="{_f(-L * 0.55)}" rx="{_f(W * 0.3)}" ry="{_f(L * 0.22)}" fill="#F8D8E8" opacity="{0.22 if near else 0.12}"/>',
+             f'<ellipse cx="{_f(-W * 0.2)}" cy="{_f(-L * 0.3)}" rx="{_f(W * 0.22)}" ry="{_f(L * 0.2)}" fill="#D8F0DA" opacity="{0.2 if near else 0.1}"/>',
+             brush((-W * 0.6, -L, W * 0.6, 0), ["#FFFFFF", "#DCEBF2"], seed + int(L), 10, -90, (L * 0.2, L * 0.5), (1.2, 3), (0.2, 0.45), 0.15),
              "</g>",
-             f'<path d="{veins}" fill="none" stroke="#6E5A4A" stroke-width="{iw(1.1):.2f}" stroke-linecap="round" opacity="0.55"/>',
-             f'<path d="M {_f(hi1[0])} {_f(hi1[1])} Q {_f(hi2[0])} {_f(hi2[1])} {_f(hi3[0])} {_f(hi3[1])}" stroke="#FFFFFF" stroke-width="{iw(2.4):.2f}" fill="none" stroke-linecap="round" opacity="0.85"/>',
-             ink(d, "#5A4636", iw(1.5), seed + 5, 2, 0.75)]
+             f'<path d="{wing_veins(L, W)}" fill="none" stroke="#6E5A4C" stroke-width="{lw(1.3, 0.9):.2f}" stroke-linecap="round" opacity="{0.6 if near else 0.35}"/>',
+             f'<path d="M {_f(-W * 0.3)} {_f(-L * 0.22)} Q {_f(-W * 0.38)} {_f(-L * 0.55)} {_f(-W * 0.18)} {_f(-L * 0.84)}" stroke="#FFFFFF" '
+             f'stroke-width="{lw(3.2, 1.6):.2f}" fill="none" stroke-linecap="round" opacity="{0.85 if near else 0.5}"/>',
+             ink(d, "#5A4636", lw(2.0, 1.2), seed + int(L), 2, 0.8 if near else 0.45),
+             "</g>"]
         return "".join(r)
 
+    WB = (-44, -34)                 # wing root on the thorax
     if wings == "up":
-        W1, W2 = (12, -88, 30, 56, 24), (-22, -92, 34, 62, -14)
+        far = [(WB[0] + 8, WB[1] - 2, 104, 50, -10)]
+        near = [(WB[0] + 10, WB[1] + 4, 72, 36, 46), (WB[0], WB[1], 116, 56, 16)]
     elif wings == "spread":
-        W1, W2 = (34, -78, 30, 56, 48), (-34, -84, 34, 60, -40)
-    else:  # flat, swept back
-        W1, W2 = (40, -62, 28, 58, 62), (14, -70, 32, 62, 42)
-    o.append(wing(*W1, True))
+        far = [(WB[0] + 6, WB[1] - 2, 100, 50, -34)]
+        near = [(WB[0] + 10, WB[1] + 4, 70, 36, 72), (WB[0], WB[1], 112, 56, 38)]
+    else:  # flat, swept back over the abdomen
+        far = [(WB[0] + 8, WB[1] - 2, 104, 48, 56)]
+        near = [(WB[0] + 10, WB[1] + 4, 74, 34, 92), (WB[0], WB[1], 116, 52, 72)]
+    for wsp in far:
+        o.append(wing(*wsp, False))
     o.append(under)
 
-    # ---- body (thorax + abdomen) : egg shape, fatter at the rear
-    bpts = []
-    for i in range(28):
-        a = 2 * math.pi * i / 28
-        ca, sa = math.cos(a), math.sin(a)
-        rx = 100 if ca > 0 else 92
-        ry = 74 * (1 + 0.06 * ca)
-        bpts.append((rx * ca + 4, ry * sa + 2))
-    bpts = jitter(bpts, seed, 1.2)
-    bd = smooth_closed(bpts)
-    sting = f"M 96 -6 Q 122 2 132 8 Q 120 12 96 14 Z"
-    o.append(f'<path d="{sting}" fill="{stripe}"/>')
-    # fuzz halo behind the body edge
-    bodyc, bdark, blight = body
-
-    BANDS = {3: ((-10, 12), (36, 58), (84, 140)), 2: ((-4, 20), (48, 72)), 1: ((14, 38),)}
-    CURV = -0.0045
-
-    def band_at(x):
-        return any(b0 <= x <= b1 for b0, b1 in BANDS[stripes])
-
-    if fuzz:
-        fz = {}
-        for i in range(190):
-            a = 2 * math.pi * i / 190 + rnd.uniform(-0.02, 0.02)
-            ca, sa = math.cos(a), math.sin(a)
-            rx = 100 if ca > 0 else 92
-            ry = 74 * (1 + 0.06 * ca)
-            x, y = rx * ca + 4, ry * sa + 2
-            col = stripe if band_at(x - CURV * y * y) else rnd.choice([bodyc, bdark, blight, bodyc])
-            L = rnd.uniform(3, 7)
-            da = a + rnd.uniform(-0.35, 0.35)
-            nx, ny = math.cos(da), math.sin(da)
-            w = rnd.uniform(1.0, 2.0)
-            sx, sy = x - nx * 4, y - ny * 4
-            ex, ey = sx + nx * (L + 4), sy + ny * (L + 4)
-            px, py = -ny * w, nx * w
-            fz.setdefault(col, []).append(f"M{_f(sx + px)} {_f(sy + py)}L{_f(ex)} {_f(ey)}L{_f(sx - px)} {_f(sy - py)}Z")
-        o.append("".join(f'<path d="{"".join(v)}" fill="{c}" opacity="0.85"/>' for c, v in fz.items()))
-    # painted body with radial strokes
-    stripe_paths = []
-    for b0, b1 in BANDS[stripes]:
-        pts = [(b0 + CURV * y * y, y) for y in range(-90, 91, 15)] + [(b1 + CURV * y * y, y) for y in range(90, -91, -15)]
-        stripe_paths.append(smooth_closed(jitter(pts, seed + b0, 1.6)))
-    sid = u("st")
-    stripes_svg = (f'<path d="{" ".join(stripe_paths)}" fill="{stripe}"/>' +
-                   f'<clipPath id="{sid}"><path d="{" ".join(stripe_paths)}"/></clipPath><g clip-path="url(#{sid})">' +
-                   brush((-100, -90, 120, 90), ["#4A3626", "#1A120C", "#5E4632"], seed + 7, 70, lambda x, y: math.degrees(math.atan2(y, x)),
-                         (8, 22), (1.4, 3.2), (0.3, 0.6), 0.2) + "</g>")
-    o.append(form(u, bd, (-96, -76, 106, 80), bodyc, bdark, blight, seed + 1, lambda x, y: math.degrees(math.atan2(y, x - 4)),
-                  n=220, shade=(-2, 20), shade_op=0.55, hi=(-10, -40, 46, 20), hi_op=0.5, ink_w=0, length=(8, 24), width=(1.4, 3.4),
-                  extra_in=stripes_svg + f'<path d="{blob(10, 52, 90, 26, seed + 4, 0.1, 14)}" fill="{NOIR}" opacity="0.18"/>'
-                  + f'<path d="M -60 -50 Q -10 -70 50 -56" stroke="#FFF2C8" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.45"/>'))
-    o.append(ink(bd, INK, iw(ink_px), seed + 2, 2, 0.8))
-    if pollen:
-        o.append(f'<path d="{blob(40, 74, 16, 11, seed + 9, 0.15, 10)}" fill="#F08A2A"/><path d="{blob(36, 70, 6, 4, seed + 9, 0.2, 8)}" fill="#FFD08A"/>')
-
-    # ---- legs
-    if legs:
-        L = []
-        for lx, sw in ((-50, -1), (-10, 0), (32, 1)):
-            L.append(f"M {lx} 62 q {-4 + sw * 3} 12 {-10 + sw * 4} 20 l -7 1")
-        o.append(f'<path d="{" ".join(L)}" stroke="{NOIR}" stroke-width="{max(5.0, iw(3.8)):.2f}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>')
-    # ---- head
-    hx, hy, hr = -98, -6, 52
-    hd = blob(hx, hy, hr, hr * 0.96, seed + 11, 0.03, 16)
-    if fuzz:
-        hz = []
-        for i in range(90):
-            a = 2 * math.pi * i / 90 + rnd.uniform(-0.03, 0.03)
-            x, y = hx + hr * math.cos(a), hy + hr * 0.96 * math.sin(a)
-            Lz = rnd.uniform(2, 5)
-            da = a + rnd.uniform(-0.4, 0.4)
-            nx, ny = math.cos(da), math.sin(da)
-            w = rnd.uniform(0.9, 1.8)
-            sx, sy = x - nx * 3, y - ny * 3
-            hz.append(f"M{_f(sx - ny * w)} {_f(sy + nx * w)}L{_f(sx + nx * (Lz + 3))} {_f(sy + ny * (Lz + 3))}L{_f(sx + ny * w)} {_f(sy - nx * w)}Z")
-        o.append(f'<path d="{"".join(hz)}" fill="{stripe}" opacity="0.9"/>')
-    o.append(form(u, hd, (hx - hr, hy - hr, hx + hr, hy + hr), stripe, "#120C08", "#5E4632", seed + 12,
-                  lambda x, y: math.degrees(math.atan2(y - hy, x - hx)), n=70, shade=(-6, 10), shade_op=0.6, hi=(hx - 10, hy - 26, 20, 10),
-                  hi_op=0.45, ink_w=iw(1.4), ink_col="#120C08", length=(6, 16), width=(1.2, 3)))
-    # antennae
-    for ax0, ay0, ax1, ay1, cxx, cyy in ((-112, -50, -150, -112, -118, -96), (-82, -54, -84, -124, -70, -96)):
-        o.append(ink(f"M {ax0} {ay0} Q {cxx} {cyy} {ax1} {ay1}", stripe, iw(3.4), seed + ax0, 1, 1))
-        o.append(f'<circle cx="{ax1}" cy="{ay1}" r="{max(7, iw(4.2)):.1f}" fill="{stripe}"/><circle cx="{ax1 - 2}" cy="{ay1 - 2}" r="{max(2, iw(1.4)):.1f}" fill="#8A7060"/>')
-    if crown:
-        cr = "M -130 -44 L -136 -96 L -116 -74 L -98 -108 L -80 -74 L -60 -96 L -66 -44 Q -98 -36 -130 -44 Z"
-        o.append(form(u, cr, (-138, -110, -58, -40), GOLD[0], GOLD[1], GOLD[2], seed + 21, -80, n=40, shade=(-4, 6), ink_w=iw(1.8),
-                      ink_col="#7A4A0E", length=(6, 16), width=(1, 2.4)))
-        for jx, jy, jc in ((-98, -60, "#C8344A"), (-120, -58, "#5E8ACA"), (-76, -58, "#5E8ACA")):
-            o.append(f'<circle cx="{jx}" cy="{jy}" r="{max(5, iw(2.6)):.1f}" fill="{jc}"/><circle cx="{jx - 1.5}" cy="{jy - 1.5}" r="{max(1.5, iw(1)):.1f}" fill="#FFFFFF" opacity="0.8"/>')
-        for px, py in ((-136, -96), (-98, -108), (-60, -96)):
-            o.append(f'<circle cx="{px}" cy="{py}" r="{max(5, iw(2.4)):.1f}" fill="{GOLD[2]}" stroke="#7A4A0E" stroke-width="{iw(1.2):.2f}"/>')
-    # face
-    ex, ey = -118 + eye_dir[0], -14 + eye_dir[1]
-    if mood == "sleep":
-        o.append(f'<path d="M {ex - 13} {ey} Q {ex} {ey + 11} {ex + 13} {ey}" stroke="#FFF2D8" stroke-width="{iw(3):.2f}" fill="none" stroke-linecap="round"/>')
-        o.append(f'<path d="M {ex - 12} {ey + 4} l -6 5 M {ex - 4} {ey + 8} l -3 6 M {ex + 5} {ey + 8} l 0 6" stroke="#FFF2D8" stroke-width="{iw(1.8):.2f}" stroke-linecap="round"/>')
-    elif mood == "wink":
-        o.append(f'<path d="M {ex - 12} {ey + 2} Q {ex} {ey - 10} {ex + 12} {ey + 2}" stroke="#FFF2D8" stroke-width="{iw(3.2):.2f}" fill="none" stroke-linecap="round"/>')
+    # ---- legs (jointed, fuzzy) - far side first, darker
+    LEGS = {
+        "fly": [((-64, 30), (-78, 50), (-74, 66), (-84, 72)), ((-48, 36), (-54, 58), (-44, 74), (-50, 82)),
+                ((-30, 36), (-14, 58), (2, 72), (6, 84))],
+        "stand": [((-64, 30), (-84, 56), (-86, 92), (-98, 95)), ((-48, 36), (-46, 62), (-44, 93), (-56, 95)),
+                  ((-30, 36), (-2, 60), (4, 93), (-8, 95))],
+        "kick": [((-64, 30), (-84, 56), (-86, 92), (-98, 95)), ((-48, 36), (-40, 62), (-46, 93), (-58, 95)),
+                 ((-30, 36), (6, 74), (52, 82), (64, 74))],
+        "tuck": [((-64, 30), (-80, 44), (-76, 58), (-86, 62)), ((-48, 36), (-56, 54), (-46, 66), (-52, 72)),
+                 ((-30, 36), (-12, 54), (2, 64), (6, 72))],
+    }
+    if arms == "forward":
+        arm_paths = ["M -64 36 Q -100 58 -140 48", "M -50 44 Q -88 70 -128 66"]
+    elif arms == "up":
+        arm_paths = ["M -62 38 Q -116 64 -150 26"]
+    elif arms == "hug":
+        arm_paths = ["M -64 36 Q -118 56 -146 26", "M -50 44 Q -104 68 -136 50"]
     else:
-        er = 19 if mood == "wow" else 16
-        o.append(f'<ellipse cx="{ex}" cy="{ey}" rx="{er}" ry="{er * 1.08:.1f}" fill="#FFF8EC"/>')
-        px, py = ex - 4 + eye_dir[0] * 0.3, ey + 1 + eye_dir[1] * 0.3
-        pr = 9 if mood == "wow" else 11
-        o.append(f'<ellipse cx="{px}" cy="{py}" rx="{pr}" ry="{pr * 1.1:.1f}" fill="#1A100A"/>')
-        o.append(f'<circle cx="{px - 3.5}" cy="{py - 4.5}" r="4.2" fill="#FFFFFF"/><circle cx="{px + 3}" cy="{py + 4}" r="1.8" fill="#FFFFFF" opacity="0.8"/>')
-        if mood != "calm":
-            o.append(f'<path d="M {ex - 12} {ey - er - 6} q 10 -8 22 -2" stroke="#120C08" stroke-width="{iw(2):.2f}" fill="none" stroke-linecap="round" opacity="0.6"/>')
-    o.append(f'<ellipse cx="{ex + 16}" cy="{ey + 24}" rx="13" ry="8" fill="{cheek}" opacity="0.75"/>')
-    mx, my = -130, 22
-    if mood in ("smile", "sleep", "wink", "calm"):
-        o.append(f'<path d="M {mx - 6} {my} Q {mx + 6} {my + 12} {mx + 18} {my + 2}" stroke="#FFE6CC" stroke-width="{iw(2.6):.2f}" fill="none" stroke-linecap="round"/>')
-    elif mood == "grin":
-        o.append(f'<path d="M {mx - 8} {my - 2} Q {mx + 6} {my + 20} {mx + 22} {my} Q {mx + 6} {my + 6} {mx - 8} {my - 2} Z" fill="#7A2A22" stroke="#FFE6CC" stroke-width="{iw(1.6):.2f}"/>')
-    elif mood == "wow":
-        o.append(f'<ellipse cx="{mx + 6}" cy="{my + 6}" rx="7" ry="9" fill="#7A2A22" stroke="#FFE6CC" stroke-width="{iw(1.6):.2f}"/>')
-    # arms
-    if arms:
-        if arms == "forward":
-            A = ["M -70 40 q -24 10 -40 4", "M -52 48 q -22 18 -40 16"]
-        elif arms == "up":
-            A = ["M -70 36 q -26 -10 -38 -34", "M -54 44 q -30 -2 -48 -22"]
-        elif arms == "hug":
-            A = ["M -70 34 q -30 -4 -46 -22", "M -56 46 q -34 4 -52 -10"]
+        arm_paths = arms or []
+    n_arm = min(2, len(arm_paths))
+
+    def leg(pts, col, hi, far_leg, idx):
+        (ax, ay), (bx, by), (ex, ey), (fx, fy) = pts
+        if far_leg:
+            ax, ay, bx, by, ex, ey, fx, fy = ax + 14, ay - 8, bx + 14, by - 8, ex + 14, ey - 8, fx + 14, fy - 8
+        wf, wt, wr = lw(10, 2), lw(8.5, 1.8), lw(5.4, 1.3)
+        r = [f'<path d="M {ax} {ay} L {bx} {by}" stroke="{col}" stroke-width="{wf:.2f}" stroke-linecap="round"/>',
+             f'<path d="M {bx} {by} L {ex} {ey}" stroke="{col}" stroke-width="{wt:.2f}" stroke-linecap="round"/>',
+             f'<path d="M {ex} {ey} Q {_f((ex + fx) / 2)} {_f(max(ey, fy) + 2)} {fx} {fy}" stroke="{col}" stroke-width="{wr:.2f}" stroke-linecap="round" fill="none"/>']
+        if not far_leg and knee:
+            r.append(f'<circle cx="{bx}" cy="{by}" r="{lw(9, 2.6):.1f}" fill="{knee}"/><circle cx="{bx - 2}" cy="{by - 2}" r="{lw(2.4, 0.6):.1f}" fill="#FFFFFF" opacity="0.6"/>')
+        if not far_leg:
+            r.append(f'<path d="M {_f(ax - 1)} {_f(ay + 2)} L {_f(bx - 1.5)} {_f(by - 1)} M {_f(bx - 1)} {_f(by + 2)} L {_f(ex - 1.5)} {_f(ey - 2)}" stroke="{hi}" '
+                     f'stroke-width="{lw(1.8, 0.7):.2f}" stroke-linecap="round" opacity="0.55"/>')
+            hairs = []
+            for t in (0.3, 0.6, 0.85):
+                hx, hy = bx + (ex - bx) * t, by + (ey - by) * t
+                hairs.append(f"M {_f(hx)} {_f(hy)} l {_f(4 + rnd.uniform(0, 3))} {_f(rnd.uniform(-2, 2))}")
+            r.append(f'<path d="{" ".join(hairs)}" stroke="{col}" stroke-width="{lw(1.6, 0.6):.2f}" stroke-linecap="round"/>')
+            if pollen and idx == 2:
+                pb = blob((bx + ex) / 2 + 3, (by + ey) / 2 + 2, 11, 8, seed + 9, 0.15, 10, math.degrees(math.atan2(ey - by, ex - bx)))
+                r.append(f'<path d="{pb}" fill="#F08A2A"/><path d="{blob((bx + ex) / 2 + 1, (by + ey) / 2, 4.5, 3, seed + 10, 0.2, 8)}" fill="#FFD08A"/>'
+                         + ink(pb, "#9A4A10", lw(1.4, 0.7), seed + 9, 1, 0.7))
+        return "".join(r)
+
+    if legs:
+        P = LEGS.get(pose, LEGS["fly"])
+        o.append("".join(leg(p, "#5A4434", "#8A7060", True, i) for i, p in enumerate(P) if i > 0))
+        o.append("".join(leg(p, stripe, "#8A7060", False, i) for i, p in enumerate(P) if i >= n_arm))
+
+    # ---- abdomen
+    A = [(-26, -30), (-2, -52), (38, -60), (78, -50), (106, -26), (124, 4), (108, 34), (78, 58), (38, 66), (-2, 58), (-24, 34), (-32, 2)]
+    A = jitter(A, seed, 1.0)
+    ad = smooth_closed(A)
+    o.append(f'<path d="M 112 -4 Q 130 4 140 10 Q 128 14 112 16 Z" fill="{stripe}"/>')       # sting
+    BANDS = {3: ((8, 30), (52, 74), (96, 170)), 2: ((24, 48), (78, 170)), 1: ((40, 66),)}[stripes]
+    bulge, yc, R = 9.0, 4.0, 66.0
+    bx_at = lambda x0, y: x0 + bulge * (1 - min(1.0, ((y - yc) / R) ** 2))
+
+    def in_band(x, y):
+        return any(bx_at(b0, y) <= x <= bx_at(b1, y) for b0, b1 in BANDS)
+
+    asamp = cr_sample(A, 14)
+    if fuzz:
+        o.append(fur(asamp, (40, 4), lambda x, y: stripe if in_band(x, y) else rnd.choice([bodyc, bdark, bodyc, blight]), seed + 1,
+                     L=(3, 7), w=(0.9, 1.9), inset=4, reps=1, spread=0.45))
+    sp = []
+    for b0, b1 in BANDS:
+        pts = [(bx_at(b0, y), y) for y in range(-70, 81, 10)] + [(bx_at(b1, y), y) for y in range(80, -71, -10)]
+        sp.append(smooth_closed(jitter(pts, seed + b0, 1.4)))
+    sid = u("st")
+    seg_hi = "".join(f'<path d="{smooth_open([(bx_at(b0, y) - 3, y) for y in range(-64, 71, 12)])}" stroke="{blight}" stroke-width="5" fill="none" opacity="0.55"/>'
+                     for b0, b1 in BANDS[1:] + BANDS[:1])
+    stripes_svg = (f'<path d="{" ".join(sp)}" fill="{stripe}"/>'
+                   f'<clipPath id="{sid}"><path d="{" ".join(sp)}"/></clipPath><g clip-path="url(#{sid})">'
+                   + brush((-40, -70, 140, 80), ["#5A4432", "#1A120C", "#6E5440", "#2E2018"], seed + 7, 90,
+                           lambda x, y: math.degrees(math.atan2(y - 4, x - 40)), (6, 18), (1.2, 2.8), (0.3, 0.65), 0.25) + "</g>"
+                   + seg_hi)
+    sh = u("ab")
+    shading = (f'<defs><radialGradient id="{sh}" cx="0.42" cy="0.28" r="0.75"><stop offset="0" stop-color="#FFF4CC" stop-opacity="0.55"/>'
+               f'<stop offset="0.45" stop-color="#FFF4CC" stop-opacity="0"/><stop offset="0.8" stop-color="#5A2E06" stop-opacity="0.1"/>'
+               f'<stop offset="1" stop-color="#3A1A04" stop-opacity="0.45"/></radialGradient></defs>'
+               f'<rect x="-40" y="-70" width="180" height="150" fill="url(#{sh})"/>'
+               f'<path d="{blob(44, 62, 84, 20, seed + 4, 0.1, 14)}" fill="{NOIR}" opacity="0.2"/>'
+               f'<path d="M -6 -40 Q 40 -60 92 -36" stroke="#FFF6D0" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.5"/>'
+               f'<path d="M 0 52 Q 40 62 86 46" stroke="#F6B860" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/>')
+    o.append(form(u, ad, (-34, -62, 126, 68), bodyc, bdark, blight, seed + 2, lambda x, y: math.degrees(math.atan2(y - 4, x - 40)),
+                  n=200, shade=(0, 14), shade_op=0.45, ink_w=0, length=(6, 18), width=(1.2, 3), sop=(0.18, 0.45),
+                  extra_in=stripes_svg + shading))
+    o.append(ink(ad, INK, iw(ink_px), seed + 3, 2, 0.75))
+
+    # ---- thorax: a fluffy golden collar
+    T = blob_pts(-46, -2, 40, 42, seed + 5, 0.05, 16)
+    td = smooth_closed(T)
+    if fuzz:
+        o.append(fur(cr_sample(T, 10), (-46, -2), lambda x, y: rnd.choice([thx[0], thx[1], thx[2], thx[0]]), seed + 6,
+                     L=(4, 10), w=(1.1, 2.4), inset=4, reps=1, spread=0.55))
+    tg = u("tg")
+    o.append(form(u, td, (-88, -46, -4, 42), thx[0], thx[1], thx[2], seed + 7, lambda x, y: math.degrees(math.atan2(y + 2, x + 46)),
+                  n=110, shade=(2, 12), shade_op=0.5, ink_w=0, length=(5, 14), width=(1.2, 2.8), sop=(0.25, 0.6),
+                  extra_in=f'<defs><radialGradient id="{tg}" cx="0.4" cy="0.3" r="0.7"><stop offset="0" stop-color="#FFF0C0" stop-opacity="0.5"/>'
+                           f'<stop offset="1" stop-color="#FFF0C0" stop-opacity="0"/></radialGradient></defs><rect x="-88" y="-46" width="84" height="88" fill="url(#{tg})"/>'))
+    o.append(ink(td, "#6A3E14", iw(ink_px * 0.7), seed + 8, 1, 0.5))
+
+    # ---- head
+    hx, hy, hr = -100, -6, 50
+    H = blob_pts(hx, hy, hr, hr * 0.97, seed + 11, 0.03, 16)
+    hd = smooth_closed(H)
+    if fuzz:
+        o.append(fur(cr_sample(H, 8), (hx, hy), lambda x, y: stripe, seed + 12, L=(2, 5), w=(0.8, 1.6), inset=3, spread=0.4))
+    hg = u("hg")
+    o.append(form(u, hd, (hx - hr, hy - hr, hx + hr, hy + hr), stripe, "#120C08", "#5E4632", seed + 13,
+                  lambda x, y: math.degrees(math.atan2(y - hy, x - hx)), n=80, shade=(4, 10), shade_op=0.6, ink_w=iw(1.3), ink_col="#120C08",
+                  length=(5, 14), width=(1.1, 2.6),
+                  extra_in=f'<defs><radialGradient id="{hg}" cx="0.36" cy="0.3" r="0.6"><stop offset="0" stop-color="#8A6A52" stop-opacity="0.7"/>'
+                           f'<stop offset="1" stop-color="#8A6A52" stop-opacity="0"/></radialGradient></defs>'
+                           f'<rect x="{hx - hr}" y="{hy - hr}" width="{2 * hr}" height="{2 * hr}" fill="url(#{hg})"/>'))
+    # elbowed antennae
+    for ax0, ay0, path, tx_, ty_ in ((-114, -48, "M -114 -48 Q -120 -66 -124 -80 Q -130 -96 -148 -102", -148, -102),
+                                     (-88, -54, "M -88 -54 Q -88 -72 -90 -86 Q -88 -102 -70 -112", -70, -112)):
+        o.append(ink(path, stripe, lw(4.4, 1.5), seed + ax0, 1, 1))
+        o.append(f'<ellipse cx="{tx_}" cy="{ty_}" rx="{lw(5.5, 2.2):.1f}" ry="{lw(4.6, 1.9):.1f}" fill="{stripe}" transform="rotate({-30 if tx_ < -100 else 30} {tx_} {ty_})"/>'
+                 f'<circle cx="{tx_ - 1.5}" cy="{ty_ - 1.5}" r="{lw(1.6, 0.7):.1f}" fill="#9A8070"/>')
+    if crown:
+        cr = "M -128 -40 L -134 -92 L -114 -70 L -96 -104 L -78 -70 L -58 -92 L -64 -40 Q -96 -32 -128 -40 Z"
+        o.append(form(u, cr, (-136, -106, -56, -36), GOLD[0], GOLD[1], GOLD[2], seed + 21, -80, n=40, shade=(-4, 6), ink_w=iw(1.8),
+                      ink_col="#7A4A0E", length=(6, 16), width=(1, 2.4)))
+        for jx, jy, jc in ((-96, -56, "#C8344A"), (-118, -54, "#5E8ACA"), (-74, -54, "#5E8ACA")):
+            o.append(f'<circle cx="{jx}" cy="{jy}" r="{lw(5, 2.6):.1f}" fill="{jc}"/><circle cx="{jx - 1.5}" cy="{jy - 1.5}" r="{lw(1.6, 1):.1f}" fill="#FFFFFF" opacity="0.8"/>')
+        for px_, py_ in ((-134, -92), (-96, -104), (-58, -92)):
+            o.append(f'<circle cx="{px_}" cy="{py_}" r="{lw(5, 2.4):.1f}" fill="{GOLD[2]}" stroke="#7A4A0E" stroke-width="{iw(1.2):.2f}"/>')
+    # face
+    ex, ey = -120 + eye_dir[0], -10 + eye_dir[1]
+    lid = "#FFF2D8"
+    if mood == "sleep":
+        o.append(f'<path d="M {ex - 13} {ey} Q {ex} {ey + 11} {ex + 13} {ey}" stroke="{lid}" stroke-width="{lw(3.4, 1.4):.2f}" fill="none" stroke-linecap="round"/>')
+        o.append(f'<path d="M {ex - 12} {ey + 4} l -6 5 M {ex - 4} {ey + 8} l -3 6 M {ex + 5} {ey + 8} l 0 6" stroke="{lid}" stroke-width="{lw(2, 0.9):.2f}" stroke-linecap="round"/>')
+    elif mood == "wink":
+        o.append(f'<path d="M {ex - 13} {ey + 3} Q {ex} {ey - 10} {ex + 13} {ey + 3}" stroke="{lid}" stroke-width="{lw(3.6, 1.4):.2f}" fill="none" stroke-linecap="round"/>')
+    else:
+        er = 18 if mood == "wow" else 16
+        o.append(f'<ellipse cx="{ex}" cy="{ey}" rx="{er}" ry="{er * 1.1:.1f}" fill="#FFF8EC"/>')
+        o.append(f'<path d="M {ex - er} {ey} A {er} {er * 1.1:.1f} 0 0 0 {ex + er} {ey}" fill="#E8D8C8" opacity="0.5"/>')
+        px_, py_ = ex - 3 + eye_dir[0] * 0.35, ey + 1 + eye_dir[1] * 0.35
+        pr = 9 if mood == "wow" else 11.5
+        ig = u("ir")
+        o.append(f'<defs><radialGradient id="{ig}" cx="0.5" cy="0.62" r="0.6"><stop offset="0" stop-color="#7A4A22"/><stop offset="0.55" stop-color="#2A160A"/>'
+                 f'<stop offset="1" stop-color="#120804"/></radialGradient></defs>'
+                 f'<ellipse cx="{_f(px_)}" cy="{_f(py_)}" rx="{pr}" ry="{pr * 1.12:.1f}" fill="url(#{ig})"/>')
+        o.append(f'<circle cx="{_f(px_ - 3.8)}" cy="{_f(py_ - 4.8)}" r="4.4" fill="#FFFFFF"/><circle cx="{_f(px_ + 3.4)}" cy="{_f(py_ + 4.2)}" r="2" fill="#FFFFFF" opacity="0.85"/>')
+        if mood == "calm":
+            ec = u("ec")
+            o.append(f'<defs><clipPath id="{ec}"><ellipse cx="{ex}" cy="{ey}" rx="{er + 0.5}" ry="{er * 1.1 + 0.5:.1f}"/></clipPath></defs>'
+                     f'<g clip-path="url(#{ec})"><path d="M {ex - er - 2} {ey - 3} Q {ex} {ey - 1} {ex + er + 2} {ey - 5} L {ex + er + 2} {ey - er * 1.3} L {ex - er - 2} {ey - er * 1.3} Z" fill="#2E2018"/></g>'
+                     f'<path d="M {ex - er - 1} {ey - 3} Q {ex} {ey - 1} {ex + er + 1} {ey - 5}" stroke="{lid}" stroke-width="{lw(2.4, 1):.2f}" fill="none" stroke-linecap="round" opacity="0.8"/>')
         else:
-            A = arms
-        o.append(f'<path d="{" ".join(A)}" stroke="{NOIR}" stroke-width="{iw(4.4):.2f}" fill="none" stroke-linecap="round"/>')
+            o.append(f'<path d="M {ex - 12} {ey - er - 7} q 10 -8 22 -2" stroke="#120C08" stroke-width="{lw(2.4, 1):.2f}" fill="none" stroke-linecap="round" opacity="0.7"/>')
+    if lashes and mood not in ("sleep",):
+        o.append(f'<path d="M {ex - 16} {ey - 6} l -8 -4 M {ex - 15} {ey - 11} l -6 -8 M {ex - 11} {ey - 15} l -2 -9" stroke="#FFF2D8" stroke-width="{lw(2.2, 0.9):.2f}" stroke-linecap="round"/>')
+    o.append(f'<ellipse cx="{ex + 18}" cy="{ey + 24}" rx="13" ry="8" fill="{cheek}" opacity="0.8"/>'
+             f'<ellipse cx="{ex + 15}" cy="{ey + 22}" rx="4" ry="2.4" fill="#FFFFFF" opacity="0.45"/>')
+    mx, my = -136, 24
+    if mood in ("smile", "sleep", "wink", "calm"):
+        o.append(f'<path d="M {mx - 6} {my} Q {mx + 6} {my + 12} {mx + 18} {my + 2}" stroke="#FFE6CC" stroke-width="{lw(2.8, 1.2):.2f}" fill="none" stroke-linecap="round"/>')
+    elif mood == "grin":
+        o.append(f'<path d="M {mx - 8} {my - 2} Q {mx + 6} {my + 20} {mx + 22} {my} Q {mx + 6} {my + 6} {mx - 8} {my - 2} Z" fill="#7A2A22" stroke="#FFE6CC" stroke-width="{lw(1.8, 0.9):.2f}"/>'
+                 f'<path d="M {mx + 2} {my + 9} Q {mx + 8} {my + 13} {mx + 14} {my + 8}" stroke="#E87A6A" stroke-width="3" fill="none" opacity="0.8"/>')
+    elif mood == "wow":
+        o.append(f'<ellipse cx="{mx + 6}" cy="{my + 6}" rx="7" ry="9" fill="#7A2A22" stroke="#FFE6CC" stroke-width="{lw(1.8, 0.9):.2f}"/>')
+    elif mood == "grump":
+        o.append(f'<path d="M {mx - 6} {my + 8} Q {mx + 6} {my - 2} {mx + 18} {my + 6}" stroke="#FFE6CC" stroke-width="{lw(2.8, 1.2):.2f}" fill="none" stroke-linecap="round"/>')
+    # arms (front legs used as arms): tapered fuzzy limbs with a little round hand
+    for ap in arm_paths[:2]:
+        o.append(f'<path d="{ap}" stroke="{stripe}" stroke-width="{lw(7.5, 1.8):.2f}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>')
+        nums = [float(v) for v in ap.replace("M", " ").replace("Q", " ").replace("q", " ").replace("L", " ").replace("l", " ").split()]
+        if "q" in ap or "l" in ap:
+            ex2, ey2 = nums[0] + nums[-2], nums[1] + nums[-1]
+        else:
+            ex2, ey2 = nums[-2], nums[-1]
+        o.append(f'<circle cx="{_f(ex2)}" cy="{_f(ey2)}" r="{lw(5.2, 1.4):.1f}" fill="{stripe}"/>')
     o.append(head_over)
-    o.append(wing(*W2, False))
+    for wsp in near:
+        o.append(wing(*wsp, True))
     o.append(over)
     if buzz:
         o.append(f'<path d="M 150 -40 q 10 -6 18 0 M 156 -20 q 12 -4 22 2 M 150 0 q 10 2 18 8" stroke="{INK}" stroke-width="{iw(2):.2f}" fill="none" stroke-linecap="round" opacity="0.6"/>')
@@ -955,6 +1056,235 @@ def heart_balloon(u, cx, cy, s, seed, pal=("#D8444A", "#9A2028", "#F68A84")):
 
 
 # ================================================================ designs
+def spot(u, cx, cy, rx, ry, pal, seed, paper_c=PAPER, deck=True, n=None, angle=-30, wob=0.05):
+    """A gouache 'spot illustration' ground: a soft painted blob with brush texture and a frayed dry-brush edge."""
+    pts = blob_pts(cx, cy, rx, ry, seed, wob, 22)
+    d = smooth_closed(pts)
+    o = [form(u, d, (cx - rx, cy - ry, cx + rx, cy + ry), pal[0], pal[1], pal[2], seed + 1, angle, n=n or rx * ry / 60, shade=None, ink_w=0,
+              length=(rx * 0.15, rx * 0.5), width=(3, 9), sop=(0.08, 0.22))]
+    if deck:
+        o.append(deckle(u, pts, paper_c, seed + 2, (3, 8)))
+    return "".join(o)
+
+
+def floating_hearts(u, pts, seed, pal=("#E0727A", "#A83A48", "#F6A8A8")):
+    o = []
+    for i, (x, y, sz, r) in enumerate(pts):
+        o.append(f'<g transform="rotate({r} {x} {y})">' + painted_heart(u, x, y, sz, pal, seed + i) + "</g>")
+    return "".join(o)
+
+
+def honey_stream(u, x1, y1, x2, y2, seed, w0=11, w1=5, sway=18, base=AMBER):
+    """A glossy ribbon of honey falling from (x1,y1) to (x2,y2), tapering, with a light core and a coil where it lands."""
+    n = 14
+    left, right, core = [], [], []
+    for i in range(n + 1):
+        t = i / n
+        x = x1 + (x2 - x1) * t + sway * math.sin(t * math.pi) * (1 - t * 0.3)
+        y = y1 + (y2 - y1) * t
+        w = (w0 + (w1 - w0) * t ** 0.6) / 2
+        left.append((x - w, y))
+        right.append((x + w, y))
+        core.append((x - w * 0.35, y))
+    d = smooth_open(left) + " L " + " L ".join(f"{_f(x)} {_f(y)}" for x, y in reversed(right)) + " Z"
+    g = u("hs")
+    o = [f'<defs><linearGradient id="{g}" x1="0" x2="1"><stop offset="0" stop-color="{base[1]}"/><stop offset="0.35" stop-color="{base[2]}"/>'
+         f'<stop offset="0.6" stop-color="{base[0]}"/><stop offset="1" stop-color="#8A4A0A"/></linearGradient></defs>',
+         f'<path d="{d}" fill="url(#{g})" opacity="0.95"/>',
+         f'<path d="{smooth_open(core[1:-2])}" stroke="#FFF4D0" stroke-width="{max(1.6, w1 * 0.35):.1f}" fill="none" stroke-linecap="round" opacity="0.85"/>',
+         ink(d, "#7A3E08", 1.4, seed, 1, 0.55)]
+    # coil / pile where it lands
+    for k in range(3):
+        rx = w0 * (1.5 - k * 0.38)
+        yy = y2 - k * w1 * 0.7
+        o.append(f'<ellipse cx="{_f(x2 + sway * 0.0)}" cy="{_f(yy)}" rx="{_f(rx)}" ry="{_f(w1 * 0.75)}" fill="{base[0]}" stroke="#8A4A0A" stroke-width="1.2" opacity="0.95"/>'
+                 f'<path d="M {_f(x2 - rx * 0.6)} {_f(yy - w1 * 0.25)} Q {_f(x2)} {_f(yy - w1 * 0.7)} {_f(x2 + rx * 0.4)} {_f(yy - w1 * 0.35)}" stroke="#FFF4D0" stroke-width="1.6" fill="none" opacity="0.8"/>')
+    return "".join(o)
+
+
+def honey_pool(u, cx, cy, rx, ry, seed, drips=(), base=AMBER, op=0.93):
+    """Translucent glossy puddle of honey (things beneath show faintly through), with optional drips [(x, length, width)]."""
+    pts = blob_pts(cx, cy, rx, ry, seed, 0.12, 18)
+    d = smooth_closed(pts)
+    dd = []
+    for (dx_, L, w) in drips:
+        dd.append(smooth_closed([(dx_ - w * 1.3, cy), (dx_ - w * 0.75, cy + L * 0.5), (dx_ - w * 0.8, cy + L), (dx_ - w * 0.5, cy + L + w * 0.75),
+                                 (dx_, cy + L + w * 1.0), (dx_ + w * 0.5, cy + L + w * 0.75), (dx_ + w * 0.8, cy + L), (dx_ + w * 0.75, cy + L * 0.5), (dx_ + w * 1.3, cy)]))
+    if dd:
+        gd = u("hd")
+        drip_svg = (f'<defs>{lgrad(gd, [(0, base[0]), (0.6, base[1]), (1, "#9A520C")])}</defs>' +
+                    "".join(f'<path d="{x}" fill="#6A3608" opacity="0.25" transform="translate(2 4)"/><path d="{x}" fill="url(#{gd})" opacity="0.95"/>' + ink(x, "#7A3E08", 1.6, seed + i, 1, 0.6) for i, x in enumerate(dd)))
+    else:
+        drip_svg = ""
+    g, cid = u("hp"), u("hpc")
+    o = [drip_svg, f'<defs><radialGradient id="{g}" cx="0.4" cy="0.35" r="0.75"><stop offset="0" stop-color="{base[2]}"/><stop offset="0.5" stop-color="{base[0]}"/>'
+         f'<stop offset="1" stop-color="{base[1]}"/></radialGradient><clipPath id="{cid}"><path d="{d}"/></clipPath></defs>',
+         f'<path d="{d}" fill="#6A3608" opacity="0.25" transform="translate(2 5)"/>',
+         f'<path d="{d}" fill="url(#{g})" opacity="{op}"/>',
+         f'<g clip-path="url(#{cid})">' + glow(u, cx - rx * 0.1, cy, rx * 0.7, "#FFE69A", 0.5, ry * 0.7) +
+         brush((cx - rx, cy - ry, cx + rx, cy + ry + 60), ["#FFD87A", "#C86A10"], seed, rx * ry / 120, -10, (rx * 0.2, rx * 0.5), (1.2, 3), (0.12, 0.3), 0.2) + "</g>",
+         f'<path d="M {_f(cx - rx * 0.6)} {_f(cy - ry * 0.3)} Q {_f(cx - rx * 0.1)} {_f(cy - ry * 0.75)} {_f(cx + rx * 0.45)} {_f(cy - ry * 0.45)}" stroke="#FFFFFF" '
+         f'stroke-width="{max(2.4, ry * 0.12):.1f}" fill="none" stroke-linecap="round" opacity="0.75"/>',
+         ink(d, "#7A3E08", 1.8, seed, 1, 0.6)]
+    for (dx_, L, w) in drips:
+        o.append(f'<path d="M {_f(dx_ - w * 0.35)} {_f(cy + 4)} L {_f(dx_ - w * 0.35)} {_f(cy + L - 2)}" stroke="#FFF4D0" stroke-width="{max(1.6, w * 0.3):.1f}" stroke-linecap="round" opacity="0.8"/>'
+                 f'<circle cx="{_f(dx_ - w * 0.3)}" cy="{_f(cy + L + w * 0.4)}" r="{max(1.4, w * 0.24):.1f}" fill="#FFFFFF" opacity="0.85"/>')
+    return "".join(o)
+
+
+def box_hive2(u, cx, base, w, seed, supers=None, roof=("#C8684A", "#8A3A24", "#E8987A"), stand=WOOD):
+    """A painted wooden beehive in three-quarter view: stand, landing board, stacked boxes with a receding side, gabled roof."""
+    supers = supers or [(0.5, ("#E8E2CC", "#B8AE90", "#FFFBEE")), (0.36, ("#F2CE72", "#C8962E", "#FFEDB0")), (0.36, ("#BCCCB0", "#86987A", "#E2ECD6"))]
+    dx, dy = w * 0.28, -w * 0.15
+    x0, x1 = cx - w / 2 - dx / 2, cx + w / 2 - dx / 2
+    o = [shadow(u, cx + dx * 0.4, base + 2, w * 0.82, 16, 0.42)]
+    # stand legs and landing board
+    for lx in (x0 + 10, x1 - 10, x1 + dx - 8):
+        back = lx > x1
+        d = soft_poly([(lx - 6, base - 46 + (dy if back else 0)), (lx + 6, base - 46 + (dy if back else 0)), (lx + 5, base + (dy if back else 0)), (lx - 5, base + (dy if back else 0))], seed + int(lx), 0.6, 0.1)
+        o.append(form(u, d, (lx - 7, base - 50 + dy, lx + 7, base), stand[1] if back else stand[0], stand[1], stand[2], seed + int(lx), -90, n=8, shade=(3, 0), ink_w=1.8))
+    y = base - 46
+    lb = soft_poly([(x0 - 22, y), (x1 + 8, y), (x1 + 8 + dx, y + dy), (x0 - 22 + dx * 0.4, y + dy * 0.6)], seed + 2, 0.8, 0.06)
+    o.append(form(u, lb, (x0 - 22, y + dy, x1 + dx + 8, y), stand[2], stand[1], "#FFF0D0", seed + 3, 0, n=30, shade=None, ink_w=2.0))
+    lbf = soft_poly([(x0 - 22, y), (x1 + 8, y), (x1 + 8, y + 9), (x0 - 22, y + 9)], seed + 4, 0.6, 0.1)
+    o.append(form(u, lbf, (x0 - 22, y, x1 + 8, y + 9), stand[0], stand[1], stand[2], seed + 5, 0, n=12, shade=None, ink_w=1.8))
+    y -= 2
+    for i, (hf, pal) in enumerate(supers):
+        h = w * hf
+        front = soft_poly([(x0, y), (x1, y), (x1, y - h), (x0, y - h)], seed + 10 + i, 0.8, 0.04)
+        side = soft_poly([(x1, y), (x1 + dx, y + dy), (x1 + dx, y + dy - h), (x1, y - h)], seed + 20 + i, 0.8, 0.04)
+        rnd = random.Random(seed + i)
+        grain_ = "".join(f'<path d="M {_f(x0 + 4)} {_f(y - h * t)} q {_f(w * 0.4)} {rnd.uniform(-2.5, 2.5):.1f} {_f(x1 - x0 - 8)} {rnd.uniform(-1.5, 1.5):.1f}" stroke="{pal[1]}" stroke-width="1.3" fill="none" opacity="0.55"/>' for t in (0.22, 0.5, 0.78))
+        knots = f'<ellipse cx="{_f(x0 + (x1 - x0) * rnd.uniform(0.2, 0.8))}" cy="{_f(y - h * rnd.uniform(0.3, 0.7))}" rx="5" ry="2.4" fill="none" stroke="{pal[1]}" stroke-width="1.2" opacity="0.6"/>'
+        o.append(form(u, front, (x0, y - h, x1, y), pal[0], pal[1], pal[2], seed + 30 + i, -2, n=w * h / 60, shade=None, ink_w=2.2,
+                      length=(20, 60), width=(1.2, 3), sop=(0.14, 0.34), extra_in=grain_ + knots +
+                      f'<rect x="{_f(x0)}" y="{_f(y - h)}" width="{_f(x1 - x0)}" height="6" fill="{pal[2]}" opacity="0.7"/>'
+                      f'<rect x="{_f(x0)}" y="{_f(y - 5)}" width="{_f(x1 - x0)}" height="5" fill="{pal[1]}" opacity="0.5"/>'))
+        hh = (f'<path d="M {_f(x1 + dx * 0.3)} {_f(y + dy * 0.3 - h * 0.6)} L {_f(x1 + dx * 0.7)} {_f(y + dy * 0.7 - h * 0.6)}" stroke="#3A2A1A" stroke-width="7" stroke-linecap="round" opacity="0.55"/>')
+        o.append(form(u, side, (x1, y + dy - h, x1 + dx, y), pal[1], mixc(pal[1], "#2A1A0A", 0.3), pal[0], seed + 40 + i, -90 + 28, n=dx * h / 70, shade=None, ink_w=2.2,
+                      length=(10, 40), width=(1, 2.6), sop=(0.15, 0.35), extra_in=hh))
+        if i == 0:
+            ent = soft_poly([(x0 + w * 0.18, y), (x1 - w * 0.18, y), (x1 - w * 0.18, y - 13), (x0 + w * 0.18, y - 13)], seed + 6, 0.6, 0.2)
+            o.append(f'<path d="{ent}" fill="#1E1008"/>' + ink(ent, "#1E1008", 1.6, seed + 6, 1, 0.8))
+        y -= h
+    # gabled roof: front gable, visible right-hand slope with shingles
+    ov = 10
+    rt = y - w * 0.34
+    ridge_f, ridge_b = (cx - dx / 2, rt), (cx - dx / 2 + dx, rt + dy)
+    gable = soft_poly([(x0 - ov, y + 4), (x1 + ov, y + 4), ridge_f], seed + 50, 0.8, 0.08)
+    slope = soft_poly([ridge_f, ridge_b, (x1 + ov + dx, y + 4 + dy), (x1 + ov, y + 4)], seed + 51, 0.8, 0.05)
+    shing = []
+    for t in (0.25, 0.5, 0.75):
+        a = (ridge_f[0] + (x1 + ov - ridge_f[0]) * t, ridge_f[1] + (y + 4 - ridge_f[1]) * t)
+        shing.append(f"M {_f(a[0])} {_f(a[1])} l {_f(dx)} {_f(dy)}")
+    for t in (0.2, 0.4, 0.6, 0.8):
+        a = (ridge_f[0] + dx * t, ridge_f[1] + dy * t)
+        shing.append(f"M {_f(a[0])} {_f(a[1])} l {_f(x1 + ov - ridge_f[0])} {_f(y + 4 - ridge_f[1])}")
+    o.append(form(u, slope, (ridge_f[0], ridge_b[1], x1 + ov + dx, y + 4), roof[0], roof[1], roof[2], seed + 52, 40, n=w * 0.8, shade=None, ink_w=2.4,
+                  length=(12, 36), width=(1.2, 3), extra_in=f'<path d="{" ".join(shing)}" stroke="{roof[1]}" stroke-width="2" opacity="0.6"/>'))
+    o.append(form(u, gable, (x0 - ov, rt, x1 + ov, y + 4), "#F2E6CC", "#C8B48E", "#FFFBEE", seed + 53, -90, n=w * 0.6, shade=None, ink_w=2.4,
+                  length=(10, 30), width=(1.2, 3)))
+    o.append(f'<path d="M {_f(x0 - ov - 2)} {_f(y + 6)} L {_f(ridge_f[0])} {_f(rt - 4)} L {_f(x1 + ov + 2)} {_f(y + 6)}" stroke="{roof[0]}" stroke-width="9" fill="none" stroke-linejoin="round" stroke-linecap="round"/>'
+             f'<path d="M {_f(x0 - ov - 2)} {_f(y + 6)} L {_f(ridge_f[0])} {_f(rt - 4)} L {_f(x1 + ov + 2)} {_f(y + 6)}" stroke="{roof[1]}" stroke-width="2" fill="none" stroke-linejoin="round" transform="translate(0 4)" opacity="0.7"/>')
+    o.append(f'<path d="{heart_path(ridge_f[0], (rt + y) / 2 + 8, 11)}" fill="{roof[0]}" stroke="{roof[1]}" stroke-width="1.6"/>')
+    return "".join(o)
+
+
+def picket_fence(u, y, seed, x0=-10, x1=610, h=70, gap=30, col=("#F6F0E2", "#C8BCA4", "#FFFFFF")):
+    rnd = random.Random(seed)
+    o = []
+    rails = f"M {x0} {y - h * 0.3} L {x1} {y - h * 0.32} M {x0} {y - h * 0.75} L {x1} {y - h * 0.77}"
+    o.append(f'<path d="{rails}" stroke="{col[1]}" stroke-width="9" stroke-linecap="round"/><path d="{rails}" stroke="{col[0]}" stroke-width="6" stroke-linecap="round" transform="translate(0 -1)"/>')
+    x = x0
+    while x < x1:
+        hh = h * rnd.uniform(0.96, 1.04)
+        d = soft_poly([(x, y), (x + 16, y), (x + 16, y - hh + 8), (x + 8, y - hh), (x, y - hh + 8)], seed + int(x), 0.5, 0.1)
+        o.append(f'<path d="{d}" fill="{col[0]}"/><path d="M {x + 11} {y - 2} L {x + 11} {y - hh + 10}" stroke="{col[1]}" stroke-width="5" opacity="0.55"/>'
+                 + ink(d, "#8A7A62", 1.4, seed + int(x), 1, 0.55))
+        x += gap
+    return "".join(o)
+
+
+def rose(u, cx, cy, r, seed, pal=("#E88A9A", "#B04A62", "#FAC4CC"), rot=0):
+    """A cupped garden rose: overlapping outer petals and a spiral heart."""
+    rnd = random.Random(seed)
+    o = [f'<g transform="rotate({rot} {_f(cx)} {_f(cy)})">']
+    base = blob(cx, cy, r, r * 0.9, seed, 0.1, 14)
+    o.append(form(u, base, (cx - r, cy - r, cx + r, cy + r), pal[0], pal[1], pal[2], seed, lambda x, y: math.degrees(math.atan2(y - cy, x - cx)),
+                  n=r * r / 10, shade=(r * 0.1, r * 0.12), shade_op=0.5, ink_w=max(1, r * 0.04), ink_col=pal[1], length=(r * 0.2, r * 0.5),
+                  width=(0.8, max(1.2, r * 0.06))))
+    for i, a in enumerate((200, 260, 320, 20, 80, 140)):
+        ar = math.radians(a + rnd.uniform(-10, 10))
+        px, py = cx + math.cos(ar) * r * 0.48, cy + math.sin(ar) * r * 0.42
+        pd = f"M {_f(px - math.sin(ar) * r * 0.45)} {_f(py + math.cos(ar) * r * 0.4)} Q {_f(px + math.cos(ar) * r * 0.42)} {_f(py + math.sin(ar) * r * 0.42)} {_f(px + math.sin(ar) * r * 0.45)} {_f(py - math.cos(ar) * r * 0.4)}"
+        o.append(f'<path d="{pd}" stroke="{pal[1]}" stroke-width="{max(1, r * 0.06):.1f}" fill="none" stroke-linecap="round" opacity="0.6"/>')
+    sp = [(cx + math.cos(t) * r * 0.06 * t, cy + math.sin(t) * r * 0.05 * t) for t in [i * 0.5 for i in range(1, 14)]]
+    o.append(f'<path d="{blob(cx, cy, r * 0.42, r * 0.36, seed + 2, 0.12, 12)}" fill="{mixc(pal[0], pal[1], 0.35)}"/>')
+    o.append(f'<path d="{smooth_open(sp)}" stroke="{pal[1]}" stroke-width="{max(1.2, r * 0.07):.1f}" fill="none" stroke-linecap="round"/>')
+    o.append(f'<path d="M {_f(cx - r * 0.5)} {_f(cy - r * 0.45)} Q {_f(cx - r * 0.1)} {_f(cy - r * 0.75)} {_f(cx + r * 0.35)} {_f(cy - r * 0.55)}" stroke="{pal[2]}" stroke-width="{max(1.2, r * 0.08):.1f}" fill="none" stroke-linecap="round" opacity="0.8"/>')
+    o.append("</g>")
+    return "".join(o)
+
+
+def cottage(u, x, base, w, h, seed, wall=("#E8D8BC", "#B8A484", "#FFF4DE"), roof=("#8A4A3A", "#5A2A20", "#B06A54"), lit=True, chimney=True):
+    """A small storybook cottage (front gable), lit windows glowing at night."""
+    o = []
+    wd = soft_poly([(x - w / 2, base), (x + w / 2, base), (x + w / 2, base - h), (x - w / 2, base - h)], seed, 0.6, 0.06)
+    o.append(form(u, wd, (x - w / 2, base - h, x + w / 2, base), wall[0], wall[1], wall[2], seed, -90, n=w * h / 50, shade=(w * 0.12, 0), ink_w=1.4, ink_col="#3A2418"))
+    rf = soft_poly([(x - w / 2 - w * 0.12, base - h + 2), (x, base - h - w * 0.55), (x + w / 2 + w * 0.12, base - h + 2)], seed + 1, 0.6, 0.08)
+    if chimney:
+        ch = soft_poly([(x + w * 0.18, base - h - w * 0.2), (x + w * 0.32, base - h - w * 0.2), (x + w * 0.32, base - h - w * 0.62), (x + w * 0.18, base - h - w * 0.62)], seed + 2, 0.4, 0.1)
+        o.append(f'<path d="{ch}" fill="{roof[1]}"/>')
+    o.append(form(u, rf, (x - w * 0.62, base - h - w * 0.55, x + w * 0.62, base - h + 2), roof[0], roof[1], roof[2], seed + 3, 30, n=w * 0.6, shade=(w * 0.08, 0), ink_w=1.4, ink_col="#2A160E"))
+    wins = [(x - w * 0.22, base - h * 0.55), (x + w * 0.22, base - h * 0.55)]
+    for i, (wx, wy) in enumerate(wins):
+        ww, wh = w * 0.18, h * 0.3
+        if lit:
+            o.append(glow(u, wx, wy, w * 0.32, "#FFC860", 0.6))
+        o.append(f'<rect x="{_f(wx - ww / 2)}" y="{_f(wy - wh / 2)}" width="{_f(ww)}" height="{_f(wh)}" rx="1" fill="{"#FFD878" if lit else "#4A5A6A"}" stroke="#3A2418" stroke-width="1.2"/>'
+                 f'<path d="M {_f(wx)} {_f(wy - wh / 2)} L {_f(wx)} {_f(wy + wh / 2)} M {_f(wx - ww / 2)} {_f(wy)} L {_f(wx + ww / 2)} {_f(wy)}" stroke="#3A2418" stroke-width="1"/>')
+    dw, dh = w * 0.16, h * 0.42
+    o.append(f'<path d="M {_f(x - dw / 2)} {base} L {_f(x - dw / 2)} {_f(base - dh + dw / 2)} A {_f(dw / 2)} {_f(dw / 2)} 0 0 1 {_f(x + dw / 2)} {_f(base - dh + dw / 2)} L {_f(x + dw / 2)} {base} Z" fill="#5A3A28" stroke="#2A160E" stroke-width="1.2"/>')
+    return "".join(o)
+
+
+def round_tree(u, x, base, r, seed, pal=("#3E5A4A", "#26382E", "#5E7A64"), trunk="#2A1E18"):
+    o = [f'<path d="M {_f(x - r * 0.08)} {base} L {_f(x - r * 0.05)} {_f(base - r * 0.9)} L {_f(x + r * 0.05)} {_f(base - r * 0.9)} L {_f(x + r * 0.08)} {base} Z" fill="{trunk}"/>']
+    d = " ".join(blob(x + dx * r, base - r * 1.25 + dy * r, rr * r, rr * r * 0.9, seed + i, 0.08, 12) for i, (dx, dy, rr) in enumerate(((-0.35, 0.1, 0.55), (0.35, 0.08, 0.55), (0, -0.25, 0.62))))
+    o.append(form(u, d, (x - r, base - r * 2.1, x + r, base - r * 0.6), pal[0], pal[1], pal[2], seed, lambda px, py: math.degrees(math.atan2(py - base + r * 1.25, px - x)) + 90,
+                  n=r * r / 12, shade=(r * 0.15, r * 0.1), ink_w=0, length=(r * 0.1, r * 0.3), width=(0.8, max(1.2, r * 0.06))))
+    return "".join(o)
+
+
+def poplar(u, x, base, h, seed, pal=("#6E7E4A", "#4A5A30", "#9AA86A")):
+    w = h * 0.16
+    d = smooth_closed([(x, base - h), (x + w * 0.7, base - h * 0.6), (x + w, base - h * 0.25), (x + w * 0.5, base - h * 0.05), (x - w * 0.5, base - h * 0.05),
+                       (x - w, base - h * 0.25), (x - w * 0.7, base - h * 0.6)])
+    return (f'<path d="M {x} {base} L {x} {_f(base - h * 0.1)}" stroke="#4A3A28" stroke-width="{max(1.5, w * 0.18):.1f}"/>' +
+            form(u, d, (x - w, base - h, x + w, base), pal[0], pal[1], pal[2], seed, -90, n=h * w / 30, shade=(w * 0.3, 0), ink_w=0,
+                 length=(h * 0.08, h * 0.25), width=(0.8, max(1.2, w * 0.12))))
+
+
+def cloud2(u, cx, cy, w, h, seed, base="#FFF6EC", shade_c="#D8B8C8", light="#FFFFFF"):
+    """A painted cumulus: a flat-bottomed row of puffs with a taller crown, lit from above."""
+    rnd = random.Random(seed)
+    puffs = []
+    n = max(4, int(w / 34))
+    for i in range(n):
+        t = i / (n - 1)
+        px = cx - w / 2 + w * t
+        r = h * (0.45 + 0.55 * math.sin(math.pi * t)) * rnd.uniform(0.8, 1.05)
+        puffs.append(blob(px, cy - r * 0.35, r * 0.75, r * 0.62, seed + i, 0.08, 12))
+    for i in range(max(2, n - 3)):
+        t = (i + 1) / (max(2, n - 3) + 1)
+        px = cx - w * 0.32 + w * 0.64 * t
+        r = h * (0.6 + 0.4 * math.sin(math.pi * t)) * rnd.uniform(0.85, 1.05)
+        puffs.append(blob(px, cy - h * 0.55 - r * 0.2, r * 0.7, r * 0.6, seed + 40 + i, 0.08, 12))
+    d = " ".join(puffs) + f" M {_f(cx - w / 2 - 6)} {_f(cy)} L {_f(cx + w / 2 + 6)} {_f(cy)} L {_f(cx + w / 2)} {_f(cy + h * 0.25)} L {_f(cx - w / 2)} {_f(cy + h * 0.25)} Z"
+    return form(u, d, (cx - w / 2 - 20, cy - h * 1.5, cx + w / 2 + 20, cy + h * 0.3), base, shade_c, light, seed, -10, n=w * h / 70, shade=(3, h * 0.3),
+                shade_op=0.55, hi=(cx - w * 0.1, cy - h * 1.0, w * 0.28, h * 0.22), hi_op=0.55, ink_w=0, length=(10, 30), width=(2, 5), sop=(0.15, 0.4))
+
+
 DESIGNS = {}
 
 
@@ -970,23 +1300,30 @@ def design(slug):
 def bee_kind():
     u = Ids("bee-kind")
     o = [bg(u, "#F7EEDC", ["#F2E2C0", "#FBF4E6", "#EED8B0", "#F6E8CC"], 11, angle=-20)]
-    o.append(glow(u, 300, 230, 270, "#FFD77A", 0.5))
+    o.append(spot(u, 300, 246, 226, 186, ("#F8DFA4", "#EEC478", "#FFF0C8"), 14, paper_c="#F7EEDC", wob=0.03))
+    o.append(glow(u, 300, 220, 220, "#FFE6A0", 0.55))
     # comb peeking in at two corners
     o.append(comb(u, comb_cells(600, 0, 40, 5, 5, keep=lambda x, y, c, r: math.hypot(x - 640, y + 20) < 190), 40, 21,
                   kinds=lambda i, x, y: ["honey", "capped", "honey", "empty"][i % 4]))
     o.append(comb(u, comb_cells(0, 600, 40, 5, 5, keep=lambda x, y, c, r: math.hypot(x + 40, y - 620) < 170), 40, 31,
                   kinds=lambda i, x, y: ["capped", "honey", "honey", "empty"][i % 4]))
-    o.append(loop_trail(556, 110, 420, 190, 28, INK, 2.6, 0.55))
-    # a daisy offered forward
-    o.append(stem([(200, 268), (172, 254), (146, 228)], "#5E7A3A", 3.2, 4))
-    o.append(green_leaf(u, 170, 252, 30, 9, -120, 5, vein=False))
-    o.append(bee(u, 322, 200, 108, 3, rot=-6, mood="smile", arms=["M -66 40 q -24 12 -60 18", "M -50 50 q -24 18 -58 22"]))
-    o.append(daisy(u, 140, 220, 36, 6, rot=-10))
-    for x, y, sz in ((86, 150, 7), (520, 300, 6), (470, 70, 5), (96, 360, 5)):
+    # big bee offers a daisy to a shy little one
+    big = (226, 214, 84, 3, -4, True)
+    hx, hy = bee_pt(*big[:3], big[4], True, -150, 46)
+    o.append(trail([(118, 150), (96, 196), (120, 236), (136, 224)], INK, 2.4, "2 9", 0.45))
+    o.append(bee(u, big[0], big[1], big[2], big[3], rot=big[4], flip=True, mood="smile", wings="up", pose="tuck",
+                 arms=["M -64 36 Q -108 60 -150 46"]))
+    o.append(stem([(hx - 2, hy + 6), (hx + 14, hy - 14), (hx + 26, hy - 38)], "#5E7A3A", 3.2, 4))
+    o.append(green_leaf(u, hx + 12, hy - 12, 24, 8, -10, 5, vein=False))
+    o.append(daisy(u, hx + 28, hy - 46, 24, 6, rot=-10))
+    o.append(f'<circle cx="{_f(hx)}" cy="{_f(hy)}" r="5" fill="{NOIR}"/>')
+    o.append(bee(u, 470, 236, 44, 7, rot=8, mood="smile", wings="up", pose="tuck", cheek="#F06A6A"))
+    o.append(floating_hearts(u, [(412, 150, 9, -12), (440, 118, 6.5, 10), (392, 112, 5, -4)], 8))
+    for x, y, sz in ((90, 140, 7), (520, 330, 6), (330, 70, 5), (110, 360, 5)):
         o.append(sparkle(x, y, sz, "#E8A830", 0.85))
-    t, _, _ = btext(u, 300, 396, "bee", SERIF_IT, 96, INK, ["#5A3A24", "#2A1810", "#6E4A30"], 7, angle=-40, shadow="#E8B860", soff=(0.02, 0.04))
+    t, _, _ = btext(u, 300, 402, "bee", SERIF_IT, 100, INK, ["#5A3A24", "#2A1810", "#6E4A30"], 7, angle=-40, shadow="#E8B860", soff=(0.02, 0.04))
     o.append(t)
-    t, _, _ = btext(u, 300, 532, "KIND", ANTON, 124, "#E8A225", ["#F6C450", "#C47A16", "#FFD87A", "#D8901C"], 8, ls=10, angle=-78,
+    t, _, _ = btext(u, 300, 530, "KIND", ANTON, 126, "#E8A225", ["#F6C450", "#C47A16", "#FFD87A", "#D8901C"], 8, ls=10, angle=-78,
                     shadow=INK, soff=(0.025, 0.035), hi="#FFF0C0")
     o.append(t)
     o.append(finish(u, INK, 0.7))
@@ -1001,46 +1338,46 @@ def queen_bee():
     o.append(rays(300, 250, 28, "#FFE08A", 0.12))
     o.append(glow(u, 300, 250, 280, "#FFE29A", 0.55))
     o.append(vignette(u, "#6A3606", 0.5))
-    # an oval cameo with a gold beaded frame
-    cx, cy, rx, ry = 300, 248, 186, 176
+    cx, cy, rx, ry = 300, 250, 190, 180
     ov = blob(cx, cy, rx, ry, 22, 0.012, 30)
     o.append(shadow(u, cx + 6, cy + 16, rx + 16, ry + 16, 0.45, "#4A2204"))
-    o.append(form(u, blob(cx, cy, rx + 16, ry + 16, 23, 0.012, 30), (cx - rx - 16, cy - ry - 16, cx + rx + 16, cy + ry + 16), GOLD[0], GOLD[1], GOLD[2], 24,
+    o.append(form(u, blob(cx, cy, rx + 18, ry + 18, 23, 0.012, 30), (cx - rx - 18, cy - ry - 18, cx + rx + 18, cy + ry + 18), GOLD[0], GOLD[1], GOLD[2], 24,
                   lambda x, y: math.degrees(math.atan2(y - cy, x - cx)) + 90, n=260, shade=(10, 12), hi=(cx - 80, cy - 150, 60, 14), ink_w=2.4, ink_col="#7A4A0E",
                   length=(10, 30), width=(1.2, 3)))
-    o.append(form(u, ov, (cx - rx, cy - ry, cx + rx, cy + ry), "#EFE6D6", "#C8B89C", "#FFFAF0", 25, -60, n=220, shade=(-8, -10), shade_op=0.3, ink_w=2.0,
+    o.append(form(u, ov, (cx - rx, cy - ry, cx + rx, cy + ry), "#F4E8D2", "#D8C29C", "#FFFAF0", 25, -60, n=220, shade=(-8, -10), shade_op=0.3, ink_w=2.0,
                   ink_col="#7A4A0E", length=(20, 60), width=(2, 5), sop=(0.08, 0.2),
-                  extra_in=glow(u, cx, cy - 10, 160, "#FFE29A", 0.5)))
+                  extra_in=glow(u, cx, cy - 10, 170, "#FFE29A", 0.55) + rays(cx, cy - 10, 20, "#F2C860", 0.1, r=200)))
     beads = []
-    for i in range(44):
-        a = 2 * math.pi * i / 44
+    for i in range(48):
+        a = 2 * math.pi * i / 48
         bx, by = cx + (rx + 9) * math.cos(a), cy + (ry + 9) * math.sin(a)
-        beads.append(f'<circle cx="{_f(bx)}" cy="{_f(by)}" r="4.2" fill="#FFF0B0" stroke="#9A6010" stroke-width="1.2"/>')
+        beads.append(f'<circle cx="{_f(bx)}" cy="{_f(by)}" r="4.4" fill="#FFF0B0" stroke="#9A6010" stroke-width="1.3"/><circle cx="{_f(bx - 1.2)}" cy="{_f(by - 1.2)}" r="1.4" fill="#FFFFFF"/>')
     o.append("".join(beads))
-    # laurel sprigs inside the cameo
-    for side in (-1, 1):
-        for k in range(7):
-            t = k / 6
-            a = math.radians(110 - 70 * t) if side < 0 else math.radians(70 + 70 * t)
-            lx, ly = cx + side * 0 + (rx - 30) * math.cos(math.pi - a if side < 0 else a) * 1.0, cy + 40 + (ry - 40) * math.sin(a) * 0.95
-        pass
-    # a laurel of sage leaves and tiny daisies around the lower half of the cameo
+    for jx, jy in ((cx, cy - ry - 9), (cx - rx - 9, cy), (cx + rx + 9, cy)):
+        o.append(f'<path d="{blob(jx, jy, 11, 13, int(jx), 0.04, 10)}" fill="#C8344A" stroke="#6A1018" stroke-width="2"/><circle cx="{jx - 3}" cy="{jy - 4}" r="3" fill="#FFFFFF" opacity="0.8"/>')
+    # laurel of sage leaves and tiny daisies around the lower half of the cameo
     for side in (-1, 1):
         arc = [(cx + side * (rx - 26) * math.cos(math.radians(a)), cy + (ry - 26) * math.sin(math.radians(a))) for a in range(-10, 91, 10)]
-        o.append(ink(smooth_open(arc), "#6E7A50", 3, 26 + side, 1, 0.9))
+        o.append(ink(smooth_open(arc), "#8E9A6E", 3, 26 + side, 1, 0.9))
         for i, (vx, vy) in enumerate(arc[:-1]):
             tang = math.degrees(math.atan2(arc[i + 1][1] - vy, arc[i + 1][0] - vx))
             for k in (-1, 1):
                 o.append(green_leaf(u, vx, vy, 26, 8, tang + k * 48, 27 + i * 3 + k + side * 50, pal=SAGE, vein=False, inkc="#4E5A34"))
         for j, a in enumerate((12, 52)):
             o.append(daisy(u, cx + side * (rx - 26) * math.cos(math.radians(a)), cy + (ry - 26) * math.sin(math.radians(a)), 13, 40 + j + side * 9, n=11))
-    o.append(bee(u, 316, 236, 104, 28, rot=-4, mood="calm", crown=True, wings="up", eye_dir=(2, 0)))
-    for x, y, sz in ((116, 92, 9), (488, 96, 8), (520, 360, 6), (80, 330, 6)):
+    # the queen, with a honey-dipper sceptre
+    bq = (322, 236, 100, -4)
+    sx, sy = bee_pt(bq[0], bq[1], bq[2], bq[3], False, -142, 30)
+    o.append(bee(u, bq[0], bq[1], bq[2], 28, rot=bq[3], mood="calm", crown=True, wings="up", eye_dir=(2, 0), lashes=True, pose="tuck",
+                 arms=["M -64 36 Q -110 56 -142 30"], cheek="#F07A70"))
+    o.append(dipper(u, sx + 30, sy + 46, 150, -112, 31, scale=0.62, honey=True))
+    o.append(f'<circle cx="{_f(sx)}" cy="{_f(sy)}" r="5.6" fill="{NOIR}"/>')
+    for x, y, sz in ((112, 92, 9), (488, 96, 8), (530, 360, 6), (70, 330, 6)):
         o.append(sparkle(x, y, sz, "#FFF4C8", 0.9))
-    o.append(ribbon(u, 300, 474, 400, 76, ("#3A2418", "#1E120A", "#5A3A26"), 29, tail=40, ink_col="#120A04"))
-    t, _, _ = btext(u, 300, 500, "QUEEN BEE", CINZEL, 60, "#F6CE5A", ["#FFE08A", "#D49A22", "#FFF0B8"], 30, max_w=360, ls=4, angle=-70)
+    o.append(ribbon(u, 300, 476, 410, 78, ("#3A2418", "#1E120A", "#5A3A26"), 29, tail=40, ink_col="#120A04"))
+    t, _, _ = btext(u, 300, 503, "QUEEN BEE", CINZEL, 62, "#F6CE5A", ["#FFE08A", "#D49A22", "#FFF0B8"], 30, max_w=370, ls=4, angle=-70)
     o.append(t)
-    o.append(plain(300, 548, "OF THE HIVE", JOST, 20, "#FFF4D8", ls=8))
+    o.append(plain(300, 550, "OF THE HIVE", JOST, 20, "#FFF4D8", ls=8))
     o.append(finish(u, "#FFE8B0", 0.5))
     return "".join(o)
 
@@ -1050,21 +1387,25 @@ def queen_bee():
 def beeswax():
     u = Ids("mind-your-own-beeswax")
     o = [bg(u, "#2E2016", ["#3A2A1E", "#22180E", "#46342A", "#1A120A"], 31, fleck="#F2D8A8", angle=-25)]
-    o.append(glow(u, 300, 230, 250, "#F2A83A", 0.42))
+    o.append(glow(u, 350, 250, 280, "#F2A83A", 0.45))
     o.append(drip_curtain(u, 46, -20, 32, depth=(16, 86), wid=(40, 74), band_hi=False))
-    # table edge
-    tb = smooth_closed([(-20, 372), (300, 366), (620, 372), (620, 640), (-20, 640)])
-    o.append(form(u, tb, (-20, 360, 620, 640), "#4A3022", "#2A1A10", "#6A4A34", 33, -2, n=120, shade=None, ink_w=0, length=(40, 120), width=(2, 5)))
-    o.append(f'<path d="M -10 370 Q 300 362 610 370" stroke="#8A6040" stroke-width="2.4" fill="none" opacity="0.6"/>')
-    o.append(candle(u, 300, 214, 132, 150, 34))
-    # the bee leaning on the candle, side-eyeing us
-    o.append(bee(u, 166, 314, 62, 35, rot=-4, flip=False, mood="calm", wings="flat", eye_dir=(6, -2), legs=True,
-                 arms=["M -60 40 q -10 18 4 30"]))
-    o.append(f'<path d="M 120 266 q 8 -6 16 -2" stroke="#120C08" stroke-width="3" fill="none" stroke-linecap="round"/>')
-    t, _, _ = btext(u, 300, 440, "mind your own", SERIF_IT, 56, "#FBEBD2", ["#FFF6E6", "#E8D2B4"], 36, max_w=420, angle=-35, shadow="#120A04",
+    # wooden table, lit by the candle
+    tb = smooth_closed([(-20, 386), (300, 380), (620, 386), (620, 640), (-20, 640)])
+    o.append(form(u, tb, (-20, 374, 620, 640), "#5A3A26", "#2E1C10", "#7A5236", 33, -2, n=140, shade=None, ink_w=0, length=(40, 120), width=(2, 5)))
+    o.append(glow(u, 360, 392, 230, "#F6B04A", 0.35, 34))
+    o.append(f'<path d="M -10 384 Q 300 376 610 384" stroke="#A87A50" stroke-width="2.4" fill="none" opacity="0.6"/>')
+    o.append(candle(u, 352, 230, 128, 150, 34))
+    # a little dish of comb and a resting dipper
+    o.append(shadow(u, 506, 392, 62, 10, 0.5))
+    o.append(f'<ellipse cx="502" cy="386" rx="60" ry="13" fill="#E8DCC4" stroke="#6A5034" stroke-width="2"/><ellipse cx="502" cy="383" rx="46" ry="8" fill="#C8B898"/>')
+    o.append(comb(u, comb_cells(502, 366, 13, 2, 4), 13, 155, kinds=["honey", "capped", "honey", "honey", "empty", "honey", "capped", "honey"]))
+    # the bee leaning back against the candle, side-eyeing us
+    o.append(bee(u, 186, 302, 74, 35, rot=-4, mood="calm", wings="flat", eye_dir=(-5, -1), pose="stand",
+                 arms=["M -62 38 Q -80 64 -60 70"], cheek="#E87A6A"))
+    t, _, _ = btext(u, 300, 456, "mind your own", SERIF_IT, 58, "#FBEBD2", ["#FFF6E6", "#E8D2B4"], 36, max_w=430, angle=-35, shadow="#120A04",
                     soff=(0.02, 0.05))
     o.append(t)
-    t, _, _ = btext(u, 300, 536, "BEESWAX", ANTON, 104, "#F2B33A", ["#F6C450", "#C47A16", "#FFD87A"], 37, max_w=460, ls=6, angle=-78,
+    t, _, _ = btext(u, 300, 548, "BEESWAX", ANTON, 104, "#F2B33A", ["#F6C450", "#C47A16", "#FFD87A"], 37, max_w=460, ls=6, angle=-78,
                     shadow="#120A04", soff=(0.025, 0.04), hi="#FFF0C0")
     o.append(t)
     o.append(finish(u, "#F2D8A8", 0.5))
@@ -1076,16 +1417,19 @@ def beeswax():
 def bee_happy():
     u = Ids("bee-happy")
     o = [bg(u, "#F6C844", ["#F8D25A", "#EAB030", "#FBE07A", "#E8A82A"], 41, fleck="#8A5A10", angle=-20)]
-    o.append(rays(300, 310, 24, "#FFF0A8", 0.35, rot=4))
-    o.append(glow(u, 300, 300, 230, "#FFF6C8", 0.6))
-    t, _, _ = btext(u, 300, 168, "bee happy", SERIF_IT, 116, "#3A2418", ["#5A3A24", "#2A1810", "#6E4A30"], 42, max_w=470, angle=-40,
+    o.append(rays(300, 330, 26, "#FFF0A8", 0.35, rot=4))
+    o.append(glow(u, 300, 320, 250, "#FFF6C8", 0.65))
+    t, _, _ = btext(u, 300, 166, "bee happy", SERIF_IT, 116, "#3A2418", ["#5A3A24", "#2A1810", "#6E4A30"], 42, max_w=470, angle=-40,
                     shadow="#FFF2C0", soff=(-0.02, -0.025))
     o.append(t)
-    o.append(loop_trail(76, 330, 214, 300, 28, INK, 2.6, 0.55, up=True))
-    o.append(bee(u, 334, 326, 88, 43, rot=-14, mood="grin", wings="spread", arms="up"))
-    for x, y, sz in ((520, 210, 9), (92, 214, 6), (510, 380, 7), (230, 210, 5)):
+    o.append(ruled_c(u, 212, "SUNNY DAYS · SWEET FLOWERS", JOST, 18, "#7A4A12", 46, ls=4, line_w=26))
+    o.append(loop_trail(70, 352, 206, 318, 26, INK, 2.6, 0.5, up=True))
+    o.append(bee(u, 160, 432, 22, 47, rot=10, mood="smile", wings="spread"))
+    o.append(bee(u, 334, 330, 92, 43, rot=-12, mood="grin", wings="spread", pose="tuck"))
+    for x, y, sz in ((520, 250, 9), (86, 250, 6), (512, 400, 7), (236, 262, 5)):
         o.append(sparkle(x, y, sz, "#FFFFFF", 0.9))
-    o.append(wildflower_band(u, 486, 44, kinds=("daisy", "daisy", "cosmos", "clover", "daisy", "lav"), scale=1.45))
+    o.append(wildflower_band(u, 478, 44, kinds=("daisy", "clover", "lav", "daisy", "corn"), scale=0.9))
+    o.append(wildflower_band(u, 540, 48, kinds=("daisy", "cosmos", "daisy", "poppy", "daisy"), scale=1.6, x0=-40, x1=640))
     o.append(finish(u, INK, 0.6))
     return "".join(o)
 
@@ -1095,31 +1439,30 @@ def bee_happy():
 def sweet_as_honey():
     u = Ids("sweet-as-honey")
     o = [bg(u, "#F8E8D2", ["#F6DCC0", "#FBF2E4", "#F2D4B0", "#F8E2C8"], 51, angle=-20)]
-    o.append(glow(u, 300, 380, 300, "#FFC86A", 0.45))
-    t, _, _ = btext(u, 300, 124, "sweet as", SERIF_IT, 76, "#6A3A1A", ["#8A5230", "#4A2410"], 52, angle=-40, shadow="#F2C890", soff=(0.02, 0.04))
+    o.append(glow(u, 420, 300, 300, "#FFC86A", 0.45))
+    t, _, _ = btext(u, 250, 118, "sweet as", SERIF_IT, 78, "#6A3A1A", ["#8A5230", "#4A2410"], 52, angle=-40, shadow="#F2C890", soff=(0.02, 0.04), max_w=330)
     o.append(t)
-    t, _, _ = btext(u, 282, 238, "HONEY", ANTON, 124, "#E0921E", ["#F6C450", "#B86A10", "#FFD87A", "#D8901C"], 53, ls=10, angle=-78, max_w=390,
+    t, _, _ = btext(u, 250, 236, "HONEY", ANTON, 126, "#E0921E", ["#F6C450", "#B86A10", "#FFD87A", "#D8901C"], 53, ls=8, angle=-78, max_w=360,
                     shadow="#6A3A1A", soff=(0.025, 0.035), hi="#FFF0C0")
     o.append(t)
-    # a slab of comb with honey oozing over the front edge
-    cells = comb_cells(300, 470, 38, 5, 11)
-    slab = smooth_closed([(-20, 360), (80, 330), (180, 338), (300, 326), (420, 334), (520, 324), (620, 340), (620, 640), (-20, 640)])
-    o.append(shadow(u, 300, 336, 340, 22, 0.35))
+    # a slab of comb across the bottom
+    cells = comb_cells(300, 474, 38, 5, 11)
+    slab = smooth_closed([(-20, 360), (80, 334), (180, 342), (300, 330), (420, 338), (520, 328), (620, 344), (620, 640), (-20, 640)])
+    o.append(shadow(u, 300, 340, 340, 22, 0.35))
     cid = u("sl")
     o.append(f'<defs><clipPath id="{cid}"><path d="{slab}"/></clipPath></defs><path d="{slab}" fill="#C88A2E"/><g clip-path="url(#{cid})">')
     o.append(comb(u, cells, 38, 54, kinds=lambda i, x, y: "capped" if (i * 7) % 5 == 0 else ("empty" if (i * 3) % 7 == 0 else "honey")))
     o.append("</g>")
     o.append(ink(slab, "#7A4A16", 2.4, 55, 2, 0.8))
-    # honey running over the top edge of the slab
-    ooze = smooth_closed([(60, 336), (140, 328), (180, 336), (186, 366), (194, 404), (204, 420), (214, 400), (222, 356), (260, 334), (330, 326),
-                          (362, 334), (368, 370), (376, 384), (386, 364), (392, 336), (440, 330), (470, 340), (440, 352), (300, 350), (100, 352)])
-    o.append(form(u, ooze, (60, 320, 470, 422), AMBER[0], AMBER[1], AMBER[2], 56, -90, n=60, shade=(-3, -5), ink_w=2.0, ink_col="#6A3608"))
-    o.append(f'<path d="M 120 336 Q 200 330 300 334" stroke="#FFF2C8" stroke-width="3.5" fill="none" stroke-linecap="round" opacity="0.75"/>'
-             f'<path d="M 199 368 L 200 398" stroke="#FFF2C8" stroke-width="3" stroke-linecap="round" opacity="0.8"/><circle cx="371" cy="368" r="2.6" fill="#FFF" opacity="0.8"/>')
-    # a bee sipping a cell through a little straw
-    o.append(bee(u, 474, 306, 56, 57, rot=-4, mood="sleep", wings="up", arms=["M -62 40 q -14 10 -30 12"]))
-    o.append(f'<path d="M 404 322 L 382 362" stroke="#F2EEE6" stroke-width="7" stroke-linecap="round"/><path d="M 404 322 L 382 362" stroke="#D84A4A" stroke-width="7" stroke-dasharray="6 6" stroke-linecap="butt"/>')
-    o.append(drop(u, 120, 444, 14, 58))
+    # honey falling from a dipper and pooling over the comb, running over the edge of the cells
+    o.append(honey_pool(u, 446, 400, 86, 30, 56, drips=((392, 64, 9), (470, 104, 11), (512, 46, 8))))
+    o.append(honey_stream(u, 474, 168, 450, 390, 57, w0=13, w1=6, sway=-14))
+    o.append(dipper(u, 610, 70, 186, 151, 58, scale=0.95, honey=True))
+    # a bee sipping from a cell through a striped straw
+    o.append(bee(u, 150, 296, 48, 59, rot=-2, mood="sleep", wings="up", pose="stand", arms=["M -62 40 Q -76 50 -92 54"]))
+    o.append(f'<path d="M 106 318 L 92 372" stroke="#F2EEE6" stroke-width="6" stroke-linecap="round"/><path d="M 106 318 L 92 372" stroke="#D84A4A" stroke-width="6" stroke-dasharray="5 5" stroke-linecap="butt"/>')
+    for x, y, sz in ((520, 110, 8), (556, 300, 6), (70, 180, 6)):
+        o.append(sparkle(x, y, sz, "#E8A830", 0.85))
     o.append(finish(u, INK, 0.6))
     return "".join(o)
 
@@ -1128,33 +1471,41 @@ def sweet_as_honey():
 @design("hive-sweet-hive")
 def hive_sweet_hive():
     u = Ids("hive-sweet-hive")
-    o = [bg(u, "#EAF0E2", ["#E2EAD6", "#F2F5EC", "#D8E2CA", "#EEF2E6"], 61, fleck="#6E7A50", angle=-15)]
     sky = u("sk")
-    o.append(f'<defs>{lgrad(sky, [(0, "#CFE0E6"), (0.6, "#F4EEDC"), (1, "#F8E6C4")])}</defs><rect width="600" height="420" fill="url(#{sky})" opacity="0.8"/>')
-    o.append(glow(u, 470, 300, 220, "#FFE6A8", 0.5))
-    # distant hedge and meadow
-    o.append(f'<path d="{smooth_open([(-20, 380), (80, 360), (200, 370), (320, 352), (440, 366), (620, 350)])} L 620 640 L -20 640 Z" fill="#A9B88A"/>')
-    o.append(brush((-20, 350, 620, 420), ["#94A878", "#BCC89C", "#8A9E6A"], 62, 120, -90, (10, 26), (2, 5), (0.3, 0.6)))
-    o.append(f'<path d="{smooth_open([(-20, 430), (120, 420), (300, 428), (460, 416), (620, 426)])} L 620 640 L -20 640 Z" fill="#8EA466"/>')
-    o.append(grass(63, (-20, 420, 620, 600), ["#6E8A44", "#A8BC70", "#5E7A3A"], 220, (10, 26), 2.0))
-    o.append(box_hive(u, 300, 540, 176, 64))
-    # hollyhocks and lavender beside the hive
-    for i, (x, b, h) in enumerate(((108, 560, 230), (500, 560, 210))):
-        o.append(stem([(x, b), (x + 4, b - h * 0.5), (x - 2, b - h)], "#5E7A3A", 4, 65 + i))
-        for k in range(6):
-            yy = b - h + k * 30
-            r = 20 - k * 1.2
-            o.append(cosmos(u, x + (k % 2) * 10 - 5, yy, r, 66 + i * 10 + k, pal=ROSE if i == 0 else ("#F2B8C8", "#C07890", "#FFE0EA"), n=6, tilt=0.9))
-        o.append(green_leaf(u, x, b - 40, 46, 14, -150 if i == 0 else -30, 70 + i))
-    o.append(lavender(u, 182, 590, 150, 71, ang=-96, buds=9))
-    o.append(lavender(u, 200, 590, 130, 72, ang=-80, buds=8))
-    o.append(lavender(u, 410, 590, 140, 73, ang=-84, buds=9))
-    o.append(bee(u, 432, 262, 28, 74, rot=-10, flip=True, mood="smile", wings="spread"))
-    o.append(bee(u, 172, 300, 24, 75, rot=10, mood="smile", wings="up"))
-    t, _, _ = btext(u, 300, 118, "hive sweet hive", SERIF_IT, 76, "#3A2418", ["#5A3A24", "#2A1810", "#6E4A30"], 76, max_w=460, angle=-40,
+    o = [bg(u, "#EAF0E2", ["#E2EAD6", "#F2F5EC", "#D8E2CA", "#EEF2E6"], 61, fleck="#6E7A50", angle=-15)]
+    o.append(f'<defs>{lgrad(sky, [(0, "#C4DCE4"), (0.55, "#F2EEDC"), (1, "#F8E4BC")])}</defs><rect width="600" height="460" fill="url(#{sky})" opacity="0.9"/>')
+    o.append(glow(u, 500, 250, 240, "#FFE6A8", 0.6))
+    # distant hills, hazy; a hedge; the garden lawn
+    o.append(hill(u, [(-20, 362), (90, 334), (210, 350), (330, 326), (450, 344), (620, 322)], 640, "#B8C8B0", "#9AAE98", "#D8E2D0", 62))
+    o.append(hill(u, [(-20, 392), (120, 376), (260, 388), (400, 370), (520, 382), (620, 372)], 640, "#9AB07A", "#7A9460", "#BCCC9C", 63))
+    o.append(fruit_tree(u, 92, 470, 72, 64, greens=("#7E9A58", "#56703A", "#A8C27A"), fruit=26, fruitc=("#F4B8C4", "#FFFFFF")))
+    o.append(fruit_tree(u, 540, 432, 46, 65, greens=("#8EA668", "#66804A", "#B4C88C"), fruit=14, fruitc=("#F4B8C4", "#FFFFFF"), detail=False))
+    o.append(picket_fence(u, 470, 66, gap=32, h=64))
+    o.append(hill(u, [(-20, 466), (150, 458), (300, 464), (450, 456), (620, 462)], 640, "#8EA466", "#6E8A44", "#B4C67E", 67))
+    o.append(grass(68, (-20, 460, 620, 600), ["#6E8A44", "#A8BC70", "#5E7A3A"], 200, (8, 22), 2.0))
+    # stepping stones to the hive
+    for i, (x, y, r) in enumerate(((246, 586, 22), (276, 556, 18), (298, 532, 14))):
+        o.append(form(u, blob(x, y, r, r * 0.45, 69 + i, 0.1, 12), (x - r, y - r * 0.5, x + r, y + r * 0.5), "#E2D6BE", "#B0A084", "#FFF8E8", 69 + i, 0, n=10, shade=(0, -3), ink_w=1.4, ink_col="#7A6A50"))
+    o.append(box_hive2(u, 314, 520, 168, 70))
+    # hollyhocks right, lavender and daisies left
+    for i, (x, b, h) in enumerate(((520, 600, 250), (480, 600, 200))):
+        o.append(stem([(x, b), (x + 4, b - h * 0.5), (x - 2, b - h)], "#5E7A3A", 4, 71 + i))
+        for kk in range(6):
+            yy = b - h + kk * 30
+            r = 21 - kk * 1.3
+            o.append(cosmos(u, x + (kk % 2) * 10 - 5, yy, r, 72 + i * 10 + kk, pal=ROSE if i == 0 else ("#F2B8C8", "#C07890", "#FFE0EA"), n=6, tilt=0.9))
+        o.append(green_leaf(u, x, b - 50, 50, 15, -30 if i == 0 else -150, 90 + i))
+    o.append(lavender(u, 108, 600, 150, 91, ang=-96, buds=10) + lavender(u, 128, 600, 130, 92, ang=-82, buds=9) + lavender(u, 82, 600, 120, 93, ang=-104, buds=8))
+    o.append(daisy(u, 174, 560, 18, 94, tilt=0.8) + daisy(u, 200, 584, 15, 95, tilt=0.8) + daisy(u, 410, 572, 16, 96, tilt=0.8))
+    # bees coming home
+    o.append(trail([(196, 300), (226, 352), (262, 408), (288, 450)], INK, 2.2, "2 8", 0.5))
+    o.append(bee(u, 182, 290, 26, 97, rot=14, mood="smile", wings="spread"))
+    o.append(bee(u, 444, 322, 30, 98, rot=-8, flip=True, mood="smile", wings="up"))
+    o.append(bee(u, 380, 248, 20, 99, rot=-16, flip=True, mood="wink", wings="spread"))
+    t, _, _ = btext(u, 300, 118, "hive sweet hive", SERIF_IT, 78, "#3A2418", ["#5A3A24", "#2A1810", "#6E4A30"], 76, max_w=470, angle=-40,
                     shadow="#F6E6C0", soff=(0.02, 0.04))
     o.append(t)
-    o.append(ruled_c(u, 168, "HOME IS WHERE THE HONEY IS", JOST, 19, "#8A5A20", 77, ls=4, line_w=30))
+    o.append(ruled_c(u, 168, "HOME IS WHERE THE HONEY IS", JOST, 19, "#7A4A16", 77, ls=4, line_w=30))
     o.append(finish(u, INK, 0.55))
     return "".join(o)
 
@@ -1164,16 +1515,14 @@ def hive_sweet_hive():
 def bees_knees():
     u = Ids("bees-knees")
     o = [bg(u, "#241A12", ["#2E2218", "#1A120A", "#3A2A1E"], 81, fleck="#F2D8A8", angle=-25)]
-    o.append(glow(u, 300, 250, 260, "#E8A030", 0.35))
-    # art-deco sunrise fan
+    o.append(glow(u, 300, 250, 270, "#E8A030", 0.35))
     fan = []
     for i in range(19):
         a = math.radians(180 + i * 10)
-        fan.append(f"M {_f(300 + 70 * math.cos(a))} {_f(330 + 70 * math.sin(a))} L {_f(300 + 250 * math.cos(a))} {_f(330 + 250 * math.sin(a))}")
-    o.append(f'<path d="{" ".join(fan)}" stroke="#E2A83A" stroke-width="3" opacity="0.55"/>')
-    for r in (70, 110, 250):
-        o.append(f'<path d="M {300 - r} 330 A {r} {r} 0 0 1 {300 + r} 330" stroke="#E2A83A" stroke-width="{4 if r == 250 else 3}" fill="none" opacity="0.7"/>')
-    # stepped deco frame
+        fan.append(f"M {_f(300 + 74 * math.cos(a))} {_f(342 + 74 * math.sin(a))} L {_f(300 + 252 * math.cos(a))} {_f(342 + 252 * math.sin(a))}")
+    o.append(f'<path d="{" ".join(fan)}" stroke="#E2A83A" stroke-width="3" opacity="0.5"/>')
+    for r in (74, 116, 252):
+        o.append(f'<path d="M {300 - r} 342 A {r} {r} 0 0 1 {300 + r} 342" stroke="#E2A83A" stroke-width="{4 if r == 252 else 3}" fill="none" opacity="0.7"/>')
     for inset, w_ in ((44, 3.2), (54, 1.6)):
         a, b = inset, 600 - inset
         st = 26
@@ -1182,20 +1531,27 @@ def bees_knees():
                (a + st, b), (a + st, b - st * 0.4), (a + st * 0.4, b - st * 0.4), (a + st * 0.4, b - st), (a, b - st),
                (a, a + st), (a + st * 0.4, a + st), (a + st * 0.4, a + st * 0.4), (a + st, a + st * 0.4)]
         o.append(ink(poly_d(jitter(pts, inset, 0.5)), "#E2A83A", w_, inset, 1, 0.9))
-    # bow tie and a boater, drawn in the bee's own coordinates
-    bow = ('<path d="M -78 50 L -112 30 L -108 76 Z M -78 50 L -46 30 L -48 74 Z" fill="#C8344A" stroke="#4A0E14" stroke-width="3" stroke-linejoin="round"/>'
-           '<path d="M -104 40 L -102 66 M -52 40 L -54 64" stroke="#F6B0A8" stroke-width="3" opacity="0.6"/>'
-           '<ellipse cx="-78" cy="52" rx="9" ry="11" fill="#A82034" stroke="#4A0E14" stroke-width="3"/>')
-    hat = ('<g transform="rotate(-14 -98 -56)"><ellipse cx="-98" cy="-52" rx="62" ry="13" fill="#E8C878" stroke="#6A4A1A" stroke-width="3"/>'
-           '<path d="M -136 -54 L -134 -92 Q -98 -100 -62 -92 L -60 -54 Q -98 -46 -136 -54 Z" fill="#F2D68A" stroke="#6A4A1A" stroke-width="3"/>'
-           '<path d="M -135 -66 Q -98 -58 -61 -66 L -61 -76 Q -98 -68 -135 -76 Z" fill="#2A1D14"/>'
-           '<ellipse cx="-98" cy="-93" rx="36" ry="7" fill="#F8E0A0" stroke="#6A4A1A" stroke-width="2.4"/>'
-           '<path d="M -128 -84 l 10 -1 M -110 -86 l 12 0 M -126 -58 l 10 1" stroke="#B8944A" stroke-width="2" opacity="0.7"/></g>')
-    o.append(bee(u, 316, 250, 104, 82, rot=-8, mood="wink", wings="spread", head_over=bow + hat, arms=["M -60 44 q -20 20 -48 12"]))
-    for x, y, sz in ((120, 120, 8), (480, 120, 8), (96, 330, 6), (504, 330, 6)):
+    # spotlight and a little round stage
+    sl = u("sl")
+    o.append(f'<defs>{lgrad(sl, [(0, "#FFF4D0", 0.0), (0.5, "#FFE8A8", 0.16), (1, "#FFE8A8", 0.3)])}</defs>'
+             f'<path d="M 262 60 L 338 60 L 440 340 L 160 340 Z" fill="url(#{sl})"/>')
+    stage_top = smooth_closed([(160, 344), (300, 330), (440, 344), (300, 358)])
+    o.append(f'<path d="M 160 344 L 160 366 Q 300 392 440 366 L 440 344 Z" fill="#7A1E28"/><path d="M 160 366 Q 300 392 440 366" stroke="#E2A83A" stroke-width="3" fill="none"/>')
+    o.append(form(u, stage_top, (160, 328, 440, 360), "#C8944A", "#8A5A2A", "#F2C47A", 84, 0, n=40, shade=None, ink_w=2.2, ink_col="#E2A83A", ink_op=0.9))
+    o.append(glow(u, 300, 344, 130, "#FFE8A8", 0.45, 14))
+    bow = ('<path d="M -84 52 L -118 32 L -114 78 Z M -84 52 L -52 32 L -54 76 Z" fill="#C8344A" stroke="#4A0E14" stroke-width="3" stroke-linejoin="round"/>'
+           '<path d="M -110 42 L -108 68 M -58 42 L -60 66" stroke="#F6B0A8" stroke-width="3" opacity="0.6"/>'
+           '<ellipse cx="-84" cy="54" rx="9" ry="11" fill="#A82034" stroke="#4A0E14" stroke-width="3"/>')
+    hat = ('<g transform="rotate(-14 -100 -58)"><ellipse cx="-100" cy="-54" rx="64" ry="13" fill="#E8C878" stroke="#6A4A1A" stroke-width="3"/>'
+           '<path d="M -138 -56 L -136 -94 Q -100 -102 -64 -94 L -62 -56 Q -100 -48 -138 -56 Z" fill="#F2D68A" stroke="#6A4A1A" stroke-width="3"/>'
+           '<path d="M -137 -68 Q -100 -60 -63 -68 L -63 -78 Q -100 -70 -137 -78 Z" fill="#2A1D14"/>'
+           '<ellipse cx="-100" cy="-95" rx="36" ry="7" fill="#F8E0A0" stroke="#6A4A1A" stroke-width="2.4"/>'
+           '<path d="M -130 -86 l 10 -1 M -112 -88 l 12 0 M -128 -60 l 10 1" stroke="#B8944A" stroke-width="2" opacity="0.7"/></g>')
+    o.append(bee(u, 318, 246, 92, 82, rot=-6, mood="wink", wings="spread", head_over=bow + hat, pose="kick", knee="#D8344A"))
+    for x, y, sz in ((116, 116, 8), (484, 116, 8), (100, 300, 6), (500, 300, 6)):
         o.append(sparkle(x, y, sz, "#F6D07A", 0.9))
-    o.append(plain(300, 430, "you're the", SERIF_IT, 50, "#FBEBD2"))
-    t, _, _ = btext(u, 300, 524, "BEE'S KNEES", BEBAS, 108, "#F2B94A", ["#F6CE6A", "#C8841E", "#FFE08A"], 83, max_w=430, ls=5, angle=-78,
+    o.append(plain(300, 444, "you're the", SERIF_IT, 50, "#FBEBD2"))
+    t, _, _ = btext(u, 300, 532, "BEE'S KNEES", BEBAS, 108, "#F2B94A", ["#F6CE6A", "#C8841E", "#FFE08A"], 83, max_w=430, ls=5, angle=-78,
                     shadow="#000000", soff=(0.02, 0.035), hi="#FFF0C0")
     o.append(t)
     o.append(finish(u, "#F2D8A8", 0.45))
@@ -1207,19 +1563,28 @@ def bees_knees():
 def bee_mine():
     u = Ids("bee-mine")
     o = [bg(u, "#F6D8CE", ["#F2CCC0", "#FBE6DE", "#EEC0B4", "#F8DCD2"], 91, fleck="#8A4A40", angle=-20)]
-    o.append(glow(u, 220, 190, 240, "#FFF0E8", 0.6))
-    rnd = random.Random(92)
-    for x, y, sz in ((470, 96, 14), (530, 210, 10), (90, 330, 11), (520, 380, 9), (96, 96, 9), (360, 110, 8)):
-        o.append(f'<path d="{heart_path(x, y, sz)}" fill="#E07A78" opacity="0.7" transform="rotate({rnd.uniform(-20, 20):.0f} {x} {y})"/>')
-    # balloon string from the bee's hand to the heart
-    hx, hy = bee_pt(380, 318, 88, -6, False, -112, 2)
-    o.append(f'<path d="M {_f(hx)} {_f(hy)} C {_f(hx - 40)} {_f(hy - 30)} 250 280 214 236" stroke="#6A3A30" stroke-width="2.4" fill="none"/>')
-    o.append(heart_balloon(u, 212, 168, 66, 93))
-    o.append(f'<path d="M 206 236 l 6 -8 l 6 8 Z" fill="#9A2028"/>')
-    o.append(bee(u, 380, 318, 88, 94, rot=-6, mood="smile", wings="up", arms=["M -66 40 q -24 -8 -46 -38", "M -52 48 q -26 -10 -42 -34"]))
-    t, _, _ = btext(u, 300, 520, "bee mine", DMS, 124, "#9A2028", ["#B83038", "#7A1018", "#C84850"], 95, max_w=440, angle=-60,
+    o.append(glow(u, 300, 250, 260, "#FFF0E8", 0.6))
+    big = heart_path(300, 236, 150)
+    o.append(form(u, big, (60, 0, 540, 430), "#F8C4BC", "#EEA8A0", "#FFE2DC", 92, -40, n=200, shade=None, ink_w=0, length=(30, 90), width=(4, 10), sop=(0.1, 0.25)))
+    # sprays of roses and leaves in the two top corners
+    for side in (-1, 1):
+        bx = 300 + side * 262
+        for i, (dx, dy, L, a) in enumerate(((0, 40, 70, 90 + side * 30), (side * -40, 70, 60, 90 + side * 60), (side * -10, 10, 60, 90 + side * 5))):
+            o.append(green_leaf(u, bx + dx, dy, L, 18, a, 93 + i + side * 10, pal=SAGE, inkc="#4E5A34"))
+        o.append(rose(u, bx - side * 6, 56, 40, 100 + side, rot=side * 20))
+        o.append(rose(u, bx - side * 56, 30, 26, 102 + side, pal=("#F2B0B8", "#C06878", "#FFE0E4"), rot=side * -10))
+        o.append(cosmos(u, bx - side * 10, 116, 18, 104 + side, pal=("#F8E2E0", "#C89A98", "#FFFFFF"), n=7))
+    o.append(floating_hearts(u, [(110, 260, 13, -14), (500, 300, 11, 12), (468, 168, 8, -6), (150, 380, 8, 10), (530, 420, 7, -8)], 105))
+    hx, hy = bee_pt(372, 300, 86, -6, False, -150, 30)
+    o.append(f'<path d="M {_f(hx)} {_f(hy)} C {_f(hx - 30)} {_f(hy - 50)} 250 270 222 228" stroke="#6A3A30" stroke-width="2.4" fill="none"/>')
+    o.append(heart_balloon(u, 216, 160, 62, 106))
+    o.append(f'<path d="M 214 226 l 7 -9 l 7 9 Z" fill="#9A2028"/>')
+    o.append(bee(u, 372, 300, 86, 94, rot=-6, mood="smile", wings="up", pose="tuck", arms=["M -64 36 Q -110 56 -150 30"], lashes=True))
+    o.append(f'<circle cx="{_f(hx)}" cy="{_f(hy)}" r="5" fill="{NOIR}"/>')
+    t, _, _ = btext(u, 300, 504, "bee mine", DMS, 124, "#9A2028", ["#B83038", "#7A1018", "#C84850"], 95, max_w=440, angle=-60,
                     shadow="#F6B8AC", soff=(0.02, 0.04), hi="#F8A0A0")
     o.append(t)
+    o.append(ruled_c(u, 552, "X O X O", JOS, 20, "#9A2028", 96, ls=6, line_w=40))
     o.append(finish(u, "#6A2A20", 0.5))
     return "".join(o)
 
@@ -1230,22 +1595,30 @@ def bee_brave():
     u = Ids("bee-brave")
     sk = u("sk")
     o = [bg(u, "#24404C", ["#2A4A56", "#1C3440", "#345864"], 101, fleck="#E8DCC0", angle=-15)]
-    o.append(f'<defs>{lgrad(sk, [(0, "#1A2E44", 0.9), (0.6, "#2E5460", 0.4), (1, "#E8A060", 0.5)])}</defs><rect width="600" height="600" fill="url(#{sk})"/>')
+    o.append(f'<defs>{lgrad(sk, [(0, "#16243C", 0.95), (0.45, "#2A4A64", 0.6), (0.68, "#6A6A86", 0.45), (0.8, "#E89A6A", 0.55), (1, "#E89A6A", 0.4)])}</defs><rect width="600" height="600" fill="url(#{sk})"/>')
     rnd = random.Random(102)
-    for _ in range(40):
-        x, y = rnd.uniform(20, 580), rnd.uniform(20, 340)
-        o.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{rnd.uniform(0.8, 2.2):.1f}" fill="#FFF6D8" opacity="{rnd.uniform(0.4, 0.9):.2f}"/>')
-    for x, y, sz in ((110, 120, 9), (470, 80, 7), (520, 260, 6)):
+    for _ in range(60):
+        x, y = rnd.uniform(10, 590), rnd.uniform(10, 330)
+        o.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{rnd.uniform(0.8, 2.2):.1f}" fill="#FFF6D8" opacity="{rnd.uniform(0.35, 0.9):.2f}"/>')
+    for x, y, sz in ((110, 112, 9), (466, 218, 6), (540, 300, 6), (70, 270, 5)):
         o.append(sparkle(x, y, sz, "#FFF0C0", 0.9))
-    # moon
-    o.append(glow(u, 492, 112, 80, "#FFF0C0", 0.4))
-    moon = f"M 502 80 A 36 36 0 1 0 514 140 A 29 29 0 1 1 502 80 Z"
-    o.append(form(u, moon, (446, 74, 520, 150), "#FBE8B0", "#D8B870", "#FFFBEA", 103, -60, n=40, shade=None, ink_w=1.6, ink_col="#B8984A"))
-    # distant hills
-    o.append(f'<path d="{smooth_open([(-20, 380), (100, 340), (220, 372), (360, 330), (480, 366), (620, 340)])} L 620 640 L -20 640 Z" fill="#1E3640"/>')
-    o.append(f'<path d="{smooth_open([(-20, 420), (140, 396), (300, 414), (460, 390), (620, 410)])} L 620 640 L -20 640 Z" fill="#162A30"/>')
-    o.append(brush((-20, 330, 620, 640), ["#24404A", "#0E1E24", "#2E4C56"], 104, 140, -4, (30, 90), (2, 5), (0.2, 0.5)))
-    # cape flowing behind (bee coordinates)
+    # moon and moonlit clouds
+    o.append(glow(u, 476, 120, 150, "#FFF0C0", 0.35))
+    moon = blob(476, 120, 46, 46, 103, 0.015, 20)
+    o.append(form(u, moon, (430, 74, 522, 166), "#FBEFC8", "#D8C890", "#FFFDF0", 103, -60, n=50, shade=(8, 8), shade_op=0.35, ink_w=1.4, ink_col="#C8B070",
+                  extra_in="".join(f'<path d="{blob(476 + dx, 120 + dy, r, r * 0.8, 104 + i, 0.15, 10)}" fill="#D8C890" opacity="0.45"/>' for i, (dx, dy, r) in enumerate(((-14, -10, 9), (12, 14, 7), (18, -16, 5), (-8, 22, 5))))))
+    o.append(cloud2(u, 420, 206, 210, 48, 105, base="#6E7AA0", shade_c="#3E4A70", light="#C8D0E6"))
+    o.append(cloud2(u, 118, 170, 180, 42, 106, base="#5E6A92", shade_c="#38446A", light="#AEB8D6"))
+    o.append(cloud2(u, 250, 318, 150, 30, 118, base="#4A5A80", shade_c="#2E3A5E", light="#8A98BC"))
+    # layered hills and a little village with its lights on
+    o.append(hill(u, [(-20, 400), (90, 368), (220, 392), (360, 360), (480, 382), (620, 356)], 640, "#2E4A5C", "#1E3444", "#46647A", 107))
+    for i, (x, b, w, h) in enumerate(((110, 404, 34, 24), (156, 410, 28, 20), (430, 392, 32, 24), (472, 396, 26, 18))):
+        o.append(cottage(u, x, b, w, h, 108 + i, wall=("#8A8AA0", "#5E5E78", "#B0B0C4"), roof=("#4A3A4E", "#2A1E30", "#6A5A6E")))
+    for i, x in enumerate((60, 200, 260, 390, 520, 560)):
+        o.append(round_tree(u, x, 412 if i % 2 else 400, 20 + (i % 3) * 4, 112 + i))
+    o.append(hill(u, [(-20, 436), (140, 414), (300, 430), (460, 410), (620, 426)], 640, "#1E3440", "#122430", "#2E4A58", 113, n=140, length=(30, 80)))
+    o.append(grass(114, (-20, 420, 620, 470), ["#2E4A58", "#16282E"], 120, (6, 16), 1.6))
+    # the hero: cape streaming, fist forward
     cape_d = ("M -66 -34 Q 10 -46 70 -6 Q 120 30 160 12 Q 200 -6 236 14 Q 214 40 232 70 Q 250 96 226 118 "
               "Q 190 104 160 124 Q 120 146 80 112 Q 20 70 -60 34 Z")
     cape = ('<path d="' + cape_d + '" fill="#C8343A"/>'
@@ -1253,11 +1626,12 @@ def bee_brave():
             '<path d="M -50 -28 Q 30 -36 90 4 Q 130 30 170 20" stroke="#F27A6A" stroke-width="8" fill="none" opacity="0.6" stroke-linecap="round"/>'
             + brush((-60, -40, 240, 140), ["#E8565A", "#9A2028", "#F27A6A"], 108, 60, 20, (16, 50), (1.5, 4), (0.15, 0.4), 0.2) +
             '<path d="' + cape_d + '" fill="none" stroke="#5A0E14" stroke-width="3.4" stroke-linejoin="round"/>')
-    clasp = '<circle cx="-62" cy="0" r="9" fill="#F6CE5A" stroke="#7A4A0E" stroke-width="3"/>'
-    o.append(bee(u, 316, 200, 92, 105, rot=-22, flip=True, mood="grin", wings="spread", under=cape, head_over=clasp, arms="up"))
-    t, _, _ = btext(u, 300, 412, "bee", SERIF_IT, 92, "#F6CE5A", ["#FFE08A", "#D49A22"], 106, angle=-40, shadow="#0A161C", soff=(0.02, 0.04))
+    o.append(trail([(60, 360), (120, 330), (180, 300), (230, 268)], "#FFF0C0", 2.4, "2 9", 0.7))
+    o.append(bee(u, 336, 180, 80, 115, rot=-24, flip=True, mood="grin", wings="spread", under=cape, pose="tuck",
+                 arms=["M -64 36 Q -110 40 -152 4"]))
+    t, _, _ = btext(u, 300, 424, "bee", SERIF_IT, 92, "#F6CE5A", ["#FFE08A", "#D49A22"], 116, angle=-40, shadow="#0A161C", soff=(0.02, 0.04))
     o.append(t)
-    t, _, _ = btext(u, 300, 540, "BRAVE", ANTON, 132, "#FBEBD2", ["#FFF6E6", "#E8D2B4", "#F6E0C0"], 107, ls=12, angle=-78, shadow="#0A161C",
+    t, _, _ = btext(u, 300, 546, "BRAVE", ANTON, 132, "#FBEBD2", ["#FFF6E6", "#E8D2B4", "#F6E0C0"], 117, ls=12, angle=-78, shadow="#0A161C",
                     soff=(0.025, 0.035))
     o.append(t)
     o.append(finish(u, "#E8DCC0", 0.45))
@@ -1293,23 +1667,22 @@ def busy_bee():
     u = Ids("busy-bee")
     sk = u("sk")
     o = [bg(u, "#F8E6C8", ["#F6DCB8", "#FBF0DC", "#F2D4A8"], 111, angle=-10)]
-    o.append(f'<defs>{lgrad(sk, [(0, "#F2C46A", 0.5), (0.6, "#FBEAC8", 0.2), (1, "#F8D8A8", 0.6)])}</defs><rect width="600" height="420" fill="url(#{sk})"/>')
-    o.append(glow(u, 300, 400, 200, "#FFE6A0", 0.7, 90))
-    # far tree line & a farmhouse on the horizon
-    o.append(f'<path d="{smooth_open([(-20, 404), (60, 392), (120, 398), (200, 388), (300, 396), (420, 386), (520, 396), (620, 390)])} L 620 412 L -20 412 Z" fill="#8E9A6A"/>')
-    for x, r in ((88, 22), (122, 16), (472, 20), (506, 26), (540, 18)):
-        o.append(f'<path d="{blob(x, 396 - r * 0.7, r, r * 0.8, x, 0.12, 12)}" fill="#7A8A58"/>')
+    o.append(f'<defs>{lgrad(sk, [(0, "#9CC0D4", 0.55), (0.55, "#FBEAC8", 0.3), (1, "#F8C890", 0.7)])}</defs><rect width="600" height="420" fill="url(#{sk})"/>')
+    o.append(glow(u, 440, 384, 220, "#FFE6A0", 0.75, 120))
+    o.append(f'<path d="{blob(440, 384, 34, 34, 120, 0.01, 16)}" fill="#FFE8A8" opacity="0.9"/>')
+    o.append(hill(u, [(-20, 380), (100, 366), (240, 376), (380, 362), (520, 374), (620, 364)], 420, "#B8B8C8", "#9A9AB0", "#D2D2DE", 112, n=60))
+    # farmhouse and poplars on the horizon
+    o.append(hill(u, [(-20, 400), (80, 390), (200, 396), (320, 388), (460, 396), (620, 390)], 420, "#9AA478", "#7A8458", "#BCC69C", 113, n=60))
+    o.append(cottage(u, 150, 400, 40, 26, 114, wall=("#F2E2C4", "#C8B08C", "#FFF8EA"), roof=("#C0644A", "#8A3E2A", "#E08A6A"), lit=False))
+    for i, (x, h) in enumerate(((104, 70), (194, 84), (214, 64), (500, 76), (524, 60))):
+        o.append(poplar(u, x, 402, h, 115 + i))
     o.append(lavender_rows(u, 408, 112))
+    o.append(glow(u, 300, 420, 340, "#FFF4DC", 0.45, 40))
     # the bee, zooming left with a basket of blossoms
-    for i, (y, L) in enumerate(((280, 120), (308, 150), (336, 100))):
-        o.append(brush((410, y - 3, 410 + L, y + 3), ["#E2A23A", "#C47A16"], 113 + i, 6, 0, (L * 0.4, L * 0.8), (2, 4), (0.4, 0.7), 0.05, 2))
-    basket = ('<path d="M -150 40 Q -150 -10 -112 -12 Q -76 -10 -76 40" stroke="#8A5A2E" stroke-width="5" fill="none"/>'
-              '<path d="M -164 40 L -62 40 L -72 90 Q -112 100 -154 90 Z" fill="#C8945A" stroke="#5A3416" stroke-width="3.4" stroke-linejoin="round"/>'
-              '<path d="M -160 56 L -66 56 M -158 72 L -68 72" stroke="#8A5A2E" stroke-width="3"/>'
-              '<path d="M -140 40 L -136 92 M -120 40 L -118 96 M -100 40 L -100 96 M -80 40 L -84 92" stroke="#8A5A2E" stroke-width="2.4" opacity="0.7"/>')
-    o.append(bee(u, 340, 300, 74, 114, rot=-4, mood="smile", wings="spread", arms=["M -60 40 q -20 0 -40 4", "M -46 50 q -22 0 -44 -4"]))
-    # basket under the bee's arms
-    bx, by = bee_pt(340, 300, 74, -4, False, -112, 50)
+    for i, (y, L) in enumerate(((284, 120), (312, 150), (340, 100))):
+        o.append(brush((420, y - 3, 420 + L, y + 3), ["#E2A23A", "#C47A16"], 113 + i, 6, 0, (L * 0.4, L * 0.8), (2, 4), (0.4, 0.7), 0.05, 2))
+    o.append(bee(u, 344, 296, 82, 114, rot=-4, mood="smile", wings="spread", pose="tuck", arms=["M -62 40 Q -96 64 -126 52"]))
+    bx, by = bee_pt(344, 296, 82, -4, False, -126, 60)
     o.append(f'<g transform="translate({_f(bx)} {_f(by)})">'
              f'<path d="M -34 6 L 34 6 L 26 52 Q 0 60 -26 52 Z" fill="#C8945A" stroke="#5A3416" stroke-width="2.6" stroke-linejoin="round"/>'
              f'<path d="M -32 20 L 32 20 M -30 34 L 30 34" stroke="#8A5A2E" stroke-width="2.4"/>'
@@ -1317,10 +1690,13 @@ def busy_bee():
              f'<path d="M -30 8 Q 0 -40 30 8" stroke="#5A3416" stroke-width="3.4" fill="none"/></g>')
     o.append(daisy(u, bx - 14, by + 2, 13, 115, n=11) + cosmos(u, bx + 12, by - 2, 13, 116) + clover(u, bx + 1, by - 8, 8, 117))
     o.append(lavender(u, bx - 26, by + 10, 46, 118, ang=-130, buds=6, bw=4))
+    o.append(f'<circle cx="{_f(bx)}" cy="{_f(by - 8)}" r="5" fill="{NOIR}"/>')
+    o.append(bee(u, 520, 230, 18, 119, rot=-6, mood="smile", wings="spread"))
+    o.append(trail([(540, 234), (572, 250), (600, 240)], INK, 1.8, "2 7", 0.45))
     t, _, _ = btext(u, 300, 150, "BUSY BEE", JOS, 92, "#3A2418", ["#5A3A24", "#2A1810", "#6E4A30"], 120, ls=6, angle=-78, max_w=460,
                     shadow="#F6C870", soff=(0.025, 0.035))
     o.append(t)
-    o.append(ruled_c(u, 188, "FROM SUNUP TO SUNDOWN", JOST, 19, "#8A5A20", 119, ls=4, line_w=30))
+    o.append(ruled_c(u, 190, "FROM SUNUP TO SUNDOWN", JOST, 19, "#7A4A16", 119, ls=4, line_w=30))
     o.append(finish(u, INK, 0.5))
     return "".join(o)
 

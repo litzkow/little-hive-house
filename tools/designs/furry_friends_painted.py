@@ -662,6 +662,7 @@ def ribbon(u, cx, cy, w, h, pal, seed, tail=34, bend=8, fold=True, inkc=None):
 def ribbon_text(cx, cy, s, font, size, fill, w, bend=8, ls=0, u=None):
     """Text following a ribbon's upward bow."""
     pid = u("rt")
+    size = fit_size(s, font, size, w * 0.9, ls)
     r = (w * w / 4 + bend * bend) / (2 * bend) if bend else 1e5
     x0, x1 = cx - w / 2, cx + w / 2
     yb = cy + size * 0.34
@@ -734,16 +735,22 @@ def sprig(u, x, y, L, ang, col, seed, n=5, leaf_s=6):
     return "".join(out)
 
 
+#<<CAT
 # ================================================================ a painted cat (front portrait), shared by the cat designs
 class Cat:
-    """Front-facing cat bust. Geometry in local units (head ~ 230 wide at s=1) around the face centre (cx, cy).
-    coat = (base, dark, light). Hooks draw markings clipped inside head / body / ears."""
+    """Front-facing cat head with an optional bust. Local units around the point between the eyes (cx, cy), scale s
+    (head ~ 220 wide at s=1). coat = (base, dark, light). mouth: 'w' | 'smile' | 'meow' | 'flat'.
+    Hooks draw markings clipped inside head / body / ears; patch() paints a fur-textured colour patch."""
 
-    def __init__(self, u, cx, cy, s, coat, seed, ink_c="#3A2418", eyes=("#C8D86A", "#6E8A2A"), ear_in=("#E8A8A0", "#B86A6A", "#F8D0C8"),
-                 nose=("#E8A0A0", "#B8606A", "#F8D0CC"), long=0.0, tufts_ear=False, body=True, cheek=1.0, ear_k=1.0, chin="#F4ECE2",
-                 muzzle="#F4ECE2", muzzle_op=0.9, body_w=1.0, flow_k=1.0, look=(0.1, 0.1), slit=False, blink=False, pupil_k=0.62, whisk="#FFFFFF"):
+    def __init__(self, u, cx, cy, s, coat, seed, ink_c="#3A2418", eyes=("#C8D86A", "#6E8A2A"), eye_r=24, eye_x=42, eye_y=0, look=(0.06, 0.08),
+                 slit=False, pupil_k=0.6, blink=False, ear_in=("#E8A8A0", "#B86A6A", "#F8D0C8"), ear_k=1.0, ear_w=1.0, ear_rot=0,
+                 nose=("#E8A0A0", "#B8606A", "#F8D0CC"), cheek=1.0, top=-82, chin=80, muzzle="#F4ECE2", muzzle_op=0.92, chin_c=None,
+                 long=0.0, body=True, body_w=1.0, body_len=360, tilt=0, whisk="#FFFFFF", rim=None, mouth="w", density=1.6, eye_rot=8,
+                 lid=None, brow=True, ear_tuft=False, body_coat=None):
         self.__dict__.update(locals())
         del self.__dict__["self"]
+        self.chin_c = chin_c or muzzle
+        self.body_coat = body_coat or coat
 
     def P(self, x, y):
         return (self.cx + x * self.s, self.cy + y * self.s)
@@ -751,85 +758,447 @@ class Cat:
     def Ps(self, pts):
         return [self.P(x, y) for x, y in pts]
 
-    def head_pts(self):
-        c = self.cheek
-        R = [(0, -96), (36, -94), (66, -82), (92, -56), (108 * c, -22), (116 * c, 12), (110 * c, 40), (90 * c, 64), (60, 82), (30, 92), (0, 95)]
-        return self.Ps(sym(R, 0))
+    def head_local(self):
+        c, t = self.cheek, self.top
+        R = [(0, t), (34, t + 2), (64, t + 12), (88, t + 32), (102 * c, -12), (110 * c, 18), (104 * c, 44), (84 * c, 66), (52, self.chin - 4), (0, self.chin)]
+        return sym(R, 0)
 
-    def ear_pts(self, sg):
-        k = self.ear_k
-        E = [(18, -88), (52, -104 - 20 * k), (80, -128 - 36 * k), (90, -134 - 38 * k), (96, -118 - 30 * k), (104, -60), (78, -80)]
-        return self.Ps([(sg * x, y) for x, y in E])
+    def ear_local(self, sg):
+        k, w, t = self.ear_k, self.ear_w, self.top
+        E = [(20, t + 6), (40 + 4 * w, t - 30 * k), (62 + 10 * w, t - 62 * k), (72 + 14 * w, t - 70 * k), (82 + 16 * w, t - 58 * k),
+             (98 + 12 * w, t - 10 * k), (104, t + 50), (70, t + 30)]
+        E = rot_pts(E, 62, t + 10, self.ear_rot)
+        return [(sg * x, y) for x, y in E]
 
-    def body_pts(self):
-        w = self.body_w
-        R = [(0, 70), (70 * w, 76), (118 * w, 112), (150 * w, 170), (172 * w, 250), (184 * w, 340), (190 * w, 420), (0, 420)]
-        return self.Ps(sym(R, 0)[:-1] if False else sym(R, 0))
+    def ear_inner_local(self, sg):
+        k, w, t = self.ear_k, self.ear_w, self.top
+        E = [(36, t + 8), (50 + 5 * w, t - 22 * k), (66 + 10 * w, t - 50 * k), (74 + 13 * w, t - 56 * k), (82 + 14 * w, t - 44 * k),
+             (90 + 10 * w, t - 6 * k), (88, t + 26)]
+        E = rot_pts(E, 62, t + 10, self.ear_rot)
+        return [(sg * x, y) for x, y in E]
 
-    def draw(self, marks_head=None, marks_body=None, marks_ear=None, under_head=None, over_face=None, extra_body=None):
+    def body_local(self):
+        w, L = self.body_w, self.body_len
+        R = [(0, 40), (70 * w, 52), (104 * w, 96), (124 * w, 160), (138 * w, 240), (146 * w, 320), (150 * w, L), (0, L)]
+        return sym(R, 0)
+
+    def patch(self, pts, pal, seed, flow=None, length=None, soft=True, n=None):
+        s = self.s
+        pp = self.Ps(pts)
+        flow = flow if flow is not None else radial(*self.P(0, 30))
+        L = length or (5 * s, 13 * s)
+        out = [fur(self.u, pp, pal, seed, flow, shade=None, ink_w=0, length=L, width=(1, 2.2), density=1.5, n=n)]
+        if soft:
+            out.append(feather(closed_curve(pp, 6), [pal[0], pal[2], pal[0]], seed + 1, 3, (2 * s, 5 * s), (1, 1.8), down=0.15, op=(0.35, 0.7)))
+        return "".join(out)
+
+    def stripes(self, color, seed, kind="tabby", op=0.85):
+        """Forehead 'M', cheek stripes and brow lines (head hook helper)."""
+        P = self.P
+        s = self.s
+        out = []
+        out.append(taper([P(-30, -36), P(-26, -54), P(-18, -70)], 8 * s, 3 * s, color, op))
+        out.append(taper([P(-18, -68), P(-9, -54), P(0, -44)], 5 * s, 6 * s, color, op))
+        out.append(taper([P(0, -44), P(9, -54), P(18, -68)], 6 * s, 5 * s, color, op))
+        out.append(taper([P(18, -70), P(26, -54), P(30, -36)], 3 * s, 8 * s, color, op))
+        for x in (-10, 0, 10):
+            out.append(taper([P(x * 1.1, -56 if x else -50), P(x * 1.3, -70), P(x * 1.5, -84)], 5 * s, 2 * s, color, op * 0.9))
+        for sg in (-1, 1):
+            out.append(taper([P(sg * 66, -6), P(sg * 86, 0), P(sg * 108, 10)], 6 * s, 2 * s, color, op))
+            out.append(taper([P(sg * 62, 18), P(sg * 86, 26), P(sg * 110, 36)], 6 * s, 2 * s, color, op * 0.9))
+            out.append(taper([P(sg * 72, 42), P(sg * 90, 50), P(sg * 102, 56)], 4 * s, 1.5 * s, color, op * 0.7))
+            out.append(taper([P(sg * 58, -2), P(sg * 70, 6), P(sg * 84, 8)], 3 * s, 1 * s, color, op * 0.7))
+        return "".join(out)
+
+    def draw(self, marks_head=None, marks_body=None, marks_ear=None, under_head=None, over_face=None, over_body=None, behind=None, paws=None):
         u, s = self.u, self.s
         base, dark, light = self.coat
-        o = []
-        flow = radial(*self.P(0, 30))
+        ic = self.ink_c
+        o = [f'<g transform="rotate({self.tilt} {_f(self.cx)} {_f(self.cy + 60 * s)})">' if self.tilt else "<g>"]
+        if behind:
+            o.append(behind(self))
         if self.body:
-            bp = self.body_pts()
-            o.append(fur(u, bp, self.coat, self.seed, lambda x, y: 90 + (x - self.cx) * 0.18, shade=(-16 * s, 0), shade_op=0.4,
-                         length=(10 * s, 26 * s), width=(1.2, 3), ink_w=2.4, ink_col=self.ink_c, ink_op=0.65, hi=(self.cx - 70 * s, self.cy + 200 * s, 40 * s, 80 * s),
-                         hi_op=0.25, extra_in=(marks_body(self) if marks_body else ""), density=1.0))
-            if self.long:
-                o.append(feather([p for p in closed_curve(bp, 6) if p[1] < self.cy + 380 * s], [base, light, dark], self.seed + 1, 2,
-                                 (8 * self.long, 18 * self.long), (2, 3.6), down=0.6, cx=self.cx, cy=self.cy + 300 * s))
-            if extra_body:
-                o.append(extra_body(self))
+            bp = self.Ps(self.body_local())
+            bc = self.body_coat
+            o.append(fur(u, bp, bc, self.seed, lambda x, y: 90 + (x - self.cx) * 0.2, shade=(-14 * s, 0), shade_op=0.38,
+                         length=(10 * s * (1 + self.long), 24 * s * (1 + self.long)), width=(1.2, 3), ink_w=2.4, ink_col=ic, ink_op=0.6,
+                         hi=(self.cx - 50 * s, self.cy + 220 * s, 34 * s, 80 * s), hi_op=0.22, extra_in=(marks_body(self) if marks_body else "")))
+            o.append(feather([p for p in closed_curve(bp, 6) if self.cy + 80 * s < p[1] < self.cy + (self.body_len - 30) * s], [bc[0], bc[2], bc[1]],
+                             self.seed + 1, 2, (6 * s * (1 + self.long * 1.5), 13 * s * (1 + self.long * 1.5)), (1.8, 3.2), down=0.6, cx=self.cx,
+                             cy=self.cy + 260 * s))
+            if self.rim:
+                o.append(ink(smooth_open([p for p in closed_curve(bp, 6) if p[0] > self.cx + 60 * s and self.cy + 60 * s < p[1] < self.cy + (self.body_len - 20) * s]),
+                             self.rim, 3 * s, self.seed, 1, 0.55))
+        if over_body:
+            o.append(over_body(self))
+        if paws:
+            o.append(paws(self))
         if under_head:
             o.append(under_head(self))
         for sg in (-1, 1):
-            ep = self.ear_pts(sg)
-            o.append(fur(u, ep, self.coat, self.seed + 3 + sg, -90 + sg * 20, shade=(sg * 6 * s, 0), length=(6 * s, 14 * s), width=(1, 2.4),
-                         ink_w=2.4, ink_col=self.ink_c, extra_in=(marks_ear(self, sg) if marks_ear else "")))
-            inner = self.Ps([(sg * x, y) for x, y in [(30, -86), (58, -104 - 18 * self.ear_k), (84, -124 - 32 * self.ear_k), (90, -100 - 20 * self.ear_k), (92, -66)]])
-            o.append(form(u, smooth_closed(inner), bbox(inner, 2), self.ear_in[0], self.ear_in[1], self.ear_in[2], self.seed + 5 + sg, -90 + sg * 20, n=12,
-                          shade=(sg * 4 * s, 4 * s), ink_w=0))
-            # ear furnishings: pale hairs sweeping out of the ear
-            ex, ey = self.P(sg * 60, -86)
-            o.append("".join(ink(f"M {_f(ex + sg * k * 4 * s)} {_f(ey + k * 2 * s)} q {_f(sg * 6 * s)} {_f(-14 * s)} {_f(sg * (2 + k) * 4 * s)} {_f(-26 * s - k * 4 * s)}",
-                                 "#FFF6EA", 1.4, self.seed + k, 1, 0.75) for k in range(3)))
-            if self.tufts_ear:
-                tx, ty = self.P(sg * 92, -134 - 38 * self.ear_k)
-                o.append(taper([(tx, ty + 8 * s), (tx + sg * 3 * s, ty - 8 * s), (tx + sg * 2 * s, ty - 22 * s)], 7 * s, 0.8, dark, 0.95))
-        hp = self.head_pts()
-        o.append(fur(u, hp, self.coat, self.seed + 7, flow, shade=(12 * s, 10 * s), shade_op=0.35, hi=(self.cx - 40 * s, self.cy - 60 * s, 34 * s, 20 * s),
-                     hi_op=0.3, length=(6 * s, 15 * s), width=(1, 2.4), ink_w=2.4, ink_col=self.ink_c, density=1.6 * self.flow_k,
-                     extra_in=(marks_head(self) if marks_head else "")))
-        # cheek fluff
-        o.append(feather([p for p in closed_curve(hp, 6) if p[1] > self.cy - 10 * s and abs(p[0] - self.cx) > 60 * s],
-                         [base, light, dark] if not self.long else [base, light, base, dark], self.seed + 8, 2 if not self.long else 1,
-                         (5 * s * (1 + self.long), 11 * s * (1 + self.long)), (1.6, 3), down=0.35, cx=self.cx, cy=self.cy))
-        # muzzle pads, chin
+            ep = self.Ps(self.ear_local(sg))
+            o.append(fur(u, ep, self.coat, self.seed + 3 + sg, -90 + sg * 20, shade=(sg * 7 * s, 0), length=(6 * s, 14 * s), width=(1, 2.4),
+                         ink_w=2.4, ink_col=ic, extra_in=(marks_ear(self, sg) if marks_ear else "")))
+            ip = self.Ps(self.ear_inner_local(sg))
+            o.append(form(u, smooth_closed(ip), bbox(ip, 2), self.ear_in[0], self.ear_in[1], self.ear_in[2], self.seed + 5 + sg, -90 + sg * 20, n=18,
+                          shade=(sg * 5 * s, 6 * s), shade_op=0.5, ink_w=0))
+            bx, by = self.P(sg * 62, self.top + 22)
+            tx, ty = ip[3]
+            o.append("".join(ink(f"M {_f(bx + sg * (k - 1.5) * 6 * s)} {_f(by)} Q {_f(bx + (tx - bx) * 0.4 + sg * (k - 1.5) * 4 * s)} {_f(by + (ty - by) * 0.3)} "
+                                 f"{_f(bx + (tx - bx) * (0.55 + 0.06 * k))} {_f(by + (ty - by) * (0.55 + 0.06 * k))}", "#FFF6EA", 1.4 * s, self.seed + k, 1, 0.7)
+                             for k in range(4)))
+            if self.ear_tuft:
+                tx, ty = self.P(sg * (72 + 14 * self.ear_w), self.top - 70 * self.ear_k)
+                o.append(taper([(tx, ty + 8 * s), (tx + sg * 3 * s, ty - 8 * s), (tx + sg * 2 * s, ty - 20 * s)], 6 * s, 0.8, dark, 0.95))
+        hp = self.Ps(self.head_local())
+        o.append(fur(u, hp, self.coat, self.seed + 7, radial(*self.P(0, 30)), shade=(12 * s, 10 * s), shade_op=0.33,
+                     hi=(self.P(-30, -50)[0], self.P(0, -50)[1], 34 * s, 18 * s), hi_op=0.3, length=(6 * s, 14 * s), width=(1, 2.4), ink_w=2.4, ink_col=ic,
+                     density=self.density, extra_in=(marks_head(self) if marks_head else "")))
+        o.append(feather([p for p in closed_curve(hp, 6) if p[1] > self.cy - 14 * s and abs(p[0] - self.cx) > 56 * s],
+                         [base, light, dark, base], self.seed + 8, 2 if not self.long else 1, (5 * s * (1 + self.long * 1.6), 11 * s * (1 + self.long * 1.6)),
+                         (1.6, 3), down=0.35, cx=self.cx, cy=self.cy))
+        o.append(tufts([p for p in closed_curve(hp, 6) if p[1] <= self.cy - 14 * s], [base, light, base], self.seed + 9, 3, (2 * s, 5 * s), (1.1, 2.2),
+                       cx=self.cx, cy=self.cy))
+        if self.rim:
+            o.append(ink(smooth_open([p for p in closed_curve(hp, 6) if p[0] > self.cx + 30 * s and p[1] < self.cy + 50 * s]), self.rim, 2.6 * s, self.seed + 2, 1, 0.6))
+        # whisker pads, chin
+        mz = self.muzzle
         for sg in (-1, 1):
-            o.append(fur(u, blob_pts(*self.P(sg * 17, 46), 22 * s, 16 * s, self.seed + 9 + sg, 0.06, 14), (self.muzzle, mix(self.muzzle, "#000000", 0.15), "#FFFFFF"),
-                         self.seed + 9 + sg, radial(*self.P(0, 40)), shade=(0, 4 * s), shade_op=0.2, ink_w=0, length=(3 * s, 8 * s), width=(0.8, 1.6),
-                         n=24, hi=None))
-        o.append(f'<path d="{blob(*self.P(0, 70), 22 * s, 13 * s, self.seed + 11, 0.08, 12)}" fill="{self.chin}" opacity="0.9"/>')
+            o.append(fur(u, blob_pts(*self.P(sg * 16, 46), 21 * s, 15 * s, self.seed + 9 + sg, 0.06, 14), (mz, mix(mz, "#000000", 0.15), mix(mz, "#FFFFFF", 0.4)),
+                         self.seed + 9 + sg, radial(*self.P(0, 40)), shade=(0, 4 * s), shade_op=0.22, ink_w=0, length=(3 * s, 8 * s), width=(0.8, 1.6), n=26))
+            for k in range(3):
+                bx, by = self.P(sg * (14 + k * 8), 44 + (k % 2) * 7)
+                o.append(f'<circle cx="{_f(bx)}" cy="{_f(by)}" r="{_f(1.4 * s)}" fill="{mix(dark, "#000000", 0.2)}" opacity="0.55"/>')
+        o.append(f'<path d="{blob(*self.P(0, 66), 18 * s, 10 * s, self.seed + 11, 0.08, 12)}" fill="{self.chin_c}" opacity="0.9"/>')
         # eyes
         for sg in (-1, 1):
-            ex, ey = self.P(sg * 44, -14)
+            ex, ey = self.P(sg * self.eye_x, self.eye_y)
+            r = self.eye_r * s
             if self.blink:
-                o.append(ink(f"M {_f(ex - 18 * s)} {_f(ey - 2 * s)} Q {_f(ex)} {_f(ey + 12 * s)} {_f(ex + 18 * s)} {_f(ey - 2 * s)}", "#24140A", 4 * s, self.seed + sg, 2, 1))
-                o.append(ink(f"M {_f(ex + sg * 18 * s)} {_f(ey - 2 * s)} l {_f(sg * 6 * s)} {_f(-4 * s)}", "#24140A", 2.2 * s, self.seed, 1, 1))
+                o.append(ink(f"M {_f(ex - r * 0.85)} {_f(ey - 2 * s)} Q {_f(ex)} {_f(ey + r * 0.55)} {_f(ex + r * 0.85)} {_f(ey - 2 * s)}", "#24140A", 3.6 * s, self.seed + sg, 2, 1))
+                o.append(ink(f"M {_f(ex + sg * r * 0.85)} {_f(ey - 2 * s)} l {_f(sg * 5 * s)} {_f(-4 * s)}", "#24140A", 2 * s, self.seed, 1, 1))
             else:
-                o.append(eye(u, ex, ey, 22 * s, 17 * s, self.eyes, self.seed + 12 + sg, look=self.look, rot=sg * -10, slit=self.slit,
+                o.append(eye(u, ex, ey, r, r * 0.82, self.eyes, self.seed + 12 + sg, look=self.look, rot=sg * -self.eye_rot, slit=self.slit,
                              pupil_k=self.pupil_k, rim=mix(dark, "#000000", 0.3)))
-        o.append(cat_nose(u, *self.P(0, 30), 22 * s, self.nose, self.seed + 14))
-        o.append(cat_mouth(*self.P(0, 38), 15 * s, "#4A2A2A", self.seed + 15, max(1.6, 2 * s)))
+                if self.lid:
+                    lc, lk = self.lid   # heavy-lidded (unimpressed) look: a lid wash over the top of the eye
+                    pts = [(ex - r * 1.08, ey - r * 0.05), (ex - r * 0.5, ey - r * (0.95 - lk)), (ex + r * 0.5, ey - r * (0.95 - lk)), (ex + r * 1.08, ey - r * 0.05),
+                           (ex + r * 0.5, ey - r * 1.2), (ex - r * 0.5, ey - r * 1.2)]
+                    pts = rot_pts(pts, ex, ey, sg * -self.eye_rot)
+                    o.append(f'<path d="{smooth_closed(pts)}" fill="{lc}"/>')
+                    o.append(ink(smooth_open(pts[:4]), "#24140A", 2.6 * s, self.seed + sg, 2, 0.95))
+            if self.brow:
+                o.append("".join(ink(f"M {_f(ex - sg * 2 * s + k * sg * 7 * s)} {_f(ey - r * 1.2)} q {_f(sg * 4 * s)} {_f(-10 * s)} {_f(sg * 2 * s + k * sg * 4 * s)} {_f(-22 * s - k * 3 * s)}",
+                                     self.whisk, 1.3 * s, self.seed + 30 + k, 1, 0.6) for k in range(2)))
+        o.append(cat_nose(u, *self.P(0, 30), 20 * s, self.nose, self.seed + 14))
+        mc = "#4A2A2A"
+        if self.mouth == "meow":
+            mp = self.Ps([(-14, 46), (0, 42), (14, 46), (10, 60), (0, 64), (-10, 60)])
+            o.append(f'<path d="{smooth_closed(mp)}" fill="#5A1E22"/>' + f'<path d="{blob(*self.P(0, 58), 7 * s, 4 * s, self.seed, 0.1, 8)}" fill="#E07A84"/>')
+            o.append(ink(f"M {_f(self.P(0, 36)[0])} {_f(self.P(0, 36)[1])} L {_f(self.P(0, 42)[0])} {_f(self.P(0, 42)[1])}", mc, 2 * s, self.seed, 2, 0.9))
+            o.append(ink(smooth_closed(mp), mc, 1.8 * s, self.seed + 1, 1, 0.9))
+        elif self.mouth == "flat":
+            o.append(ink(smooth_open(self.Ps([(0, 36), (0, 44)])), mc, 2 * s, self.seed, 2, 0.9))
+            o.append(ink(smooth_open(self.Ps([(-13, 50), (-5, 46), (0, 44), (5, 46), (13, 50)])), mc, 2 * s, self.seed + 1, 2, 0.9))
+        else:
+            w = 15 if self.mouth == "w" else 17
+            o.append(cat_mouth(*self.P(0, 36), w * s, mc, self.seed + 15, max(1.6, 2 * s)))
         if over_face:
             o.append(over_face(self))
         for sg in (-1, 1):
-            o.append(whiskers(*self.P(sg * 30, 46), sg, 9, 100 * s, self.whisk, 1.6, self.seed + 16 + sg))
-            for k in range(3):
-                bx, by = self.P(sg * (16 + k * 9), 44 + (k % 2) * 7)
-                o.append(f'<circle cx="{_f(bx)}" cy="{_f(by)}" r="{_f(1.4 * s)}" fill="{mix(dark, "#000000", 0.2)}" opacity="0.6"/>')
+            o.append(whiskers(*self.P(sg * 30, 46), sg, 9, 104 * s, self.whisk, 1.6, self.seed + 16 + sg))
+        o.append("</g>")
         return "".join(o)
+#CAT>>
+
+
+#<<DOG
+# ================================================================ a painted dog (front portrait), shared by the dog designs
+class Dog:
+    """Front-facing dog head with optional chest. Local units around the point between the eyes (cx, cy), scale s.
+    coat = (base, dark, light). ears: 'drop' | 'hound' | 'prick' | 'bat' | 'rose' | 'button' | 'none'.
+    mouth: 'smile' | 'open' | 'grin' | 'closed'. kind: 'smooth' | 'medium' | 'fluffy' (edge tufts, stroke length).
+    Hooks draw markings clipped inside head / muzzle / chest / ears."""
+
+    def __init__(self, u, cx, cy, s, coat, seed, ink_c="#3A2418", skull=74, cheek=84, top=-86, dome=6, nose_y=58, muzzle_w=36, stop_w=13,
+                 jowl=None, chin=None, ears="drop", ear_coat=None, ear_len=1.0, ear_w=1.0, ear_rot=0, ear_in=("#E8A898", "#B86A60", "#F8D0C4"),
+                 ear_x=0, ear_y=0, eye_x=38, eye_r=14, eyes=("#B47434", "#4A2208"), look=(0.08, 0.12), eye_rot=6, muzzle=None, mouth="smile",
+                 tongue=True, nose=("#2E2018", "#140C08", "#6A5448"), nose_w=None, chest=True, chest_w=1.0, chest_coat=None, brows=None,
+                 kind="medium", fluff=0.0, ear_fluff=0.0, density=1.4, tilt=0, wrinkles=0, flews=0.0, puff=1.0,
+                 tongue_pal=("#E8707A", "#B8404E", "#F8A8AE"), stroke_len=1.0, blink=False, lid=None, chest_len=330, neck=0.92, mouth_w=1.0,
+                 cheek_shade=0.22, eye_patch=None, face_tufts=None):
+        self.__dict__.update(locals())
+        del self.__dict__["self"]
+        self.jowl = jowl if jowl is not None else muzzle_w + 18
+        self.chin = chin if chin is not None else nose_y + 44
+        self.ear_coat = ear_coat or coat
+        self.chest_coat = chest_coat or coat
+        self.nose_w = nose_w or muzzle_w * 1.0
+        self.muzzle = muzzle or (mix(coat[0], coat[2], 0.55), coat[0], mix(coat[2], "#FFFFFF", 0.35))
+
+    def P(self, x, y):
+        return (self.cx + x * self.s, self.cy + y * self.s)
+
+    def Ps(self, pts):
+        return [self.P(x, y) for x, y in pts]
+
+    # ---- shapes (local units)
+    def head_local(self):
+        k, c, t, ny, j = self.skull, self.cheek, self.top, self.nose_y, self.jowl
+        R = [(0, t - self.dome), (k * 0.5, t + 1), (k * 0.86, t + 15), (k * 1.0, t + 42), (c, -4), (c * 0.98, 22),
+             (c * 0.5 + j * 0.5, ny * 0.7), (j, ny + 8), (j * 0.86, ny + 30), (j * 0.5, self.chin - 4), (0, self.chin)]
+        return sym(R, 0)
+
+    def muzzle_local(self):
+        m, ny, sw = self.muzzle_w, self.nose_y, self.stop_w
+        R = [(0, -14), (sw, -12), (m * 0.66, ny * 0.42), (m * 0.98, ny - 6), (m * 1.04, ny + 14), (m * 0.88, ny + 30), (m * 0.5, self.chin - 3),
+             (0, self.chin - 1)]
+        return sym(R, 0)
+
+    def ear_local(self, sg):
+        k, t, L, W = self.skull, self.top, self.ear_len, self.ear_w
+        e = self.ears
+        if e == "drop":
+            E = [(k * 0.42, t + 6), (k * 0.84 + 6 * W, t + 2), (k + 24 * W, t + 22), (k + 36 * W, t + 66 * L), (k + 36 * W, t + 112 * L),
+                 (k + 24 * W, t + 138 * L), (k + 4, t + 134 * L), (k - 8, t + 104 * L), (k - 8, t + 58), (k * 0.68, t + 24)]
+        elif e == "hound":
+            E = [(k * 0.6, t + 24), (k + 10 * W, t + 20), (k + 32 * W, t + 52), (k + 42 * W, t + 110 * L), (k + 40 * W, t + 160 * L),
+                 (k + 24 * W, t + 184 * L), (k + 2, t + 170 * L), (k - 10, t + 122 * L), (k - 12, t + 72), (k * 0.8, t + 42)]
+        elif e == "prick":
+            E = [(k * 0.16, t + 8), (k * 0.36 + 4 * W, t - 30 * L), (k * 0.58 + 10 * W, t - 66 * L), (k * 0.7 + 13 * W, t - 74 * L),
+                 (k * 0.82 + 16 * W, t - 62 * L), (k * 0.98 + 18 * W, t - 26 * L), (k * 1.06 + 10 * W, t + 20), (k * 0.9, t + 46), (k * 0.5, t + 30)]
+        elif e == "bat":
+            E = [(k * 0.3, t + 16), (k * 0.36, t - 26 * L), (k * 0.52, t - 66 * L), (k * 0.78 + 8 * W, t - 82 * L), (k * 1.02 + 22 * W, t - 74 * L),
+                 (k * 1.16 + 28 * W, t - 42 * L), (k * 1.14 + 20 * W, t - 4), (k * 1.0, t + 36)]
+        elif e == "rose":
+            E = [(k * 0.46, t + 8), (k * 0.68, t - 12 * L), (k * 0.94 + 8 * W, t - 18 * L), (k + 24 * W, t - 4 * L), (k + 34 * W, t + 14 * L),
+                 (k + 26 * W, t + 26 * L), (k + 10, t + 22), (k * 0.84, t + 18)]
+        elif e == "button":
+            E = [(k * 0.34, t + 8), (k * 0.62, t - 14 * L), (k * 0.96 + 8 * W, t - 10 * L), (k + 20 * W, t + 12 * L), (k + 14 * W, t + 42 * L),
+                 (k * 0.9, t + 50 * L), (k * 0.76, t + 32), (k * 0.5, t + 18)]
+        else:
+            return None
+        E = rot_pts(E, k * 0.62, t + 14, self.ear_rot)
+        return [(sg * (x + self.ear_x), y + self.ear_y) for x, y in E]
+
+    def ear_inner_local(self, sg):
+        k, t, L, W = self.skull, self.top, self.ear_len, self.ear_w
+        if self.ears == "prick":
+            E = [(k * 0.3, t + 10), (k * 0.44 + 5 * W, t - 24 * L), (k * 0.62 + 10 * W, t - 56 * L), (k * 0.71 + 12 * W, t - 63 * L),
+                 (k * 0.8 + 14 * W, t - 52 * L), (k * 0.92 + 15 * W, t - 20 * L), (k * 0.96 + 8 * W, t + 14), (k * 0.7, t + 26)]
+        elif self.ears == "bat":
+            E = [(k * 0.44, t + 8), (k * 0.48, t - 24 * L), (k * 0.6, t - 56 * L), (k * 0.8 + 7 * W, t - 70 * L), (k * 0.98 + 18 * W, t - 64 * L),
+                 (k * 1.06 + 22 * W, t - 38 * L), (k * 1.04 + 14 * W, t - 4), (k * 0.9, t + 22)]
+        elif self.ears == "rose":
+            E = [(k * 0.72, t + 4), (k * 0.86, t - 8 * L), (k + 12 * W, t - 8 * L), (k + 24 * W, t + 6 * L), (k + 16 * W, t + 14 * L), (k * 0.92, t + 12)]
+        else:
+            return None
+        E = rot_pts(E, k * 0.62, t + 14, self.ear_rot)
+        return [(sg * (x + self.ear_x), y + self.ear_y) for x, y in E]
+
+    def chest_local(self):
+        w, c, ny, L = self.chest_w, self.cheek, self.nose_y, self.chest_len
+        R = [(0, 0), (c * 0.8, 0), (c * self.neck, ny * 0.5 + 30), (c * self.neck * 1.04, ny + 46), (c * 1.2 * w, ny + 96), (c * 1.56 * w, ny + 160), (c * 1.82 * w, ny + 240),
+             (c * 1.9 * w, ny + L), (0, ny + L)]
+        return sym(R, 0)
+
+
+    # ---- marking helpers (use inside hooks; local coordinates)
+    def patch(self, pts, pal, seed, flow=None, soft=True, length=None, n=None):
+        """A fur-painted colour patch (blaze, mask, bib) with a soft feathered edge."""
+        s = self.s
+        pp = self.Ps(pts)
+        flow = flow if flow is not None else radial(*self.P(0, self.nose_y * 0.6))
+        L = length or (5 * s * self.stroke_len, 13 * s * self.stroke_len)
+        out = [fur(self.u, pp, pal, seed, flow, shade=None, ink_w=0, length=L, width=(1, 2.2), density=1.4, n=n)]
+        if soft:
+            out.append(feather(closed_curve(pp, 6), [pal[0], pal[2], pal[0]], seed + 1, 3, (2 * s, 5 * s), (1, 1.8), down=0.15, op=(0.35, 0.7)))
+        return "".join(out)
+
+    def blaze(self, pal, seed, w_top=8, w_mid=14, top_off=14):
+        t, ny, m = self.top, self.nose_y, self.muzzle_w
+        R = [(0, t + top_off), (w_top, t + top_off + 4), (w_top * 0.8, -30), (w_mid, -14), (m * 0.7, ny * 0.5), (m * 1.02, ny), (m * 1.0, ny + 30),
+             (m * 0.5, self.chin), (0, self.chin + 4)]
+        return self.patch(sym(R, 0), pal, seed)
+
+    def bib(self, pal, seed, w=0.7, top=None):
+        ny = self.nose_y
+        top = top if top is not None else ny + 30
+        c = self.cheek
+        R = [(0, top), (c * 0.5 * w, top + 4), (c * 0.8 * w, top + 60), (c * 0.95 * w, top + 150), (c * 0.7 * w, top + 260), (0, top + 300)]
+        return self.patch(sym(R, 0), pal, seed, flow=lambda x, y: 90 + (x - self.cx) * 0.3, length=(10 * self.s, 24 * self.s))
+
+    # ---- drawing
+    def _ears(self, marks_ear):
+        u, s, ic, sl = self.u, self.s, self.ink_c, self.stroke_len
+        out = []
+        for sg in (-1, 1):
+            el = self.ear_local(sg)
+            if not el:
+                continue
+            ep = self.Ps(el)
+            ec = self.ear_coat
+            down = self.ears in ("drop", "hound")
+            flow = (lambda x, y, sg=sg: 92 + sg * 6) if down else (lambda x, y, sg=sg: -90 + sg * 22)
+            hx = self.P(sg * (self.skull + 18 * self.ear_w), 0)[0]
+            e_svg = [fur(u, ep, ec, self.seed + 3 + sg, flow, shade=(sg * 9 * s, 0), shade_op=0.45, length=(8 * s * sl, 22 * s * sl), width=(1.2, 2.8),
+                         ink_w=2.4, ink_col=ic, curve=0.4 if down else 0.2, density=1.3,
+                         hi=(hx, self.P(0, self.top + 52)[1], 9 * s, 26 * s) if down else None, hi_op=0.25,
+                         extra_in=(marks_ear(self, sg) if marks_ear else ""))]
+            il = self.ear_inner_local(sg)
+            if il:
+                ip = self.Ps(il)
+                e_svg.append(form(u, smooth_closed(ip), bbox(ip, 2), self.ear_in[0], self.ear_in[1], self.ear_in[2], self.seed + 5 + sg, -90 + sg * 20,
+                                  n=24, shade=(sg * 6 * s, 7 * s), shade_op=0.5, ink_w=0))
+                if self.ears in ("prick", "bat"):
+                    # pale furnishings growing from the inner rim of the ear
+                    bx, by = self.P(sg * self.skull * 0.95, self.top + 14)
+                    tx, ty = ip[len(ip) // 2]
+                    e_svg.append("".join(ink(f"M {_f(bx - sg * k2 * 5 * s)} {_f(by + k2 * 3 * s)} Q {_f((bx + tx) / 2 + sg * 4 * s)} {_f((by + ty) / 2 + 8 * s)} "
+                                             f"{_f(bx + (tx - bx) * (0.45 + 0.08 * k2))} {_f(by + (ty - by) * (0.45 + 0.08 * k2))}",
+                                             mix(self.ear_coat[2], "#FFFFFF", 0.4), 1.6 * s, self.seed + k2, 1, 0.75) for k2 in range(4)))
+            if self.ear_fluff and down:
+                lower = [p for p in closed_curve(ep, 6) if p[1] > self.P(0, self.top + 50 * self.ear_len)[1]]
+                e_svg.append(feather(lower, [ec[0], ec[2], ec[1], ec[0]], self.seed + 7 + sg, 1, (6 * self.ear_fluff * s, 15 * self.ear_fluff * s), (1.8, 3.2),
+                                     down=0.85, cx=self.P(-sg * 300, 0)[0], cy=self.P(0, self.top + 60)[1]))
+            if down:
+                a, b = el[1], el[2]
+                e_svg.append(ink(smooth_open(self.Ps([el[0], ((a[0] + b[0]) / 2, a[1] + 5), (b[0], b[1] + 10)])), ic, 1.8, self.seed + sg, 1, 0.4))
+            out.append("".join(e_svg))
+        return out
+
+    def draw(self, marks_head=None, marks_muzzle=None, marks_chest=None, marks_ear=None, under_head=None, over_face=None, over_chest=None,
+             behind=None):
+        u, s = self.u, self.s
+        base, dark, light = self.coat
+        ic, sl = self.ink_c, self.stroke_len
+        ny, m = self.nose_y, self.muzzle_w
+        tuftc = [base, light, dark, base]
+        o = [f'<g transform="rotate({self.tilt} {_f(self.cx)} {_f(self.cy + 60 * s)})">' if self.tilt else "<g>"]
+        if behind:
+            o.append(behind(self))
+        if self.chest:
+            cp = self.Ps(self.chest_local())
+            cb = self.chest_coat
+            o.append(fur(u, cp, cb, self.seed, lambda x, y: 90 + (x - self.cx) * 0.22, shade=(-14 * s, 0), shade_op=0.35,
+                         length=(10 * s * sl, 26 * s * sl), width=(1.2, 3), ink_w=2.4, ink_col=ic, ink_op=0.6,
+                         hi=(self.cx - 46 * s, self.cy + (ny + 170) * s, 34 * s, 70 * s), hi_op=0.2, curve=0.4,
+                         extra_in=(marks_chest(self) if marks_chest else "")))
+            if self.kind != "smooth" or self.fluff:
+                fl = max(self.fluff, 0.5 if self.kind == "medium" else 1.0)
+                o.append(feather([p for p in closed_curve(cp, 6) if p[1] < self.cy + (ny + self.chest_len - 30) * s and p[1] > self.cy + (ny + 30) * s],
+                                 [cb[0], cb[2], cb[1]], self.seed + 1, 2, (8 * fl * s, 18 * fl * s), (2, 3.6), down=0.65, cx=self.cx,
+                                 cy=self.cy + (ny + 250) * s))
+        if over_chest:
+            o.append(over_chest(self))
+        if under_head:
+            o.append(under_head(self))
+        back = self.ears in ("prick", "bat", "rose", "button")
+        ears = self._ears(marks_ear)
+        if back:
+            o += ears
+        hl = self.head_local()
+        hp = self.Ps(hl)
+        hc = self.P(0, ny * 0.6)
+
+        def head_in(_):
+            r = []
+            # cheek shading beside the muzzle, darker eye sockets, soft forehead light
+            for sg in (-1, 1):
+                r.append(f'<path d="{blob(*self.P(sg * (m + 20), ny * 0.45), 22 * s, 34 * s, self.seed + 60 + sg, 0.1, 12)}" fill="{dark}" opacity="{self.cheek_shade}"/>')
+                if self.eye_patch:
+                    pc, po = self.eye_patch
+                    r.append(f'<path d="{blob(*self.P(sg * self.eye_x, 2), self.eye_r * 1.9 * s, self.eye_r * 1.6 * s, self.seed + 62 + sg, 0.12, 12, rot=sg * 20)}" fill="{pc}" opacity="{po}"/>')
+            r.append(f'<path d="{blob(*self.P(-10, self.top + 34), 40 * s, 20 * s, self.seed + 64, 0.1, 12)}" fill="{light}" opacity="0.25"/>')
+            return "".join(r) + (marks_head(self) if marks_head else "")
+
+        o.append(fur(u, hp, self.coat, self.seed + 9, radial(*hc), shade=(12 * s, 10 * s), shade_op=0.32,
+                     length=(6 * s * sl, 15 * s * sl), width=(1, 2.4), ink_w=2.4, ink_col=ic, density=self.density, extra_in=head_in(self)))
+        ft = self.face_tufts if self.face_tufts is not None else self.kind
+        if ft != "smooth":
+            fl = 1 + (self.fluff if ft == "fluffy" else 0)
+            dense = closed_curve(hp, 7)
+            o.append(feather([p for p in dense if p[1] > self.cy - 10 * s], tuftc, self.seed + 10, 2 if ft == "medium" else 1,
+                             (5 * s * fl, 11 * s * fl), (1.6, 3), down=0.35, cx=hc[0], cy=hc[1]))
+            o.append(tufts([p for p in dense if p[1] <= self.cy - 10 * s], tuftc, self.seed + 11, 3, (3 * s, 7 * s * fl), (1.2, 2.4), cx=hc[0], cy=hc[1]))
+        # muzzle
+        mp = self.Ps(self.muzzle_local())
+        mc = self.muzzle
+        o.append(f'<path d="{smooth_closed([(hc[0] + (x - hc[0]) * 1.14, hc[1] + (y - hc[1]) * 1.08) for x, y in mp])}" fill="{mc[0]}" opacity="0.35"/>')
+        o.append(fur(u, mp, mc, self.seed + 12, radial(*self.P(0, ny)), shade=(7 * s, 9 * s), shade_op=0.28, ink_w=0,
+                     length=(4 * s * sl, 11 * s * sl), width=(0.9, 2), density=1.3,
+                     hi=(self.P(-5, ny * 0.38)[0], self.P(0, ny * 0.38)[1], 6 * s, 15 * s), hi_op=0.4,
+                     extra_in=(marks_muzzle(self) if marks_muzzle else "")))
+        for sg in (-1, 1):
+            o.append(ink(smooth_open(self.Ps([(sg * self.stop_w * 0.9, -8), (sg * m * 0.7, ny * 0.44), (sg * m * 0.98, ny * 0.86)])), dark, 1.6 * s, self.seed + 13 + sg, 1, 0.28))
+        if self.wrinkles:
+            for k in range(self.wrinkles):
+                y = ny * 0.15 - 6 - k * 11
+                o.append(ink(smooth_open(self.Ps([(-24 + k * 4, y + 5), (-9, y - 1), (0, y + 3), (9, y - 1), (24 - k * 4, y + 5)])), dark, 2.2 * s, self.seed + 30 + k, 1, 0.5))
+        # mouth, lip puffs, chin
+        mw = m * self.mouth_w
+        mt = ny + self.nose_w * 0.3
+        pd = 15 * self.puff
+        if self.mouth in ("open", "grin"):
+            depth = 34 if self.mouth == "open" else 20
+            wide = 0.92 if self.mouth == "open" else 1.0
+            cav = self.Ps([(-mw * wide, mt + pd * 0.7), (-mw * 0.55, mt + pd + depth * 0.7), (0, mt + pd + depth), (mw * 0.55, mt + pd + depth * 0.7),
+                           (mw * wide, mt + pd * 0.7), (0, mt + pd * 0.6)])
+            o.append(f'<path d="{smooth_closed(cav)}" fill="#3E1412"/>')
+            o.append(f'<path d="{blob(*self.P(0, mt + pd + depth * 0.45), mw * 0.6 * s, depth * 0.3 * s, self.seed + 70, 0.1, 12)}" fill="#7A2A2A" opacity="0.6"/>')
+            if self.tongue:
+                tw = mw * (0.95 if self.mouth == "open" else 0.75)
+                th = (depth + 30) if self.mouth == "open" else depth + 4
+                o.append(tongue(u, self.cx, self.cy + (mt + pd + depth * 0.35) * s, tw * s, th * s, self.seed + 40, self.tongue_pal))
+            o.append(ink(smooth_closed(cav), "#2A0E0A", 2 * s, self.seed + 71, 1, 0.7))
+        # lip puffs (upper lip either side of the philtrum)
+        for sg in (-1, 1):
+            pp = blob_pts(*self.P(sg * mw * 0.48, mt + pd * 0.55), mw * 0.56 * s, pd * 0.95 * s, self.seed + 72 + sg, 0.05, 14, rot=-sg * 8)
+            o.append(fur(u, pp, mc, self.seed + 74 + sg, radial(*self.P(0, mt)), shade=(0, 5 * s), shade_op=0.32, ink_w=0, n=int(40 * s),
+                         length=(3 * s, 8 * s), width=(0.8, 1.6), hi=None))
+            o.append(ink(smooth_open([pp[i] for i in (1, 2, 3, 4, 5, 6, 7, 8)] if sg > 0 else [pp[i] for i in (10, 9, 8, 7, 6, 5, 4, 3)]), mix(dark, "#000000", 0.2),
+                         1.4 * s, self.seed + 76 + sg, 1, 0.35))
+            o.append(muzzle_dots(*self.P(sg * mw * 0.32, mt + pd * 0.45), sg, mix(dark, "#000000", 0.3), self.seed + 50 + sg, 1.3 * s, 5))
+        if self.mouth in ("smile", "closed"):
+            up = -4 if self.mouth == "smile" else 3
+            for sg in (-1, 1):
+                o.append(ink(smooth_open(self.Ps([(0, mt + pd * 0.9), (sg * mw * 0.3, mt + pd * 1.35), (sg * mw * 0.68, mt + pd * 1.3), (sg * mw * 0.98, mt + pd * 0.9 + up)])),
+                             "#2A140A", 2.4 * s, self.seed + 43 + sg, 2, 0.9))
+            if self.flews:
+                for sg in (-1, 1):
+                    o.append(ink(smooth_open(self.Ps([(sg * mw * 0.96, mt + pd * 0.9), (sg * mw * 1.08, mt + pd * (1 + 0.8 * self.flews)), (sg * mw * 0.7, mt + pd * (1.3 + 0.9 * self.flews))])),
+                                 dark, 2 * s, self.seed + 45 + sg, 1, 0.45))
+        else:
+            for sg in (-1, 1):
+                o.append(ink(smooth_open(self.Ps([(0, mt + pd * 0.55), (sg * mw * 0.35, mt + pd * 1.05), (sg * mw * 0.75, mt + pd * 0.95), (sg * mw * 1.0, mt + pd * 0.6)])),
+                             "#2A140A", 2.2 * s, self.seed + 43 + sg, 2, 0.85))
+        o.append(ink(smooth_open(self.Ps([(0, mt - 2), (0, mt + pd * 0.85)])), "#2A140A", 2.2 * s, self.seed + 41, 2, 0.85))
+        o.append(dog_nose(u, *self.P(0, ny), self.nose_w * s, self.nose, self.seed + 48))
+        # eyes and brows
+        for sg in (-1, 1):
+            ex, ey = self.P(sg * self.eye_x, 0)
+            if self.blink:
+                o.append(ink(f"M {_f(ex - self.eye_r * s)} {_f(ey - 2 * s)} Q {_f(ex)} {_f(ey + self.eye_r * 0.8 * s)} {_f(ex + self.eye_r * s)} {_f(ey - 2 * s)}",
+                             "#24140A", 3.6 * s, self.seed + sg, 2, 1))
+                o.append(ink(f"M {_f(ex + sg * self.eye_r * s)} {_f(ey - 2 * s)} l {_f(sg * 5 * s)} {_f(-4 * s)}", "#24140A", 2 * s, self.seed, 1, 1))
+            else:
+                o.append(eye(u, ex, ey, self.eye_r * s, self.eye_r * 0.88 * s, self.eyes, self.seed + 14 + sg, look=self.look, rot=sg * self.eye_rot,
+                             rim=mix(dark, "#000000", 0.35), pupil_k=0.52))
+                if self.lid:
+                    o.append(ink(f"M {_f(ex - self.eye_r * 1.05 * s)} {_f(ey - self.eye_r * 0.2 * s)} Q {_f(ex)} {_f(ey - self.eye_r * 1.3 * s)} "
+                                 f"{_f(ex + self.eye_r * 1.05 * s)} {_f(ey - self.eye_r * 0.2 * s)}", self.lid, 1.6 * s, self.seed + sg, 1, 0.5))
+            if self.brows:
+                bc, bo = self.brows
+                o.append(f'<path d="{blob(ex - sg * 3 * s, ey - self.eye_r * 1.75 * s, 8.5 * s, 5.5 * s, self.seed + 20 + sg, 0.12, 10, rot=sg * 16)}" fill="{bc}" opacity="{bo}"/>')
+            o.append(ink(f"M {_f(ex - sg * 13 * s)} {_f(ey - self.eye_r * 1.5 * s)} Q {_f(ex - sg * 2 * s)} {_f(ey - self.eye_r * 2.05 * s)} {_f(ex + sg * 11 * s)} {_f(ey - self.eye_r * 1.7 * s)}",
+                         mix(dark, "#000000", 0.2), 2 * s, self.seed + 22 + sg, 1, 0.4))
+        if over_face:
+            o.append(over_face(self))
+        if not back:
+            o += ears
+        o.append("</g>")
+        return "".join(o)
+#DOG>>
 
 
 # ================================================================ designs
@@ -1104,7 +1473,283 @@ def dachshund():
     return "".join(o)
 
 
-# @@DESIGNS@@
+#<<NEW
+# ================================================================ more painted props
+def rosette(u, cx, cy, r, pal, seed, tails=True, center=None, label=None, label_font=None, label_c="#FFFFFF"):
+    """Prize rosette: pleated outer ring, inner ring, button centre, two ribbon tails."""
+    base, dark, light = pal
+    out = []
+    if tails:
+        for sg in (-1, 1):
+            tp = [(cx + sg * r * 0.15, cy + r * 0.4), (cx + sg * r * 0.62, cy + r * 1.9), (cx + sg * r * 0.42, cy + r * 1.7), (cx + sg * r * 0.3, cy + r * 1.98),
+                  (cx - sg * r * 0.2, cy + r * 0.5)]
+            out.append(form(u, smooth_closed(tp), bbox(tp, 2), base, dark, light, seed + sg, -90 + sg * 14, n=r * 0.8, shade=(sg * 4, 0),
+                            ink_w=1.8, ink_col=mix(dark, "#000000", 0.4)))
+    pts = []
+    for i in range(48):
+        a = 2 * math.pi * i / 48
+        rr = r * (1.0 if i % 2 == 0 else 0.86)
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    out.append(shadow(u, cx + 3, cy + 5, r * 1.05, r * 1.0, 0.25))
+    out.append(form(u, smooth_closed(pts), bbox(pts, 2), base, dark, light, seed, radial(cx, cy), n=r * 2.2, shade=(r * 0.08, r * 0.1),
+                    length=(r * 0.2, r * 0.4), width=(1, 2.2), ink_w=1.6, ink_col=mix(dark, "#000000", 0.4)))
+    for i in range(24):
+        a = 2 * math.pi * (i + 0.5) / 24
+        out.append(ink(f"M {_f(cx + r * 0.62 * math.cos(a))} {_f(cy + r * 0.62 * math.sin(a))} L {_f(cx + r * 0.95 * math.cos(a))} {_f(cy + r * 0.95 * math.sin(a))}",
+                       mix(dark, "#000000", 0.2), 1.2, seed + i, 1, 0.45))
+    cpal = center or ("#F6EEDC", "#C8B48E", "#FFFFFF")
+    cd = blob(cx, cy, r * 0.6, r * 0.6, seed + 3, 0.02, 16)
+    out.append(form(u, cd, (cx - r * 0.6, cy - r * 0.6, cx + r * 0.6, cy + r * 0.6), cpal[0], cpal[1], cpal[2], seed + 3, -30, n=r, shade=(r * 0.06, r * 0.08),
+                    hi=(cx - r * 0.2, cy - r * 0.25, r * 0.22, r * 0.12), hi_op=0.6, ink_w=1.6, ink_col=mix(dark, "#000000", 0.4)))
+    out.append(f'<circle cx="{_f(cx)}" cy="{_f(cy)}" r="{_f(r * 0.48)}" fill="none" stroke="{dark}" stroke-width="1.4" stroke-dasharray="3 3" opacity="0.6"/>')
+    if label:
+        out.append(plain(cx, cy + r * 0.12, label, label_font or JOS, r * 0.34, label_c or dark, r * 0.9, 1))
+    return "".join(out)
+
+
+def tennis_ball(u, cx, cy, r, seed, rot=0):
+    d = blob(cx, cy, r, r * 0.97, seed, 0.03, 16)
+    out = [shadow(u, cx + r * 0.1, cy + r * 0.92, r * 0.9, r * 0.22, 0.35),
+           form(u, d, (cx - r, cy - r, cx + r, cy + r), "#D8E04A", "#98A428", "#F2F49A", seed, radial(cx, cy), n=r * 5, shade=(r * 0.18, r * 0.2), shade_op=0.5,
+                length=(r * 0.06, r * 0.16), width=(0.8, 1.6), hi=(cx - r * 0.35, cy - r * 0.4, r * 0.3, r * 0.2), hi_op=0.6, ink_w=1.8, ink_col="#6A7414")]
+    cid = u("tb")
+    seam = (f"M {_f(cx - r * 1.1)} {_f(cy - r * 0.3)} Q {_f(cx - r * 0.2)} {_f(cy - r * 0.1)} {_f(cx - r * 0.25)} {_f(cy - r * 1.1)} "
+            f"M {_f(cx + r * 1.1)} {_f(cy + r * 0.3)} Q {_f(cx + r * 0.2)} {_f(cy + r * 0.1)} {_f(cx + r * 0.25)} {_f(cy + r * 1.1)}")
+    out.append(f'<clipPath id="{cid}"><path d="{d}"/></clipPath><g clip-path="url(#{cid})" transform="rotate({rot} {_f(cx)} {_f(cy)})">'
+               f'<path d="{seam}" fill="none" stroke="#FBFBEA" stroke-width="{_f(r * 0.13)}" stroke-linecap="round"/>'
+               f'<path d="{seam}" fill="none" stroke="#B8C02E" stroke-width="{_f(r * 0.04)}" opacity="0.6" transform="translate(1.2 1.2)"/></g>')
+    return "".join(out)
+
+
+def confetti(n, seed, box, colors, avoid=None, size=(3, 7)):
+    rnd = random.Random(seed)
+    out = []
+    x0, y0, x1, y1 = box
+    for _ in range(n):
+        x, y = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
+        if avoid and avoid(x, y):
+            continue
+        k = rnd.random()
+        c = rnd.choice(colors)
+        s = rnd.uniform(*size)
+        if k < 0.4:
+            out.append(sparkle(x, y, s * 1.3, c, 0.9))
+        elif k < 0.7:
+            out.append(f'<path d="{blob(x, y, s * 0.6, s * 0.6, rnd.randint(0, 999), 0.15, 8)}" fill="{c}" opacity="0.85"/>')
+        else:
+            a = rnd.uniform(0, 180)
+            out.append(f'<path d="M {_f(x - s * 0.7)} {_f(y)} q {_f(s * 0.35)} {_f(-s * 0.5)} {_f(s * 0.7)} 0 t {_f(s * 0.7)} 0" stroke="{c}" stroke-width="2.4" '
+                       f'fill="none" stroke-linecap="round" transform="rotate({a:.0f} {_f(x)} {_f(y)})" opacity="0.85"/>')
+    return "".join(out)
+
+
+ROSE_PINK = ("#EE98A4", "#C25A6E", "#FAD0D4")
+ROSE_CORAL = ("#F2A27A", "#C8603E", "#FBD0B4")
+ROSE_CREAM = ("#F6E2C4", "#CDAE84", "#FFF6E6")
+LEAF_G = ("#7A9A5A", "#4A6A36", "#A8C27E")
+LEAF_SAGE = ("#94A88A", "#5E7458", "#C0D0B2")
+
+
+def rose(u, cx, cy, r, pal, seed, rot=0):
+    """Painted cabbage rose: ring of cupped petals, a deeper centre and a spiral of inked petal edges."""
+    base, dark, light = pal
+    rnd = random.Random(seed)
+    inkc = mix(dark, "#000000", 0.25)
+    out = [f'<g transform="rotate({rot} {_f(cx)} {_f(cy)})">', shadow(u, cx + r * 0.1, cy + r * 0.2, r * 1.1, r * 0.9, 0.22)]
+    for i in range(7):
+        a = 2 * math.pi * i / 7 + rnd.uniform(-0.2, 0.2)
+        px, py = cx + math.cos(a) * r * 0.48, cy + math.sin(a) * r * 0.42
+        d = blob(px, py, r * 0.56, r * 0.44, seed + i, 0.1, 12, rot=math.degrees(a))
+        out.append(form(u, d, (px - r * 0.6, py - r * 0.6, px + r * 0.6, py + r * 0.6), base, dark, light, seed + i, math.degrees(a) + 180, n=r * 0.5,
+                        shade=(math.cos(a) * -r * 0.1, math.sin(a) * -r * 0.1), shade_op=0.35, length=(r * 0.15, r * 0.35), width=(0.8, 1.6),
+                        ink_w=1.2, ink_col=inkc, ink_op=0.6))
+    cd = blob(cx, cy - r * 0.02, r * 0.52, r * 0.46, seed + 9, 0.08, 12)
+    out.append(form(u, cd, (cx - r * 0.55, cy - r * 0.5, cx + r * 0.55, cy + r * 0.5), mix(base, dark, 0.25), dark, base, seed + 9, 60, n=r * 0.4,
+                    shade=(0, -r * 0.08), ink_w=1.2, ink_col=inkc, ink_op=0.6))
+    # spiral of petal edges
+    for k in range(4):
+        rr = r * (0.42 - k * 0.09)
+        a0 = rnd.uniform(0, 6.28)
+        out.append(ink(f"M {_f(cx + rr * math.cos(a0))} {_f(cy + rr * 0.85 * math.sin(a0))} A {_f(rr)} {_f(rr * 0.85)} 0 0 1 {_f(cx + rr * math.cos(a0 + 2.6))} {_f(cy + rr * 0.85 * math.sin(a0 + 2.6))}",
+                       inkc, max(1, r * 0.06), seed + k, 1, 0.7))
+        out.append(ink(f"M {_f(cx + rr * math.cos(a0 + 0.3))} {_f(cy - 1.5 + rr * 0.85 * math.sin(a0 + 0.3))} A {_f(rr)} {_f(rr * 0.85)} 0 0 1 {_f(cx + rr * math.cos(a0 + 1.8))} {_f(cy - 1.5 + rr * 0.85 * math.sin(a0 + 1.8))}",
+                       light, max(0.8, r * 0.04), seed + k + 5, 1, 0.8))
+    out.append("</g>")
+    return "".join(out)
+
+
+def bud(u, cx, cy, r, pal, seed, ang=-90):
+    a = math.radians(ang)
+    out = [ink(f"M {_f(cx)} {_f(cy)} l {_f(-math.cos(a) * r * 1.4)} {_f(-math.sin(a) * r * 1.4)}", LEAF_G[1], max(1.2, r * 0.18), seed, 1, 0.9)]
+    out.append(f'<path d="{blob(cx, cy, r * 0.6, r * 0.85, seed, 0.08, 10, rot=ang + 90)}" fill="{pal[0]}"/>')
+    out.append(f'<path d="{blob(cx - math.cos(a) * r * 0.3, cy - math.sin(a) * r * 0.3, r * 0.7, r * 0.45, seed + 1, 0.08, 10, rot=ang + 90)}" fill="{LEAF_G[0]}"/>')
+    out.append(ink(blob(cx, cy, r * 0.6, r * 0.85, seed, 0.08, 10, rot=ang + 90), mix(pal[1], "#000000", 0.2), 1, seed, 1, 0.6))
+    return "".join(out)
+
+
+def wreath(u, cx, cy, R, seed, roses=(), leaf_pal=(LEAF_G, LEAF_SAGE), n_leaves=46, buds=10, berry="#C25A6E", gap=None, ry=None):
+    """A painted floral wreath: two rings of leaves following the circle, little buds and berries, roses at given (angle, size, pal)."""
+    from fall_gouache_b import leaf
+    rnd = random.Random(seed)
+    ry = ry or R
+    out = []
+    items = []
+    for i in range(n_leaves):
+        a = 2 * math.pi * i / n_leaves + rnd.uniform(-0.05, 0.05)
+        if gap and gap[0] <= math.degrees(a) % 360 <= gap[1]:
+            continue
+        side = 1 if i % 2 else -1
+        rr = R + side * rnd.uniform(6, 16)
+        x, y = cx + rr * math.cos(a), cy + ry / R * rr * math.sin(a)
+        rot = math.degrees(a) + 90 + side * 50 + rnd.uniform(-12, 12)
+        items.append(("leaf", x, y, rnd.uniform(13, 19), rot, rnd.choice(leaf_pal), seed + i))
+    for i in range(buds):
+        a = rnd.uniform(0, 2 * math.pi)
+        if gap and gap[0] <= math.degrees(a) % 360 <= gap[1]:
+            continue
+        rr = R + rnd.choice([-1, 1]) * rnd.uniform(14, 24)
+        items.append(("berry", cx + rr * math.cos(a), cy + ry / R * rr * math.sin(a), rnd.uniform(3.5, 5), 0, None, seed + 100 + i))
+    # vine ring
+    out.append(f'<ellipse cx="{cx}" cy="{cy}" rx="{R}" ry="{ry}" fill="none" stroke="{LEAF_G[1]}" stroke-width="3" opacity="0.7"/>')
+    for kind, x, y, s, rot, pal, sd in items:
+        if kind == "leaf":
+            out.append(leaf(u, "elm", x, y, s, rot, pal, sd, detail=True, stem=False))
+        else:
+            out.append(f'<circle cx="{_f(x)}" cy="{_f(y)}" r="{_f(s)}" fill="{berry}"/><circle cx="{_f(x - s * 0.3)}" cy="{_f(y - s * 0.3)}" r="{_f(s * 0.3)}" fill="#FFFFFF" opacity="0.7"/>')
+    for a_deg, s, pal in roses:
+        a = math.radians(a_deg)
+        out.append(rose(u, cx + R * math.cos(a), cy + ry * math.sin(a), s, pal, seed + int(a_deg), rot=a_deg))
+    return "".join(out)
+
+
+# ---------------------------------------------------------------- good boy — golden retriever with his prize rosette and a tennis ball
+GOLD = ("#D99A48", "#A4622A", "#F4C67C")
+GOLD_EAR = ("#C98A3E", "#8E5222", "#E8B46A")
+
+
+@design("good-boy")
+def good_boy():
+    u = Ids("good-boy")
+    o = [bg(u, "#DCE6EA", ["#C8D8E0", "#EAF0F0", "#BCCFD8"], 141, angle=-30)]
+    o.append(glow(u, 300, 400, 260, "#FFF6E0", 0.8))
+    o.append(confetti(46, 142, (40, 230, 560, 560), ["#E8B84A", "#5A86B8", "#E8785A", "#FFFFFF"], avoid=lambda x, y: 150 < x < 450))
+    d = Dog(u, 300, 352, 1.12, GOLD, 143, ink_c="#6A3812", ears="drop", ear_coat=GOLD_EAR, skull=80, cheek=90, ear_w=1.1, ear_len=1.05,
+            kind="fluffy", face_tufts="smooth", fluff=1.1, ear_fluff=1.0, mouth="open", nose_y=62, muzzle_w=36, tilt=-7, chest_w=1.05,
+            muzzle=("#F0C890", "#C8904E", "#FCE6C0"))
+
+    def chest_extra(dd):
+        return collar(u, [(206, 488), (252, 510), (300, 518), (348, 510), (394, 488)], 18, ("#2E5E9A", "#1A3A68", "#6A96CC"), 144,
+                      tag=("round", GOLD_TAG), tag_at=0.5)
+    o.append(d.draw(over_chest=chest_extra))
+    o.append(rosette(u, 408, 492, 36, ("#3A6EAE", "#1E4278", "#7AA6DA"), 145, label="1st", label_font=SERIF_IT, label_c="#1E4278"))
+    o.append(tennis_ball(u, 118, 520, 34, 146, rot=20))
+    # lettering
+    o.append(title(u, 300, 104, "good", SERIF_IT, 84, "#1E3A62", ["#14284A", "#2E5486", "#3A64A0"], 147, max_w=300, shadow="#FFFFFF", soff=(0.02, 0.03), angle=-40))
+    o.append(title(u, 300, 232, "BOY", ANTON, 112, "#C8642A", ["#A8461A", "#E88A4A", "#B8541E"], 148, max_w=300, ls=10, shadow="#1E3A62", soff=(0.025, 0.035),
+                   angle=-75, hi="#FFD6A8"))
+    o.append(finish(u, op=0.8))
+    return "".join(o)
+
+
+# ---------------------------------------------------------------- dog mom — a Blenheim Cavalier inside a rose wreath, name ribbon below
+CHESTNUT = ("#B8602E", "#7A3414", "#E0904E")
+WHITE_COAT = ("#F6F0E6", "#D2C6B6", "#FFFFFF")
+
+
+def cavalier(u, cx, cy, s, seed, tilt=0, mouth="smile", look=(0.05, 0.1)):
+    d = Dog(u, cx, cy, s, CHESTNUT, seed, ink_c="#5A2A12", ears="drop", ear_coat=("#A8542A", "#6A2C10", "#D2844A"), ear_len=1.35, ear_w=1.25,
+            skull=78, cheek=84, dome=14, nose_y=46, muzzle_w=32, stop_w=12, eye_x=36, eye_r=16, kind="fluffy", face_tufts="smooth", fluff=0.9,
+            ear_fluff=1.7, mouth=mouth, muzzle=WHITE_COAT, chest_coat=WHITE_COAT, tilt=tilt, look=look, eyes=("#7A3E18", "#2A1006"), chin=86)
+
+    def head(dd):
+        return dd.blaze(WHITE_COAT, seed + 1, 7, 16, 8) + f'<path d="{blob(*dd.P(0, -50), 7 * s, 8 * s, seed, 0.1, 10)}" fill="#B8602E" opacity="0.9"/>'
+
+    def ears(dd, sg):
+        # wavy curls in the long ear feathering
+        out = []
+        x0, y0 = dd.P(sg * (dd.skull + 10), dd.top + 40)
+        for k in range(5):
+            out.append(ink(smooth_open([(x0 + sg * (6 + k * 7) * s, y0 + (10 + k * 4) * s), (x0 + sg * (2 + k * 7) * s, y0 + (40 + k * 6) * s),
+                                        (x0 + sg * (10 + k * 7) * s, y0 + (70 + k * 6) * s), (x0 + sg * (4 + k * 7) * s, y0 + (100 + k * 6) * s)]),
+                           "#E8A060", 1.6 * s, seed + k, 1, 0.55))
+        return "".join(out)
+    return d, dict(marks_head=head, marks_ear=ears)
+
+
+@design("dog-mom")
+def dog_mom():
+    u = Ids("dog-mom")
+    o = [bg(u, "#F4E2DA", ["#EED2C8", "#F8ECE4", "#E8C8BC"], 151, angle=-25)]
+    cx, cy, R = 300, 248, 172
+    # inner painted disc
+    o.append(spot(u, cx, cy, R - 6, R - 6, "#FBF1E8", ["#FFF8F0", "#F2E2D6"], 152, op=1, wob=0.03))
+    o.append(glow(u, cx, cy - 20, 150, "#FFFFFF", 0.6))
+    clip = u("wc")
+    o.append(f'<clipPath id="{clip}"><circle cx="{cx}" cy="{cy}" r="{R - 4}"/></clipPath><g clip-path="url(#{clip})">')
+    d, hooks = cavalier(u, 300, 230, 1.1, 153, tilt=6)
+    o.append(d.draw(**hooks))
+    o.append("</g>")
+    o.append(wreath(u, cx, cy, R, 154, roses=[(-160, 22, ROSE_CREAM), (-138, 30, ROSE_PINK), (-112, 18, ROSE_CORAL), (-48, 17, ROSE_CREAM),
+                                             (-24, 28, ROSE_CORAL), (2, 20, ROSE_PINK), (164, 24, ROSE_CREAM), (138, 17, ROSE_PINK)],
+                    gap=(70, 110), n_leaves=74, buds=22))
+    # ribbon with the name
+    o.append(ribbon(u, 300, 452, 404, 84, ("#C8505E", "#8A2A38", "#EE8A94"), 155, tail=40, bend=12))
+    o.append(ribbon_text(300, 450, "DOG MOM", JOS, 58, "#FFF6EE", 370, 12, ls=8, u=u))
+    tw = measure("est. with love", SERIF_IT, 34)
+    o.append(p_heart(u, 300 - tw / 2 - 22, 532, 9, seed=156, rot=-12) + p_heart(u, 300 + tw / 2 + 22, 532, 9, seed=157, rot=12))
+    o.append(plain(300, 542, "est. with love", SERIF_IT, 34, "#8A2A38", 300))
+    o.append(finish(u, op=0.8))
+    return "".join(o)
+
+
+# ---------------------------------------------------------------- dog dad — a blue pit bull in a bow tie on a vintage badge
+PIT = ("#8A909C", "#545A66", "#BAC0CA")
+
+
+def pitbull(u, cx, cy, s, seed, tilt=0, mouth="open", look=(0.05, 0.12)):
+    d = Dog(u, cx, cy, s, PIT, seed, ink_c="#2A2C34", ears="rose", ear_y=10, ear_x=-6, kind="smooth", skull=86, cheek=100, jowl=70, nose_y=58,
+            muzzle_w=48, mouth=mouth, eyes=("#C08A44", "#5A3214"), stop_w=18, nose=("#5A545A", "#2A2628", "#8A8488"), tilt=tilt, look=look,
+            ear_in=("#D8A0A0", "#A06A6A", "#F2C8C4"), chest_w=1.1, muzzle=("#E6E6EA", "#B4B6BE", "#FFFFFF"))
+
+    def head(dd):
+        return dd.blaze(WHITE_COAT, seed + 1, 4, 12, 20)
+
+    def chest(dd):
+        return dd.bib(WHITE_COAT, seed + 2, 0.95, dd.nose_y + 20)
+    return d, dict(marks_head=head, marks_chest=chest)
+
+
+@design("dog-dad")
+def dog_dad():
+    u = Ids("dog-dad")
+    o = [bg(u, "#24384E", ["#1C2E42", "#2E4660", "#203448"], 161, angle=-20, fleck="#C8D2DC")]
+    # sunburst
+    for i in range(24):
+        a = math.radians(i * 15)
+        o.append(f'<path d="M 300 330 L {_f(300 + 520 * math.cos(a - 0.06))} {_f(330 + 520 * math.sin(a - 0.06))} L {_f(300 + 520 * math.cos(a + 0.06))} '
+                 f'{_f(330 + 520 * math.sin(a + 0.06))} Z" fill="#3A5272" opacity="0.35"/>')
+    # cream badge
+    bx, by, br = 300, 362, 184
+    o.append(shadow(u, bx + 6, by + 12, br + 14, br + 14, 0.45, "#0A1420"))
+    o.append(spot(u, bx, by, br, br, "#F2E6CE", ["#F8EEDC", "#E6D6B8"], 162, op=1, wob=0.015))
+    o.append(f'<circle cx="{bx}" cy="{by}" r="{br - 12}" fill="none" stroke="#C8963E" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>')
+    clip = u("bc")
+    o.append(f'<clipPath id="{clip}"><circle cx="{bx}" cy="{by}" r="{br - 3}"/></clipPath><g clip-path="url(#{clip})">')
+    o.append(glow(u, 300, 380, 160, "#FFFFFF", 0.5))
+    d, hooks = pitbull(u, 300, 330, 0.95, 163, tilt=-5)
+    o.append(d.draw(**hooks))
+    o.append(bow(u, 300, 476, 38, ("#C8463A", "#82221A", "#F2806A"), 164, rot=-4, tails=False, dots="#FBEBD2"))
+    o.append("</g>")
+    o.append(f'<circle cx="{bx}" cy="{by}" r="{br}" fill="none" stroke="#14202E" stroke-width="2.4" opacity="0.7"/>')
+    o.append(title(u, 300, 150, "DOG DAD", ANTON, 104, "#F2E6CE", ["#E6D6B8", "#FFF8EA", "#D8C6A2"], 165, max_w=440, ls=8, shadow="#C8963E", soff=(0.025, 0.04), angle=-75))
+    for sg in (-1, 1):
+        o.append(sparkle(300 + sg * 236, 112, 9, "#E8B84A", 0.95))
+    # bottom banner
+    o.append(ribbon(u, 300, 520, 380, 50, ("#C8963E", "#8A6018", "#F2CC7A"), 166, tail=30, bend=6))
+    o.append(ribbon_text(300, 518, "WALKS · TREATS · BELLY RUBS", JOS, 22, "#24384E", 340, 6, ls=2, u=u))
+    o.append(finish(u, op=0.8, color="#1A1A1A"))
+    return "".join(o)
+#NEW>>
 
 
 # ---------------------------------------------------------------- build

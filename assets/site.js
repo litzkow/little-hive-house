@@ -149,7 +149,12 @@
   if (tb) tb.addEventListener('click', function () {
     var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('lhh-theme', next); } catch (e) {}
+    /* a manual choice only lasts until the next sunrise (6:00) or sunset (19:00) on the visitor's clock */
+    var now = new Date(), until = new Date(now);
+    if (now.getHours() < 6) until.setHours(6, 0, 0, 0);
+    else if (now.getHours() < 19) until.setHours(19, 0, 0, 0);
+    else { until.setDate(until.getDate() + 1); until.setHours(6, 0, 0, 0); }
+    try { localStorage.setItem('lhh-theme2', JSON.stringify({ t: next, until: until.getTime() })); } catch (e) {}
   });
 
   // quick view
