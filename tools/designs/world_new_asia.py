@@ -1115,8 +1115,10 @@ def kitsune(x, base, k, flip=False):
             '<path d="M -16 -54 L -14 -84 L -8 -84 L -8 -54 Z" fill="#B8B4A8"/>'
             # head, ears, snout with the jewel
             '<path d="M -12 -122 Q -16 -140 -6 -146 L -2 -160 L 4 -144 Q 8 -146 10 -144 L 16 -158 L 16 -140 Q 20 -132 14 -124 Q 4 -116 -12 -122 Z" fill="#B0AC9E"/>'
-            '<path d="M -12 -132 L -28 -128 Q -30 -124 -26 -122 L -10 -122 Z" fill="#A8A498"/>'
-            '<circle cx="-28" cy="-125" r="4" fill="#C8B888"/><circle cx="-29" cy="-126.5" r="1.4" fill="#F2E6C0"/>'
+            '<path d="M -10 -136 Q -18 -133 -24 -127 Q -26 -124.5 -23 -123.5 Q -16 -123 -9 -121 Z" fill="#A8A498"/>'
+            '<path d="M -24 -127 Q -26 -124.5 -23 -123.5 Q -16 -123 -9 -121 L -10 -124 Q -17 -125 -24 -127 Z" fill="#7E7A70"/>'
+            '<circle cx="-25.5" cy="-126.6" r="1.5" fill="#3E3A34"/>'
+            '<circle cx="-21" cy="-121" r="3.4" fill="#C8B888"/><circle cx="-22" cy="-122.2" r="1.2" fill="#F2E6C0"/>'
             '<path d="M -4 -154 L -2 -146 L 1 -150 Z M 14 -152 L 13 -144 L 10 -147 Z" fill="#6E6A60"/>'
             '<path d="M -10 -134 q 3 -2 6 0" stroke="#3E3A34" stroke-width="1.6" fill="none"/>'
             # red bib
@@ -1148,88 +1150,124 @@ def stone_lantern(x, base, k, lit=True):
     return "".join(o)
 
 
-def yukata_visitor(x, base, h, u, light=1, rim="#FFD8A0", seed=5, robe="#2E4A8A", obi="#F2B83A", tint=None):
-    """A woman in a summer yukata walking away from us (back view), built on the figures.py skeleton: bun with a
-    hairpin, wide hanging sleeves, an ankle-length robe with a morning-glory print, a folded obi bow on her back,
-    white tabi socks on wooden geta, a small drawstring bag swinging from one hand."""
-    from figures import Painter, _palette, _render, mix as fmix, pose_joints, tube_side
+def yukata_visitor(x, base, h, u, light=1, rim="#FFD8A0", seed=5, robe="#24407E", obi="#F2B83A", tint=None):
+    """A woman in a summer yukata walking away from us up the steps (back view), built on the figures.py skeleton
+    (head, hair, neck, arms) and dressed in a painted yukata: an indigo robe with a white morning-glory print that
+    narrows at the waist and falls to the ankles, its hem kicked by the stride; wide hanging tamoto sleeves; a
+    golden hanhaba obi tied in a butterfly bow; wooden geta (the trailing one lifted so we see its two teeth);
+    a red drawstring bag swinging from her right hand and a hairpin with a small flower in her bun."""
+    from figures import Painter, _palette, _render, mix as fmix, pose_joints, tube_side, ell_pts
+    ell_pts_ = lambda cx_, cy_, rx_, ry_: ell_pts(cx_, cy_, rx_, ry_, 0, 360, 16)[:-1]
     k = h / 100.0
-    pal = _palette({"form": "f", "top_kind": "long", "bottom_kind": "trousers", "hair_style": "bun", "skin": "#EDBE98",
+    skin = "#EDBE98"
+    pal = _palette({"form": "f", "top_kind": "long", "bottom_kind": "trousers", "hair_style": "bun", "skin": skin,
                     "hair": "#1C1412", "top": robe, "bottom": robe, "shoes": "#F6F1E8"}, seed)
     J = pose_joints("stand_back", "f", random.Random(seed))
-    # mid-stride, seen from behind: the trailing foot lifts its heel, arms swing a little
-    J["legs"] = [([(-4.4, -49), (-4.0, -27), (-3.4, -8.0)], None, "front"), ([(4.4, -49), (4.3, -26), (3.9, -3.6)], None, "front")]
-    J["arms"] = [("L", [(-7.6, -79.2), (-11.0, -64.5), (-9.0, -51.5)], "front"), ("R", [(7.6, -79.2), (11.4, -64), (12.6, -51)], "front")]
-    sh, dk_, lt_ = robe, fmix(robe, "#14102A", 0.38), fmix(robe, "#FFE8C8", 0.3)
+    J["arms"] = [("L", [(-7.4, -79.0), (-10.4, -65.5), (-10.2, -53.0)], "front"), ("R", [(7.4, -79.0), (10.8, -65.5), (12.2, -53.2)], "front")]
+    sh_dk, sh_lt = fmix(robe, "#0C0A1E", 0.42), fmix(robe, "#FFE8C8", 0.32)
+    wood, wood_dk, wood_lt = "#B07A4E", "#5A3622", "#E2B482"
+    o = []
+    o.append(f'<ellipse cx="{-light * 2.5:.1f}" cy="0.6" rx="14" ry="2.4" fill="#140C1A" opacity="0.32"/>')
+    F = Painter(k, light, rim, tint, 2)
+    # trailing (left) foot lifted behind: the heel and the underside of its geta, two teeth across the sole
+    F.fill([(-6.6, -9.4), (-0.8, -9.8), (-0.6, -2.8), (-6.4, -2.4)], wood, smooth=False)
+    F.shape([(-6.6, -9.4), (-0.8, -9.8), (-0.8, -8.9), (-6.6, -8.5)], wood_lt, smooth=False)
+    for ty in (-7.6, -4.6):
+        F.shape([(-6.5, ty), (-0.7, ty - 0.3), (-0.7, ty + 1.4), (-6.5, ty + 1.7)], wood_dk, smooth=False)
+    F.shape([(-5.4, -9.7), (-2.0, -9.9), (-2.4, -11.2), (-5.0, -11.0)], fmix(skin, "#3A1A10", 0.2))
+    # planted (right) foot: heel resting on the flat geta, the rear tooth under it
+    F.fill([(0.9, -3.4), (7.3, -3.4), (7.1, -1.6), (1.1, -1.6)], wood, smooth=False)
+    F.shape([(0.9, -3.4), (7.3, -3.4), (7.3, -2.9), (0.9, -2.9)], wood_lt, smooth=False)
+    F.shape([(1.6, -1.6), (6.6, -1.6), (6.4, 0.0), (1.8, 0.0)], wood_dk, smooth=False)
+    F.ellipse(4.1, -4.6, 2.5, 1.9, skin, shade=True)
+    o += F.out
+    # head, hair, neck and the torso under the robe
     B = Painter(k, light, rim, tint, 2)
-    # geta under the feet, drawn first so the robe hem and socks sit on them
-    for fx, fy in ((-3.4, -4.6), (3.9, 0.0)):
-        B.shape([(fx - 3.2, fy), (fx + 3.2, fy), (fx + 3.2, fy + 1.6), (fx - 3.2, fy + 1.6)], "#B8865A", smooth=False)
-        B.shape([(fx - 3.2, fy + 1.6), (fx + 3.2, fy + 1.6), (fx + 3.0, fy + 2.6), (fx - 3.0, fy + 2.6)], "#5A3A24", smooth=False)
-    _render(B, dict(J, arms=[]), pal, False, "stand_back")
-    # the robe: straight and narrow, falling from the shoulders to the ankles
-    robe_pts = [(-9.6, -79), (9.6, -79), (10.4, -64), (10.2, -50), (9.6, -26), (8.8, -7.2), (0.5, -6.4), (-8.8, -7.8), (-9.4, -26), (-10.0, -50), (-10.2, -64)]
-    B.fill(robe_pts, robe, smooth=False)
-    B.shape(tube_side([(0, -79), (0, -7)], [19.6, 17.8], B.L, 0.36, cap1=False), dk_)
-    B.shape(tube_side([(0, -79), (0, -7)], [19.6, 17.8], B.L, 0.1, lit=True, cap1=False), lt_, op=0.7)
-    # morning-glory print, clipped to the robe
+    _render(B, dict(J, arms=[], legs=[]), pal, False, "stand_back")
+    o += B.out
+    R = Painter(k, light, rim, tint, 2)
+    # the robe: sloping shoulders, a soft waist under the obi, hips, then a narrow column to the ankles,
+    # the hem lifted on the trailing side where the leg pulls back
+    robe_pts = [(-3.2, -81.4), (-6.4, -81.0), (-10.6, -78.6), (-11.0, -73.0), (-9.6, -64.0), (-9.4, -60.0), (-10.8, -50.0), (-10.6, -36.0),
+                (-9.8, -20.0), (-9.6, -10.6), (-5.0, -8.6), (0.0, -6.8), (5.0, -5.6), (9.0, -5.2), (9.6, -20.0), (10.4, -36.0), (10.8, -50.0),
+                (9.6, -60.0), (9.8, -64.0), (11.2, -73.0), (10.8, -78.6), (6.6, -81.0), (3.2, -81.4), (0.0, -79.6)]
+    R.fill(robe_pts, robe, smooth=False)
+    clip = f"{u}-yk{seed}"
+    R.add(f'<clipPath id="{clip}"><polygon points="{P(robe_pts)}"/></clipPath><g clip-path="url(#{clip})">')
+    # shadow side (light from the right), a lit edge, and the long folds the stride pulls across the skirt
+    R.shape([(-12, -82), (-3.0, -82), (-4.0, -60), (-5.0, -40), (-4.4, -20), (-2.4, -4), (-12, -4)], sh_dk, op=0.55)
+    R.shape([(8.2, -80), (12, -80), (12, -4), (7.6, -4), (8.4, -30), (8.6, -60)], sh_lt, op=0.45)
     rnd = random.Random(seed * 3 + 1)
-    clip = f'{u}-yk{seed}'
     motifs = []
-    for j in range(34):
-        mx, my = rnd.uniform(-10, 10) if j < 26 else rnd.choice((-1, 1)) * rnd.uniform(9, 15), rnd.uniform(-78, -8) if j < 26 else rnd.uniform(-78, -56)
-        r = rnd.uniform(1.3, 2.1)
-        motifs.append(f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r:.2f}" fill="#F4F0FA" opacity="0.85"/>'
-                      f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r * 0.42:.2f}" fill="#8EB4E8"/>'
-                      f'<path d="M {mx + r:.1f} {my + r * 0.4:.1f} q {r:.1f} {r * 0.2:.1f} {r * 1.4:.1f} {r * 1.3:.1f}" stroke="#8EB4E8" stroke-width="0.6" fill="none"/>')
-    B.add(f'<clipPath id="{clip}"><polygon points="{P(robe_pts)}"/></clipPath><g clip-path="url(#{clip})">{"".join(motifs)}</g>')
-    # centre-back seam and the hem's turned edge
-    B.add(f'<path d="M 0 -78 L 0.4 -7" stroke="{dk_}" stroke-width="0.7" opacity="0.6"/><path d="M -8.8 -7.8 L 0.5 -6.4 L 8.8 -7.2" stroke="{lt_}" stroke-width="0.8" fill="none" opacity="0.8"/>')
-    # obi with a folded bunko bow
-    o_dk, o_lt = fmix(obi, "#5A2A14", 0.35), fmix(obi, "#FFF6DC", 0.4)
-    B.fill([(-10.4, -67.5), (10.4, -67.5), (10.3, -57.5), (-10.3, -57.5)], obi, smooth=False)
-    B.shape([(-10.4, -60.5), (10.3, -60.5), (10.3, -57.5), (-10.3, -57.5)], o_dk, smooth=False)
-    B.shape([(-10.4, -67.5), (10.4, -67.5), (10.4, -66.6), (-10.4, -66.6)], "#D8302A", smooth=False)
-    # the bunko bow: two broad pleated wings, a cinched knot and two short folded loops hanging below
+    for j in range(46):
+        mx, my = rnd.uniform(-11, 11), rnd.uniform(-80, -6)
+        if -68 < my < -58:
+            continue
+        r = rnd.uniform(1.3, 2.3)
+        a0 = rnd.uniform(0, 72)
+        petals = "".join(f'<ellipse cx="{mx + r * 0.55 * math.cos(math.radians(a0 + 72 * q)):.2f}" cy="{my + r * 0.55 * math.sin(math.radians(a0 + 72 * q)):.2f}" rx="{r * 0.55:.2f}" ry="{r * 0.42:.2f}" '
+                         f'transform="rotate({a0 + 72 * q:.0f} {mx + r * 0.55 * math.cos(math.radians(a0 + 72 * q)):.2f} {my + r * 0.55 * math.sin(math.radians(a0 + 72 * q)):.2f})" fill="#F6F2FA"/>' for q in range(5))
+        motifs.append(f'<g opacity="{0.78 if mx < -3 else 0.92}">{petals}<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r * 0.36:.2f}" fill="#9EC0F0"/></g>')
+        if rnd.random() < 0.45:
+            motifs.append(f'<path d="M {mx + r * 0.6:.1f} {my + r * 0.6:.1f} q {r * 0.9:.1f} {r * 0.3:.1f} {r * 1.2:.1f} {r * 1.5:.1f} q {-r * 0.9:.1f} {-r * 0.1:.1f} {-r * 1.2:.1f} {-r * 1.5:.1f} Z" fill="#6E9AD0" opacity="0.8"/>')
+    R.add("".join(motifs))
+    R.add(f'<path d="M 6.0 -56 Q 3.4 -34 -2.6 -8" stroke="{sh_dk}" stroke-width="1.1" fill="none" opacity="0.75"/>'
+          f'<path d="M 7.2 -56 Q 4.8 -34 -0.8 -8" stroke="{sh_lt}" stroke-width="0.7" fill="none" opacity="0.6"/>'
+          f'<path d="M -6.4 -48 Q -6.8 -30 -7.6 -11" stroke="{sh_dk}" stroke-width="0.9" fill="none" opacity="0.6"/>'
+          f'<path d="M 0 -79.6 L 0.3 -67" stroke="{sh_dk}" stroke-width="0.6" opacity="0.6"/>')
+    R.add("</g>")
+    # the turned hem: a darker lining edge
+    R.add(f'<path d="M -9.6 -10.6 L -5.0 -8.6 L 0.0 -6.8 L 5.0 -5.6 L 9.0 -5.2" stroke="{sh_dk}" stroke-width="1.2" fill="none" stroke-linejoin="round"/>')
+    # collar standing away from the nape (emon), a pale under-edge
+    R.fill([(-4.6, -82.4), (-2.0, -79.4), (0.0, -78.4), (2.0, -79.4), (4.6, -82.4), (3.4, -83.0), (0.0, -80.4), (-3.4, -83.0)], fmix(robe, "#0C0A1E", 0.25), smooth=False)
+    R.add(f'<path d="M -3.4 -83.0 L 0.0 -80.4 L 3.4 -83.0" stroke="#F2EEE6" stroke-width="0.6" fill="none" opacity="0.9"/>')
+    # hanhaba obi high on the waist, a thin contrasting cord, and the butterfly bow on the back
+    o_dk, o_lt = fmix(obi, "#5A2A14", 0.38), fmix(obi, "#FFF6DC", 0.45)
+    R.fill([(-9.8, -68.0), (9.9, -68.0), (9.7, -59.6), (-9.7, -59.6)], obi, smooth=False)
+    R.shape([(-9.8, -68.0), (-4.0, -68.0), (-4.0, -59.6), (-9.7, -59.6)], o_dk, op=0.45, smooth=False)
+    R.shape([(-9.8, -64.4), (9.9, -64.4), (9.9, -63.3), (-9.8, -63.3)], "#C8302A", smooth=False)
+    R.add(f'<path d="M -9.7 -67.2 L 9.8 -67.2" stroke="{o_lt}" stroke-width="0.6" opacity="0.8"/>')
     for s in (-1, 1):
-        wing = [(s * 1.8, -70.5), (s * 6.4, -72.2), (s * 11.6, -71.6), (s * 12.4, -66.4), (s * 11.6, -61.4), (s * 6.4, -61.0), (s * 1.8, -63.0)]
-        B.fill(wing, obi)
-        B.shape([(s * 1.8, -64.6), (s * 6.4, -63.6), (s * 12.1, -63.8), (s * 11.6, -61.4), (s * 6.4, -61.0), (s * 1.8, -63.0)], o_dk, op=0.85)
-        B.add(f'<path d="M {s * 3:.1f} -68.2 Q {s * 7:.1f} -69.6 {s * 11.2:.1f} -68.6 M {s * 3:.1f} -66.0 Q {s * 7:.1f} -66.6 {s * 11.8:.1f} -66.2" stroke="{o_dk}" stroke-width="0.6" fill="none" opacity="0.8"/>')
-        B.add(f'<path d="M {s * 2:.1f} -70.3 Q {s * 6.4:.1f} -71.9 {s * 11.4:.1f} -71.3" stroke="{o_lt}" stroke-width="0.8" fill="none" opacity="0.9"/>')
-    for s in (-1, 1):
-        loop = [(s * 0.6, -62.5), (s * 5.6, -61.5), (s * 6.4, -51.5), (s * 3.4, -50.2), (s * 0.4, -51.8)]
-        B.fill(loop, obi)
-        B.shape([(s * 3.6, -61.8), (s * 5.6, -61.5), (s * 6.4, -51.5), (s * 3.4, -50.2)], o_dk if s * light < 0 else o_lt, op=0.7)
-    B.fill([(-2.6, -71.2), (2.6, -71.2), (2.2, -61.6), (-2.2, -61.6)], obi)
-    B.shape([(-2.6, -71.2), (-0.6, -71.2), (-0.6, -61.6), (-2.2, -61.6)], o_dk, op=0.8)
-    B.add(f'<path d="M -1.8 -69 L 1.8 -69 M -1.6 -66.4 L 1.6 -66.4 M -1.6 -63.8 L 1.6 -63.8" stroke="{o_dk}" stroke-width="0.5"/>')
-    # arms, then the wide hanging sleeves over the upper arms
+        wing = [(s * 1.6, -66.6), (s * 5.4, -71.8), (s * 10.2, -73.0), (s * 11.4, -68.6), (s * 10.0, -63.2), (s * 5.6, -61.4), (s * 1.6, -62.6)]
+        R.fill(wing, obi)
+        R.shape([(s * 1.6, -64.4), (s * 5.6, -63.8), (s * 10.6, -65.2), (s * 10.0, -63.2), (s * 5.6, -61.4), (s * 1.6, -62.6)], o_dk, op=0.8)
+        R.add(f'<path d="M {s * 2.4:.1f} -66.0 Q {s * 5.8:.1f} -69.2 {s * 10.4:.1f} -70.2" stroke="{o_dk}" stroke-width="0.55" fill="none" opacity="0.8"/>'
+              f'<path d="M {s * 2.0:.1f} -67.0 Q {s * 5.4:.1f} -71.2 {s * 10.0:.1f} -72.4" stroke="{o_lt if s * light > 0 else o_dk}" stroke-width="0.8" fill="none" opacity="0.85"/>')
+    # two tails falling from the knot, the left one longer
+    for pts_t, lit in (([(-1.6, -62.6), (1.0, -62.6), (-1.4, -49.6), (-4.6, -50.4)], False), ([(0.2, -62.6), (2.8, -62.6), (4.0, -53.2), (1.4, -52.6)], True)):
+        R.fill(pts_t, obi, smooth=False)
+        R.shape(pts_t[:2] + [pts_t[2], ((pts_t[2][0] + pts_t[3][0]) / 2, (pts_t[2][1] + pts_t[3][1]) / 2)], o_lt if lit else o_dk, op=0.55, smooth=False)
+    R.fill([(-2.2, -67.6), (2.2, -67.6), (1.9, -61.6), (-1.9, -61.6)], fmix(obi, "#C8302A", 0.12))
+    R.shape([(-2.2, -67.6), (-0.4, -67.6), (-0.6, -61.6), (-1.9, -61.6)], o_dk, op=0.7)
+    o += R.out
+    # arms in their sleeves, then the wide tamoto hanging from the upper arms; hands emerge below
+    A0 = Painter(k, light, None, tint, 2)
+    _render(A0, dict(J, legs=[]), pal, False, "stand_back", parts="arms")
+    o += A0.out
     A = Painter(k, light, rim, tint, 2)
-    _render(A, dict(J, legs=[]), pal, False, "stand_back", parts="arms")
     for s in (-1, 1):
-        # a straight tamoto hanging from the arm, a little longer at the back, the forearm emerging at its mouth
-        sl = [(s * 7.4, -80.6), (s * 11.8, -79.8), (s * 15.0, -72), (s * 15.4, -58.5), (s * 14.2, -55.2), (s * 10.4, -55.0), (s * 8.8, -58), (s * 8.6, -72)]
+        sl = [(s * 7.0, -80.2), (s * 11.4, -79.4), (s * 13.6, -73.0), (s * 14.2, -58.6), (s * 13.2, -55.6), (s * 10.0, -55.4), (s * 8.4, -58.0), (s * 8.4, -72.0)]
         A.fill(sl, robe)
-        A.shape([(s * 12.6, -74), (s * 15.0, -72), (s * 15.4, -58.5), (s * 14.2, -55.2), (s * 12.4, -55.1)], dk_ if s * light < 0 else lt_, op=0.65)
-        A.add(f'<path d="M {s * 9.4:.1f} -71 Q {s * 9.2:.1f} -64 {s * 9.8:.1f} -57" stroke="{dk_}" stroke-width="0.7" fill="none" opacity="0.8"/>')
-        A.add(f'<clipPath id="{clip}s{s + 1}"><polygon points="{P(sl)}"/></clipPath><g clip-path="url(#{clip}s{s + 1})">'
-              + "".join(motifs[22:]) + "</g>")
-    # drawstring bag swinging from the left hand
-    A.fill([(-12.2, -49.2), (-7.2, -49.4), (-6.6, -42.5), (-9.6, -41.6), (-12.8, -42.8)], "#C8302A")
-    A.shape([(-12.2, -49.2), (-10.6, -49.2), (-11.2, -42), (-12.8, -42.8)], "#8A1E1A")
-    A.add('<path d="M -11.8 -47.8 L -7.6 -48" stroke="#F2C24A" stroke-width="0.7"/>')
-    # a hairpin with a small flower in the bun
+        A.shape([(s * 11.6, -76.0), (s * 13.6, -73.0), (s * 14.2, -58.6), (s * 13.2, -55.6), (s * 11.4, -55.5)], sh_dk if s * light < 0 else sh_lt, op=0.6)
+        A.add(f'<clipPath id="{clip}s{s + 1}"><polygon points="{P(sl)}"/></clipPath><g clip-path="url(#{clip}s{s + 1})">' + "".join(motifs[::2]) + "</g>")
+        A.add(f'<path d="M {s * 9.0:.1f} -71 Q {s * 8.8:.1f} -64 {s * 9.4:.1f} -57.5" stroke="{sh_dk}" stroke-width="0.7" fill="none" opacity="0.8"/>')
+    # kinchaku bag swinging from the right hand
+    A.add('<path d="M 12.4 -50.2 L 12.8 -47.6" stroke="#F2C24A" stroke-width="0.6"/>')
+    A.fill([(10.6, -47.8), (15.0, -47.8), (15.8, -42.6), (13.0, -41.2), (10.0, -42.6)], "#C8302A")
+    A.shape([(10.6, -47.8), (12.0, -47.8), (11.8, -41.6), (10.0, -42.6)], "#8A1E1A")
+    A.add('<path d="M 10.8 -46.6 L 15.0 -46.6" stroke="#F2C24A" stroke-width="0.7"/>')
+    # a kanzashi pin with a dangling flower in the bun
     hx, hy = J["head"]
-    A.add(f'<path d="M {hx - 2:.1f} {hy - 10.5:.1f} L {hx + 6:.1f} {hy - 6:.1f}" stroke="#E8D29A" stroke-width="0.9"/>'
-          f'<circle cx="{hx + 5.5:.1f}" cy="{hy - 6.5:.1f}" r="1.7" fill="#F26A8A"/><circle cx="{hx + 5.5:.1f}" cy="{hy - 6.5:.1f}" r="0.6" fill="#FFF0C8"/>')
-    shadow = f'<ellipse cx="{-light * 3:.1f}" cy="0.8" rx="15" ry="2.6" fill="#140C1A" opacity="0.3"/>'
-    return (f'<g transform="translate({x:.1f} {base:.1f}) scale({k:.4f})">' + shadow + "".join(B.out) + "".join(A.out) + "</g>")
+    A.add(f'<path d="M {hx - 3:.1f} {hy - 9.5:.1f} L {hx + 6.5:.1f} {hy - 6.2:.1f}" stroke="#E8D29A" stroke-width="0.8"/>'
+          f'<circle cx="{hx + 6.2:.1f}" cy="{hy - 6.4:.1f}" r="1.7" fill="#F26A8A"/><circle cx="{hx + 6.2:.1f}" cy="{hy - 6.4:.1f}" r="0.6" fill="#FFF0C8"/>'
+          f'<path d="M {hx + 6.2:.1f} {hy - 4.8:.1f} L {hx + 6.4:.1f} {hy - 1.8:.1f}" stroke="#E8D29A" stroke-width="0.5"/><circle cx="{hx + 6.4:.1f}" cy="{hy - 1.4:.1f}" r="0.7" fill="#F6B8C8"/>')
+    o += A.out
+    return f'<g transform="translate({x:.1f} {base:.1f}) scale({k:.4f})">' + "".join(o) + "</g>"
 
 
 def kyoto():
     u = "kyoto"
-    C = Cam(f=360, cx=300, vpy=312, eye=1.5)
+    C = Cam(f=360, cx=300, vpy=298, eye=1.5)
     Z0, Z1, dz = 2.6, 26.0, 0.56
     HW, PW, TOP = 0.78, 0.13, 2.9   # half path width to pillar centre, pillar half-thickness, kasagi height
 
@@ -1287,8 +1325,8 @@ def kyoto():
         px, py = C(X + rnd.uniform(-HW * 0.8, HW * 0.8), Y, Z)
         out.append(f'<ellipse cx="{px:.1f}" cy="{py:.1f}" rx="{90 / Z:.1f}" ry="{18 / Z:.1f}" fill="#FFE6A0" opacity="{rnd.uniform(0.3, 0.7):.2f}"/>')
     # a visitor in a summer yukata walking up the tunnel, slotted in among the gates at her own depth
-    ZV = 5.3
-    vx, vy = C(axis(ZV)[0] - 0.12, axis(ZV)[1], ZV)
+    ZV = 4.45
+    vx, vy = C(axis(ZV)[0] - 0.06, axis(ZV)[1], ZV)
     visitor = yukata_visitor(vx, vy, 1.58 * C.f / ZV, u, light=1, rim="#FFD49A")
     # the gates, far to near
     gates = [Z1 - i * dz for i in range(int((Z1 - Z0) / dz) + 1)]
@@ -1516,220 +1554,332 @@ def umbrella_couple(x, base, h, u, light=1, rim="#FFB27A", tint=None, umb="#C834
     return f'<g transform="translate({x:.1f} {base:.1f}) scale({k:.4f})">' + "".join(o) + "</g>"
 
 
+def jp_roof(cx, ye, he, ht, ytop, lift, u, key, tile="#34343F", tile_lit="#5A5C70", soffit="#E07A3A", soffit_dk="#8A3A22", lip="#C8C4D0",
+            thick=5.0, rafters=True, bells=None):
+    """A Japanese temple roof in elevation: a dark tiled slope that sags (flat at the eaves, steep near the top), eaves
+    sweeping up at the corners, the underside lit by the floodlights with its rafters, and a pale line of tile ends."""
+    def eave(x):
+        t = max(0.0, (abs(x - cx) - he * 0.42) / (he * 0.58))
+        return ye - lift * t ** 2.2
+    n = 24
+    xs = [cx - he + 2 * he * i / n for i in range(n + 1)]
+    lipline = [(x, eave(x)) for x in xs]
+    def slope(sgn):
+        y0 = ye - lift
+        return [(cx + sgn * (he + (ht - he) * s), y0 + (ytop - y0) * s ** 1.7) for s in [j / 10 for j in range(11)]]
+    roof = lipline + slope(1) + slope(-1)[::-1]
+    o = []
+    # underside: a band under the eave, deepest at the centre, catching the light from below
+    under = lipline + [(x, y + thick * (1 - 0.75 * (abs(x - cx) / he) ** 2)) for x, y in lipline[::-1]]
+    o.append(f'<defs>{lg(f"{u}-sf{key}", [(0, soffit_dk), (0.55, soffit), (1, soffit)], 0, 0, 0, 1)}</defs>')
+    o.append(Q(under, f"url(#{u}-sf{key})"))
+    if rafters and thick > 3:
+        rr = []
+        m = int(he / 2.6)
+        for i in range(-m, m + 1):
+            x = cx + he * 0.97 * i / m
+            y = eave(x)
+            rr.append(f'<line x1="{x:.1f}" y1="{y + 0.6:.1f}" x2="{x:.1f}" y2="{y + thick * 0.85 * (1 - 0.75 * (abs(x - cx) / he) ** 2):.1f}"/>')
+        o.append(f'<g stroke="{soffit_dk}" stroke-width="0.9" opacity="0.55">{"".join(rr)}</g>')
+    o.append(f'<defs>{lg(f"{u}-rf{key}", [(0, tile_lit), (0.25, tile), (1, mix(tile, "#0A0A14", 0.25))], 0, 0, 0, 1)}</defs>')
+    o.append(Q(roof, f"url(#{u}-rf{key})"))
+    # tile rows running up the slope
+    lines = []
+    m = int(he / 3.2)
+    for i in range(-m, m + 1):
+        t = i / m
+        x0 = cx + t * he * 0.96
+        x1 = cx + t * ht
+        lines.append(f'<path d="M {x0:.1f} {eave(x0) - 0.8:.1f} Q {(x0 * 0.6 + x1 * 0.4):.1f} {eave(x0) - (eave(x0) - ytop) * 0.25:.1f} {x1:.1f} {ytop:.1f}"/>')
+    o.append(f'<g stroke="{mix(tile, "#000000", 0.35)}" stroke-width="0.9" fill="none" opacity="0.5">{"".join(lines)}</g>')
+    # the skyward slopes catch a little of the blue dusk, the hip ridges a line of light
+    o.append(f'<polyline points="{P(slope(1))}" fill="none" stroke="{tile_lit}" stroke-width="1.6" opacity="0.8"/>')
+    o.append(f'<polyline points="{P(slope(-1))}" fill="none" stroke="{tile_lit}" stroke-width="1.6" opacity="0.8"/>')
+    o.append(f'<polyline points="{P(lipline)}" fill="none" stroke="{lip}" stroke-width="1.4" opacity="0.9"/>')
+    if bells:
+        for sgn in (-1, 1):
+            bx, by = cx + sgn * he * 0.99, ye - lift + 1
+            o.append(f'<line x1="{bx:.1f}" y1="{by:.1f}" x2="{bx:.1f}" y2="{by + bells * 1.6:.1f}" stroke="#C89A4A" stroke-width="0.8"/>'
+                     f'<path d="M {bx - bells * 0.5:.1f} {by + bells * 2.6:.1f} Q {bx:.1f} {by + bells * 0.9:.1f} {bx + bells * 0.5:.1f} {by + bells * 2.6:.1f} Z" fill="#E8B85A"/>')
+    return "".join(o)
+
+
+def senso_pagoda(cx, base, u):
+    """The five-storey pagoda of the Asakusa temple, floodlit at dusk: a stone podium, five vermilion storeys under
+    dark tiled roofs whose undersides glow, and the bronze-gold spire of nine rings with its flame-shaped crown."""
+    o = [defs(lg(f"{u}-pb", [(0, "#C83A26"), (0.5, "#E8582E"), (1, "#F6904A")], 0, 0, 0, 1),
+              lg(f"{u}-pod", [(0, "#D8C4B4"), (1, "#8A7A86")], 0, 0, 0, 1),
+              lg(f"{u}-gold", [(0, "#8A5A2A"), (0.4, "#F2C66A"), (0.6, "#FFE6A0"), (1, "#A8783A")], 0, 0, 1, 0))]
+    # podium: two stone steps
+    o.append(rect(cx - 62, base - 8, 124, 8, f"url(#{u}-pod)") + rect(cx - 54, base - 15, 108, 7, f"url(#{u}-pod)"))
+    o.append(rect(cx - 62, base - 8, 124, 1.4, "#F2E2D2") + rect(cx - 54, base - 15, 108, 1.4, "#F2E2D2"))
+    y = base - 15
+    for i in range(5):
+        bw = 34 - i * 2.6
+        hb = 22.5 - i * 1.0
+        he = 84 - i * 5.0
+        ht = bw + 2
+        ytop = y - hb
+        # balcony rail on the upper storeys
+        if i:
+            o.append(rect(cx - bw - 5, y - 4.5, 2 * bw + 10, 1.6, "#B8361E") + "".join(rect(cx - bw - 4 + j * (2 * bw + 8) / 8, y - 4.5, 1.4, 4.5, "#8A2A18") for j in range(9)))
+        o.append(rect(cx - bw, ytop, 2 * bw, hb, f"url(#{u}-pb)"))
+        # pillars, central door with studs, slatted side windows
+        for fx in (-1, -1 / 3, 1 / 3, 1):
+            o.append(rect(cx + fx * bw - 1.6, ytop, 3.2, hb, "#A82A1A"))
+        dw = bw * 0.42
+        o.append(rect(cx - dw / 2, ytop + hb * 0.22, dw, hb * 0.78, "#7A1E14"))
+        o.append(f'<line x1="{cx:.1f}" y1="{ytop + hb * 0.22:.1f}" x2="{cx:.1f}" y2="{y:.1f}" stroke="#3A0E0A" stroke-width="0.8"/>')
+        o.append(dots(6, 50 + i, (cx - dw / 2 + 1, ytop + hb * 0.3, cx + dw / 2 - 1, y - 2), "#F2C66A", r=(0.5, 0.8), opacity=(0.7, 1)))
+        for sgn in (-1, 1):
+            wx = cx + sgn * bw * 0.66
+            ww = bw * 0.36
+            o.append(rect(wx - ww / 2, ytop + hb * 0.3, ww, hb * 0.42, "#F6E6C8"))
+            o.append("".join(rect(wx - ww / 2 + ww * (j + 0.5) / 5 - 0.5, ytop + hb * 0.3, 1.0, hb * 0.42, "#8A2A18") for j in range(5)))
+        o.append(rect(cx - bw, ytop, 2 * bw, 2.2, "#F6E6C8"))
+        # bracket band under the eave: green and white blocks
+        o.append(rect(cx - bw - 3, ytop - 4.5, 2 * bw + 6, 4.5, "#2E6A5A") + "".join(rect(cx - bw - 2 + j * 5.2, ytop - 3.8, 2.4, 3.2, "#E8E2D0") for j in range(int((2 * bw + 4) / 5.2) + 1)))
+        # the roof
+        ye = ytop - 2.5
+        yroof = ye - 10.5 - i * 0.2
+        o.append(jp_roof(cx, ye, he, ht, yroof, 8.5 - i * 0.3, u, f"p{i}", thick=7.5 - i * 0.4, bells=2.6))
+        y = yroof
+    # spire: square base, inverted bowl, lotus, nine rings, flame, jewel
+    g = f"url(#{u}-gold)"
+    o.append(rect(cx - 9, y - 5, 18, 5, "#3A3A46") + rect(cx - 9, y - 5, 18, 1.2, "#6A6C80"))
+    o.append(f'<path d="M {cx - 8:.1f} {y - 5:.1f} Q {cx - 8:.1f} {y - 12:.1f} {cx:.1f} {y - 12:.1f} Q {cx + 8:.1f} {y - 12:.1f} {cx + 8:.1f} {y - 5:.1f} Z" fill="{g}"/>')
+    o.append(f'<path d="M {cx - 7:.1f} {y - 12:.1f} Q {cx - 6:.1f} {y - 17:.1f} {cx:.1f} {y - 17:.1f} Q {cx + 6:.1f} {y - 17:.1f} {cx + 7:.1f} {y - 12:.1f} Z" fill="#C89A4A"/>')
+    o.append(rect(cx - 1.5, y - 60, 3.0, 46, g))
+    for j in range(9):
+        ry_ = y - 20 - j * 4.1
+        rw = 6.8 - j * 0.3
+        o.append(f'<ellipse cx="{cx:.1f}" cy="{ry_:.1f}" rx="{rw:.1f}" ry="1.6" fill="{g}"/><ellipse cx="{cx:.1f}" cy="{ry_ - 0.6:.1f}" rx="{rw * 0.7:.1f}" ry="0.6" fill="#FFF0B8" opacity="0.7"/>')
+    fy = y - 55
+    # suien: an openwork flame ornament, drawn as curling gilt tongues around the mast
+    flame = (f'M {cx - 1.2:.1f} {fy:.1f} Q {cx - 8:.1f} {fy - 2:.1f} {cx - 6.5:.1f} {fy - 7:.1f} Q {cx - 5:.1f} {fy - 10:.1f} {cx - 7:.1f} {fy - 13:.1f} Q {cx - 2:.1f} {fy - 11:.1f} {cx - 2.5:.1f} {fy - 7:.1f} '
+             f'M {cx + 1.2:.1f} {fy:.1f} Q {cx + 8:.1f} {fy - 2:.1f} {cx + 6.5:.1f} {fy - 7:.1f} Q {cx + 5:.1f} {fy - 10:.1f} {cx + 7:.1f} {fy - 13:.1f} Q {cx + 2:.1f} {fy - 11:.1f} {cx + 2.5:.1f} {fy - 7:.1f}')
+    o.append(f'<path d="{flame}" fill="none" stroke="#F2C66A" stroke-width="1.6" stroke-linecap="round"/>')
+    o.append(f'<path d="M {cx - 5:.1f} {fy - 2.5:.1f} Q {cx - 4:.1f} {fy - 6:.1f} {cx - 1.5:.1f} {fy - 4:.1f} M {cx + 5:.1f} {fy - 2.5:.1f} Q {cx + 4:.1f} {fy - 6:.1f} {cx + 1.5:.1f} {fy - 4:.1f}" fill="none" stroke="#C89A4A" stroke-width="1.1"/>')
+    o.append(f'<ellipse cx="{cx:.1f}" cy="{fy - 12:.1f}" rx="2.2" ry="1.4" fill="#C89A4A"/>')
+    o.append(f'<circle cx="{cx:.1f}" cy="{fy - 15:.1f}" r="2.6" fill="#F2C66A"/><circle cx="{cx - 0.8:.1f}" cy="{fy - 15.8:.1f}" r="0.9" fill="#FFF6D0"/>')
+    o.append(f'<line x1="{cx:.1f}" y1="{fy - 17.5:.1f}" x2="{cx:.1f}" y2="{fy - 21:.1f}" stroke="#C89A4A" stroke-width="1.2"/>')
+    return "".join(o)
+
+
+def great_lantern(cx, cy, rx, ry, u):
+    """The huge red paper lantern of a temple gate, lit from inside: ribbed body, black lacquered rim fittings with gold
+    studs, a band of wave pattern instead of lettering, and a carved base ring."""
+    o = [defs(rg(f"{u}-gl", [(0, "#FFD08A"), (0.3, "#FF7A3A"), (0.75, "#D8241A"), (1, "#7A0E0C")], 0.42, 0.4, 0.62))]
+    o.append(glow(cx, cy, rx * 3.4, "#FF5A2A", f"{u}-glg", 0.55))
+    body = []
+    for j in range(41):
+        t = -math.pi / 2 + math.pi * j / 40
+        body.append((cx + rx * math.cos(t) * (1 - 0.1 * math.sin(t) ** 8), cy + ry * math.sin(t)))
+    pts = body + [(2 * cx - x, y) for x, y in body[::-1]]
+    o.append(Q(pts, f"url(#{u}-gl)"))
+    # ribs
+    rib = []
+    for j in range(1, 16):
+        t = -1 + 2 * j / 16
+        w = rx * math.sqrt(max(0, 1 - t * t))
+        yy = cy + ry * t
+        rib.append(f'<path d="M {cx - w:.1f} {yy:.1f} Q {cx:.1f} {yy + 3.2:.1f} {cx + w:.1f} {yy:.1f}"/>')
+    o.append(f'<g stroke="#7A120C" stroke-width="1.0" fill="none" opacity="0.45">{"".join(rib)}</g>')
+    # dark wave bands near top and bottom (a pattern, no characters)
+    for yy in (cy - ry * 0.72, cy + ry * 0.66):
+        w = rx * math.sqrt(max(0, 1 - ((yy - cy) / ry) ** 2))
+        wave = "".join(f'<path d="M {cx - w + i * 2 * w / 7:.1f} {yy + 3:.1f} q {w / 7 * 0.5:.1f} -6 {w / 7:.1f} 0 q {-w / 7 * 0.25:.1f} -3 {-w / 7 * 0.5:.1f} 0" fill="none"/>' for i in range(7))
+        o.append(f'<g stroke="#2A0A0A" stroke-width="1.6" opacity="0.75">{wave}</g>')
+    # a broad soft highlight and the hot core
+    o.append(f'<ellipse cx="{cx - rx * 0.32:.1f}" cy="{cy - ry * 0.12:.1f}" rx="{rx * 0.18:.1f}" ry="{ry * 0.62:.1f}" fill="#FFE8B0" opacity="0.45"/>')
+    # black lacquer caps with gold studs
+    for yy, h_, wf in ((cy - ry - 7, 9, 0.66), (cy + ry - 3, 10, 0.7)):
+        o.append(rect(cx - rx * wf, yy, rx * 2 * wf, h_, "#1A1214"))
+        o.append(rect(cx - rx * wf, yy, rx * 2 * wf, 1.6, "#5A4A4A"))
+        o.append("".join(f'<circle cx="{cx - rx * wf + (j + 0.5) * rx * 2 * wf / 9:.1f}" cy="{yy + h_ * 0.55:.1f}" r="1.1" fill="#E8B85A"/>' for j in range(9)))
+    o.append(f'<path d="M {cx - rx * 0.5:.1f} {cy + ry + 7:.1f} Q {cx:.1f} {cy + ry + 15:.1f} {cx + rx * 0.5:.1f} {cy + ry + 7:.1f} Z" fill="#1A1214"/>')
+    o.append(f'<circle cx="{cx:.1f}" cy="{cy + ry + 11:.1f}" r="2" fill="#E8B85A"/>')
+    return "".join(o)
+
+
+def temple_gate(cx, base, u):
+    """A two-storey temple gate in elevation, floodlit at dusk: stone plinth, three vermilion bays (the centre one open,
+    the great lantern hanging in it; the sides behind grilles), bracket band, a railed upper storey with white panels,
+    and a hip-and-gable roof with a gilded gable, upswept eaves and a heavy ridge."""
+    o = [defs(lg(f"{u}-gp", [(0, "#B8301E"), (0.25, "#F0602E"), (0.55, "#E8542C"), (1, "#A82A1A")], 0, 0, 1, 0),
+              lg(f"{u}-gin", [(0, "#4A1A1A"), (0.6, "#8A3A22"), (1, "#E89A5A")], 0, 0, 0, 1),
+              lg(f"{u}-gw", [(0, "#F6E8D2"), (1, "#E2C8A8")], 0, 0, 0, 1))]
+    W = 112        # half width of the body
+    H1 = 112       # lower storey
+    o.append(rect(cx - W - 8, base - 6, 2 * (W + 8), 8, "#8A7A80") + rect(cx - W - 8, base - 6, 2 * (W + 8), 1.6, "#D8C8C0"))
+    yb = base - 6
+    y1 = yb - H1
+    # interior: warm light deep inside the centre passage, dark side bays
+    o.append(rect(cx - W, y1, 2 * W, H1, "#2A1214"))
+    o.append(rect(cx - 50, y1, 100, H1, f"url(#{u}-gin)"))
+    # glimpse of the main hall's lit doorway far beyond the passage
+    o.append(rect(cx - 30, yb - 46, 60, 46, "#F6B860", ' opacity="0.55"'))
+    o.append(rect(cx - 30, yb - 46, 60, 3, "#6A2A1A"))
+    o.append("".join(rect(cx - 30 + j * 10, yb - 43, 1.2, 43, "#8A3A22", ' opacity="0.6"') for j in range(1, 6)))
+    # side bays: lattice grilles with guardian shapes behind them
+    for sgn in (-1, 1):
+        bx0, bx1 = (cx - W + 6, cx - 56) if sgn < 0 else (cx + 56, cx + W - 6)
+        o.append(rect(bx0, y1 + 16, bx1 - bx0, H1 - 16, "#1E0C0E"))
+        gx = (bx0 + bx1) / 2
+        o.append(f'<path d="M {gx - 14:.1f} {yb:.1f} L {gx - 12:.1f} {yb - 40:.1f} Q {gx - 18:.1f} {yb - 54:.1f} {gx - 10:.1f} {yb - 64:.1f} Q {gx:.1f} {yb - 76:.1f} {gx + 10:.1f} {yb - 64:.1f} '
+                 f'Q {gx + 18:.1f} {yb - 54:.1f} {gx + 12:.1f} {yb - 40:.1f} L {gx + 14:.1f} {yb:.1f} Z" fill="#4A2A24" opacity="0.8"/>')
+        o.append(f'<circle cx="{gx:.1f}" cy="{yb - 80:.1f}" r="7" fill="#4A2A24" opacity="0.8"/>')
+        o.append(f'<g stroke="#C8402A" stroke-width="1.6">' + "".join(f'<line x1="{bx0 + (bx1 - bx0) * j / 11:.1f}" y1="{y1 + 16:.1f}" x2="{bx0 + (bx1 - bx0) * j / 11:.1f}" y2="{yb:.1f}"/>' for j in range(1, 11)) + "</g>")
+        o.append(rect(bx0, yb - 30, bx1 - bx0, 3, "#C8402A") + rect(bx0, y1 + 16, bx1 - bx0, 3, "#C8402A"))
+    # columns with stone bases
+    for px in (-W, -56, 56, W):
+        o.append(rect(cx + px - 7, y1, 14, H1, f"url(#{u}-gp)"))
+        o.append(rect(cx + px - 9, yb - 5, 18, 5, "#9A8A8A"))
+    # tie beams and the bracket band
+    o.append(rect(cx - W - 8, y1 - 2, 2 * (W + 8), 9, "#D8482A") + rect(cx - W - 8, y1 - 2, 2 * (W + 8), 2.4, "#F69A5A"))
+    o.append(rect(cx - W - 8, y1 + 14, 2 * (W + 8), 5, "#C8402A"))
+    o.append(rect(cx - W - 10, y1 - 13, 2 * (W + 10), 11, "#2E6A5A") + "".join(rect(cx - W - 8 + j * 7.2, y1 - 11, 3.6, 7, "#E8E2D0") for j in range(int(2 * (W + 8) / 7.2) + 1)))
+    # lower skirt roof between the storeys
+    o.append(jp_roof(cx, y1 - 13, W + 26, W - 6, y1 - 30, 6, u, "g1", thick=7, bells=None))
+    # upper storey with railing and white plaster panels
+    y2 = y1 - 30
+    H2 = 40
+    o.append(rect(cx - W + 10, y2 - H2, 2 * (W - 10), H2, f"url(#{u}-gw)"))
+    for j in range(7):
+        px = cx - W + 10 + j * (2 * (W - 10)) / 6
+        o.append(rect(px - 4, y2 - H2, 8, H2, f"url(#{u}-gp)"))
+    for j in range(6):
+        px = cx - W + 10 + (j + 0.5) * (2 * (W - 10)) / 6
+        o.append(rect(px - 9, y2 - H2 + 10, 18, 16, "#3A1A18") + "".join(rect(px - 9 + q * 3.6, y2 - H2 + 10, 1.0, 16, "#C8402A") for q in range(1, 5)))
+    o.append(rect(cx - W + 2, y2 - 7, 2 * (W - 2), 3, "#B8361E") + "".join(rect(cx - W + 4 + j * 12, y2 - 7, 1.8, 7, "#8A2A18") for j in range(int(2 * (W - 4) / 12) + 1)))
+    o.append(rect(cx - W + 8, y2 - H2 - 10, 2 * (W - 8), 10, "#2E6A5A") + "".join(rect(cx - W + 10 + j * 7.2, y2 - H2 - 8.5, 3.6, 6.5, "#E8E2D0") for j in range(int(2 * (W - 10) / 7.2) + 1)))
+    # main roof: a broad hip-and-gable seen from its long side, a heavy ridge with upturned ends
+    ye = y2 - H2 - 10
+    ytop = ye - 44
+    o.append(jp_roof(cx, ye, W + 34, W - 34, ytop, 12, u, "g2", thick=9, bells=None))
+    rx0, rx1, ry_ = cx - W + 26, cx + W - 26, ytop
+    o.append(f'<path d="M {rx0 - 8:.1f} {ry_ - 9:.1f} Q {rx0 - 2:.1f} {ry_ - 1:.1f} {rx0 + 10:.1f} {ry_ - 2:.1f} L {rx1 - 10:.1f} {ry_ - 2:.1f} Q {rx1 + 2:.1f} {ry_ - 1:.1f} {rx1 + 8:.1f} {ry_ - 9:.1f} '
+             f'L {rx1 + 6:.1f} {ry_ + 4:.1f} L {rx0 - 6:.1f} {ry_ + 4:.1f} Z" fill="#24242C"/>')
+    o.append(f'<path d="M {rx0 + 8:.1f} {ry_ - 1.2:.1f} L {rx1 - 8:.1f} {ry_ - 1.2:.1f}" stroke="#8A8CA0" stroke-width="1.3" opacity="0.8"/>')
+    for sgn in (-1, 1):
+        ex_ = cx + sgn * (W - 26 + 6)
+        o.append(f'<circle cx="{ex_:.1f}" cy="{ry_ - 3:.1f}" r="2.2" fill="#C89A4A"/>')
+    return "".join(o), y1
+
+
+def jokoro(x, base, k, u):
+    """Bronze incense burner on three legs under a small tiled roof, smoke curling up through the lantern light."""
+    s = k
+    o = []
+    o.append(f'<ellipse cx="{x:.1f}" cy="{base + 1:.1f}" rx="{30 * s:.1f}" ry="{4 * s:.1f}" fill="#0A0814" opacity="0.4"/>')
+    for dx in (-18, 0, 18):
+        o.append(f'<path d="M {x + dx * s - 3 * s:.1f} {base:.1f} L {x + dx * s * 0.8 - 2 * s:.1f} {base - 12 * s:.1f} L {x + dx * s * 0.8 + 2 * s:.1f} {base - 12 * s:.1f} L {x + dx * s + 3 * s:.1f} {base:.1f} Z" fill="#2A2A2E"/>')
+    o.append(f'<path d="M {x - 26 * s:.1f} {base - 26 * s:.1f} Q {x - 24 * s:.1f} {base - 8 * s:.1f} {x:.1f} {base - 8 * s:.1f} Q {x + 24 * s:.1f} {base - 8 * s:.1f} {x + 26 * s:.1f} {base - 26 * s:.1f} Z" fill="#3A3A3E"/>')
+    o.append(f'<path d="M {x + 6 * s:.1f} {base - 9 * s:.1f} Q {x + 22 * s:.1f} {base - 11 * s:.1f} {x + 25 * s:.1f} {base - 25 * s:.1f} L {x + 18 * s:.1f} {base - 25 * s:.1f} Q {x + 16 * s:.1f} {base - 14 * s:.1f} {x + 6 * s:.1f} {base - 11 * s:.1f} Z" fill="#C86A3A" opacity="0.55"/>')
+    o.append(rect(x - 28 * s, base - 29 * s, 56 * s, 4 * s, "#4A4A50") + rect(x - 28 * s, base - 29 * s, 56 * s, 1.2 * s, "#C88A5A"))
+    for dx in (-20, 20):
+        o.append(rect(x + dx * s - 2.2 * s, base - 46 * s, 4.4 * s, 17 * s, "#2A2A2E") + rect(x + dx * s + 0.6 * s, base - 46 * s, 1.6 * s, 17 * s, "#C86A3A", ' opacity="0.6"'))
+    o.append(jp_roof(x, base - 44 * s, 34 * s, 9 * s, base - 58 * s, 5 * s, u, "jk", tile="#2E2E36", tile_lit="#6A6A7E", soffit="#E07A3A", soffit_dk="#6A2A1A", thick=4 * s, rafters=False))
+    o.append(f'<circle cx="{x:.1f}" cy="{base - 61 * s:.1f}" r="{3.4 * s:.1f}" fill="#4A4A50"/><circle cx="{x + s:.1f}" cy="{base - 62 * s:.1f}" r="{1.2 * s:.1f}" fill="#E8A060"/>')
+    # smoke
+    rnd = random.Random(int(x))
+    for j in range(5):
+        sx = x + rnd.uniform(-10, 10) * s
+        o.append(f'<path d="M {sx:.1f} {base - 28 * s:.1f} q {-8 * s:.1f} {-14 * s:.1f} {2 * s:.1f} {-26 * s:.1f} q {10 * s:.1f} {-12 * s:.1f} {-2 * s:.1f} {-30 * s:.1f} q {-10 * s:.1f} {-14 * s:.1f} {4 * s:.1f} {-30 * s:.1f}" '
+                 f'stroke="#E8D8E8" stroke-width="{rnd.uniform(3, 6) * s:.1f}" fill="none" stroke-linecap="round" opacity="{rnd.uniform(0.12, 0.25):.2f}"/>')
+    return "".join(o)
+
+
 def tokyo():
+    from figures import person
     u = "tokyo"
-    C = Cam(f=440, cx=300, vpy=256, eye=1.6)
-    W = 1.75
+    HZ = 352      # horizon: eye level of a visitor on the square
     out = [defs(
-        lg(f"{u}-sky", [(0, "#0C0A24"), (0.55, "#241A4A"), (0.85, "#4A2A5E"), (1, "#8A4A6A")], 0, 40, 0, 250, units="userSpaceOnUse"),
-        lg(f"{u}-road", [(0, "#4A3048"), (0.25, "#2A1E34"), (1, "#120E1C")], 0, 262, 0, 444, units="userSpaceOnUse"),
-        lg(f"{u}-shop", [(0, "#FFE6B0"), (0.6, "#FFC27A"), (1, "#E88A4A")], 0, 0, 0, 1),
-        lg(f"{u}-wood", [(0, "#4A2E26"), (1, "#2A1A1C")], 0, 0, 0, 1),
-        lg(f"{u}-twr", [(0, "#2E2A54"), (1, "#1A1834")], 0, 0, 1, 0),
-        lg(f"{u}-vg", [(0, "#06040C", 0.62), (0.3, "#06040C", 0.18), (0.5, "#06040C", 0.0), (0.7, "#06040C", 0.18), (1, "#06040C", 0.62)], 0, 0, 1, 0),
-        lg(f"{u}-rf", [(0, "#FF7A3A", 0.0), (0.25, "#FF7A3A", 0.5), (0.7, "#E8442A", 0.35), (1, "#E8442A", 0.0)], 0, 0, 0, 1),
-        rg(f"{u}-lan", [(0, "#FFE29A"), (0.35, "#FF8A3A"), (0.75, "#E2341E"), (1, "#9A1A12")], 0.42, 0.42, 0.62),
+        lg(f"{u}-sky", [(0, "#121A44"), (0.35, "#28306E"), (0.62, "#5A3E7E"), (0.82, "#B8607E"), (1, "#F29A6E")], 0, 40, 0, HZ, units="userSpaceOnUse"),
+        lg(f"{u}-sq", [(0, "#5A3A4E"), (0.3, "#3A2838"), (1, "#1C1420")], 0, HZ, 0, 444, units="userSpaceOnUse"),
+        lg(f"{u}-city", [(0, "#4A3A6A"), (1, "#7A4A6E")], 0, 0, 0, 1),
     )]
     out.append(f'<rect width="600" height="444" fill="url(#{u}-sky)"/>')
-    # clouds clearing after the rain, lit from below by the city
-    for x, y, w, op in ((140, 92, 120, 0.45), (420, 70, 150, 0.4), (330, 128, 90, 0.35), (520, 140, 80, 0.3), (60, 150, 70, 0.3)):
-        out.append(streak_cloud(x, y, w, "#6A4A7A", op, 7))
-        out.append(streak_cloud(x + 10, y + 5, w * 0.7, "#B86A8A", op * 0.6, 2.2))
-    out.append(dots(26, 2, (180, 44, 420, 110), "#FFFFFF", r=(0.5, 1.1), opacity=(0.3, 0.8)))
-    # the city beyond the end of the alley: towers with lit window grids, warning lights on top
-    fx, fy = C(0.0, 1.6, 48)
-    out.append(glow(fx, fy - 20, 220, "#FF9A6A", f"{u}-city", 0.55))
-    rnd = random.Random(31)
-    towers = [(-120, 118, 26, 1), (-84, 150, 22, 0), (-46, 104, 30, 1), (-10, 140, 20, 0), (26, 96, 24, 1), (60, 132, 30, 0), (98, 112, 22, 1), (134, 150, 26, 0)]
-    for dx, ty, tw, lit_side in towers:
-        x0 = 300 + dx
-        out.append(rect(x0, ty, tw, 262 - ty, f"url(#{u}-twr)"))
-        out.append(rect(x0 + (tw * 0.7 if lit_side else 0), ty, tw * 0.3, 262 - ty, "#3E3A6A", ' opacity="0.6"'))
-        cells = []
-        for yy in range(int(ty) + 6, 250, 6):
-            for xx in range(int(x0) + 3, int(x0 + tw) - 3, 5):
-                if rnd.random() < 0.38:
-                    cells.append(f'<rect x="{xx}" y="{yy}" width="2.6" height="2.4" fill="{rnd.choice(["#FFD89A", "#FFE8C0", "#BFD8FF"])}" opacity="{rnd.uniform(0.5, 0.95):.2f}"/>')
-        out.append("".join(cells))
-        out.append(f'<circle cx="{x0 + tw / 2:.1f}" cy="{ty - 2:.1f}" r="1.8" fill="#FF4A3A"/>' + glow(x0 + tw / 2, ty - 2, 7, "#FF4A3A", f"{u}-wl{dx}", 0.7))
-    # the bright cross street at the far end
-    out.append(glow(fx, fy + 8, 90, "#FFE2B0", f"{u}-end", 0.9))
-    # ---------------------------------------------------------------- the two rows of izakaya, far to near
-    segs = []
-    for side in (-1, 1):
-        rs = random.Random(40 + side)
-        z = 1.2 if side < 0 else 1.0
-        while z < 48:
-            d = rs.uniform(2.8, 4.4)
-            segs.append((z, z + d, side, rs.uniform(5.8, 8.6), rs.random()))
-            z += d
-    segs.sort(key=lambda s_: -s_[0])
-    lanterns, refl, spill, signs = [], [], [], []
-    walls = ["#3A2626", "#2E2232", "#3A2A30", "#2A2030", "#442A2A"]
-    norens = ["#26305E", "#8A1E26", "#F2E8D8", "#26305E", "#3A2A4A"]
-    for z0, z1, side, h, rv in segs:
-        rs = random.Random(int(z0 * 100) + side)
-        X = side * W
-        th = lambda zz, base=6.0: max(0.6, base / zz)
-        g = []
-        # upper storeys: wooden boards or old plaster
-        wood = rv < 0.55
-        g.append(Q(C.quad_x(X, z0, z1, 2.55, h), f"url(#{u}-wood)" if wood else rs.choice(walls)))
-        if wood:
-            for j in range(1, int((z1 - z0) / 0.3)):
-                zz = z0 + j * 0.3
-                a, b = C(X, 2.6, zz), C(X, h, zz)
-                g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#1A1014" stroke-width="{th(zz, 1.6):.1f}" opacity="0.5"/>')
-        # roof edge catching the city glow
-        a, b = C(X, h, z0), C(X, h, z1)
-        g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#9A6A9A" stroke-width="{th(z0, 7):.1f}"/>')
-        # upper windows: warm shoji glow or dark glass
-        for fl in (3.3, 5.6):
-            if fl + 1.3 > h - 0.3:
-                continue
-            za, zb = z0 + (z1 - z0) * 0.22, z0 + (z1 - z0) * 0.78
-            lit = rs.random() < 0.62
-            g.append(Q(C.quad_x(X, za, zb, fl, fl + 1.3), rs.choice(["#FFD49A", "#FFC27A", "#FFE2B4"]) if lit else "#1C1628"))
-            if lit:
-                for j in range(1, 5):
-                    zz = za + (zb - za) * j / 5
-                    p, q_ = C(X, fl, zz), C(X, fl + 1.3, zz)
-                    g.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q_[0]:.1f}" y2="{q_[1]:.1f}" stroke="#7A4A2E" stroke-width="{th(zz, 2.4):.1f}" opacity="0.7"/>')
-                p, q_ = C(X, fl + 0.65, za), C(X, fl + 0.65, zb)
-                g.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q_[0]:.1f}" y2="{q_[1]:.1f}" stroke="#7A4A2E" stroke-width="{th(za, 2.4):.1f}" opacity="0.7"/>')
-            else:
-                g.append(Q(C.quad_x(X, za, za + (zb - za) * 0.3, fl, fl + 1.3), "#4A3A5A", ' opacity="0.7"'))
-            g.append(Q(C.quad_x(X, za - 0.05, zb + 0.05, fl - 0.12, fl), "#5A4048"))
-            if rs.random() < 0.35:   # an air-conditioner box under the window
-                g.append(Q(C.quad_x(X - side * 0.02, zb + 0.15, zb + 0.75, fl - 0.1, fl + 0.45), "#8A8698"))
-                g.append(Q(C.quad_x(X - side * 0.02, zb + 0.15, zb + 0.75, fl + 0.35, fl + 0.45), "#B8B4C4"))
-        # ground floor: posts, a low dark plinth, warm frosted glass with a slat lattice
-        sa, sb = z0 + 0.22, z1 - 0.22
-        g.append(Q(C.quad_x(X, z0, z1, 0, 2.55), "#24161A"))
-        g.append(Q(C.quad_x(X, sa, sb, 0.45, 2.1), f"url(#{u}-shop)"))
-        # patrons on stools, seen as soft shapes through the glass
-        for j in range(3):
-            zz = sa + (sb - sa) * (0.2 + 0.3 * j)
-            if rs.random() < 0.7:
-                hx, hy = C(X, 1.42, zz)
-                rr = 0.12 * C.f / zz
-                g.append(f'<g opacity="0.35"><ellipse cx="{hx:.1f}" cy="{hy:.1f}" rx="{rr:.1f}" ry="{rr * 1.2:.1f}" fill="#6A3424"/>'
-                         + Q(C.quad_x(X, zz - 0.2, zz + 0.2, 0.75, 1.3), "#6A3424") + "</g>")
-        for j in range(1, 9):
-            zz = sa + (sb - sa) * j / 9
-            p, q_ = C(X, 0.45, zz), C(X, 2.1, zz)
-            g.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q_[0]:.1f}" y2="{q_[1]:.1f}" stroke="#5A321E" stroke-width="{th(zz, 3.2 if j % 3 else 6):.1f}" opacity="0.8"/>')
-        p, q_ = C(X, 1.25, sa), C(X, 1.25, sb)
-        g.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q_[0]:.1f}" y2="{q_[1]:.1f}" stroke="#5A321E" stroke-width="{th(sa, 3):.1f}" opacity="0.7"/>')
-        for zz in (z0 + 0.1, z1 - 0.1):
-            p, q_ = C(X, 0, zz), C(X, 2.55, zz)
-            g.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q_[0]:.1f}" y2="{q_[1]:.1f}" stroke="#140C10" stroke-width="{th(zz, 16):.1f}"/>')
-        # noren over the doorway: split panels with a white crest
-        nz0, nz1 = sa + (sb - sa) * 0.12, sa + (sb - sa) * (0.62 if rs.random() < 0.5 else 0.88)
-        ncol = rs.choice(norens)
-        ink = "#F6EEE0" if ncol != "#F2E8D8" else "#26305E"
-        npan = 4
-        for j in range(npan):
-            pa = nz0 + (nz1 - nz0) * j / npan
-            pb = nz0 + (nz1 - nz0) * (j + 1) / npan - 0.04
-            g.append(Q(C.quad_x(X - side * 0.03, pa, pb, 1.45, 2.15), ncol))
-            g.append(Q(C.quad_x(X - side * 0.03, pa, pb, 2.05, 2.15), mix(ncol, "#000000", 0.25)))
-        cz = (nz0 + nz1) / 2
-        ccx, ccy = C(X - side * 0.03, 1.86, cz)
-        cr = 0.1 * C.f / cz
-        crx = cr * 0.3 * (1 + 0.9 * abs((ccx - 300) / 300))
-        g.append(f'<ellipse cx="{ccx:.1f}" cy="{ccy:.1f}" rx="{crx:.1f}" ry="{cr:.1f}" fill="none" stroke="{ink}" stroke-width="{max(0.6, cr * 0.22):.1f}" opacity="0.85"/>')
-        # a pale band along the hem of the noren
-        g.append(Q(C.quad_x(X - side * 0.035, nz0, nz1 - 0.04, 1.45, 1.53), ink, ' opacity="0.5"'))
-        # the eave: dark tiles, its underside warmed by the shop light, a lit lip
-        eo = 0.62
-        g.append(Q([C(X, 2.62, z0), C(X, 2.62, z1), C(X - side * eo, 2.36, z1), C(X - side * eo, 2.36, z0)], "#4A2A24"))
-        g.append(Q([C(X - side * eo, 2.36, z0), C(X - side * eo, 2.36, z1), C(X - side * eo, 2.48, z1), C(X - side * eo, 2.48, z0)], "#2A2228"))
-        a, b = C(X - side * eo, 2.36, z0), C(X - side * eo, 2.36, z1)
-        g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#FF9A5A" stroke-width="{th(z0, 2.2):.1f}" opacity="0.7"/>')
-        g.append(Q([C(X, 2.62, z0), C(X - side * eo, 2.36, z0), C(X - side * eo, 2.48, z0), C(X, 2.8, z0)], "#1A1418"))
-        # light spilling out on the wet stones
-        spill.append(Q([C(X, 0, sa), C(X - side * 1.3, 0, sa + 0.5), C(X - side * 1.3, 0, sb - 0.2), C(X, 0, sb)], "#FFB060", ' opacity="0.16"'))
-        refl.append(Q(C.quad_x(X, sa, sb, -1.4, 0), "#FFB878", ' opacity="0.13"'))
-        # lanterns under the eave
-        nl = 2 if rs.random() < 0.6 else 3
-        for j in range(nl):
-            zz = z0 + 0.45 + (z1 - z0 - 0.9) * j / max(1, nl - 1)
-            lx, ly = C(X - side * 0.4, 1.98, zz)
-            lanterns.append((zz, lx, ly, 0.16 * C.f / zz, X - side * 0.4))
-        # a projecting picture sign above the eave, face toward us
-        if rs.random() < 0.8 and z0 > 6.5:
-            zz = z0 + 0.15
-            y1_ = min(rs.uniform(4.4, 5.4), 1.6 + 0.4 * zz)
-            y0_ = min(rs.uniform(3.0, 3.3), y1_ - 1.2)
-            signs.append((zz, X, side, y0_, y1_, rs.choice(["#F6EEDC", "#FFD45A", "#F26A4A", "#7EE8F0", "#F6EEDC"]), int(zz * 100) + side))
-        out.append("<g>" + "".join(g) + "</g>")
-    # wet road between the walls
-    road = [C(-W, 0, 1.0), C(-W, 0, 60), C(W, 0, 60), C(W, 0, 1.0)]
-    out.append(f'<clipPath id="{u}-rd"><polygon points="{P(road)}"/></clipPath>')
-    out.append(Q(road, f"url(#{u}-road)"))
-    stones = []
-    for j in range(1, 70):
-        zz = 1.0 + j * 0.42 * (1 + j * 0.03)
-        a, b = C(-W, 0, zz), C(W, 0, zz)
-        stones.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#0E0A14" stroke-width="{max(0.4, 2.4 / zz):.1f}" opacity="0.5"/>')
-    for xx in (-1.2, -0.6, 0, 0.6, 1.2):
-        a, b = C(xx, 0, 1.0), C(xx, 0, 60)
-        stones.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#0E0A14" stroke-width="1" opacity="0.3"/>')
-    # gutter channels along each wall
-    for side in (-1, 1):
-        a, b = C(side * (W - 0.25), 0, 1.0), C(side * (W - 0.25), 0, 60)
-        stones.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#08060C" stroke-width="3" opacity="0.6"/>')
-    lan_refl = []
-    for zz, lx, ly, r, LX in lanterns:
-        gx, gy = C(LX, 0, zz)
-        my = C(LX, -1.98, zz)[1]
-        lan_refl.append(f'<rect x="{gx - r * 0.7:.1f}" y="{gy:.1f}" width="{r * 1.4:.1f}" height="{max(1, my + r - gy):.1f}" fill="url(#{u}-rf)"/>')
-        lan_refl.append(ripple_reflection(int(4 + 16 / zz), int(lx * 7 + zz * 13), gx, gy + 1, my + r, r * 1.6, ["#FF5A2A", "#FF9A4A", "#FFD08A"], op=(0.2, 0.6)))
-    out.append(f'<g clip-path="url(#{u}-rd)">' + "".join(stones) + "".join(spill) + "".join(refl) + "".join(lan_refl)
-               + ripple_reflection(40, 5, fx, fy + 12, 380, 26, ["#FFE2B0", "#FF9A6A", "#FFFFFF"], op=(0.15, 0.5), spread=1.6)
-               + water_lines(24, 6, (0, 300, 600, 444), ["#6A4A7A", "#9A5A7A"], w=(10, 40), h=(1, 2), opacity=(0.12, 0.3)) + "</g>")
-    # projecting signs (pictograms only), far to near
-    for zz, X, side, y0_, y1_, col, seed in sorted(signs, reverse=True):
-        a = C(X - side * 0.08, y1_, zz)
-        b = C(X - side * 0.6, y0_, zz)
-        x0, x1 = min(a[0], b[0]), max(a[0], b[0])
-        w, hh = x1 - x0, b[1] - a[1]
-        out.append(glow((x0 + x1) / 2, (a[1] + b[1]) / 2, max(w, hh) * 0.8, col, f"{u}-sg{seed}", 0.35))
-        out.append(rect(x0 - w * 0.06, a[1] - w * 0.06, w * 1.12, hh + w * 0.12, "#140C18"))
-        out.append(rect(x0, a[1], w, hh, col))
-        out.append(glyph_panel(x0 + w * 0.1, a[1] + w * 0.12, w * 0.8, hh - w * 0.24, seed, "#2A1218" if col in ("#F6EEDC", "#FFD45A", "#7EE8F0") else "#FFF6EC"))
-        # bracket to the wall
-        p, q_ = C(X, y1_ - 0.2, zz), C(X - side * 0.1, y1_ - 0.2, zz)
-        out.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q_[0]:.1f}" y2="{q_[1]:.1f}" stroke="#140C18" stroke-width="{max(0.8, 6 / zz):.1f}"/>')
-    # overhead wires, sagging across the alley
-    for zz, y, sag in ((5.5, 6.2, 0.6), (9, 6.6, 0.5), (14, 6.0, 0.4), (22, 6.4, 0.35), (7, 7.0, 0.9)):
-        a, b = C(-W, y, zz), C(W, y + 0.3, zz + 1.2)
-        mid_ = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + sag * C.f / zz)
-        out.append(f'<path d="M {a[0]:.1f} {a[1]:.1f} Q {mid_[0]:.1f} {mid_[1]:.1f} {b[0]:.1f} {b[1]:.1f}" stroke="#08060E" stroke-width="{max(0.7, 6 / zz):.1f}" fill="none"/>')
-    # the couple under one umbrella, walking away toward the light
-    ZC = 6.0
-    px, py = C(-0.12, 0, ZC)
-    cpl = umbrella_couple(px, py, 1.72 * C.f / ZC, u, light=1, rim="#FFB27A")
-    # lanterns: farther ones before the couple, near ones after
-    lan_sorted = sorted(lanterns, reverse=True)
-    for i, (zz, lx, ly, r, LX) in enumerate(lan_sorted):
-        if cpl and zz < ZC:
-            out.append(f'<ellipse cx="{px:.1f}" cy="{py + 2:.1f}" rx="58" ry="5" fill="#FFB060" opacity="0.08"/>')
-            out.append(cpl)
-            out.append(ripple_reflection(30, 77, px, py + 4, py + 40, 34, ["#C8342A", "#8A3A5A", "#3A4A6E"], op=(0.2, 0.5)))
-            cpl = None
-        out.append(akachochin(lx, ly, r, u, i, glow_r=r * 3.6 if zz < 16 else None, strength=0.5))
-    # the near walls fall into shadow, framing the lit alley
-    out.append(f'<rect width="600" height="444" fill="url(#{u}-vg)"/>')
-    # drizzle caught in the lantern light
+    out.append(dots(40, 21, (0, 40, 600, 170), "#FFFFFF", r=(0.5, 1.2), opacity=(0.3, 0.9)))
+    out.append(f'<path d="M 72 96 a 12 12 0 1 0 14 16 a 9.5 9.5 0 1 1 -14 -16 Z" fill="#FFF2D8"/>' + glow(78, 106, 40, "#FFF2D8", f"{u}-moon", 0.35))
+    for x, y, w, op in ((200, 150, 120, 0.4), (470, 120, 140, 0.35), (330, 196, 110, 0.35), (80, 210, 90, 0.3), (540, 236, 70, 0.3)):
+        out.append(streak_cloud(x, y, w, "#7A5A8E", op, 5))
+        out.append(streak_cloud(x + 10, y + 4, w * 0.7, "#F2A08E", op * 0.8, 1.8))
+    # the city beyond the temple grounds: low hazy blocks with lit windows along the horizon
+    rnd = random.Random(7)
+    city = []
+    x = -10
+    while x < 610:
+        w = rnd.uniform(18, 40)
+        h = rnd.uniform(10, 46) if not (250 < x < 330) else rnd.uniform(20, 70)
+        city.append(rect(x, HZ - 8 - h, w, h + 10, rnd.choice(["#4A3A68", "#3E3460", "#54406E"])))
+        for yy in range(int(HZ - 4 - h), int(HZ - 8), 5):
+            for xx in range(int(x) + 3, int(x + w) - 2, 5):
+                if rnd.random() < 0.3:
+                    city.append(f'<rect x="{xx}" y="{yy}" width="2" height="2" fill="{rnd.choice(["#FFD89A", "#FFE8C8", "#C8D8FF"])}" opacity="{rnd.uniform(0.4, 0.9):.2f}"/>')
+        x += w + rnd.uniform(-4, 2)
+    out.append("".join(city))
+    out.append(f'<rect x="-10" y="{HZ - 40}" width="620" height="50" fill="#C87A8A" opacity="0.18"/>')
+    # temple-ground trees: dark masses, warm where the floodlights catch them
+    for i, (cx_, cy_, rx_, ry_) in enumerate(((20, 300, 70, 70), (300, 318, 60, 34), (255, 300, 40, 40), (600, 320, 40, 40))):
+        out.append(leaf_canopy(f"{u}-t{i}", cx_, cy_, rx_, ry_, 60 + i, "#120E22", "#1E1A34", "#3E3048", light=(1, 1), n=90, r=(0.14, 0.26)))
+    # the pagoda, floodlit, standing back across the square
+    out.append(glow(170, 250, 150, "#FF9A5A", f"{u}-pg", 0.35))
+    out.append(senso_pagoda(170, HZ - 2, u))
+    # a low hedge and stone fence in front of the pagoda's podium
+    out.append(leaf_canopy(f"{u}-hedge", 160, HZ + 2, 150, 10, 81, "#100C1C", "#1C1830", "#5A3A3A", light=(1, -1), n=80, r=(0.4, 0.8)))
+    out.append(rect(-10, HZ + 2, 330, 10, "#3A2E3A") + rect(-10, HZ + 2, 330, 1.6, "#8A6A6A"))
+    out.append("".join(rect(x_, HZ - 3, 4, 15, "#4A3A44") + rect(x_, HZ - 3, 4, 1.4, "#9A7A70") for x_ in range(0, 320, 22)))
+    # the square: wet stone, joints converging on the eye
+    out.append(Q([(-10, HZ + 10), (610, HZ + 10), (610, 444), (-10, 444)], f"url(#{u}-sq)"))
+    joints = []
+    for i in range(-14, 16):
+        x0 = 300 + i * 22
+        x1 = 300 + i * 22 * 5.2
+        joints.append(f'<line x1="{x0:.1f}" y1="{HZ + 10}" x2="{x1:.1f}" y2="444"/>')
+    for j in range(1, 12):
+        yy = HZ + 10 + (444 - HZ - 10) * (j / 12) ** 1.7
+        joints.append(f'<line x1="-10" y1="{yy:.1f}" x2="610" y2="{yy:.1f}"/>')
+    out.append(f'<g stroke="#120C18" stroke-width="1" opacity="0.45">{"".join(joints)}</g>')
+    # the gate, nearer, its great lantern the brightest thing on the square
+    gate, y1 = temple_gate(446, 376, u)
+    # reflections in the wet paving first (they sit under the gate's plinth)
+    refl = []
+    refl.append(f'<rect x="396" y="376" width="100" height="68" fill="#FF6A3A" opacity="0.16"/>')
+    refl.append(ripple_reflection(70, 3, 446, 380, 444, 64, ["#FF5A2A", "#FF9A4A", "#FFD08A"], op=(0.25, 0.7), spread=0.5))
+    refl.append(ripple_reflection(40, 4, 170, HZ + 14, 420, 40, ["#FF9A5A", "#F6C67A", "#E8542C"], op=(0.12, 0.4), spread=0.6))
+    refl.append(water_lines(30, 9, (0, HZ + 14, 600, 444), ["#8A5A7E", "#B87A8E"], w=(14, 50), h=(1, 2), opacity=(0.12, 0.3)))
+    out.append("".join(refl))
+    out.append(gate)
+    out.append(great_lantern(446, y1 + 48, 36, 44, u))
+    # the incense burner, smoke drifting across the floodlight
+    out.append(jokoro(268, 404, 0.95, u))
+    # a tall stone lantern in the near corner, its fire box lit, wet stone catching the light
+    out.append(f'<ellipse cx="66" cy="446" rx="44" ry="6" fill="#0A0610" opacity="0.45"/>')
+    out.append(glow(66, 352, 60, "#FFB060", f"{u}-sl", 0.6))
+    sl = stone_lantern(66, 446, 1.08).replace("kyoto-lg", f"{u}-slg")
+    for grey in ("#8A867C", "#C2BCB0", "#9A968A", "#A29E92", "#D2CCC0", "#8E8A80", "#6E8A4A", "#9AAA5A"):
+        sl = sl.replace(grey, mix(grey, "#2A2040", 0.6))
+    sl = sl.replace('fill="#F2D49A" opacity="0.6"', 'fill="#FFB060" opacity="0.35"').replace('fill="#F2D49A" opacity="0.55"', 'fill="#FF9A50" opacity="0.4"')
+    out.append(sl)
+    out.append(ripple_reflection(16, 31, 66, 410, 444, 18, ["#FFB060", "#FFD08A"], op=(0.2, 0.5)))
+    # visitors: a few small figures under the gate, a couple sharing an umbrella crossing the wet square
+    tint = ("#FF9A6A", 0.12)
+    for px, py, h, pose, fac, sd, pal in ((356, 378, 24, "walk", 1, 11, {"season": "any"}), (542, 379, 25, "stand_back", 1, 12, None),
+                                          (520, 380, 24, "walk", -1, 13, {"form": "f", "top_kind": "dress", "top": "#E86A8A"}),
+                                          (130, 386, 28, "walk", 1, 14, None), (196, 394, 31, "stand_34", 1, 15, {"season": "winter"})):
+        out.append(person(px, py, h, pose, fac, pal, seed=sd, light=1, rim="#FFB27A", tint=tint))
+    out.append(f'<ellipse cx="366" cy="420" rx="40" ry="5" fill="#FFB060" opacity="0.1"/>')
+    out.append(umbrella_couple(366, 418, 64, u, light=1, rim="#FFB27A", umb="#2E4E8A"))
+    out.append(ripple_reflection(20, 77, 366, 422, 444, 26, ["#2E4E8A", "#8A3A5A", "#FFB27A"], op=(0.2, 0.5)))
+    # a few drops still falling, caught in the light
     rnd = random.Random(88)
     drops = []
-    for _ in range(70):
-        x, y = rnd.uniform(40, 560), rnd.uniform(60, 400)
-        L = rnd.uniform(4, 9)
-        drops.append(f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{x - L * 0.12:.1f}" y2="{y + L:.1f}"/>')
-    out.append(f'<g stroke="#FFE2C8" stroke-width="0.9" opacity="0.35" stroke-linecap="round">{"".join(drops)}</g>')
+    for _ in range(46):
+        x, y = rnd.uniform(40, 560), rnd.uniform(90, 400)
+        L = rnd.uniform(4, 8)
+        drops.append(f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{x - L * 0.15:.1f}" y2="{y + L:.1f}"/>')
+    out.append(f'<g stroke="#FFE2C8" stroke-width="0.9" opacity="0.28" stroke-linecap="round">{"".join(drops)}</g>')
     return "\n".join(out)
 
 
@@ -2348,73 +2498,274 @@ def gw_tower(C, c, t, n, u, w=11.0, d=10.0, h=9.5, below=7.5, light=-1, haze=Non
     return "".join(o)
 
 
+def gw_foliage(poly, cid, seed, n, y_top, y_bot, r_top, r_bot, cols, light=-1, shade="#3A2A30", haze=None, op=(0.75, 1.0), pines=0.05, contrast=1.0):
+    """Autumn woodland clipped to a hill: tree crowns packed row by row from the top down (nearer rows overlap the
+    ones above), each a dark underside, a lumpy body of two clumps and a sunlit cap, in rust, orange, gold and
+    olive with the odd dark pine; crowns grow with nearness. n scales the density (1000 = packed)."""
+    rnd = random.Random(seed)
+    xs = [p[0] for p in poly]
+    x0, x1 = min(xs) - 6, max(xs) + 6
+
+    def inside(px, py, pad):
+        # crossing test on the point pushed down by pad (a crown just above the skyline still shows its lower half)
+        py += pad
+        c = False
+        for (ax, ay), (bx, by) in zip(poly, poly[1:] + poly[:1]):
+            if (ay > py) != (by > py) and px < ax + (py - ay) * (bx - ax) / (by - ay):
+                c = not c
+        return c
+    dens = n / 1000.0
+    out = []
+    y = y_top
+    while y < y_bot + r_bot:
+        t = max(0.0, min(1.0, (y - y_top) / max(1.0, y_bot - y_top)))
+        r = r_top + (r_bot - r_top) * t
+        x = x0 + rnd.uniform(0, r)
+        while x < x1:
+            rr = r * rnd.uniform(0.8, 1.2)
+            yy = y + rnd.uniform(-0.3, 0.3) * r
+            c = rnd.choice(cols)
+            pick = rnd.random()
+            step = r * rnd.uniform(1.1, 1.6) / max(0.4, dens)
+            if not inside(x, yy, rr):
+                x += step
+                continue
+            hz_ = haze[1] * (1 - t) if haze else 0
+            if haze:
+                c = mix(c, haze[0], hz_)
+            if pick < pines:      # a dark pine among the broadleaves
+                pc = mix("#2E3A2A", haze[0], hz_) if haze else "#2E3A2A"
+                out.append(f'<path d="M{x:.1f} {yy - rr * 1.3:.1f}Q{x + rr * 0.3:.1f} {yy - rr * 0.4:.1f} {x + rr * 0.8:.1f} {yy + rr * 0.6:.1f}H{x - rr * 0.8:.1f}Q{x - rr * 0.3:.1f} {yy - rr * 0.4:.1f} {x:.1f} {yy - rr * 1.3:.1f}" fill="{pc}"/>')
+            else:
+                dk, lt = mix(c, shade, 0.5 * contrast), mix(c, "#FFF2CC", 0.38 * contrast)
+                out.append(f'<ellipse cx="{x - light * rr * 0.15:.1f}" cy="{yy + rr * 0.3:.1f}" rx="{rr * 1.15:.1f}" ry="{rr * 0.85:.1f}" fill="{dk}"/>'
+                           f'<ellipse cx="{x - light * rr * 0.1:.1f}" cy="{yy - rr * 0.1:.1f}" rx="{rr:.1f}" ry="{rr * 0.75:.1f}" fill="{c}"/>'
+                           f'<circle cx="{x + light * rr * 0.32:.1f}" cy="{yy - rr * 0.45:.1f}" r="{rr * 0.38:.1f}" fill="{lt}" opacity="0.75"/>')
+            x += step
+        y += r * 0.75 / max(0.4, dens)
+    return f'<clipPath id="{cid}"><polygon points="{P(poly)}"/></clipPath><g clip-path="url(#{cid})">' + "".join(out) + "</g>"
+
+
+def gw_walk(C, ctrl, hw=2.3, pt=0.45, mer=1.85, cren=1.15, low=1.0, body=6.5, light=-1, haze=None, seed=3, cam_x=0.0):
+    """The Great Wall as a solid in perspective along 3D control points (floor centre line, metres): a brick walkway with
+    its steps, a crenellated parapet with loopholes on the left (outer) side and a low parapet on the right, both with
+    real thickness, and the brick body below. Returns (depth, svg) items painted far to near."""
+    pts, arcs = gw_spline(ctrl, ds_near=0.42, k=0.022)
+    fr = gw_frames(pts)
+    cam = (cam_x, C.eye, 0.0)
+    items = []
+
+    def hz(col, Z):
+        if not haze:
+            return col
+        hc, amt = haze(Z)
+        return mix(col, hc, amt)
+
+    def off(p, n, d, dy=0.0):
+        return (p[0] + n[0] * d, p[1] + dy, p[2] + n[1] * d)
+
+    def vis(m, A):
+        return m[0] * (cam[0] - A[0]) + m[1] * (cam[2] - A[2]) > 0
+
+    def merlon(s):
+        return (s % 2.3) < 1.6
+
+    lit_b, base_b, shade_b, deep_b = "#E2BE94", "#C2A07E", "#94785E", "#6E5646"
+    for i in range(len(pts) - 1):
+        p, q = pts[i], pts[i + 1]
+        na, nb = fr[i][1], fr[i + 1][1]
+        Z = (p[2] + q[2]) / 2
+        sm = (arcs[i] + arcs[i + 1]) / 2
+        det = Z < 30
+        sw = max(0.4, 2.6 / Z)
+        g = []
+
+        def quad(a, b, c, d, col):
+            g.append(Q([C(*a), C(*b), C(*c), C(*d)], hz(col, Z)))
+
+        def course_lines(A, B, y0, y1, step, col, op=0.4):
+            if not det:
+                return
+            nlines = int((y1 - y0) / step)
+            for k_ in range(1, nlines + 1):
+                yy = y0 + k_ * step
+                a, b = C(A[0], A[1] + yy, A[2]), C(B[0], B[1] + yy, B[2])
+                g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{hz(col, Z)}" stroke-width="{sw:.2f}" opacity="{op}"/>')
+            if Z < 9 and i % 2 == 0:
+                a, b = C(A[0], A[1] + y0, A[2]), C(A[0], A[1] + y1, A[2])
+                g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{hz(col, Z)}" stroke-width="{sw * 0.8:.2f}" opacity="{op * 0.7}"/>')
+
+        def parapet(side):
+            n_a, n_b = (na, nb) if side > 0 else ((-na[0], -na[1]), (-nb[0], -nb[1]))
+            Ip, Iq = off(p, n_a, hw), off(q, n_b, hw)
+            Op, Oq = off(p, n_a, hw + pt), off(q, n_b, hw + pt)
+            crenel = side > 0
+            h = (mer if merlon(sm) else cren) if crenel else low
+            inner_n = (-n_a[0], -n_a[1])
+            # sun from the left: the right parapet's inner face (facing left) is lit
+            inner_lit = (inner_n[0] * light) > 0
+            outer_lit = (n_a[0] * light) > 0
+            if vis(n_a, Op):    # outer face, down the body
+                col = lit_b if outer_lit else shade_b
+                quad((Op[0], Op[1] - body, Op[2]), (Oq[0], Oq[1] - body, Oq[2]), (Oq[0], Oq[1] + h, Oq[2]), (Op[0], Op[1] + h, Op[2]), col)
+                course_lines(Op, Oq, -body, h, 0.55, "#5A4436", 0.35)
+            if vis(inner_n, Ip):   # inner face
+                col = lit_b if inner_lit else base_b
+                if not crenel:
+                    col = "#D6B48E" if inner_lit else "#A8886C"
+                quad((Ip[0], Ip[1], Ip[2]), (Iq[0], Iq[1], Iq[2]), (Iq[0], Iq[1] + h, Iq[2]), (Ip[0], Ip[1] + h, Ip[2]), col)
+                course_lines(Ip, Iq, 0, h, 0.32 if Z < 12 else 0.6, "#6A5040", 0.42)
+                if crenel and merlon(sm) and 4.5 < Z < 40 and (sm % 2.3) > 0.6 and (sm % 2.3) < 1.0:
+                    a = C(Ip[0], Ip[1] + 1.28, Ip[2])
+                    ww = max(1.0, 0.22 * C.f / Z)
+                    g.append(f'<rect x="{a[0] - ww / 2:.1f}" y="{a[1] - ww * 0.9:.1f}" width="{ww:.1f}" height="{ww * 1.3:.1f}" fill="{hz("#3A2A24", Z)}"/>')
+            # coping on top, the brightest line
+            quad((Ip[0], Ip[1] + h, Ip[2]), (Iq[0], Iq[1] + h, Iq[2]), (Oq[0], Oq[1] + h, Oq[2]), (Op[0], Op[1] + h, Op[2]), "#F2DCB8" if C.eye > p[1] + h else base_b)
+            # merlon end caps where a merlon starts or ends inside this segment
+            if crenel and merlon(sm) != merlon(arcs[i + 1] + 0.05) or crenel and merlon(sm) != merlon(arcs[i] - 0.05):
+                e, ne = (Iq, n_b) if merlon(sm) != merlon(arcs[i + 1] + 0.05) else (Ip, n_a)
+                eo = off(e, ne, pt)
+                quad((e[0], e[1] + cren, e[2]), (eo[0], eo[1] + cren, eo[2]), (eo[0], eo[1] + mer, eo[2]), (e[0], e[1] + mer, e[2]), shade_b)
+
+        dL = math.dist(cam, off(p, na, hw))
+        dR = math.dist(cam, off(p, na, -hw))
+        order = [1, -1] if dL > dR else [-1, 1]
+        parapet(order[0])
+        # walkway: brick paving, steps where it climbs or drops
+        Lp, Lq, Rp, Rq = off(p, na, hw), off(q, nb, hw), off(p, na, -hw), off(q, nb, -hw)
+        rise = (q[1] - p[1]) / max(0.01, math.hypot(q[0] - p[0], q[2] - p[2]))
+        if C.eye > (p[1] + q[1]) / 2:
+            if abs(rise) > 0.14:
+                col = "#C6AA8C" if rise < 0 else ("#CDB294" if (i % 2 == 0) else "#A48870")
+            else:
+                col = "#C4AA8E" if (i % 2 == 0) else "#BCA286"
+            quad(Lp, Lq, Rq, Rp, col)
+            if det:
+                a, b = C(*Lp), C(*Rp)
+                g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="{hz("#6E5646", Z)}" stroke-width="{sw:.2f}" opacity="{0.6 if abs(rise) > 0.14 else 0.35}"/>')
+                if Z < 14:
+                    for f_ in (-0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75):
+                        sh = 0.125 if (i % 2) else 0.0
+                        a, b = C(*off(p, na, hw * (f_ + sh))), C(*off(q, nb, hw * (f_ + sh)))
+                        g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#7E6452" stroke-width="{sw * 0.8:.2f}" opacity="0.4"/>')
+                # the shadow the crenellated parapet throws across the left of the walkway
+                sp, sq = off(p, na, hw - 0.9), off(q, nb, hw - 0.9)
+                g.append(Q([C(*Lp), C(*Lq), C(*sq), C(*sp)], "#4A3440", ' opacity="0.22"'))
+        parapet(order[1])
+        items.append((Z, "".join(g)))
+    return items, pts, arcs, fr
+
+
 def great_wall():
-    from figures import person
+    from figures import person, couple
     u = "gwall"
-    C = Cam(f=330, cx=300, vpy=214, eye=4.6)
+    C = Cam(f=330, cx=300, vpy=222, eye=3.0)
     L = -1   # morning sun low on the left
     out = [defs(
-        lg(f"{u}-sky", [(0, "#7EA6CE"), (0.45, "#B8CCDC"), (0.75, "#F2D6BC"), (1, "#FCE6C8")], 0, 40, 0, 240, units="userSpaceOnUse"),
-        lg(f"{u}-far", [(0, "#9AAAC0"), (1, "#C8CCD4")], 0, 140, 0, 250, units="userSpaceOnUse"),
+        lg(f"{u}-sky", [(0, "#86AED2"), (0.4, "#BCD0DE"), (0.72, "#F4DCC0"), (1, "#FCE8CC")], 0, 40, 0, 240, units="userSpaceOnUse"),
     )]
     out.append(f'<rect width="600" height="444" fill="url(#{u}-sky)"/>')
-    out.append(glow(70, 168, 320, "#FFE2BC", f"{u}-sun", 0.85))
-    out.append(glow(70, 168, 46, "#FFF6E4", f"{u}-sun2", 1.0))
-    out.append('<circle cx="70" cy="168" r="13" fill="#FFF8EC"/>')
-    for x, y, w in ((230, 104, 120), (480, 86, 150), (540, 128, 70), (170, 132, 60)):
-        out.append(streak_cloud(x, y, w, "#FFF2E2", 0.55, 3.4))
-        out.append(streak_cloud(x - 20, y + 3, w * 0.5, "#FFE0CC", 0.5, 1.4))
+    out.append(glow(30, 150, 330, "#FFE6C0", f"{u}-sun", 0.9))
+    out.append(glow(30, 150, 60, "#FFF8EA", f"{u}-sun2", 1.0))
+    for x, y, w in ((260, 104, 130), (470, 86, 150), (560, 130, 60), (150, 128, 70)):
+        out.append(streak_cloud(x, y, w, "#FFF4E6", 0.55, 3.4))
+        out.append(streak_cloud(x - 20, y + 3, w * 0.5, "#FFE2CE", 0.5, 1.4))
 
     def haze(Z):
-        return "#E2E0E2", max(0.0, min(0.55, (Z - 50) / 260))
+        return "#E8DED8", max(0.0, min(0.5, (Z - 30) / 300))
 
-    # far ridges, palest and bluest, with the wall as a thread along their crests and mist pooled between them
-    far_layers = [([(-10, 196), (70, 184), (150, 194), (230, 172), (310, 186), (400, 166), (480, 180), (560, 170), (610, 178)], "#B4BCCC", 0.6, (380, 610), [430, 520, 590]),
-                  ([(-10, 214), (90, 200), (170, 214), (260, 198), (350, 212), (440, 194), (530, 206), (610, 200)], "#A0A8B4", 0.9, (-10, 230), [30, 120, 200])]
-    for i, (pts, col, s, (xa, xb), tw) in enumerate(far_layers):
-        poly, line = ridge_poly(pts, 300 + i, amp=6, fill=col)
+    # far ridges: palest and bluest, the wall a thread along their crests, mist lying in the valleys between
+    far = [([(-10, 196), (60, 186), (130, 194), (200, 180), (280, 190), (360, 172), (430, 184), (520, 170), (610, 182)], "#B6BED0", 0.55, (330, 600), [372, 470, 556]),
+           ([(-10, 214), (70, 204), (150, 214), (230, 200), (330, 214), (420, 198), (500, 210), (610, 204)], "#A2A8BA", 0.75, (-10, 200), [40, 150]),
+           ([(-10, 238), (80, 224), (160, 236), (260, 226), (360, 240), (460, 222), (540, 232), (610, 226)], "#9A9AA6", 0.9, (420, 610), [470, 580])]
+    for i, (pts_, col, s, (xa, xb), tw) in enumerate(far):
+        poly, line = ridge_poly(pts_, 300 + i, amp=6, fill=col)
         out.append(poly)
-        out.append(f'<clipPath id="{u}-l{i}"><polygon points="{P(line + [(610, 444), (-10, 444)])}"/></clipPath>')
-        out.append(f'<g clip-path="url(#{u}-l{i})">' + blobs(90, 310 + i, (-10, min(p[1] for p in line), 610, max(p[1] for p in line) + 30),
-                                                           [mix(col, "#B87A5A", 0.25), mix(col, "#FFE6C0", 0.3), mix(col, "#6E6A5A", 0.2)], r=(2, 5), opacity=(0.4, 0.8)) + "</g>")
-        out.append(far_wall(line, xa, xb, s, tw, mix(col, "#C8A884", 0.55), mix(col, "#FFF0D8", 0.75), 320 + i))
-        out.append(mist(300 + (i * 2 - 1) * 140, max(p[1] for p in line) + 8, 420, 22, "#FFF6EA", f"{u}-fm{i}", 0.9))
-    # the wall itself: from our feet down into a saddle, up a steep ridge to a tower, on along the crest to another
-    ctrl = [(0.6, -0.2, 0.8), (1.2, -0.6, 4.0), (1.4, -1.6, 9.0), (0.6, -3.2, 15.0), (-1.8, -5.0, 22.0), (-5.0, -6.0, 30.0), (-7.6, -5.0, 38.0),
-            (-9.0, -1.0, 47.0), (-8.6, 4.0, 57.0), (-5.6, 8.6, 68.0), (-1.0, 11.0, 80.0), (6.0, 10.6, 94.0), (14.0, 8.0, 110.0), (24.0, 9.0, 128.0),
-            (34.0, 14.0, 146.0), (44.0, 20.0, 166.0), (52.0, 22.0, 184.0), (62.0, 21.0, 204.0)]
-    pts, arcs = gw_spline(ctrl)
-    fr = gw_frames(pts)
-    def at_arc(target):
-        for i in range(len(arcs) - 1):
-            if arcs[i] <= target <= arcs[i + 1]:
-                return i
-        return len(arcs) - 2
-    # towers on the two crests (by arc length of the nearest sample to the control point)
-    def nearest_arc(cp):
-        j = min(range(len(pts)), key=lambda k_: math.dist(pts[k_], cp))
-        return arcs[j], j
-    s1, j1 = nearest_arc((-1.0, 11.0, 80.0))
-    s2, j2 = nearest_arc((52.0, 22.0, 184.0))
-    items, pts, arcs, fr = gw_wall(C, ctrl, u, hw=2.6, towers=(), skip=((s1 - 5.5, s1 + 5.5), (s2 - 5, s2 + 5)), seed=7, haze=haze, light=L)
-    for j, roof in ((j1, True), (j2, False)):
+        top = min(p[1] for p in line)
+        out.append(gw_foliage(line + [(610, 300), (-10, 300)], f"{u}-ff{i}", 310 + i, 560, top - 2, top + 40, 3.0 + i * 0.5, 4.0 + i * 0.7,
+                              [mix(col, c, 0.22 + 0.12 * i) for c in ("#C8603A", "#E8A040", "#B8843A", "#7A7A4A")], light=L, shade=mix(col, "#4A4A60", 0.5), pines=0.0, contrast=0.45))
+        out.append(far_wall(line, xa, xb, s, tw, mix(col, "#C8A884", 0.55), mix(col, "#FFF2DC", 0.75), 320 + i))
+        out.append(mist(300 + (i - 1) * 160, max(p[1] for p in line) + 6, 440, 22, "#FFF6EA", f"{u}-fm{i}", 0.9))
+    # the wall path: from our feet over the crest, down into a hidden saddle, straight up the near mountain to a
+    # tower on its summit, along the ridge to a higher tower and on out of sight
+    ctrl = [(0.9, 0.0, 1.2), (0.7, -0.25, 5.0), (-0.1, -1.3, 10.0), (-1.4, -4.4, 17.0), (-3.8, -7.8, 26.0), (-6.8, -7.4, 34.0),
+            (-9.6, -3.6, 44.0), (-12.2, 1.8, 55.0), (-13.8, 6.0, 64.0), (-10.0, 7.0, 80.0), (-2.0, 10.0, 98.0), (8.0, 17.0, 118.0),
+            (20.0, 24.0, 140.0), (36.0, 21.0, 168.0), (54.0, 16.0, 200.0)]
+    items, pts, arcs, fr = gw_walk(C, ctrl, light=L, haze=haze)
+    # the near mountain the wall climbs: its skyline runs down from the first tower to the left and along the ridge
+    sky_l = rough([(-10, 290), (80, 268), (160, 236), (206, 214)], 41, amp=5, depth=3)
+    ridge = []
+    for j in range(len(pts)):
+        if pts[j][2] >= 62:
+            x, y = C(pts[j][0], pts[j][1] - 1.2, pts[j][2])
+            ridge.append((x, y))
+    sky_r = rough([ridge[-1], (470, 226), (540, 240), (610, 250)], 42, amp=5, depth=3)
+    m1 = sky_l + ridge + sky_r[1:] + [(610, 444), (-10, 444)]
+    out.append(Q(m1, "#9A6A4E"))
+    out.append(gw_foliage(m1, f"{u}-m1", 51, 1000, 172, 312, 3.4, 6.0, ["#B8442A", "#D8742E", "#E8B040", "#C8562A", "#8A8A3A", "#9A3A2A", "#E89A3A"],
+                          light=L, shade="#4A2E34", haze=("#E8DED8", 0.3)))
+    # the sun side of the mountain glows, the far side sinks into blue shade
+    out.append(f'<defs>{lg(f"{u}-m1s", [(0, "#FFE6B0", 0.35), (0.45, "#FFE6B0", 0.0), (0.6, "#3A3A5A", 0.0), (1, "#3A3A5A", 0.3)], 0, 0, 1, 0)}</defs>')
+    out.append(Q(m1, f"url(#{u}-m1s)"))
+    out.append(mist(110, 300, 260, 34, "#FFF6EA", f"{u}-mv1", 0.95))
+    out.append(mist(520, 286, 220, 26, "#FFF6EA", f"{u}-mv2", 0.85))
+    # the near saddle: the ridge we stand on falls away in front of the mountain's foot
+    sad = rough([(-10, 318), (90, 312), (170, 322), (250, 330), (330, 326), (420, 316), (520, 304), (610, 300)], 61, amp=4, depth=3) + [(610, 444), (-10, 444)]
+    items.append((30.5, mist(300, 318, 360, 30, "#FFF4E6", f"{u}-ms", 0.9)))
+    items.append((29.5, Q(sad, "#7A4A3A") + gw_foliage(sad, f"{u}-sd", 71, 1000, 296, 380, 4.6, 7.4, ["#B8442A", "#D8742E", "#E8B040", "#C8562A", "#8A8A3A", "#9A3A2A", "#E89A3A"],
+                                                       light=L, shade="#3A2430")))
+    # towers on the two summits
+    def nearest(target_z):
+        return min(range(len(pts)), key=lambda k_: abs(pts[k_][2] - target_z))
+    for tz, roof in ((64.0, True), (140.0, False)):
+        j = nearest(tz)
         t, n = fr[j]
-        items.append((pts[j][2], gw_tower(C, pts[j], t, n, u, haze=haze, light=L, roof=roof)))
-    # mist drifting through the saddle behind the near ridge
-    items.append((40.5, mist(150, 300, 220, 26, "#FFF6EA", f"{u}-sm1", 0.75)))
-    items.append((90, mist(470, 250, 220, 20, "#FFF6EA", f"{u}-sm2", 0.85)))
-    # two hikers on the walkway coming down toward the saddle
-    for Zh, dx, pal, sd, fac in ((9.2, -0.5, {"form": "f", "top_kind": "jacket", "top": "#C8443A", "bottom_kind": "trousers", "bottom": "#2E3A58", "hair_style": "ponytail", "pack": True}, 3, -1),
-                                 (11.0, 0.7, {"form": "m", "top_kind": "jacket", "top": "#2E6A8A", "bottom_kind": "trousers", "bottom": "#4A4038", "hair_style": "short", "hat_kind": "cap", "hat": "#E8B040", "pack": True}, 5, -1)):
-        j = min(range(len(pts)), key=lambda k_: abs(pts[k_][2] - Zh))
-        t, n = fr[j]
-        base = (pts[j][0] + n[0] * dx, pts[j][1], pts[j][2] + n[1] * dx)
-        x, y = C(*base)
-        items.append((base[2] - 0.01, person(x, y, 1.72 * C.f / base[2], "hiker", fac, pal, seed=sd, light=L, rim="#FFE2B8")))
+        tw = gw_tower(C, pts[j], t, n, u, haze=haze, light=L, roof=False, w=10.0, d=9.0, h=8.5, below=5.0)
+        if roof:   # a small watch pavilion on the platform: red walls, dark hip roof with upturned eaves
+            b = pts[j]
+            sc = C.f / b[2]
+            px, py = C(b[0], b[1] + 9.5, b[2])
+            tw += rect(px - 2.6 * sc, py - 2.4 * sc, 5.2 * sc, 2.4 * sc, "#8A3426") + rect(px - 2.6 * sc, py - 2.4 * sc, 1.6 * sc, 2.4 * sc, "#C2523A")
+            tw += "".join(rect(px - 1.8 * sc + q * 1.2 * sc, py - 1.9 * sc, 0.5 * sc, 1.4 * sc, "#3A1A16") for q in range(4))
+            tw += jp_roof(px, py - 2.3 * sc, 3.8 * sc, 1.1 * sc, py - 4.4 * sc, 0.6 * sc, u, "pav", tile="#3A3A44", tile_lit="#8A8A9A", soffit="#C8603A", soffit_dk="#6A2A1A",
+                          lip="#D8D0C8", thick=0.5 * sc, rafters=False)
+            tw += f'<circle cx="{px:.1f}" cy="{py - 4.6 * sc:.1f}" r="{0.35 * sc:.1f}" fill="#3A3A44"/>'
+        items.append((pts[j][2] - 0.5, tw))
+    # two tiny hikers on the long flight of steps
+    for tz, dx, sd in ((47.0, 0.6, 21), (49.5, -0.5, 22)):
+        j = nearest(tz)
+        b = pts[j]
+        n = fr[j][1]
+        x, y = C(b[0] + n[0] * dx, b[1], b[2] + n[1] * dx)
+        items.append((b[2] - 0.05, person(x, y, 1.72 * C.f / b[2], "stand_back", 1, {"season": "winter"}, seed=sd, light=L)))
+    # the couple at the crest, looking out over the steps falling away in front of them
+    zc = 10.2
+    j = nearest(zc)
+    b, n = pts[j], fr[j][1]
+    cx_, cy_ = C(b[0] - n[0] * 0.9, b[1], b[2] - n[1] * 0.9)
+    hpx = 1.72 * C.f / b[2]
+    pals = {"top_kind": "jacket", "bottom_kind": "trousers", "pack": True, "hair": "#2A1C16"}
+    items.append((b[2] - 0.05, couple(cx_, cy_, hpx, "back", pals, seed=9, light=L, rim="#FFE6C0")))
     for Z, svg in sorted(items, key=lambda it: -it[0]):
         out.append(svg)
-    # a few swallows in the clear morning air
-    out.append(flock([(360, 130, 8), (378, 140, 6), (346, 146, 5)], "#4A4A5A", 1.6))
+    # autumn leaves blown onto the walkway, a few still in the air
+    rnd = random.Random(17)
+    lv = []
+    for _ in range(60):
+        Zl = 1.6 + rnd.random() ** 1.5 * 8
+        j = nearest(Zl)
+        b, n = pts[j], fr[j][1]
+        off_ = rnd.uniform(-2.0, 2.0)
+        x, y = C(b[0] + n[0] * off_, b[1], b[2] + n[1] * off_)
+        r = 0.09 * C.f / Zl
+        lv.append(f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{r:.1f}" ry="{r * 0.45:.1f}" fill="{rnd.choice(["#C8442A", "#E8842E", "#E8B040", "#9A3A24"])}" '
+                  f'transform="rotate({rnd.uniform(-30, 30):.0f} {x:.1f} {y:.1f})" opacity="0.9"/>')
+    for _ in range(9):
+        x, y = rnd.uniform(80, 560), rnd.uniform(140, 300)
+        r = rnd.uniform(2.2, 3.4)
+        lv.append(f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{r:.1f}" ry="{r * 0.5:.1f}" fill="{rnd.choice(["#C8442A", "#E8842E", "#E8B040"])}" transform="rotate({rnd.uniform(0, 180):.0f} {x:.1f} {y:.1f})"/>')
+    out.append("".join(lv))
+    out.append(flock([(400, 132, 8), (418, 142, 6), (386, 148, 5)], "#4A4A5A", 1.6))
     return "\n".join(out)
 
 

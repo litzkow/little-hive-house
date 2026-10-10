@@ -1834,7 +1834,64 @@ def pisa_cathedral(u):
     return "".join(out)
 
 
+def tower_holder(x, base, h, hand, facing=-1, light=-1, rim="#FFF6E0", seed=4, pal=None):
+    """The classic photo: a tourist in the foreground, one arm stretched up with the palm flat against the tower, as if
+    propping it up. Built on the figures.py skeleton (side view, a gentle lunge toward the tower, the other hand on
+    the hip, head tipped up to the hand) with an open hand drawn over the end of the raised arm. hand = the screen point
+    the palm should touch."""
+    from figures import Painter, _palette, _render, _torso_side, mix as fmix, ell_pts, tube
+    k = h / 100.0
+    P_ = _palette(pal or {"form": "f", "season": "summer"}, seed)
+    J = dict(view="side", tilt=-14, extra=[], foot="side")
+    hip = (0.0, -49.0)
+    J["torso"] = _torso_side(hip, 5, P_["form"])
+    sh = (J["torso"][1][0], J["torso"][1][1] + 1.2)
+    J["head"] = (J["torso"][0][0] + 2.2, -92.0)
+    J["legs"] = [([(hip[0] - 1, hip[1]), (-6.5, -26.5), (-13.5, -4.2)], 22, "back"),
+                 ([(hip[0] + 1.5, hip[1]), (9.0, -27.5), (9.5, -3.8)], -4, "front")]
+    # raised arm: two-bone reach from the shoulder to the wrist (elbow kept below the line). With x=None the figure
+    # stands where the arm is almost straight, as in the real pose.
+    L1, L2 = 13.6, 13.0
+    ty = (hand[1] - base) / k + 3.2
+    if x is None:
+        reach = 0.95 * (L1 + L2)
+        ddx = math.sqrt(max(0.0, reach * reach - (ty - sh[1]) ** 2))
+        x = hand[0] - k * facing * (sh[0] + ddx + 2.0)
+    tx = (hand[0] - x) / (k * facing) - 2.0     # the palm's face, not the wrist, meets the tower
+    dx, dy = tx - sh[0], ty - sh[1]
+    d = min(L1 + L2 - 0.3, math.hypot(dx, dy))
+    ang = math.atan2(dy, dx)
+    a1 = math.acos(max(-1.0, min(1.0, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))))
+    el = (sh[0] + L1 * math.cos(ang + a1), sh[1] + L1 * math.sin(ang + a1))
+    wr = (sh[0] + d * math.cos(ang), sh[1] + d * math.sin(ang))
+    J["arms"] = [("far", [sh, (sh[0] - 8.5, -64.5), (sh[0] - 1.5, -53.5)], "back"),
+                 ("near", [sh, el, wr], "front")]
+    B = Painter(k, light * facing, rim, None, 2)
+    out = [f'<ellipse cx="{-light * facing * 4:.1f}" cy="0.6" rx="22" ry="3" fill="#143A1E" opacity="0.3"/>']
+    _render(B, J, P_, False, "stand_side")
+    # the open hand: fingers together pointing up, palm toward the tower, thumb out toward us
+    skin = P_["skin"]
+    w = wr
+    hand_pts = [(w[0] - 1.5, w[1] + 1.0), (w[0] + 1.6, w[1] + 1.2), (w[0] + 2.4, w[1] - 3.0), (w[0] + 2.2, w[1] - 7.4), (w[0] + 1.2, w[1] - 8.6),
+                (w[0] - 0.2, w[1] - 8.2), (w[0] - 0.9, w[1] - 5.0), (w[0] - 1.6, w[1] - 2.0)]
+    B.fill(hand_pts, skin)
+    B.shape([(w[0] + 0.8, w[1] + 1.0), (w[0] + 1.6, w[1] + 1.2), (w[0] + 2.4, w[1] - 3.0), (w[0] + 2.2, w[1] - 7.4), (w[0] + 1.4, w[1] - 8.2), (w[0] + 1.2, w[1] - 3.0)],
+            fmix(skin, "#5A2A1A", 0.22))
+    B.shape(tube([(w[0] - 0.8, w[1] - 1.4), (w[0] - 2.6, w[1] - 3.6), (w[0] - 3.0, w[1] - 5.6)], [2.0, 1.6, 1.3]), fmix(skin, "#FFF0DC", 0.1))
+    B.add(f'<path d="M {w[0] + 0.6:.1f} {w[1] - 4.6:.1f} L {w[0] + 0.9:.1f} {w[1] - 8.0:.1f} M {w[0] - 0.4:.1f} {w[1] - 4.4:.1f} L {w[0] - 0.2:.1f} {w[1] - 7.6:.1f}" '
+          f'stroke="{fmix(skin, "#5A2A1A", 0.3)}" stroke-width="0.35" opacity="0.7"/>')
+    # a straw tote on the far shoulder
+    bag = P_.get("bag", "#D8B070")
+    T = J["torso"]
+    bx, by = T[3][0] - 7.5, T[3][1] + 4
+    B.out.insert(0, f'<path d="M {T[1][0] - 2:.1f} {T[1][1]:.1f} Q {bx - 4:.1f} {(T[1][1] + by) / 2:.1f} {bx - 3:.1f} {by - 6:.1f}" stroke="#8A6A3A" stroke-width="0.9" fill="none"/>'
+                    f'<path d="M {bx - 6:.1f} {by - 7:.1f} L {bx + 3:.1f} {by - 7:.1f} L {bx + 4:.1f} {by + 5:.1f} L {bx - 7:.1f} {by + 5:.1f} Z" fill="{bag}"/>'
+                    f'<path d="M {bx - 6:.1f} {by - 3:.1f} L {bx + 3.4:.1f} {by - 3:.1f}" stroke="#C8402A" stroke-width="1.2"/>')
+    return f'<g transform="translate({x:.1f} {base:.1f}) scale({k * facing:.4f} {k:.4f})">' + "".join(out + B.out) + "</g>"
+
+
 def pisa():
+    from figures import person, couple
     u = "pi"
     out = [defs(
         lg(f"{u}-sky", [(0, "#2A72C8"), (0.45, "#5E9CDA"), (0.8, "#A8CCEA"), (1, "#E2EEF2")], 0, 40, 0, 320, units="userSpaceOnUse"),
@@ -1881,44 +1938,24 @@ def pisa():
     out.append(Q([(60, 320), (240, 320), (300, 444), (-10, 444), (-10, 400)], f"url(#{u}-path)"))
     out.append(Q([(60, 320), (240, 320), (244, 324), (62, 324)], "#FFFFFF", ' opacity="0.6"'))
     out.append(dots(80, 8, (0, 330, 290, 444), "#A8A296", r=(0.6, 1.4), opacity=(0.3, 0.6)))
-    # visitors on the square — one of them, of course, propping up the tower
-    for px, py, h, c, pose in ((120, 340, 30, "#E8504A", 0), (140, 342, 29, "#3E5A8A", 0), (186, 352, 34, "#F2C24A", 1), (76, 358, 36, "#6A4A8A", 0), (262, 336, 26, "#2E8A7A", 1), (300, 334, 25, "#E87A9A", 0)):
-        out.append(figure(px, py, h, c, rim="#FFF6E0", rim_side=-1))
-        if pose:
-            s_ = h / 100
-            out.append(f'<path d="M {px + 10 * s_:.1f} {py - 80 * s_:.1f} L {px + 30 * s_:.1f} {py - 118 * s_:.1f}" stroke="{c}" stroke-width="{max(1.4, 7 * s_):.1f}" stroke-linecap="round"/>'
-                       f'<circle cx="{px + 31 * s_:.1f}" cy="{py - 121 * s_:.1f}" r="{max(1, 4 * s_):.1f}" fill="#E8B898"/>')
-    # a friend crouching to frame the shot
-    out.append(f'<g transform="translate(222 372)"><ellipse cx="0" cy="2" rx="16" ry="3" fill="#1E4A26" opacity="0.4"/><path d="M -10 0 L -8 -14 L 8 -16 L 10 0 Z" fill="#2E3446"/>'
-               f'<path d="M -9 -14 Q -10 -34 2 -36 Q 12 -34 10 -16 Z" fill="#E8E2D2"/><circle cx="2" cy="-44" r="7" fill="#C8906A"/><path d="M -5 -46 Q 2 -54 9 -46 Z" fill="#3A2A22"/>'
-               f'<rect x="-14" y="-46" width="9" height="6" rx="1.5" fill="#2A2A30"/><path d="M -2 -32 L -10 -42" stroke="#C8906A" stroke-width="3" stroke-linecap="round"/></g>')
-    # the hero tourist in the foreground, palm pressed to the tower as if holding it up
-    hx, hy = 486, 448
-    out.append(f'<ellipse cx="{hx + 20}" cy="{hy - 4}" rx="44" ry="7" fill="#1E4A26" opacity="0.35"/>')
-    out.append(f'<g transform="translate({hx} {hy})">'
-               # legs, shorts
-               f'<path d="M -16 0 L -14 -62 L -2 -62 L -4 0 Z" fill="#C8906A"/><path d="M 2 0 L 2 -62 L 14 -62 L 16 0 Z" fill="#B87E5A"/>'
-               f'<path d="M -20 -58 L -18 -96 L 20 -96 L 20 -58 L 4 -58 L 1 -70 L -2 -58 Z" fill="#2E5A8E"/>'
-               # torso: striped tee, tote bag on the shoulder
-               f'<path d="M -22 -94 L -24 -146 Q -2 -158 22 -148 L 22 -94 Z" fill="#F6F2EA"/>'
-               + "".join(f'<rect x="-24" y="{-150 + j * 10}" width="47" height="4" fill="#E8504A"/>' for j in range(6))
-               + f'<path d="M 22 -148 L 22 -94 L 10 -94 Q 14 -120 12 -150 Z" fill="#2A3048" opacity="0.15"/>'
-               f'<path d="M 16 -146 L 26 -96" stroke="#C8A060" stroke-width="3"/><rect x="18" y="-100" width="22" height="26" rx="3" fill="#E8C060"/><rect x="18" y="-100" width="22" height="5" fill="#D8A040"/>'
-               # the raised arm reaching up-left to the tower, palm flat
-               f'<path d="M -18 -144 Q -40 -170 -56 -196" fill="none" stroke="#C8906A" stroke-width="10" stroke-linecap="round"/>'
-               f'<path d="M -18 -144 Q -26 -152 -30 -160" fill="none" stroke="#F6F2EA" stroke-width="13" stroke-linecap="round"/>'
-               f'<path d="M -56 -196 L -66 -206 Q -70 -212 -64 -214 L -58 -208 L -60 -218 Q -58 -224 -53 -219 L -51 -208 L -49 -220 Q -46 -225 -43 -219 L -45 -205 Q -46 -196 -52 -192 Z" fill="#D89A74"/>'
-               # other hand on the hip
-               f'<path d="M 20 -140 Q 34 -122 22 -104" fill="none" stroke="#C8906A" stroke-width="9" stroke-linecap="round"/>'
-               # head, straw sun hat, sunglasses, smile
-               f'<rect x="-6" y="-166" width="12" height="12" fill="#C8906A"/><ellipse cx="0" cy="-180" rx="15" ry="17" fill="#D89A74"/>'
-               f'<path d="M -15 -184 Q -16 -170 -12 -160 Q -18 -168 -18 -180 Z" fill="#6A3A22"/><path d="M 15 -184 Q 18 -168 12 -158 Q 20 -164 19 -180 Z" fill="#6A3A22"/>'
-               f'<ellipse cx="0" cy="-192" rx="32" ry="7" fill="#E8C878"/><path d="M -16 -192 Q -14 -212 0 -212 Q 14 -212 16 -192 Z" fill="#F0D488"/><rect x="-16" y="-198" width="32" height="5" fill="#E8504A"/>'
-               f'<path d="M -32 -192 Q 0 -186 32 -192" fill="none" stroke="#C8A050" stroke-width="1.5"/>'
-               f'<rect x="-12" y="-185" width="10" height="7" rx="3" fill="#1E1E28"/><rect x="2" y="-185" width="10" height="7" rx="3" fill="#1E1E28"/><line x1="-2" y1="-183" x2="2" y2="-183" stroke="#1E1E28" stroke-width="1.5"/>'
-               f'<path d="M -6 -171 Q 0 -166 6 -171" fill="none" stroke="#8A3A30" stroke-width="2" stroke-linecap="round"/>'
-               # morning rim light on the left edges
-               f'<path d="M -22 -96 L -24 -146" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/><path d="M -14 -60 L -16 0" stroke="#F2C8A8" stroke-width="2"/></g>')
+    # visitors on the square, sized by their distance (eye level ~ the cloister wall)
+    def ht(y):
+        return (y - 312) * 1.06
+    spec = [(118, 338, "walk", 1, 31, {"season": "summer"}), (134, 340, "walk", 1, 32, {"season": "summer", "form": "m"}),
+            (262, 334, "stand_34", 1, 33, {"season": "summer", "hat_kind": "cap", "hat": "#E8504A"}),
+            (300, 333, "walk", -1, 34, {"season": "summer", "form": "f", "top_kind": "dress", "top": "#F2C24A"}),
+            (70, 352, "photo", 1, 35, {"season": "summer", "form": "m"}), (196, 356, "walk", -1, 36, {"season": "summer", "hat_kind": "sunhat"}),
+            (338, 344, "point", -1, 37, {"season": "summer", "form": "m", "top": "#2E8A7A"})]
+    for px, py, pose, fac, sd, pal in spec:
+        out.append(person(px, py, ht(py), pose, fac, pal, seed=sd, light=-1, rim="#FFF6E0", shadow=0.25))
+    out.append(couple(232, 384, ht(384), "back", {"season": "summer"}, seed=38, light=-1, rim="#FFF6E0"))
+    # the hero of every Pisa photo: palm flat against the tower, holding it up
+    hpal = {"form": "f", "skin": "#C8906A", "hair": "#3A2418", "hair_style": "ponytail", "top_kind": "tee", "top": "#E8584A",
+            "bottom_kind": "shorts", "bottom": "#3E5A8A", "shoes": "#F4F0E8", "hat_kind": "sunhat", "hat": "#EED8A0", "bag": "#E8C878"}
+    a = math.radians(lean)
+    hy = 286.0
+    hxr = tcx + (D / 2 * 1.03) * math.cos(a) - (hy - tb) * math.sin(a)
+    out.append(tower_holder(None, 440, 150, (hxr + 0.5, hy), facing=-1, light=-1, rim="#FFF6E0", pal=hpal))
     out.append(gulls([(150, 110, 9), (170, 120, 6), (360, 80, 8)], "#3A4A6A", 1.8))
     return "\n".join(out)
 
