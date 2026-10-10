@@ -182,5 +182,5 @@ def build_flowers():
 
 
 if __name__ == "__main__":
-    build_sky()
+    # build_sky()  # superseded by night_sky_painted.py
     build_flowers()

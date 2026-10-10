@@ -82,4 +82,4 @@ def build_ink():
 
 
 if __name__ == "__main__":
-    build_ink()
+    print("legacy: Ink Cities are built by ink_engraved_*.py and City Sketches by ink_cities_fine.py / ink_cities_new.py")

@@ -509,4 +509,5 @@ if __name__ == "__main__":
     # Only the builds below that no newer generator replaces are kept.
     # build_dates()
     # build_summer()
-    build_stickers()
+    # build_stickers()
+    print("legacy: every collection now has its own painted generator")
