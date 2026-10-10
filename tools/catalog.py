@@ -10,7 +10,8 @@ COLLECTIONS = [
         "blurb": "Bright, poster-style illustrations of the American cities, parks and beaches people love most.",
         "titles": {"rio": "Rio de Janeiro", "washington-dc": "Washington, DC", "st-augustine": "St. Augustine"},
         "order": ["new-york", "san-francisco", "grand-canyon", "washington-dc", "miami-beach", "honolulu",
-                  "savannah", "st-augustine", "rio"],
+                  "savannah", "st-augustine", "chicago", "nashville", "new-orleans", "charleston", "las-vegas",
+                  "seattle", "boston", "philadelphia", "yellowstone", "yosemite", "rio"],
     },
     {
         "slug": "ink-cities", "name": "Ink Cities", "tag": "Black & white skylines",
