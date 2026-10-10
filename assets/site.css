@@ -36,6 +36,7 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
 body {
   margin: 0;
+  overflow-x: clip; /* safety net: nothing may ever push the page sideways on phones */
   background: var(--bg);
   color: var(--ink);
   font-family: var(--body);
@@ -302,7 +303,7 @@ section.tight { padding-block: 28px 72px; }
 .band p { margin-top: 12px; max-width: 34em; }
 .band .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .band-art { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.band-art .ph { aspect-ratio: 1; border-radius: 8px; box-shadow: var(--shadow); }
+.band-art .ph { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 8px; box-shadow: var(--shadow); }
 .band-art .ph:nth-child(odd) { transform: rotate(-2deg); }
 .band-art .ph:nth-child(even) { transform: rotate(2deg); }
 @media (max-width: 820px) { .band { grid-template-columns: 1fr; } }
