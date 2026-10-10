@@ -394,89 +394,106 @@ def finish(c, body, seed=9, gop=0.9):
     return c.svg() + body + grain(c.id("gr"), INK, seed, gop)
 
 
-# ================================================================ NEW: winter-wonder (cardinal on a snowy bough)
-def cardinal(c, ox, oy, s=1.0, seed=3, flip=False):
-    """Plump storybook cardinal facing left; (ox, oy) = body centre."""
-    T = lambda pts: tx(pts, ox, oy, s, flip)
-    out = []
-    tail = T([(30, -4), (76, 22), (122, 52), (116, 64), (70, 52), (24, 30)])
-    out.append(shape(c, tail, "#9E1C26", ["#C8343A", "#7A121C", "#B42630"], seed, angle=30 if not flip else 150, n=30, iw=2.0))
-    body = T([(-50, -60), (-44, -80), (-30, -102), (-22, -118), (-14, -100), (-6, -88), (10, -80), (22, -62), (44, -38),
-              (58, -10), (56, 18), (36, 42), (6, 54), (-24, 46), (-46, 26), (-58, -4), (-62, -34)])
-    out.append(shape(c, body, "#C62F34", ["#E2524A", "#A81E28", "#F07058", "#B82830"], seed + 1, angle=-110 if not flip else -70,
-                     n=150, length=(10, 26), width=(2, 5), op=(0.25, 0.55), iw=2.4))
-    # belly light and back shadow
-    cl = c.id("cb")
-    out.append(f'<clipPath id="{cl}"><path d="{smooth_closed(body)}"/></clipPath><g clip-path="url(#{cl})">'
-               f'<path d="{blob(*T([(-30, 22)])[0], 34 * s, 26 * s, seed + 2, 0.1)}" fill="#F48A6A" opacity="0.4"/>'
-               f'<path d="{blob(*T([(46, -30)])[0], 30 * s, 50 * s, seed + 3, 0.1)}" fill="#7A121C" opacity="0.35"/></g>')
-    wing = T([(-12, -34), (20, -42), (52, -16), (74, 22), (88, 44), (54, 34), (18, 16), (-6, -6)])
-    out.append(shape(c, wing, "#A21E28", ["#7E141E", "#C23038", "#6A1018"], seed + 4, angle=28 if not flip else 152, n=60,
-                     length=(10, 24), width=(1.5, 3.5), iw=2.0))
-    # feather lines on the wing
-    for k, (a, b) in enumerate((((4, -8), (60, 28)), ((14, -24), (72, 18)), ((30, -32), (82, 34)))):
-        pa, pb = T([a, b])
-        out.append(ink(f"M {F(pa[0])} {F(pa[1])} Q {F((pa[0] + pb[0]) / 2)} {F((pa[1] + pb[1]) / 2 - 6 * s)} {F(pb[0])} {F(pb[1])}", "#5A0C14", 1.6, seed + k, 1, 0.6))
-    mask = T([(-66, -64), (-50, -68), (-34, -60), (-30, -46), (-38, -32), (-52, -24), (-64, -34)])
-    out.append(shape(c, mask, "#2A1A1C", ["#4A3034", "#1A1012"], seed + 5, n=14, iw=1.2))
-    beak = T([(-60, -62), (-88, -50), (-60, -38), (-54, -50)])
-    out.append(shape(c, beak, "#EE8A3A", ["#F8B060", "#C8641E"], seed + 6, n=10, iw=1.6))
-    out.append(ink(smooth_open(T([(-86, -50), (-66, -50), (-56, -50)])), "#7A3A12", 1.2, seed, 1, 0.8))
-    e = T([(-42, -52)])[0]
-    out.append(f'<circle cx="{F(e[0])}" cy="{F(e[1])}" r="{F(4.6 * s)}" fill="#120A0A"/><circle cx="{F(e[0] - 1.4 * s)}" cy="{F(e[1] - 1.6 * s)}" r="{F(1.6 * s)}" fill="#FFFFFF"/>')
-    # crest highlight
-    out.append(ink(smooth_open(T([(-40, -82), (-28, -104), (-22, -114)])), "#F28A72", 2.2, seed, 1, 0.7))
-    return "".join(out)
+# ================================================================ NEW: winter-wonder (vintage ice skates hung by their laces)
+def skate(c, ox, oy, s=1.0, seed=3, flip=False, rot=0, pom=RED):
+    """Vintage white figure skate, side view, toe to the left (flip mirrors it). (ox, oy) = top of the cuff, centre."""
+    T = lambda pts: tx(pts, 0, 0, 1, flip)
+    sg = -1 if flip else 1
+    o = [f'<g transform="translate({F(ox)} {F(oy)}) rotate({rot}) scale({s})">']
+    # wall shadow of the whole skate (it hangs against the paper)
+    sil = T([(-30, 0), (40, -6), (46, 60), (50, 170), (70, 232), (-100, 230), (-86, 160), (-28, 100)])
+    o.append(f'<path d="{smooth_closed(sil)}" fill="{SHADE_D}" opacity="0.16" transform="translate({14 * sg} 12)"/>')
+    # blade: stanchions + runner with a curled toe and toe-pick teeth
+    for st in ([(-64, 192), (-46, 192), (-50, 222), (-66, 222)], [(18, 196), (38, 196), (40, 222), (20, 222)]):
+        p_ = T(st)
+        o.append(shape(c, p_, "#9AA8B8", ["#C6D2DE", "#6E7E92"], seed, angle=-90, n=6, iw=1.4, inkc="#3A4250",
+                       d="M " + " L ".join(f"{F(x)} {F(y)}" for x, y in p_) + " Z"))
+    blade = T([(-90, 208), (-102, 214), (-100, 226), (-86, 233), (40, 234), (68, 232), (78, 226), (70, 220), (-70, 220), (-84, 214)])
+    g = c.lg([(0, "#F4F8FB"), (0.45, "#B8C6D4"), (1, "#6E8096")])
+    o.append(f'<path d="{smooth_closed(blade)}" fill="url(#{g})"/>' + ink(smooth_closed(blade), "#2E3644", 1.8, seed, 2, 0.85))
+    o.append(ink(smooth_open(T([(-80, 224), (0, 226), (66, 225)])), "#FFFFFF", 1.6, seed + 1, 1, 0.9))
+    teeth = T([(-100, 222), (-106, 226), (-100, 228), (-104, 232), (-96, 232)])
+    o.append(ink("M " + " L ".join(f"{F(x)} {F(y)}" for x, y in teeth), "#2E3644", 1.6, seed, 1, 0.9))
+    # sole and heel block
+    sole = T([(-82, 182), (44, 184), (46, 194), (-78, 194), (-86, 188)])
+    o.append(shape(c, sole, "#6A4028", ["#8A5A36", "#4A2A16"], seed + 2, angle=0, n=10, iw=1.6))
+    heel = T([(16, 192), (46, 192), (46, 204), (18, 204)])
+    o.append(shape(c, heel, "#5A3620", ["#7A4A2A"], seed + 3, n=4, iw=1.4, d="M " + " L ".join(f"{F(x)} {F(y)}" for x, y in heel) + " Z"))
+    # the boot
+    boot = T([(-30, 2), (6, -4), (40, -4), (44, 40), (40, 92), (48, 132), (50, 168), (42, 184), (-60, 184), (-84, 178), (-88, 162),
+              (-74, 146), (-44, 134), (-28, 102), (-30, 46)])
+    o.append(shape(c, boot, "#F7F2EA", ["#FFFFFF", SHADE_L, "#EDE4D6", SHADE], seed + 4, angle=-90, n=110, length=(10, 30),
+                   width=(2, 5), op=(0.2, 0.5), iw=2.4))
+    cl = c.id("sk")
+    o.append(f'<clipPath id="{cl}"><path d="{smooth_closed(boot)}"/></clipPath><g clip-path="url(#{cl})">'
+             f'<path d="{blob(*T([(30, 100)])[0], 26, 110, seed, 0.08)}" fill="{SHADE}" opacity="0.3"/>'
+             f'<path d="{blob(*T([(-40, 176)])[0], 60, 14, seed + 1, 0.08)}" fill="{SHADE_D}" opacity="0.3"/>'
+             f'<path d="{blob(*T([(-4, 40)])[0], 10, 60, seed + 2, 0.1)}" fill="#FFFFFF" opacity="0.7"/></g>')
+    # heel counter and vamp seams with stitching
+    for seam in ([(40, 96), (14, 120), (10, 160), (16, 184)], [(-30, 104), (-6, 128), (-20, 160), (-58, 168), (-84, 170)]):
+        o.append(ink(smooth_open(T(seam)), "#A89AA6", 1.8, seed, 1, 0.8))
+        o.append(f'<path d="{smooth_open(T([(x + 4, y) for x, y in seam]))}" fill="none" stroke="#B9AEB8" stroke-width="1.3" stroke-dasharray="3 4" opacity="0.9"/>')
+    # tongue peeking at the cuff + rolled collar
+    tongue = T([(-34, 6), (-28, -14), (-6, -16), (-2, 6)])
+    o.append(shape(c, tongue, "#EFE6D8", [SHADE_L, "#FFFFFF"], seed + 5, n=8, iw=1.6))
+    o.append(ink(smooth_open(T([(-30, 2), (6, -4), (40, -4)])), "#8C8FC8", 3, seed, 1, 0.6))
+    # eyelets + criss-cross red laces
+    holes = [T([(-30 + k * 1.2, 14 + k * 20)])[0] for k in range(6)]
+    holes2 = [T([(-12 + k * 0.6, 12 + k * 20)])[0] for k in range(6)]
+    lace = []
+    for k in range(5):
+        lace.append(f"M {F(holes[k][0])} {F(holes[k][1])} L {F(holes2[k + 1][0])} {F(holes2[k + 1][1])}")
+        lace.append(f"M {F(holes2[k][0])} {F(holes2[k][1])} L {F(holes[k + 1][0])} {F(holes[k + 1][1])}")
+    o.append(f'<path d="{" ".join(lace)}" stroke="{CRAN_D}" stroke-width="4.4" stroke-linecap="round" fill="none"/>'
+             f'<path d="{" ".join(lace)}" stroke="{RED}" stroke-width="2.8" stroke-linecap="round" fill="none"/>')
+    for hx, hy in holes + holes2:
+        o.append(f'<circle cx="{F(hx)}" cy="{F(hy)}" r="2.6" fill="#C9A24E" stroke="{INK}" stroke-width="0.9"/>')
+    # pom-pom tied at the top of the laces
+    pp = T([(-20, -8)])[0]
+    o.append(shape(c, blob_pts(pp[0] - 14 * sg, pp[1] + 8, 15, 14, seed + 6, 0.2, 14), pom, [lt(pom, 0.3), dk(pom, 0.3), "#FFFFFF"],
+                   seed + 6, angle=-60, n=30, length=(3, 8), width=(1.2, 2.4), op=(0.3, 0.7), iw=1.4))
+    o.append("</g>")
+    return "".join(o)
 
 
 def winter_wonder():
     c = C("wwo")
     o = [paper(c.id("pp"), PAPER, FLECK, 21)]
-    # icy painted wash behind the bird
-    bd = blob(300, 352, 250, 210, 4, 0.1, 24)
+    # icy painted wash behind the skates
+    bd = blob(300, 400, 236, 186, 4, 0.1, 24)
     o.append(wash(bd, "#D6E4EA", 5, 3, 4, 0.4))
-    o.append(clip_strokes(c, bd, (40, 130, 560, 580), ["#C2D6E0", "#E6EEF2", "#AFC8D6", "#FFFFFF"], 6, n=170, angle=-18,
+    o.append(clip_strokes(c, bd, (40, 200, 560, 600), ["#C2D6E0", "#E6EEF2", "#AFC8D6", "#FFFFFF"], 6, n=170, angle=-18,
                           length=(30, 90), width=(4, 11), op=(0.15, 0.4)))
-    o.append(c.oglow(330, 380, 170, 140, "#FFFFFF", 0.55))
-    # back bough (paler, upper right)
-    back = [(610, 300), (520, 318), (450, 346), (404, 372)]
-    o.append(ink(smooth_open(back), "#7A6A5A", 4, 4, 1, 0.6))
-    o.append(needles(c, back, 8, length=(14, 26), greens=("#6E9480", "#7FA08C", "#8FB09A", "#A2BEAA", "#7A9C88"), density=0.7, w=2.2))
-    o.append(snow_lump(c, drape((470, 336), (600, 296), 7, 3), 3, iw=0.9))
-    # main bough
-    br = [(-10, 488), (90, 470), (200, 452), (300, 438), (400, 432), (470, 420), (560, 398), (620, 384)]
-    o.append(ink(smooth_open(br), BROWN_D, 9, 2, 1, 1))
-    o.append(ink(smooth_open([(x, y - 2) for x, y in br]), BROWN_L, 3, 3, 1, 0.6))
-    o.append(ink(smooth_open([(200, 452), (170, 418), (150, 400)]), BROWN_D, 5, 4, 1, 1))
-    o.append(needles(c, br[:3], 11, density=1.6, length=(18, 36), w=3))
-    o.append(needles(c, br[3:], 12, density=1.5, length=(18, 36), w=3))
-    o.append(needles(c, [(200, 452), (170, 418), (148, 398)], 13, density=1.6, length=(16, 30), w=3))
-    # pine cone hanging under the bough
-    cone = [(372, 446), (390, 450), (394, 478), (384, 504), (374, 510), (362, 494), (360, 466)]
-    o.append(shape(c, cone, "#8A5A32", ["#B07A48", "#5A3418", "#C9925A"], 14, angle=-90, n=30, iw=1.6))
-    o.append('<g fill="none" stroke="#4A2A14" stroke-width="1.4" opacity="0.7">' + "".join(
-        f'<path d="M {F(362 + k * 0.4)} {460 + k * 9} q 14 6 30 -2"/>' for k in range(5)) + "</g>")
-    # snow on the bough
-    for k, (a, b, t) in enumerate((((40, 470), (96, 462), 13), ((84, 464), (150, 454), 15), ((140, 456), (200, 446), 12),
-                                   ((396, 426), (446, 420), 12), ((436, 422), (500, 410), 15), ((490, 412), (548, 396), 12))):
-        o.append(snow_lump(c, drape(a, b, t, 40 + k, 2, up=t * 0.5), 40 + k))
-    o.append(snow_lump(c, drape((140, 396), (192, 436), 9, 7, 2, up=4), 17, iw=0.9))
-    # holly & berries tucked in at left
-    o.append(holly(c, 132, 470, 1.0, 10, 18))
-    # the bird, with its little feet gripping the bough
-    o.append('<g fill="none" stroke="#5A3A24" stroke-width="3" stroke-linecap="round">'
-             '<path d="M 306 426 l 0 10 q -2 6 -9 6 M 306 436 q 4 6 8 5"/><path d="M 334 424 l 0 10 q -2 6 -9 6 M 334 434 q 4 6 8 5"/></g>')
-    o.append(cardinal(c, 318, 380, 1.06, 3))
-    o.append(snow_lump(c, drape((248, 442), (296, 438), 8, 9, 1, up=4), 19, iw=0.9))
-    # snowfall
-    o.append(spatter(22, 70, (60, 130, 560, 560), ["#FFFFFF"], r=(1.2, 3.6), op=(0.7, 1), avoid=[(70, 70, 530, 240)]))
-    for x, y, r, rt in ((96, 300, 12, 8), (512, 270, 14, 20), (470, 520, 10, 0), (86, 540, 9, 15)):
+    o.append(c.oglow(300, 400, 170, 140, "#FFFFFF", 0.5))
+    # the peg: a little pine bough nailed up, laces looped over it
+    kx, ky = 300, 282
+    o.append(ink(smooth_open([(204, 276), (250, 284), (300, 282), (350, 276), (398, 284)]), BROWN_D, 5, 2, 1, 1))
+    o.append(needles(c, [(196, 276), (250, 284), (300, 282)], 11, density=1.1, length=(14, 26), w=2.6))
+    o.append(needles(c, [(300, 282), (350, 276), (404, 284)], 12, density=1.1, length=(14, 26), w=2.6))
+    for k, (a, b, t) in enumerate((((214, 276), (262, 280), 8), ((334, 276), (390, 280), 8))):
+        o.append(snow_lump(c, drape(a, b, t, 40 + k, 2, up=3), 40 + k, iw=0.9))
+    # laces from the peg down to each skate
+    la, lb = (216, 326), (388, 322)
+    for (ex, ey), sd in ((la, 1), (lb, 2)):
+        d = f"M {kx} {ky + 4} Q {F((kx + ex) / 2)} {F(ky + 6)} {F(ex)} {F(ey)}"
+        o.append(ink(d, CRAN_D, 4.6, sd, 1, 1) + ink(d, RED, 2.8, sd + 1, 1, 1))
+    # skates: left one hangs toe-left, right one toe-right, a little crossed
+    o.append(skate(c, 240, 326, 0.88, 5, False, rot=8, pom=RED))
+    o.append(skate(c, 362, 322, 0.88, 7, True, rot=-6, pom=GREEN))
+    # bow where the laces meet + holly
+    o.append(holly(c, kx, ky + 2, 0.95, 0, 18))
+    for sx_ in (-1, 1):
+        lp = [(kx, ky + 2), (kx + sx_ * 16, ky - 14), (kx + sx_ * 30, ky - 12), (kx + sx_ * 26, ky + 2), (kx + sx_ * 8, ky + 6)]
+        o.append(shape(c, lp, RED, ["#E2524A", CRAN_D], 30 + sx_, n=10, iw=1.6))
+    # snowfall + flakes
+    o.append(spatter(22, 60, (60, 230, 560, 570), ["#FFFFFF"], r=(1.2, 3.4), op=(0.7, 1), avoid=[(120, 290, 480, 560)]))
+    for x, y, r, rt in ((92, 330, 12, 8), (512, 300, 13, 20), (500, 520, 10, 0), (100, 520, 9, 15)):
         o.append(flake(x, y, r, "#FFFFFF", 2.4, rt))
     # lettering
-    o.append(L(c, 300, 132, "winter", SERIF_IT, 92, GREEN_D, [GREEN, "#0E2A1E", GREEN_L], max_w=380, shadow="#E4CFA8", seed=4, angle=-35))
-    o.append(L(c, 300, 240, "WONDER", BEBAS, 132, CRAN, [RED, CRAN_D, "#C8404A", "#8A1A2E"], max_w=430, ls=10, shadow="#5A1020",
+    o.append(L(c, 300, 128, "winter", SERIF_IT, 96, GREEN_D, [GREEN, "#0E2A1E", GREEN_L], max_w=380, shadow="#E4CFA8", seed=4, angle=-35))
+    o.append(L(c, 300, 238, "WONDER", BEBAS, 128, CRAN, [RED, CRAN_D, "#C8404A", "#8A1A2E"], max_w=430, ls=10, shadow="#5A1020",
                seed=5, angle=-75))
-    o.append(glint(118, 200, 10, GOLD) + glint(488, 112, 12, GOLD) + glint(470, 152, 6, GOLD))
+    o.append(glint(108, 196, 10, GOLD) + glint(494, 110, 12, GOLD) + glint(474, 150, 6, GOLD))
     return finish(c, "".join(o))
 
 
@@ -528,8 +545,8 @@ def snow_much_fun():
     o.append(snowball(c, sx + 2, 340, 64, 12))
     o.append(snowball(c, sx - 2, 252, 50, 13))
     # stick arms
-    o.append(ink(smooth_open([(sx - 58, 344), (sx - 88, 382), (sx - 104, 412)]), BROWN_D, 5, 4, 2, 1))
-    o.append(ink("M 312 380 L 296 382", BROWN_D, 3.5, 5, 1, 1))
+    o.append(ink(smooth_open([(sx - 58, 350), (sx - 76, 384), (sx - 84, 414)]), BROWN_D, 5, 4, 2, 1))
+    o.append(ink(f"M {sx - 76} 386 L {sx - 92} 392", BROWN_D, 3.5, 5, 1, 1))
     o.append(ink(smooth_open([(sx + 58, 322), (sx + 92, 292), (sx + 110, 258)]), BROWN_D, 5, 6, 2, 1))
     o.append(ink(f"M {sx + 92} 292 L {sx + 116} 294", BROWN_D, 3.5, 7, 1, 1))
     # mitten on the waving arm
@@ -714,13 +731,30 @@ def fluff(c, pts, seed, base=SNOW, shade=SHADE, bumps=0.1, n=26, inkc="#7A7090",
 def ho_ho_ho():
     c = C("hoh")
     o = [paper(c.id("pp"), PAPER, FLECK, 31)]
-    bd = blob(300, 410, 236, 222, 7, 0.08, 24)
-    o.append(wash(bd, "#2F6450", 8, 3, 3, 0.5))
-    o.append(clip_strokes(c, bd, (40, 170, 560, 640), [GREEN_D, GREEN_L, "#3E7A60", "#24503E"], 9, n=220, angle=-24,
-                          length=(30, 80), width=(5, 12), op=(0.15, 0.4)))
-    o.append(spatter(10, 50, (70, 190, 530, 600), ["#FFFFFF"], r=(1.2, 3.4), op=(0.6, 0.95)))
-    for x, y, r, rt in ((104, 300, 11, 5), (496, 400, 12, 20), (118, 470, 9, 12)):
-        o.append(flake(x, y, r, "#FFFFFF", 2.2, rt))
+    # Santa framed in a round night-sky medallion: navy wash, stars, snowfall, a gold ink ring strung with little lights
+    wx, wy, wr = 300, 378, 198
+    bd = blob(wx, wy, wr, wr, 7, 0.025, 30)
+    o.append(f'<path d="{blob(wx + 8, wy + 10, wr, wr, 7, 0.025, 30)}" fill="{INK}" opacity="0.15"/>')
+    o.append(wash(bd, NAVY, 8, 3, 2, 0.5))
+    o.append(clip_strokes(c, bd, (100, 190, 500, 580), ["#2E4470", NAVY_D, "#34507A", "#3E5A8A"], 9, n=180, angle=-24,
+                          length=(30, 80), width=(5, 12), op=(0.2, 0.45)))
+    o.append(c.glow(wx, wy - 20, 170, "#4E6AA0", 0.5))
+    rs = random.Random(12)
+    for _ in range(26):
+        a_, rr = rs.uniform(0, 6.28), rs.uniform(30, wr - 16)
+        x, y = wx + rr * math.cos(a_), wy + rr * math.sin(a_)
+        o.append(glint(x, y, rs.uniform(2.5, 5), "#FFF6D8", rs.uniform(0.6, 1)) if rs.random() < 0.3 else
+                 f'<circle cx="{F(x)}" cy="{F(y)}" r="{rs.uniform(1.2, 2.8):.1f}" fill="#FFFFFF" opacity="{rs.uniform(0.6, 1):.2f}"/>')
+    o.append(f'<path d="{blob(wx, wy, wr, wr, 7, 0.025, 30)}" fill="none" stroke="{GOLD}" stroke-width="7"/>' + ink(bd, GOLD_D, 2, 10, 1, 0.8)
+             + ink(blob(wx, wy, wr - 10, wr - 10, 11, 0.025, 30), GOLD_L, 1.6, 11, 1, 0.6))
+    for k in range(16):
+        a_ = math.radians(-90 + k * 360 / 16)
+        x, y = wx + (wr + 1) * math.cos(a_), wy + (wr + 1) * math.sin(a_)
+        col = [RED, GOLD_L, GREEN_L, "#6AA8D0"][k % 4]
+        o.append(c.glow(x, y, 14, lt(col, 0.3), 0.55) + f'<path d="{blob(x, y, 5, 5, k, 0.08, 8)}" fill="{col}" stroke="{INK}" stroke-width="1"/>'
+                 f'<circle cx="{F(x - 1.5)}" cy="{F(y - 1.5)}" r="1.5" fill="#FFFFFF" opacity="0.8"/>')
+    for x, y, r, rt in ((90, 300, 11, 5), (510, 470, 12, 20), (92, 470, 9, 12)):
+        o.append(flake(x, y, r, ICE_D, 2.2, rt, 0.8))
     # coat shoulders with fur collar
     coat = [(70, 640), (96, 560), (150, 520), (300, 506), (450, 520), (504, 560), (530, 640)]
     o.append(shape(c, coat, RED, ["#E2524A", CRAN, CRAN_D], 11, angle=-80, n=120, iw=2.4))
@@ -867,11 +901,11 @@ def wrapped_with_love():
     for x, y, r, col in ((112, 330, 10, GOLD), (494, 320, 12, GOLD), (96, 470, 7, RED), (520, 410, 7, GOLD)):
         o.append(glint(x, y, r, col))
     # lettering
-    o.append(L(c, 300, 124, "wrapped with", SERIF_IT, 76, CRAN, [RED, CRAN_D, "#C8404A"], max_w=440, shadow="#FFF4EE", seed=18, angle=-35))
-    o.append(L(c, 300, 222, "LOVE", BEBAS, 104, RED, ["#E2524A", CRAN, "#F07058", CRAN_D], max_w=200, ls=14, shadow=CRAN_D, seed=19, angle=-75))
+    o.append(L(c, 300, 118, "wrapped with", SERIF_IT, 76, CRAN, [RED, CRAN_D, "#C8404A"], max_w=440, shadow="#FFF4EE", seed=18, angle=-35))
+    o.append(L(c, 300, 208, "LOVE", BEBAS, 100, RED, ["#E2524A", CRAN, "#F07058", CRAN_D], max_w=200, ls=14, shadow=CRAN_D, seed=19, angle=-75))
     for sx_ in (-1, 1):
-        o.append(ink(f"M {300 + sx_ * 128} 186 Q {300 + sx_ * 160} 182 {300 + sx_ * 196} 188", CRAN, 3, 20 + sx_, 2, 0.85))
-        o.append(f'<g transform="rotate({sx_ * 12} {300 + sx_ * 212} 188)">{heart(300 + sx_ * 212, 188, 9, RED)}</g>')
+        o.append(ink(f"M {300 + sx_ * 128} 174 Q {300 + sx_ * 160} 170 {300 + sx_ * 196} 176", CRAN, 3, 20 + sx_, 2, 0.85))
+        o.append(f'<g transform="rotate({sx_ * 12} {300 + sx_ * 212} 176)">{heart(300 + sx_ * 212, 176, 9, RED)}</g>')
     return finish(c, "".join(o))
 
 
@@ -994,8 +1028,8 @@ def oh_deer():
         o.append(birch(c, x, top, 420, w, sd, ln))
     o.append(ink("M 70 160 q 24 -18 44 -20 M 522 200 q -26 -16 -46 -16", "#5A5060", 2.6, 5, 1, 0.8))
     o.append(snow_field(c, [(-20, 412), (150, 400), (320, 410), (470, 398), (620, 408)], 8, shade_box=(-20, 420, 620, 470), inkc=SHADE_D))
-    o.append(cast(320, 446, 140, 12, SHADE_D, 0.45, 9))
-    o.append(f'<g transform="translate(-6 -70)">{deer(c)}</g>')
+    o.append(cast(320, 436, 140, 12, SHADE_D, 0.45, 9))
+    o.append(f'<g transform="translate(-6 -80)">{deer(c)}</g>')
     o.append(spatter(10, 110, (0, 0, 600, 600), ["#FFFFFF"], r=(1.2, 3.6), op=(0.75, 1), avoid=[(60, 450, 540, 545)]))
     for x, y, r, rt in ((92, 250, 11, 5), (476, 120, 12, 20), (440, 230, 9, 12), (150, 100, 9, 0)):
         o.append(flake(x, y, r, "#FFFFFF", 2.4, rt))
@@ -1003,8 +1037,8 @@ def oh_deer():
     w1 = measure("oh", SERIF_IT, 104)
     w2 = measure("DEER", BEBAS, 140, 10)
     x0 = 300 - (w1 + 22 + w2) / 2
-    o.append(L(c, x0, 530, "oh", SERIF_IT, 104, CRAN, [RED, CRAN_D, "#C8404A"], anchor="start", max_w=200, shadow=SHADE_L, seed=11, angle=-35))
-    o.append(L(c, x0 + w1 + 22, 530, "DEER", BEBAS, 140, NAVY, [NAVY_D, "#34507A", "#2A3E68"], anchor="start", max_w=300, ls=10,
+    o.append(L(c, x0, 534, "oh", SERIF_IT, 104, CRAN, [RED, CRAN_D, "#C8404A"], anchor="start", max_w=200, shadow=SHADE_L, seed=11, angle=-35))
+    o.append(L(c, x0 + w1 + 22, 534, "DEER", BEBAS, 140, NAVY, [NAVY_D, "#34507A", "#2A3E68"], anchor="start", max_w=300, ls=10,
                shadow=SHADE, seed=12, angle=-75))
     return finish(c, "".join(o))
 
@@ -1114,7 +1148,7 @@ def fresh_cut_trees():
     for x in range(-10, 620, 16):
         h = rnd.uniform(18, 34)
         o.append(fir(c, x + rnd.uniform(-5, 5), 290 - 10 * math.sin(x / 120) + rnd.uniform(-2, 2), h, h * 0.55, rnd.randint(0, 999),
-                     cols=("#9AAFC0", "#8AA0B4", "#AFC2CE", "#94AABC"), tiers=3, snow=False, inkc=None, trunk=None))
+                     cols=("#9AAFC0", "#8AA0B4", "#AFC2CE", "#94AABC"), tiers=2, snow=False, inkc=None, trunk=None))
     o.append(snow_field(c, hill, 5, n=40))
     # a little red barn far off
     o.append('<g transform="translate(118 280)">' + shape(c, [(0, 0), (0, -20), (18, -34), (36, -20), (36, 0)], "#B0383A", ["#C84A48", "#8A2A2C"], 6, n=10, iw=1.2,
@@ -1127,7 +1161,7 @@ def fresh_cut_trees():
         for i, x in enumerate(range(-6 + row * 22, 640, step)):
             h = h0 * rnd.uniform(0.85, 1.12)
             o.append(cast(x + 10, yb + 2, h * 0.32, 4, SHADE_D, 0.35, i))
-            o.append(fir(c, x + rnd.uniform(-5, 5), yb, h, h * 0.62, rnd.randint(0, 999), cols=cols, tiers=4, iw=1.2, inkc=INK if row else None))
+            o.append(fir(c, x + rnd.uniform(-5, 5), yb, h, h * 0.62, rnd.randint(0, 999), cols=cols, tiers=3, iw=1.2, inkc=INK if row else None, snow=bool(row)))
     o.append(snow_field(c, [(-20, 446), (160, 436), (340, 448), (480, 438), (620, 446)], 9, shade_box=(-20, 450, 620, 520), inkc=SHADE_D))
     # big fir at left behind the sign
     o.append(fir(c, 88, 470, 250, 150, 21, tiers=6))
@@ -1169,6 +1203,1021 @@ def fresh_cut_trees():
     return finish(c, "".join(o))
 
 
+# ================================================================ shared new pieces: wreath, poinsettia, pine cone, lantern
+def ring_pts(cx, cy, r, a0=0, a1=360, n=40, wob=0.0, seed=1):
+    rnd = random.Random(seed)
+    return [(cx + r * (1 + rnd.uniform(-wob, wob)) * math.cos(math.radians(a0 + (a1 - a0) * i / n)),
+             cy + r * (1 + rnd.uniform(-wob, wob)) * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
+
+
+def wreath(c, cx, cy, r, seed, needle=(10, 20), berries=True, snow=False, cones=True):
+    """Small painted fir wreath: a dark ring wash, needles brushed along three concentric rings, berries, cones."""
+    o = []
+    rnd = random.Random(seed)
+    th = r * 0.36
+    d = (blob(cx, cy, r + th * 0.5, r + th * 0.5, seed, 0.03, 26) + " " + blob(cx, cy, r - th * 0.5, r - th * 0.5, seed + 1, 0.03, 22))
+    o.append(f'<path d="{d}" fill="{GREEN_D}" fill-rule="evenodd"/>')
+    for k, rr in enumerate((r - th * 0.3, r + th * 0.3, r)):
+        o.append(needles(c, ring_pts(cx, cy, rr, rnd.uniform(0, 30), 390, 36, 0.02, seed + k), seed + 10 + k, length=needle,
+                         density=0.55, w=2.2))
+    if snow:
+        for a in (-150, -110, -70, -30):
+            p1 = (cx + r * 1.05 * math.cos(math.radians(a - 18)), cy + r * 1.05 * math.sin(math.radians(a - 18)))
+            p2 = (cx + r * 1.05 * math.cos(math.radians(a + 18)), cy + r * 1.05 * math.sin(math.radians(a + 18)))
+            o.append(snow_lump(c, drape(p1, p2, r * 0.07, seed + a, 2, up=2), seed + a, iw=0.8))
+    if cones:
+        for a in (200, 340):
+            px, py = cx + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a))
+            o.append(pinecone(c, px, py, r * 0.006 + 0.1, a + 90, seed + a))
+    if berries:
+        for a in (130, 160, 20, 50, 250, 290):
+            px, py = cx + r * 1.02 * math.cos(math.radians(a)), cy + r * 1.02 * math.sin(math.radians(a))
+            for j in range(3):
+                o.append(berry(c, px + rnd.uniform(-6, 6), py + rnd.uniform(-6, 6), r * 0.075 + 1.5, RED, seed + a + j))
+    return "".join(o)
+
+
+def pinecone(c, x, y, s, rot, seed):
+    """Little painted pine cone, length ~ 70 * s, pointing along rot (deg, 90 = down)."""
+    o = [f'<g transform="translate({F(x)} {F(y)}) rotate({F(rot - 90)}) scale({s:.3f})">']
+    pts = [(0, -6), (14, 2), (19, 22), (16, 44), (8, 62), (0, 68), (-8, 62), (-16, 44), (-19, 22), (-14, 2)]
+    o.append(shape(c, pts, "#8A5A32", ["#B07A48", "#5A3418", "#C9925A"], seed, angle=-90, n=24, iw=1.8))
+    sc = []
+    for row in range(6):
+        yy = 6 + row * 10
+        wv = 17 - abs(row - 2) * 2.4
+        for k in range(-1, 2):
+            xx = k * wv * 0.62
+            sc.append(f"M {F(xx - 6)} {F(yy)} Q {F(xx)} {F(yy + 8)} {F(xx + 6)} {F(yy)}")
+    o.append(f'<path d="{" ".join(sc)}" stroke="#4A2A14" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.75"/>')
+    o.append(f'<path d="{" ".join(sc)}" stroke="#D9A46A" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.6" transform="translate(0 -2)"/>')
+    o.append("</g>")
+    return "".join(o)
+
+
+def leaf_pts(L, wfrac=0.34, tipk=1.0):
+    W = L * wfrac
+    return [(0, 0), (0.18 * L, 0.42 * W), (0.5 * L, 0.52 * W), (0.82 * L, 0.3 * W), (tipk * L, 0), (0.82 * L, -0.3 * W),
+            (0.5 * L, -0.52 * W), (0.18 * L, -0.42 * W)]
+
+
+def rot_pts(pts, x, y, a):
+    ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+    return [(x + px * ca - py * sa, y + px * sa + py * ca) for px, py in pts]
+
+
+def painted_leaf(c, x, y, L, a, col, tints, seed, wfrac=0.34, vein=None, iw=1.6, veins=True):
+    pts = rot_pts(jitter(leaf_pts(L, wfrac), seed, L * 0.015), x, y, a)
+    o = [shape(c, pts, col, tints, seed, angle=a + 30, n=max(10, int(L * 0.7)), length=(L * 0.12, L * 0.3), width=(1.2, 2.8),
+               op=(0.25, 0.55), iw=iw)]
+    if veins:
+        tip = rot_pts([(L * 0.92, 0)], x, y, a)[0]
+        vc = vein or lt(col, 0.4)
+        o.append(ink(f"M {F(x)} {F(y)} L {F(tip[0])} {F(tip[1])}", vc, 1.6, seed, 1, 0.75))
+        side = []
+        for t in (0.3, 0.5, 0.7):
+            for sg in (-1, 1):
+                p0 = rot_pts([(L * t, 0)], x, y, a)[0]
+                p1 = rot_pts([(L * (t + 0.14), sg * L * wfrac * 0.36)], x, y, a)[0]
+                side.append(f"M {F(p0[0])} {F(p0[1])} L {F(p1[0])} {F(p1[1])}")
+        o.append(f'<path d="{" ".join(side)}" stroke="{vc}" stroke-width="1.1" opacity="0.6" fill="none" stroke-linecap="round"/>')
+    return "".join(o)
+
+
+def poinsettia(c, x, y, r, rot, seed):
+    """Gouache poinsettia: green leaves underneath, two rings of veined red bracts, a gold-green centre."""
+    rnd = random.Random(seed)
+    o = []
+    for k in range(3):
+        a = rot + 30 + k * 120 + rnd.uniform(-10, 10)
+        o.append(painted_leaf(c, x, y, r * 1.12, a, GREEN, [GREEN_L, GREEN_D, "#3E6E50"], seed + k, 0.4))
+    for k in range(6):
+        a = rot + k * 60 + rnd.uniform(-8, 8)
+        o.append(painted_leaf(c, x, y, r * rnd.uniform(0.92, 1.02), a, "#B8232E", ["#D83A3A", "#8E1622", "#E2524A", CRAN_D], seed + 10 + k,
+                              0.4, vein="#E66A5E"))
+    for k in range(5):
+        a = rot + 30 + k * 72 + rnd.uniform(-8, 8)
+        o.append(painted_leaf(c, x, y, r * rnd.uniform(0.56, 0.66), a, "#D2343A", ["#E8564A", "#A81E2C", "#F07058"], seed + 20 + k,
+                              0.42, vein="#F28A78", iw=1.3))
+    for k in range(7):
+        a = k * 51 + rnd.uniform(-10, 10)
+        rr = 0 if k == 0 else r * 0.1
+        px, py = x + rr * math.cos(math.radians(a)), y + rr * math.sin(math.radians(a))
+        o.append(f'<path d="{blob(px, py, r * 0.055 + 1, r * 0.055 + 1, seed + k, 0.1, 8)}" fill="#7A9A3A" stroke="#3E4A18" stroke-width="1"/>'
+                 f'<circle cx="{F(px - 1)}" cy="{F(py - 1)}" r="{F(r * 0.025 + 0.6)}" fill="{GOLD_L}"/>')
+    o.append(f'<circle cx="{F(x + r * 0.06)}" cy="{F(y - r * 0.08)}" r="{F(r * 0.03 + 0.8)}" fill="{RED}"/>')
+    return "".join(o)
+
+
+def lantern(c, x, base, s, seed, glow=True):
+    """Black tin lantern with a lit candle, standing at (x, base)."""
+    o = []
+    if glow:
+        o.append(c.glow(x, base - 40 * s, 110 * s, "#FFC86A", 0.55))
+    o.append(cast(x + 10 * s, base, 34 * s, 6 * s, "#2A1010", 0.35, seed))
+    body = [(x - 22 * s, base - 8 * s), (x - 20 * s, base - 64 * s), (x + 20 * s, base - 64 * s), (x + 22 * s, base - 8 * s)]
+    g = c.lg([(0, "#FFF2C4"), (0.5, "#FFD27A"), (1, "#F2A33A")])
+    o.append(f'<path d="{smooth_closed(jitter(body, seed, 0.6))}" fill="url(#{g})"/>')
+    o.append(c.glow(x, base - 30 * s, 16 * s, "#FFFFFF", 0.8))
+    o.append(f'<path d="M {F(x - 6 * s)} {F(base - 10 * s)} L {F(x - 6 * s)} {F(base - 26 * s)} L {F(x + 6 * s)} {F(base - 26 * s)} L {F(x + 6 * s)} {F(base - 10 * s)} Z" fill="{CREAM}"/>'
+             f'<path d="M {F(x)} {F(base - 44 * s)} Q {F(x + 6 * s)} {F(base - 32 * s)} {F(x)} {F(base - 27 * s)} Q {F(x - 6 * s)} {F(base - 32 * s)} {F(x)} {F(base - 44 * s)} Z" fill="#F8A83A"/>'
+             f'<path d="M {F(x)} {F(base - 38 * s)} Q {F(x + 2.5 * s)} {F(base - 32 * s)} {F(x)} {F(base - 29 * s)} Q {F(x - 2.5 * s)} {F(base - 32 * s)} {F(x)} {F(base - 38 * s)} Z" fill="#FFF6D8"/>')
+    frame = (f"M {F(x - 22 * s)} {F(base - 8 * s)} L {F(x - 20 * s)} {F(base - 64 * s)} L {F(x + 20 * s)} {F(base - 64 * s)} L {F(x + 22 * s)} {F(base - 8 * s)} Z "
+             f"M {F(x)} {F(base - 64 * s)} L {F(x)} {F(base - 8 * s)}")
+    o.append(ink(frame, "#1E1A1C", 3.4 * s, seed, 1, 1))
+    o.append(shape(c, [(x - 28 * s, base - 8 * s), (x + 28 * s, base - 8 * s), (x + 26 * s, base), (x - 26 * s, base)], "#2A2628", ["#4A4448"], seed + 1, n=6,
+                   iw=1.4, inkc="#121012", d=f"M {F(x - 28 * s)} {F(base - 8 * s)} L {F(x + 28 * s)} {F(base - 8 * s)} L {F(x + 26 * s)} {F(base)} L {F(x - 26 * s)} {F(base)} Z"))
+    roof = [(x - 28 * s, base - 62 * s), (x, base - 84 * s), (x + 28 * s, base - 62 * s)]
+    o.append(shape(c, roof, "#2A2628", ["#4A4448", "#5A5458"], seed + 2, n=8, iw=1.6, inkc="#121012",
+                   d="M " + " L ".join(f"{F(a)} {F(b)}" for a, b in roof) + " Z"))
+    o.append(ink(f"M {F(x - 10 * s)} {F(base - 84 * s)} Q {F(x)} {F(base - 104 * s)} {F(x + 10 * s)} {F(base - 84 * s)}", "#1E1A1C", 2.6 * s, seed, 1, 1))
+    o.append(ink(f"M {F(x - 14 * s)} {F(base - 58 * s)} L {F(x - 14 * s)} {F(base - 14 * s)}", "#FFFFFF", 1.6 * s, seed, 1, 0.5))
+    return "".join(o)
+
+
+# ================================================================ NEW: sleigh-all-day (vintage sled + wreath on a red porch wall)
+def sled_upright(c, ox, oy, s, seed):
+    """Wooden slat sled stood on its tail against a wall, front curls at the top. Local: x -60..60, y 0..330."""
+    o = [f'<g transform="translate({F(ox)} {F(oy)}) rotate(-4 0 330) scale({s})">']
+    o.append(f'<path d="M -62 10 Q 0 -6 62 10 L 70 330 L -66 330 Z" fill="#3A0A0E" opacity="0.3" transform="translate(18 2)"/>')
+    # iron runners with curled fronts
+    for sg in (-1, 1):
+        x = 60 * sg
+        d = f"M {x} 330 L {x} 46 C {x} 14 {x - sg * 4} -2 {x - sg * 22} 0 C {x - sg * 38} 2 {x - sg * 36} 24 {x - sg * 20} 22"
+        o.append(ink(d, "#1E1A1C", 10, seed, 1, 1))
+        o.append(ink(f"M {x - sg * 2.5} 320 L {x - sg * 2.5} 50 C {x - sg * 2.5} 22 {x - sg * 6} 6 {x - sg * 20} 6", "#8A8288", 2.4, seed + 1, 1, 0.75))
+        for yy in (120, 230, 310):
+            o.append(ink(f"M {x} {yy} L {x - sg * 12} {yy - 6}", "#1E1A1C", 5, seed + yy, 1, 1))
+    # four honey-wood slats
+    for k, (x0, x1) in enumerate(((-54, -30), (-25, -2), (2, 25), (30, 54))):
+        top, bot = (52, 324) if k in (1, 2) else (66, 316)
+        xm, hw = (x0 + x1) / 2, (x1 - x0) / 2
+        pts = [(x0, top + 10), (xm - hw * 0.7, top + 2.5), (xm, top), (xm + hw * 0.7, top + 2.5), (x1, top + 10), (x1, (top + bot) / 2),
+               (x1, bot - 8), (xm + hw * 0.7, bot - 1.5), (xm, bot), (xm - hw * 0.7, bot - 1.5), (x0, bot - 8), (x0, (top + bot) / 2)]
+        o.append(shape(c, pts, "#C98E52", ["#E0A868", "#A8723E", "#F2C489", "#8A5A2E"], seed + 2 + k, angle=-90, n=50,
+                       length=(30, 90), width=(1, 2.6), op=(0.3, 0.65), curve=0.04, iw=1.8))
+        o.append(ink(f"M {x0 + 4} {top + 14} L {x0 + 4} {bot - 12}", "#FBE0B0", 1.8, seed + k, 1, 0.55))
+    # painted decoration down the middle slats: a red star and gold pinstripes
+    o.append(ink("M -40 196 Q 0 176 40 196 M -40 276 Q 0 296 40 276", GOLD_D, 2.4, seed, 1, 0.85))
+    o.append(pstar(c, 0, 236, 26, RED, seed + 9, tints=["#E2524A", CRAN, "#F07058"], iw=1.6))
+    o.append(pstar(c, 0, 236, 9, GOLD_L, seed + 10, iw=0.8))
+    # rear cross bar
+    rb = [(-62, 292), (62, 292), (62, 306), (-62, 306)]
+    o.append(shape(c, rb, "#A8723E", ["#C98E52", "#7A4A24"], seed + 11, angle=0, n=14, iw=1.8,
+                   d="M -62 292 L 62 292 L 62 306 L -62 306 Z"))
+    # steering bar, painted green, with bolts
+    sb = [(-82, 70), (-76, 62), (76, 62), (82, 70), (76, 80), (-76, 80)]
+    o.append(shape(c, sb, GREEN, [GREEN_L, GREEN_D], seed + 12, angle=0, n=24, iw=2.2))
+    o.append(ink("M -74 66 L 74 66", "#9AC4A0", 2, seed, 1, 0.6))
+    for bx in (-60, 60):
+        o.append(f'<circle cx="{bx}" cy="71" r="3.4" fill="#2A2628"/><circle cx="{bx - 1}" cy="70" r="1.2" fill="#C8C0C4"/>')
+    # wreath hung from the steering bar on a red ribbon
+    o.append(ink("M -2 78 L 0 104", RED, 5, seed, 1, 1))
+    o.append(wreath(c, 0, 150, 46, seed + 20, needle=(9, 16), cones=False))
+    for sx_ in (-1, 1):
+        lp = [(0, 106), (sx_ * 18, 90), (sx_ * 30, 94), (sx_ * 26, 110), (sx_ * 8, 112)]
+        o.append(shape(c, lp, RED, ["#E2524A", CRAN_D], seed + 30 + sx_, n=10, iw=1.6))
+        tl = [(0, 110), (sx_ * 12, 134), (sx_ * 20, 152), (sx_ * 10, 150), (sx_ * 2, 124)]
+        o.append(shape(c, tl, CRAN, [RED, CRAN_D], seed + 33 + sx_, n=8, iw=1.4))
+    o.append(shape(c, blob_pts(0, 108, 8, 7, seed + 35, 0.1, 10), CRAN, [RED], seed + 35, n=4, iw=1.4))
+    o.append("</g>")
+    return "".join(o)
+
+
+def log_end(c, x, y, r, seed):
+    o = [shape(c, blob_pts(x, y, r, r * 0.96, seed, 0.06, 14), "#D9B07A", ["#E8C894", "#B8864E"], seed, angle=-30, n=14, iw=1.8)]
+    o.append("".join(f'<path d="{blob(x + 1, y + 1, r * k, r * k * 0.95, seed + int(k * 10), 0.08, 12)}" fill="none" stroke="#9A6A3A" stroke-width="1.2" opacity="0.7"/>'
+                     for k in (0.28, 0.52, 0.76)))
+    o.append(f'<path d="{blob(x, y, r, r * 0.96, seed, 0.06, 14)}" fill="none" stroke="#5A3418" stroke-width="{F(r * 0.14)}" opacity="0.85"/>')
+    return "".join(o)
+
+
+def sleigh_all_day():
+    c = C("sad")
+    o = [wash_bg(c, "#8E2A2C", ["#9E3434", "#7A2024", "#A8403A", "#6E1C20"], 3, angle=-90, n=320, length=(60, 160), width=(6, 14))]
+    # board-and-batten: battens every 66 px, nail heads
+    rnd = random.Random(4)
+    for x in range(-10, 640, 66):
+        bt = jitter([(x - 7, -10), (x + 7, -10), (x + 7, 520), (x - 7, 520)], x, 1)
+        d = "M " + " L ".join(f"{F(a)} {F(b)}" for a, b in bt) + " Z"
+        o.append(f'<path d="{d}" fill="#5A1418" opacity="0.35" transform="translate(4 0)"/>')
+        o.append(f'<path d="{d}" fill="#962E30"/>' + strokes(c.id("bt"), d, (x - 8, -10, x + 8, 520), ["#B04440", "#7A2024"], x, n=30, angle=-90,
+                                                                length=(40, 100), width=(1.5, 3), opacity=(0.3, 0.6)))
+        o.append(ink(f"M {x - 7} -10 L {x - 7} 520", "#4A0E12", 1.6, x, 1, 0.6) + ink(f"M {x - 4} -10 L {x - 4} 520", "#C25A50", 1.2, x + 1, 1, 0.5))
+        for yy in (150, 330, 480):
+            o.append(f'<circle cx="{x}" cy="{yy + rnd.uniform(-4, 4):.0f}" r="2.2" fill="#3A0A0E" opacity="0.7"/>')
+    # lantern glow wash on the wall
+    o.append(c.oglow(130, 470, 210, 190, "#FFB25A", 0.45))
+    o.append(c.oglow(300, 140, 300, 120, "#3A0A0E", 0.35))
+    # porch floor
+    fl = "M -20 512 L 620 512 L 620 620 L -20 620 Z"
+    o.append(f'<path d="{fl}" fill="#8C8078"/>')
+    o.append(strokes(c.id("fl"), fl, (-20, 510, 620, 620), ["#A89C92", "#6E625C", "#B8ACA0", "#7A6E66"], 5, n=160, angle=-1,
+                     length=(40, 120), width=(1.5, 4), opacity=(0.3, 0.6), curve=0.03))
+    for y in (512, 538, 568):
+        o.append(ink(f"M -20 {y} L 620 {y + 2}", "#4A3E3A", 2 if y > 512 else 3.2, y, 1, 0.7))
+    o.append(ink("M -20 515 L 620 516", "#C8BCB0", 1.4, 3, 1, 0.5))
+    # drifted snow along the wall and in the corners
+    o.append(snow_lump(c, [(-20, 482), (20, 474), (56, 486), (88, 504), (122, 520), (140, 530), (60, 534), (-20, 536)], 6, inkc=None))
+    o.append(snow_lump(c, [(400, 528), (440, 512), (500, 498), (560, 480), (620, 474), (620, 538), (500, 538)], 7, inkc=None))
+    o.append(spatter(8, 50, (0, 518, 600, 600), ["#FFFFFF"], r=(1.2, 3.2), op=(0.6, 0.95)))
+    # firewood stack at right
+    for (x, y, r), sd in zip(((444, 494, 24), (494, 494, 24), (544, 492, 24), (468, 452, 23), (518, 450, 23), (494, 410, 22)), range(6)):
+        o.append(log_end(c, x, y, r, 40 + sd))
+    o.append(snow_lump(c, [(470, 398), (476, 386), (494, 382), (512, 386), (520, 398), (506, 394), (494, 400), (480, 396)], 44, iw=0.8))
+    # lantern at left
+    o.append(lantern(c, 118, 530, 1.1, 50))
+    # the sled
+    o.append(cast(306, 532, 110, 8, "#2A1010", 0.4, 9))
+    o.append(sled_upright(c, 300, 222, 0.93, 11))
+    # falling snow outside the porch roof line
+    o.append(spatter(12, 40, (0, 0, 600, 240), ["#FFFFFF"], r=(1.1, 2.8), op=(0.5, 0.9), avoid=[(80, 50, 520, 230)]))
+    # lettering
+    o.append(L(c, 300, 138, "sleigh", SERIF_IT, 106, CREAM, ["#FFFFFF", "#F2DCC0", "#E8CFA8"], max_w=360, shadow="#4A0E12", seed=13,
+               angle=-35, sdx=0.025, sdy=0.04))
+    o.append(L(c, 300, 202, "ALL DAY", BEBAS, 66, GOLD_L, [GOLD, "#FFF0B8", GOLD_D], max_w=250, ls=14, shadow="#4A0E12", seed=14, angle=-80))
+    for sx_ in (-1, 1):
+        o.append(pstar(c, 300 + sx_ * 150, 180, 10, GOLD_L, 15 + sx_, iw=1.0))
+    return finish(c, "".join(o))
+
+
+# ================================================================ NEW: warm-and-cozy (mulled cider in a glass mug)
+def orange_slice(c, x, y, r, seed, rot=0):
+    o = [f'<g transform="rotate({rot} {F(x)} {F(y)})">']
+    o.append(shape(c, blob_pts(x, y, r, r, seed, 0.03, 18), "#E8762A", ["#F29A48", "#C85A1A"], seed, n=14, iw=1.8))
+    o.append(f'<path d="{blob(x, y, r * 0.86, r * 0.86, seed + 1, 0.03, 16)}" fill="#FBEBD0"/>')
+    o.append(f'<path d="{blob(x, y, r * 0.78, r * 0.78, seed + 2, 0.03, 16)}" fill="#F6A548"/>')
+    segs = []
+    for k in range(10):
+        a = math.radians(k * 36 + 8)
+        segs.append(f"M {F(x)} {F(y)} L {F(x + r * 0.78 * math.cos(a))} {F(y + r * 0.78 * math.sin(a))}")
+    o.append(f'<path d="{" ".join(segs)}" stroke="#FBE6C4" stroke-width="{F(max(1.4, r * 0.06))}" stroke-linecap="round" fill="none"/>')
+    rnd = random.Random(seed)
+    for k in range(10):
+        a = math.radians(k * 36 + 26)
+        o.append(f'<path d="{blob(x + r * 0.5 * math.cos(a), y + r * 0.5 * math.sin(a), r * 0.12, r * 0.06, seed + k, 0.2, 8, rot=k * 36 + 26)}" fill="#FFD08A" opacity="0.8"/>')
+    o.append(f'<circle cx="{F(x)}" cy="{F(y)}" r="{F(r * 0.1)}" fill="#FBEBD0"/>')
+    o.append("</g>")
+    return "".join(o)
+
+
+def star_anise(c, x, y, r, seed, rot=0):
+    o = []
+    for k in range(8):
+        a = rot + k * 45
+        pts = rot_pts([(0, 0), (r * 0.3, r * 0.2), (r * 0.85, r * 0.18), (r, 0), (r * 0.85, -r * 0.18), (r * 0.3, -r * 0.2)], x, y, a)
+        o.append(shape(c, pts, "#7A3E1E", ["#9A5A2E", "#5A2A12"], seed + k, n=4, iw=1.2, inkc="#3A1A0A"))
+        sd = rot_pts([(r * 0.62, 0)], x, y, a)[0]
+        o.append(f'<path d="{blob(sd[0], sd[1], r * 0.1, r * 0.07, seed + k, 0.1, 8, rot=a)}" fill="#C8884A"/>')
+    o.append(f'<path d="{blob(x, y, r * 0.18, r * 0.18, seed, 0.1, 8)}" fill="#5A2A12"/>')
+    return "".join(o)
+
+
+def cinnamon(c, x1, y1, x2, y2, w, seed):
+    a = math.atan2(y2 - y1, x2 - x1)
+    nx, ny = -math.sin(a) * w / 2, math.cos(a) * w / 2
+    pts = [(x1 + nx, y1 + ny), (x2 + nx, y2 + ny), (x2 - nx, y2 - ny), (x1 - nx, y1 - ny)]
+    d = "M " + " L ".join(f"{F(px)} {F(py)}" for px, py in pts) + " Z"
+    o = [shape(c, pts, "#8A4A22", ["#A8622E", "#6A3416", "#B87440"], seed, angle=math.degrees(a), n=int(math.hypot(x2 - x1, y2 - y1) / 3),
+               length=(14, 40), width=(1, 2.4), op=(0.35, 0.7), iw=1.6, d=d)]
+    o.append(ink(f"M {F(x1 + nx * 0.2)} {F(y1 + ny * 0.2)} L {F(x2 + nx * 0.2)} {F(y2 + ny * 0.2)}", "#4A2210", 1.4, seed, 1, 0.7))
+    # rolled end
+    o.append(f'<ellipse cx="{F(x2)}" cy="{F(y2)}" rx="{F(w * 0.5)}" ry="{F(w * 0.32)}" transform="rotate({F(math.degrees(a) + 90)} {F(x2)} {F(y2)})" fill="#C88A52" stroke="#4A2210" stroke-width="1.2"/>')
+    o.append(f'<path d="M {F(x2 - nx * 0.5)} {F(y2 - ny * 0.5)} Q {F(x2 + nx * 0.3)} {F(y2 + ny * 0.3 - 2)} {F(x2 + nx * 0.1)} {F(y2 + ny * 0.1 + 2)}" stroke="#6A3416" stroke-width="1.2" fill="none"/>')
+    return "".join(o)
+
+
+def warm_and_cozy():
+    c = C("wac")
+    o = [wash_bg(c, "#E7B487", ["#EEC39A", "#DDA275", "#F4D0AA", "#D8966A"], 3, angle=-20, n=300)]
+    o.append(c.oglow(300, 330, 300, 240, "#FFE6B8", 0.6))
+    # out-of-focus fairy lights in the background
+    rnd = random.Random(5)
+    for _ in range(26):
+        x, y = rnd.uniform(20, 580), rnd.uniform(200, 440)
+        if 180 < x < 420 and y > 220:
+            continue
+        rr = rnd.uniform(8, 20)
+        o.append(f'<path d="{blob(x, y, rr, rr, rnd.randint(0, 999), 0.06, 12)}" fill="{rnd.choice([GOLD_L, "#FFF2D0", "#F8C878"])}" opacity="{rnd.uniform(0.3, 0.6):.2f}"/>')
+    # walnut table
+    tb = "M -20 452 L 620 452 L 620 620 L -20 620 Z"
+    o.append(f'<path d="{tb}" fill="#6A3E24"/>')
+    o.append(strokes(c.id("tb"), tb, (-20, 450, 620, 620), ["#8A5A36", "#4A2A16", "#9A6A40", "#5A3420"], 6, n=170, angle=-1,
+                     length=(50, 140), width=(1.5, 4), opacity=(0.3, 0.6), curve=0.03))
+    o.append(ink("M -20 452 L 620 454", "#B8845A", 2.6, 4, 1, 0.8) + ink("M -20 532 L 620 530", "#3A2012", 1.8, 5, 1, 0.5))
+    # amber light thrown through the cider onto the table
+    o.append(c.oglow(310, 482, 150, 30, "#F8A84A", 0.7))
+    o.append(cast(300, 470, 104, 12, "#2A1408", 0.45, 6))
+    # ---- the glass mug
+    top_y, bot_y, rt, rb = 248, 462, 92, 80
+    cx = 290
+    body = [(cx - rt, top_y), (cx - rb, bot_y - 10), (cx - rb + 8, bot_y + 4), (cx, bot_y + 8), (cx + rb - 8, bot_y + 4), (cx + rb, bot_y - 10), (cx + rt, top_y)]
+    bd = (f"M {cx - rt} {top_y} L {cx - rb} {bot_y - 10} Q {cx - rb} {bot_y + 8} {cx} {bot_y + 8} Q {cx + rb} {bot_y + 8} {cx + rb} {bot_y - 10} "
+          f"L {cx + rt} {top_y} A {rt} 16 0 0 0 {cx - rt} {top_y} Z")
+    o.append(f'<path d="{bd}" fill="#FFF6E8" opacity="0.35"/>')
+    # handle (behind-ish, thick glass)
+    hd = f"M {cx + rt - 6} 286 C {cx + rt + 54} 280 {cx + rt + 56} 410 {cx + rb - 4} 418"
+    o.append(ink(hd, "#E8C9A0", 22, 1, 1, 0.55) + ink(hd, "#FFFFFF", 6, 2, 1, 0.55) + ink(hd, "#8A5A36", 1.6, 3, 1, 0.6))
+    o.append(ink(f"M {cx + rt + 4} 296 C {cx + rt + 36} 294 {cx + rt + 38} 396 {cx + rb + 4} 404", "#8A5A36", 1.4, 4, 1, 0.5))
+    # cinnamon stick standing in the drink (drawn before the cider so it shows through)
+    stick = (cx - 22, 410, cx - 52, 196)
+    o.append(cinnamon(c, *stick, 18, 7))
+    # cider body
+    sy = 274
+    ld = (f"M {cx - rt + 2.4} {sy} L {cx - rb + 3} {bot_y - 18} Q {cx - rb + 4} {bot_y - 4} {cx} {bot_y - 4} Q {cx + rb - 4} {bot_y - 4} {cx + rb - 3} {bot_y - 18} "
+          f"L {cx + rt - 2.4} {sy} Z")
+    g = c.lg([(0, "#F0A443", 0.82), (0.55, "#D8762A", 0.88), (1, "#A8481A", 0.95)])
+    o.append(f'<path d="{ld}" fill="url(#{g})"/>')
+    o.append(strokes(c.id("cd"), ld, (cx - rt, sy, cx + rt, bot_y), ["#F8B85A", "#C8601E", "#FFD08A"], 8, n=60, angle=-88, length=(20, 60),
+                     width=(2, 6), opacity=(0.15, 0.35)))
+    # a submerged orange wheel and cranberries seen through the glass
+    o.append(f'<g opacity="0.55">{orange_slice(c, cx + 30, 380, 40, 9, 10)}</g>')
+    for k, (bx, by) in enumerate(((cx - 40, 430), (cx + 52, 440), (cx - 8, 444))):
+        o.append(f'<g opacity="0.6">{berry(c, bx, by, 9, CRAN, 20 + k)}</g>')
+    o.append(c.oglow(cx - 10, 360, 70, 80, "#FFE2A0", 0.35))
+    # surface
+    o.append(f'<ellipse cx="{cx}" cy="{sy}" rx="{rt - 3}" ry="14" fill="#F6B860"/>'
+             f'<ellipse cx="{cx}" cy="{sy}" rx="{rt - 3}" ry="14" fill="none" stroke="#B8561E" stroke-width="1.6" opacity="0.6"/>'
+             f'<ellipse cx="{cx - 20}" cy="{sy - 3}" rx="40" ry="5" fill="#FFE4A8" opacity="0.7"/>')
+    o.append(star_anise(c, cx + 18, sy - 1, 15, 30, 10))
+    o.append(berry(c, cx - 30, sy + 2, 8, CRAN, 31) + berry(c, cx + 52, sy + 3, 7, CRAN, 32))
+    # stick above the surface again (in front of the surface)
+    cl = c.id("ab")
+    o.append(f'<clipPath id="{cl}"><path d="M 0 0 L 600 0 L 600 {sy - 2} L 0 {sy - 2} Z"/></clipPath><g clip-path="url(#{cl})">{cinnamon(c, *stick, 18, 7)}</g>')
+    # glass: thick base, rim, reflections
+    o.append(f'<path d="M {cx - rb + 2} {bot_y - 12} Q {cx} {bot_y + 2} {cx + rb - 2} {bot_y - 12} L {cx + rb} {bot_y - 6} Q {cx} {bot_y + 14} {cx - rb} {bot_y - 6} Z" fill="#FFF2DE" opacity="0.6"/>')
+    o.append(ink(f"M {cx - rt + 12} {top_y + 18} L {cx - rb + 12} {bot_y - 22}", "#FFFFFF", 7, 3, 1, 0.65))
+    o.append(ink(f"M {cx - rt + 26} {top_y + 24} L {cx - rb + 24} {bot_y - 60}", "#FFFFFF", 2.4, 4, 1, 0.5))
+    o.append(ink(f"M {cx + rt - 14} {top_y + 22} L {cx + rb - 12} {bot_y - 24}", "#FFF4E0", 3, 5, 1, 0.5))
+    o.append(f'<ellipse cx="{cx}" cy="{top_y}" rx="{rt}" ry="16" fill="none" stroke="#FFFFFF" stroke-width="3.4" opacity="0.8"/>')
+    o.append(ink(f"M {cx - rt} {top_y} L {cx - rb} {bot_y - 10} Q {cx - rb} {bot_y + 8} {cx} {bot_y + 8} Q {cx + rb} {bot_y + 8} {cx + rb} {bot_y - 10} L {cx + rt} {top_y}",
+                 "#7A4A2A", 2, 6, 2, 0.7))
+    o.append(ink(f"M {cx - rt} {top_y} A {rt} 16 0 0 0 {cx + rt} {top_y}", "#7A4A2A", 1.6, 7, 1, 0.6))
+    # orange wheel perched on the rim
+    o.append(orange_slice(c, cx + 74, top_y + 6, 40, 40, -12))
+    # steam
+    for k, (sx_, sd) in enumerate(((cx - 34, 1), (cx + 6, 2), (cx + 40, 3))):
+        d = f"M {sx_} {sy - 10} C {sx_ - 22} {sy - 34} {sx_ + 20} {sy - 52} {sx_} {sy - 76} C {sx_ - 14} {sy - 92} {sx_ + 8} {sy - 70 - 30} {sx_ + 2} {sy - 108 + k * 6}"
+        o.append(ink(d, "#FFFFFF", 6 - k, sd, 1, 0.55))
+    # props on the table
+    o.append(cast(118, 520, 66, 9, "#2A1408", 0.4, 11))
+    oh = blob_pts(118, 494, 58, 30, 12, 0.03, 18)
+    o.append(shape(c, oh, "#E8762A", ["#F29A48", "#C85A1A", "#F8B060"], 12, angle=-10, n=40, iw=2))
+    o.append(f'<g transform="translate(118 488) scale(1 0.42) translate(-118 -488)">{orange_slice(c, 118, 488, 52, 13)}</g>')
+    o.append(cinnamon(c, 412, 524, 520, 500, 17, 14) + cinnamon(c, 404, 508, 516, 486, 17, 15) + cinnamon(c, 420, 540, 528, 516, 17, 16))
+    o.append(ink("M 458 494 Q 470 520 474 538", "#D9B47A", 3.4, 17, 1, 0.95) + ink("M 462 492 q -10 -10 -6 -18 M 462 492 q 12 -8 16 -16", "#D9B47A", 2.4, 18, 1, 0.9))
+    o.append(star_anise(c, 222, 520, 17, 19, 15) + star_anise(c, 498, 470, 13, 20, 30))
+    for k, (bx, by) in enumerate(((186, 478), (200, 492), (372, 532), (388, 520), (560, 540), (60, 540))):
+        o.append(berry(c, bx, by, 7.5, CRAN, 40 + k))
+    o.append(spatter(41, 30, (40, 460, 560, 560), ["#3A1A0A"], r=(1, 2), op=(0.4, 0.7), avoid=[(60, 460, 540, 530)]))
+    # lettering
+    o.append(L(c, 300, 128, "warm & cozy", SERIF_IT, 104, "#7A2A1E", [CRAN_D, "#5A1E14", "#9A3A28"], max_w=460, shadow="#F8DCB8",
+               seed=21, angle=-35))
+    lw = measure("MULLED CIDER", JOS, 20, 6)
+    o.append(f'<text x="303" y="176" text-anchor="middle" {JOS} font-size="20" letter-spacing="6" fill="#7A3A22">MULLED CIDER</text>')
+    for sx_ in (-1, 1):
+        o.append(ink(f"M {F(300 + sx_ * (lw / 2 + 12))} 170 L {F(300 + sx_ * (lw / 2 + 52))} 170", "#7A3A22", 2, 22 + sx_, 1, 0.8))
+    return finish(c, "".join(o))
+
+
+# ================================================================ NEW: home-for-christmas (candlelit window, a cat on the sill)
+def sitting_cat(c, x, base, s, seed):
+    """Ginger tabby sitting, seen from the front, backlit by the room; head turned up-left to watch the snow."""
+    o = [f'<g transform="translate({F(x)} {F(base)}) scale({s})">']
+    fur, fur_d, fur_l = "#D9823A", "#A85A22", "#F2A85E"
+    tail = [(30, -6), (58, -14), (74, -32), (70, -44), (60, -30), (44, -20), (26, -18)]
+    o.append(shape(c, tail, fur, [fur_d, fur_l], seed, angle=-30, n=14, iw=1.8))
+    body = [(-40, 0), (-46, -30), (-40, -64), (-26, -86), (0, -92), (26, -86), (40, -64), (46, -30), (40, 0)]
+    o.append(shape(c, body, fur, [fur_d, fur_l, "#C46E2C"], seed + 1, angle=-90, n=70, length=(8, 20), width=(2, 4), iw=2.2))
+    cl = c.id("ct")
+    o.append(f'<clipPath id="{cl}"><path d="{smooth_closed(body)}"/></clipPath><g clip-path="url(#{cl})">'
+             f'<path d="{blob(0, -40, 18, 40, seed, 0.1)}" fill="#F8DCB4" opacity="0.9"/>'
+             f'<path d="{blob(36, -40, 16, 50, seed + 1, 0.1)}" fill="{fur_d}" opacity="0.4"/>'
+             + "".join(f'<path d="M {sg * 46} {y} q {sg * -14} -4 {sg * -22} 2" stroke="{fur_d}" stroke-width="4" fill="none" stroke-linecap="round"/>'
+                       for sg in (-1, 1) for y in (-70, -52, -34)) + "</g>")
+    # paws
+    for sg in (-1, 1):
+        o.append(shape(c, blob_pts(sg * 14, -4, 12, 7, seed + 2 + sg, 0.08, 10), "#F8DCB4", ["#FFFFFF", "#E8C49A"], seed + 2, n=6, iw=1.4))
+        o.append(ink(f"M {sg * 14 - 3} -6 l 0 5 M {sg * 14 + 3} -6 l 0 5", INK, 1, seed, 1, 0.7))
+    # head
+    hx, hy = -4, -110
+    head = [(hx - 38, hy + 4), (hx - 40, hy - 14), (hx - 36, hy - 48), (hx - 24, hy - 26), (hx, hy - 30), (hx + 24, hy - 26), (hx + 36, hy - 48),
+            (hx + 40, hy - 14), (hx + 38, hy + 4), (hx + 24, hy + 22), (hx, hy + 28), (hx - 24, hy + 22)]
+    o.append(shape(c, head, fur, [fur_d, fur_l], seed + 4, angle=-60, n=40, length=(6, 14), width=(1.5, 3.5), iw=2.2))
+    for sg in (-1, 1):
+        o.append(f'<path d="{smooth_closed([(hx + sg * 32, hy - 20), (hx + sg * 33, hy - 40), (hx + sg * 22, hy - 26)])}" fill="#F2A8A0" opacity="0.85"/>')
+    o.append(ink(f"M {hx - 8} {hy - 26} l 2 10 M {hx} {hy - 28} l 0 12 M {hx + 8} {hy - 26} l -2 10", fur_d, 3, seed, 1, 0.8))
+    o.append(f'<path d="{blob(hx, hy + 10, 16, 12, seed + 5, 0.1)}" fill="#F8DCB4"/>')
+    # eyes looking up and to the left
+    for sg in (-1, 1):
+        ex, ey = hx + sg * 15, hy - 4
+        o.append(f'<path d="{blob(ex, ey, 7.5, 6.5, seed + 6 + sg, 0.06, 10)}" fill="#9AC46A"/>'
+                 f'<path d="{blob(ex - 2, ey - 1.5, 2.6, 5, seed, 0.06, 8)}" fill="#1A1410"/><circle cx="{F(ex - 3.6)}" cy="{F(ey - 3)}" r="1.6" fill="#FFFFFF"/>')
+        o.append(ink(f"M {ex - 8} {ey} Q {ex} {ey - 9} {ex + 8} {ey}", INK, 1.8, seed + sg, 1, 0.9))
+    o.append(f'<path d="M {hx - 4} {hy + 6} L {hx + 4} {hy + 6} L {hx} {hy + 11} Z" fill="#D8707A"/>')
+    o.append(ink(f"M {hx} {hy + 11} q -4 6 -9 3 M {hx} {hy + 11} q 4 6 9 3", INK, 1.4, seed, 1, 0.8))
+    o.append(ink(f"M {hx - 16} {hy + 10} l -24 -3 M {hx - 16} {hy + 14} l -22 4 M {hx + 16} {hy + 10} l 24 -3 M {hx + 16} {hy + 14} l 22 4",
+                 "#FFF6E8", 1.2, seed, 1, 0.8))
+    # warm rim light from the room behind
+    o.append(ink(smooth_open([(hx - 36, hy - 46), (hx - 40, hy - 14), (hx - 38, hy + 4)]), "#FFE6A8", 2.4, seed, 1, 0.8))
+    o.append(ink(smooth_open([(-40, -64), (-46, -30), (-40, 0)]), "#FFE6A8", 2.4, seed + 1, 1, 0.7))
+    o.append("</g>")
+    return "".join(o)
+
+
+def candle(c, x, base, h, seed, col=CREAM, holder=GOLD):
+    o = [c.glow(x, base - h - 14, 70, "#FFD98E", 0.75), c.glow(x, base - h - 14, 26, "#FFFFFF", 0.7)]
+    body = [(x - 9, base - 4), (x - 9, base - h + 2), (x - 4, base - h), (x + 9, base - h + 1), (x + 9, base - 4)]
+    o.append(shape(c, body, col, ["#FFFFFF", "#EADCC0"], seed, angle=-90, n=10, iw=1.4))
+    o.append(f'<path d="M {x - 9} {base - h + 2} q -1 10 2 14 q 2 -6 0 -14 Z" fill="#FFFFFF" opacity="0.9"/>')
+    o.append(ink(f"M {x} {base - h} l 0 -5", "#2A1810", 1.6, seed, 1, 1))
+    o.append(f'<path d="M {x} {base - h - 30} Q {x + 8} {base - h - 14} {x} {base - h - 4} Q {x - 8} {base - h - 14} {x} {base - h - 30} Z" fill="#F8A83A"/>'
+             f'<path d="M {x} {base - h - 22} Q {x + 4} {base - h - 12} {x} {base - h - 6} Q {x - 4} {base - h - 12} {x} {base - h - 22} Z" fill="#FFF6D8"/>')
+    hp = [(x - 22, base), (x - 16, base - 8), (x + 16, base - 8), (x + 22, base), (x + 14, base + 4), (x - 14, base + 4)]
+    o.append(shape(c, hp, holder, [GOLD_L, GOLD_D], seed + 1, n=8, iw=1.4))
+    o.append(holly(c, x - 14, base - 4, 0.45, -10, seed + 2, berries=2))
+    return "".join(o)
+
+
+def home_for_christmas():
+    c = C("hfc")
+    o = [f'<rect width="600" height="600" fill="#24365A"/>']
+    # clapboard siding at night
+    for k, y in enumerate(range(-10, 620, 34)):
+        bd = f"M -20 {y} L 620 {y} L 620 {y + 34} L -20 {y + 34} Z"
+        o.append(strokes(c.id("cb"), bd, (-20, y, 620, y + 34), ["#2E4470", "#1C2C4C", "#344C7A"], k, n=30, angle=-1, length=(60, 160),
+                         width=(2, 5), opacity=(0.3, 0.6), curve=0.02))
+        o.append(ink(f"M -20 {y + 33} L 620 {y + 34}", "#121C34", 3, k, 1, 0.8) + ink(f"M -20 {y + 2} L 620 {y + 1}", "#4A6294", 1.2, k + 1, 1, 0.5))
+    # the window throws warm light onto the siding
+    o.append(c.oglow(300, 370, 300, 250, "#FFB25A", 0.55))
+    # ---- window: trim, glass room, sashes
+    X0, X1, Y0, Y1 = 160, 440, 258, 482
+    trim = jitter([(140, 240), (460, 240), (460, 496), (140, 496)], 3, 1.2)
+    o.append(f'<path d="M 146 246 L 468 246 L 468 504 L 146 504 Z" fill="#0E1628" opacity="0.4" transform="translate(6 6)"/>')
+    o.append(shape(c, trim, "#EFE6D6", ["#FFFFFF", "#D8CCBA", SHADE_L], 4, angle=-90, n=60, iw=2.2, d="M " + " L ".join(f"{F(a)} {F(b)}" for a, b in trim) + " Z"))
+    room = f"M {X0} {Y0} L {X1} {Y0} L {X1} {Y1} L {X0} {Y1} Z"
+    g = c.lg([(0, "#E88A3A"), (0.6, "#F4B04E"), (1, "#F8C870")])
+    o.append(f'<path d="{room}" fill="url(#{g})"/>')
+    o.append(strokes(c.id("rm"), room, (X0, Y0, X1, Y1), ["#F8C878", "#E07A2A", "#FFD890"], 5, n=90, angle=-80, length=(20, 60), width=(4, 10),
+                     opacity=(0.15, 0.35)))
+    cl = c.id("rmc")
+    inner = [c.glow(380, 330, 150, "#FFF2C4", 0.8)]
+    # a Christmas tree glowing in the back of the room, softly out of focus
+    tp = [(392, 272), (440, 400), (450, 486), (330, 486), (344, 400)]
+    inner.append(f'<path d="{smooth_closed(tp)}" fill="#3E6A4A" opacity="0.85"/>')
+    inner.append(strokes(c.id("tr"), smooth_closed(tp), (320, 260, 460, 490), ["#2C5B45", "#4F8160", "#5E9070"], 6, n=60, angle=-60,
+                         length=(10, 24), width=(2, 4), opacity=(0.3, 0.6)))
+    rnd = random.Random(7)
+    for _ in range(26):
+        yy = rnd.uniform(286, 470)
+        half = (yy - 272) / (486 - 272) * 58
+        xx = 392 + rnd.uniform(-half, half)
+        col = rnd.choice([GOLD_L, "#FFF2D0", RED_L, "#9AD0E8", GOLD_L])
+        inner.append(f'<circle cx="{F(xx)}" cy="{F(yy)}" r="{rnd.uniform(4, 8):.1f}" fill="{col}" opacity="{rnd.uniform(0.5, 0.85):.2f}"/>')
+    inner.append(c.glow(392, 270, 20, "#FFF6C8", 0.9) + pstar(c, 392, 270, 10, GOLD, 8, iw=1))
+    # interior sill
+    inner.append(shape(c, [(X0 - 4, Y1 - 10), (X1 + 4, Y1 - 10), (X1 + 4, Y1 + 2), (X0 - 4, Y1 + 2)], "#C88E5A", ["#E0A868", "#A8723E"], 9, angle=0, n=20,
+                       iw=1.4, d=f"M {X0 - 4} {Y1 - 10} L {X1 + 4} {Y1 - 10} L {X1 + 4} {Y1 + 2} L {X0 - 4} {Y1 + 2} Z"))
+    inner.append(candle(c, 384, Y1 - 10, 50, 10))
+    inner.append(sitting_cat(c, 246, Y1 - 10, 0.8, 11))
+    o.append(f'<clipPath id="{cl}"><path d="{room}"/></clipPath><g clip-path="url(#{cl})">{"".join(inner)}'
+             # glass reflections
+             f'<path d="M {X0} {Y0 + 120} L {X0 + 120} {Y0} L {X0 + 150} {Y0} L {X0} {Y0 + 150} Z" fill="#FFFFFF" opacity="0.12"/>'
+             f'<path d="M {X0 + 170} {Y1} L {X1} {Y0 + 70} L {X1} {Y0 + 86} L {X0 + 186} {Y1} Z" fill="#FFFFFF" opacity="0.1"/>'
+             f'<path d="M {X0} {Y1 - 60} Q {X0 + 60} {Y1 - 40} {X0 + 120} {Y1 - 6} L {X0} {Y1} Z" fill="#FFFFFF" opacity="0.14"/></g>')
+    # frost creeping in the pane corners
+    o.append(f'<g clip-path="url(#{cl})">' + "".join(f'<path d="{blob(fx, fy, 40, 34, fx, 0.2, 14)}" fill="#FFFFFF" opacity="0.28"/>'
+                                                     for fx, fy in ((X0, Y0), (X1, Y0), (X0, Y1))) + "</g>")
+    # sashes: upper with muntins (3x2), meeting rail, lower clear pane
+    sash = "#F2EADC"
+    MR = 334
+    bars = [(X0, MR - 6, X1, MR + 8), (X0, Y0, X1, Y0 + 8), (X0, Y0, X0 + 8, Y1), (X1 - 8, Y0, X1, Y1)]
+    for xm in (X0 + (X1 - X0) / 3, X0 + 2 * (X1 - X0) / 3):
+        bars.append((xm - 4, Y0, xm + 4, MR))
+    bars.append((X0, (Y0 + MR) / 2 - 4, X1, (Y0 + MR) / 2 + 4))
+    for k, (a, b, c2, d2) in enumerate(bars):
+        bd = f"M {F(a)} {F(b)} L {F(c2)} {F(b)} L {F(c2)} {F(d2)} L {F(a)} {F(d2)} Z"
+        o.append(f'<path d="{bd}" fill="{sash}"/>' + ink(bd, INK, 1.4, k, 1, 0.55))
+    o.append(ink(f"M {X0} {MR - 6} L {X1} {MR - 6}", "#FFFFFF", 1.6, 2, 1, 0.8))
+    # header cornice with snow and icicles
+    hd = jitter([(124, 220), (476, 220), (482, 242), (118, 242)], 5, 1)
+    o.append(shape(c, hd, "#EFE6D6", ["#FFFFFF", "#D8CCBA"], 6, angle=0, n=30, iw=2, d="M " + " L ".join(f"{F(a)} {F(b)}" for a, b in hd) + " Z"))
+    o.append(snow_lump(c, [(114, 222), (150, 208), (220, 212), (300, 204), (380, 212), (450, 206), (488, 222), (440, 228), (300, 226), (160, 228)], 7))
+    rnd = random.Random(9)
+    for k, x in enumerate(range(130, 476, 18)):
+        L_ = rnd.uniform(8, 26)
+        o.append(f'<path d="M {x - 4} 241 Q {x - 1} {241 + L_ * 0.6:.1f} {x + rnd.uniform(-1, 1):.1f} {241 + L_:.1f} Q {x + 1.5} {241 + L_ * 0.5:.1f} {x + 4} 241 Z" fill="#E8F2F8" opacity="0.92"/>')
+    # garland swag of bulbs across the header
+    sw = [(120, 236), (210, 262), (300, 248), (390, 262), (480, 236)]
+    o.append(needles(c, sw, 12, length=(10, 20), density=0.7, w=2.4))
+    for k in range(9):
+        t = (k + 0.5) / 9
+        i = min(int(t * 4), 3)
+        lt_ = t * 4 - i
+        bx = sw[i][0] + (sw[i + 1][0] - sw[i][0]) * lt_
+        by = sw[i][1] + (sw[i + 1][1] - sw[i][1]) * lt_ + 8
+        col = [RED, GOLD, "#4E9A6A", "#6AA8D0"][k % 4]
+        o.append(c.glow(bx, by + 6, 13, lt(col, 0.3), 0.6))
+        o.append(f'<path d="{blob(bx, by + 6, 4.6, 7, k + 30, 0.08, 10)}" fill="{col}"/><circle cx="{F(bx - 1.4)}" cy="{F(by + 3)}" r="1.6" fill="#FFFFFF" opacity="0.85"/>')
+    # exterior sill heaped with snow
+    sl = jitter([(126, 494), (474, 494), (480, 512), (120, 512)], 8, 1)
+    o.append(shape(c, sl, "#EFE6D6", ["#FFFFFF", "#D8CCBA"], 8, angle=0, n=30, iw=2, d="M " + " L ".join(f"{F(a)} {F(b)}" for a, b in sl) + " Z"))
+    o.append(snow_lump(c, [(118, 496), (150, 472), (210, 478), (260, 466), (330, 474), (400, 468), (452, 476), (484, 496), (420, 502), (300, 500), (180, 502)], 9))
+    o.append(holly(c, 150, 490, 0.8, -20, 13))
+    # snowy shrubs in the corners with little lights
+    for bx, sd in ((50, 1), (552, 2)):
+        o.append(fir(c, bx, 620, 180, 170, 30 + sd, tiers=4, trunk=None, iw=1.4))
+        for k in range(6):
+            r2 = random.Random(sd * 10 + k)
+            lx, ly = bx + r2.uniform(-60, 60), r2.uniform(530, 590)
+            col = [GOLD_L, RED_L, "#9AD0E8"][k % 3]
+            o.append(c.glow(lx, ly, 12, col, 0.6) + f'<circle cx="{F(lx)}" cy="{F(ly)}" r="3" fill="{col}"/>')
+    o.append(snow_field(c, [(-20, 566), (120, 556), (300, 564), (480, 554), (620, 560)], 14, n=40))
+    # falling snow
+    o.append(spatter(15, 110, (0, 0, 600, 600), ["#FFFFFF"], r=(1.2, 3.4), op=(0.7, 1), avoid=[(150, 230, 460, 500), (70, 40, 530, 210)]))
+    for x, y, r, rt in ((82, 300, 12, 5), (520, 330, 13, 20), (510, 440, 9, 12), (86, 430, 9, 0)):
+        o.append(flake(x, y, r, "#FFFFFF", 2.4, rt))
+    # lettering
+    o.append(L(c, 300, 112, "home for", SERIF_IT, 88, CREAM, ["#FFFFFF", "#F2DCC0", "#E8CFA8"], max_w=360, shadow="#0E1628", seed=16, angle=-35))
+    o.append(L(c, 300, 196, "CHRISTMAS", BEBAS, 92, GOLD_L, [GOLD, "#FFF0B8", GOLD_D], max_w=430, ls=10, shadow="#0E1628", seed=17, angle=-80))
+    return finish(c, "".join(o), gop=0.7)
+
+
+# ================================================================ NEW: hes-been-here (Santa's boots on the hearth)
+def santa_boot(c, ox, oy, s, seed, flip=False, rot=0):
+    """Black Santa boot with a white fur cuff, side view, toe to the left. (ox, oy) = sole under the heel."""
+    T = lambda pts: tx(pts, 0, 0, 1, flip)
+    sg = -1 if flip else 1
+    o = [f'<g transform="translate({F(ox)} {F(oy)}) rotate({rot}) scale({s})">']
+    o.append(cast(-24 * sg, 2, 96, 9, "#1A0A06", 0.45, seed))
+    sole = T([(-104, -16), (46, -16), (50, -2), (-100, -4), (-108, -10)])
+    o.append(shape(c, sole, "#2A1A14", ["#4A3024", "#120A08"], seed, angle=0, n=10, iw=1.4, inkc="#0A0604"))
+    heel = T([(12, -6), (50, -6), (48, 4), (14, 4)])
+    o.append(shape(c, heel, "#2A1A14", ["#4A3024"], seed + 1, n=4, iw=1.2, inkc="#0A0604", d="M " + " L ".join(f"{F(a)} {F(b)}" for a, b in heel) + " Z"))
+    boot = T([(-36, -196), (40, -196), (44, -130), (48, -70), (56, -40), (52, -14), (40, -12), (-84, -12), (-104, -22), (-102, -44), (-84, -58),
+              (-52, -68), (-40, -96), (-38, -150)])
+    o.append(shape(c, boot, "#232024", ["#3A363C", "#121014", "#4A4650", "#2A2630"], seed + 2, angle=-90, n=110, length=(10, 30),
+                   width=(2, 5), op=(0.3, 0.6), iw=2.2, inkc="#0A0808"))
+    cl = c.id("bt")
+    o.append(f'<clipPath id="{cl}"><path d="{smooth_closed(boot)}"/></clipPath><g clip-path="url(#{cl})">'
+             # fire rim light on the back edge, cool sheen on the toe and shaft
+             f'<path d="{blob(*T([(52, -90)])[0], 14, 110, seed, 0.1)}" fill="#F08A3A" opacity="0.55"/>'
+             f'<path d="{blob(*T([(56, -40)])[0], 10, 30, seed + 1, 0.1)}" fill="#FFC070" opacity="0.6"/>'
+             f'<path d="{blob(*T([(-70, -40)])[0], 22, 8, seed + 2, 0.1, rot=-20 * sg)}" fill="#C8CCE0" opacity="0.45"/>'
+             f'<path d="{blob(*T([(-18, -140)])[0], 7, 44, seed + 3, 0.1)}" fill="#C8CCE0" opacity="0.35"/></g>')
+    # creases at the ankle
+    for cr in ([(-38, -96), (-10, -88), (20, -94)], [(-36, -110), (-6, -104), (30, -112)], [(-40, -80), (-20, -76)]):
+        o.append(ink(smooth_open(T(cr)), "#0A0808", 2, seed, 1, 0.8) + ink(smooth_open(T([(x, y + 3) for x, y in cr])), "#5A5660", 1.2, seed, 1, 0.6))
+    # fur cuff
+    cuff = T([(-48, -226), (-20, -232), (20, -230), (52, -224), (56, -196), (54, -178), (20, -182), (-20, -180), (-50, -184), (-52, -204)])
+    o.append(fluff(c, cuff, seed + 5, n=14, bumps=0.14, inkc="#7A6A70"))
+    o.append(ink(smooth_open(T([(54, -220), (56, -196), (54, -180)])), "#FFB870", 2.4, seed, 1, 0.6))
+    o.append("</g>")
+    return "".join(o)
+
+
+def bricks(c, box, seed, h=26, w=58, cols=("#9A4A36", "#8A3E2E", "#A8583E", "#7E3828", "#B0624A"), mortar="#5A2E22"):
+    x0, y0, x1, y1 = box
+    rnd = random.Random(seed)
+    o = [f'<rect x="{x0}" y="{y0}" width="{x1 - x0}" height="{y1 - y0}" fill="{mortar}"/>']
+    for r, y in enumerate(range(int(y0), int(y1), h)):
+        off = (w / 2) * (r % 2)
+        x = x0 - off
+        while x < x1:
+            pts = jitter([(x + 2, y + 2), (x + w - 2, y + 2), (x + w - 2, y + h - 2), (x + 2, y + h - 2)], rnd.randint(0, 9999), 0.9)
+            d = "M " + " L ".join(f"{F(a)} {F(b)}" for a, b in pts) + " Z"
+            o.append(f'<path d="{d}" fill="{rnd.choice(cols)}"/>')
+            if rnd.random() < 0.5:
+                o.append(f'<path d="M {F(x + 5)} {F(y + 5)} L {F(x + w * rnd.uniform(0.4, 0.9))} {F(y + 5)}" stroke="#C87A5A" stroke-width="2" opacity="0.45"/>')
+            x += w
+    return "".join(o)
+
+
+def hes_been_here():
+    c = C("hbh")
+    # wallpaper: deep green stripes
+    o = [wash_bg(c, "#1F3D30", ["#24473A", "#183226", "#2A5040"], 3, angle=-90, n=200, length=(60, 160), width=(6, 14))]
+    for x in range(-10, 620, 48):
+        o.append(f'<path d="M {x} 0 L {x + 16} 0 L {x + 16} 240 L {x} 240 Z" fill="#2C5444" opacity="0.5"/>')
+        o.append(f'<path d="M {x + 30} 0 L {x + 31.5} 0 L {x + 31.5} 240 L {x + 30} 240 Z" fill="{GOLD}" opacity="0.35"/>')
+    o.append(c.oglow(300, 120, 300, 140, "#0E2018", 0.35))
+    # brick surround with an arched firebox
+    BY = 236
+    br = bricks(c, (-10, BY, 610, 520), 3)
+    arch = "M 150 500 L 150 330 Q 150 268 300 262 Q 450 268 450 330 L 450 500 Z"
+    o.append(br)
+    o.append(f'<path d="M -10 {BY} L 610 {BY} L 610 520 L -10 520 Z" fill="#000000" opacity="0.12"/>')
+    # brick voussoir ring around the arch
+    vs = []
+    for k in range(15):
+        a = math.radians(180 + k * 180 / 14)
+        a2 = math.radians(180 + (k + 1) * 180 / 14)
+        r1x, r1y, r2x, r2y = 150, 68, 178, 92
+        cy_ = 330
+        p = [(300 + r1x * math.cos(a), cy_ + r1y * math.sin(a)), (300 + r2x * math.cos(a), cy_ + r2y * math.sin(a)),
+             (300 + r2x * math.cos(a2), cy_ + r2y * math.sin(a2)), (300 + r1x * math.cos(a2), cy_ + r1y * math.sin(a2))]
+        vs.append(f'<path d="M {" L ".join(f"{F(px)} {F(py)}" for px, py in jitter(p, k, 0.8))} Z" fill="{["#A8583E", "#9A4A36", "#B0624A"][k % 3]}" stroke="#5A2E22" stroke-width="3"/>')
+    o.append("".join(vs))
+    # firebox: soot, embers, a low fire
+    g = c.lg([(0, "#120A08"), (0.7, "#2A140C"), (1, "#5A2410")])
+    o.append(f'<path d="{arch}" fill="url(#{g})"/>')
+    o.append(strokes(c.id("fb"), arch, (150, 260, 450, 500), ["#2A1A14", "#0A0604", "#3A2018"], 4, n=60, angle=-90, length=(20, 60), width=(4, 10),
+                     opacity=(0.3, 0.6)))
+    o.append(c.oglow(300, 480, 170, 90, "#FF8A2A", 0.85))
+    rnd = random.Random(5)
+    for k in range(5):
+        lx = 210 + k * 44
+        o.append(shape(c, [(lx - 40, 486), (lx + 40, 478), (lx + 42, 492), (lx - 38, 498)], "#3A2014", ["#5A3020", "#1A0A06"], 6 + k, angle=-4, n=8, iw=1.2,
+                       inkc="#0A0604"))
+    for _ in range(40):
+        ex, ey = rnd.uniform(180, 420), rnd.uniform(478, 500)
+        o.append(f'<path d="{blob(ex, ey, rnd.uniform(3, 7), rnd.uniform(2, 4), rnd.randint(0, 999), 0.2, 8)}" fill="{rnd.choice(["#FF6A1A", "#FFB040", "#F8D070", "#C8341A"])}" opacity="{rnd.uniform(0.6, 1):.2f}"/>')
+    for k, (fx, fh) in enumerate(((340, 52), (376, 84), (412, 64), (300, 40))):
+        o.append(f'<path d="M {fx} {480 - fh} Q {fx + 18} {480 - fh * 0.5} {fx + 14} 482 L {fx - 14} 482 Q {fx - 18} {480 - fh * 0.5} {fx} {480 - fh} Z" fill="#F07A2A" opacity="0.9"/>'
+                 f'<path d="M {fx} {480 - fh * 0.6} Q {fx + 9} {480 - fh * 0.3} {fx + 7} 482 L {fx - 7} 482 Q {fx - 9} {480 - fh * 0.3} {fx} {480 - fh * 0.6} Z" fill="#FFD27A"/>')
+    o.append(ink(arch, "#3A1A10", 2.4, 3, 1, 0.8))
+    # stone hearth
+    hb = "M -20 506 L 620 506 L 620 620 L -20 620 Z"
+    o.append(f'<path d="{hb}" fill="#A89888"/>')
+    o.append(strokes(c.id("hb"), hb, (-20, 504, 620, 620), ["#BCAE9E", "#8C7C6E", "#C8BAAA", "#958676"], 7, n=150, angle=-2, length=(40, 110),
+                     width=(2, 6), opacity=(0.3, 0.55), curve=0.05))
+    for x in (110, 250, 390, 530):
+        o.append(ink(f"M {x} 506 L {x - 6} 620", "#6A5A4E", 2, x, 1, 0.6))
+    o.append(ink("M -20 506 L 620 506", "#E8D8C4", 2.6, 2, 1, 0.7))
+    o.append(c.oglow(300, 520, 260, 70, "#FF9A3A", 0.5))
+    # soot: scattered dust and sooty boot prints walking out of the fireplace
+    o.append(spatter(9, 80, (150, 494, 450, 540), ["#2A2020", "#4A3E3A"], r=(0.8, 2.4), op=(0.3, 0.7)))
+    for k, (px, py, a) in enumerate(((452, 532, 160), (498, 562, 154), (542, 594, 150))):
+        pr = rot_pts([(-14, 0), (-10, -8), (10, -7), (16, 0), (10, 7), (-10, 8)], px, py, a)
+        o.append(f'<path d="{smooth_closed(pr)}" fill="#2A2020" opacity="{0.5 - k * 0.1:.2f}"/>')
+        hp_ = rot_pts([(24, 0)], px, py, a)[0]
+        o.append(f'<path d="{blob(hp_[0], hp_[1], 7, 6, k, 0.1, 8, rot=a)}" fill="#2A2020" opacity="{0.5 - k * 0.1:.2f}"/>')
+    # a jingle bell left behind and a candy cane leaning on the bricks
+    bx, by = 408, 548
+    o.append(cast(bx + 4, by + 14, 20, 4, "#1A0A06", 0.35, 3))
+    o.append(shape(c, blob_pts(bx, by, 17, 16, 30, 0.03, 14), GOLD, [GOLD_L, GOLD_D, "#FFF0B8"], 30, angle=-60, n=16, iw=1.8))
+    o.append(ink(f"M {bx - 10} {by + 4} Q {bx} {by + 8} {bx + 10} {by + 4}", "#5A3A10", 2.4, 31, 1, 0.9) + f'<circle cx="{bx}" cy="{by + 8}" r="2.6" fill="#3A2410"/>'
+             f'<path d="{blob(bx - 6, by - 6, 4, 3, 32, 0.1)}" fill="#FFFFFF" opacity="0.8"/>')
+    o.append(ink(f"M {bx - 4} {by - 16} q 4 -8 8 0", GOLD_D, 2.4, 33, 1, 0.9))
+    cc = "M 528 506 L 532 380 Q 534 352 512 352 Q 494 352 494 372"
+    o.append(ink(cc, "#8A1A20", 15, 34, 1, 0.5).replace('transform="', 'transform="translate(5 3) '))
+    o.append(ink(cc, "#FFFFFF", 13, 35, 1, 1))
+    o.append(f'<path d="{cc}" fill="none" stroke="{RED}" stroke-width="13" stroke-dasharray="9 11" stroke-linecap="butt"/>')
+    o.append(ink(cc, INK, 1.4, 36, 1, 0.5))
+    # the boots
+    o.append(santa_boot(c, 300, 526, 0.9, 40, rot=3))
+    o.append(santa_boot(c, 236, 546, 0.95, 41, rot=-2))
+    # lettering
+    o.append(L(c, 300, 112, "he's been", SERIF_IT, 90, GOLD_L, [GOLD, "#FFF0B8", GOLD_D], max_w=400, shadow="#0E2018", seed=50, angle=-35))
+    o.append(L(c, 300, 212, "HERE!", BEBAS, 112, CREAM, ["#FFFFFF", "#F2DCC0", "#E8CFA8"], max_w=300, ls=12, shadow=CRAN, seed=51, angle=-80,
+               sdx=0.035, sdy=0.04))
+    for sx_ in (-1, 1):
+        o.append(glint(300 + sx_ * 162, 176, 10, GOLD_L) + glint(300 + sx_ * 188, 150, 5, GOLD_L))
+    return finish(c, "".join(o), gop=0.8)
+
+
+# ================================================================ NEW: silent-night (a stable under the star, animals in the snow)
+def donkey(c, x, base, s, seed, flip=False):
+    """Small storybook donkey facing left. (x, base) = hooves."""
+    sg = -1 if flip else 1
+    o = [f'<g transform="translate({F(x)} {F(base)}) scale({F(s * sg)} {F(s)})">']
+    hide, hide_d, belly = "#8E8494", "#5E5664", "#D8D2DA"
+    o.append(cast(0, 0, 50, 5, SHADE_D, 0.5, seed))
+    for lx, d_ in ((-26, 0.2), (30, 0.2)):
+        o.append(shape(c, limb([(lx + 6, -40), (lx + 4, -20), (lx + 6, 0)], 9, 6), dk(hide, d_), [hide_d], seed + lx, angle=-90, n=4, iw=1.2, inkc=INK_N2))
+    tail = [(40, -60), (50, -50), (52, -26), (46, -22), (44, -46)]
+    o.append(shape(c, tail, hide_d, ["#3E3844"], seed + 1, n=4, iw=1.2, inkc=INK_N2))
+    body = [(-36, -66), (-10, -72), (24, -72), (44, -62), (46, -44), (34, -32), (0, -30), (-30, -32), (-42, -46)]
+    o.append(shape(c, body, hide, [hide_d, "#A8A0AE", "#7A7280"], seed + 2, angle=-10, n=40, length=(6, 16), width=(1.5, 3), iw=1.8, inkc=INK_N2))
+    cl = c.id("dk")
+    o.append(f'<clipPath id="{cl}"><path d="{smooth_closed(body)}"/></clipPath><g clip-path="url(#{cl})"><path d="{blob(4, -32, 40, 9, seed, 0.1)}" fill="{belly}"/></g>')
+    for lx in (-32, 22):
+        o.append(shape(c, limb([(lx + 4, -40), (lx, -20), (lx + 2, 0)], 10, 7), hide, [hide_d, "#A8A0AE"], seed + 3 + lx, angle=-90, n=5, iw=1.3, inkc=INK_N2))
+        o.append(f'<path d="{blob(lx + 2, -1, 5, 3, seed, 0.1, 8)}" fill="#2A2228"/>')
+    neck = [(-40, -50), (-34, -66), (-48, -94), (-60, -98), (-62, -84), (-50, -56)]
+    o.append(shape(c, neck, hide, [hide_d, "#A8A0AE"], seed + 4, angle=-60, n=12, iw=1.6, inkc=INK_N2))
+    o.append(ink(smooth_open([(-36, -66), (-42, -84), (-52, -100)]), "#3E3844", 4, seed, 1, 0.9))
+    head = [(-52, -104), (-64, -104), (-84, -86), (-88, -76), (-78, -72), (-60, -82), (-50, -92)]
+    o.append(shape(c, head, hide, [hide_d, "#A8A0AE"], seed + 5, angle=-150, n=12, iw=1.6, inkc=INK_N2))
+    o.append(f'<path d="{blob(-82, -78, 8, 6, seed, 0.1, 10)}" fill="{belly}"/>')
+    o.append(f'<circle cx="-66" cy="-92" r="2.2" fill="#1A1418"/><circle cx="-85" cy="-79" r="1.3" fill="#3A3238"/>')
+    for ex, a in ((-54, -16), (-60, -36)):
+        ear = rot_pts([(0, 0), (8, -4), (24, -1), (8, 4)], ex, -102, -90 + a)
+        o.append(shape(c, ear, hide, [hide_d], seed + 6 + ex, n=4, iw=1.3, inkc=INK_N2))
+    o.append("</g>")
+    return "".join(o)
+
+
+def sheep(c, x, base, s, seed, flip=False):
+    """Woolly sheep facing right. (x, base) = hooves."""
+    sg = -1 if flip else 1
+    o = [f'<g transform="translate({F(x)} {F(base)}) scale({F(s * sg)} {F(s)})">']
+    o.append(cast(0, 0, 36, 4, SHADE_D, 0.5, seed))
+    for lx in (-18, -8, 10, 20):
+        o.append(ink(f"M {lx} -16 L {lx + 1} 0", "#2E2428", 5, seed + lx, 1, 1))
+    body = blob_pts(0, -30, 32, 20, seed, 0.05, 12)
+    o.append(fluff(c, body, seed + 1, n=10, bumps=0.22, inkc="#6A6080", iw=1.3))
+    o.append(shape(c, blob_pts(30, -38, 11, 9, seed + 2, 0.06, 10, rot=20), "#3A2E2A", ["#5A4A44"], seed + 2, n=6, iw=1.2, inkc="#1A1210"))
+    o.append(shape(c, [(24, -46), (16, -50), (12, -44), (20, -42)], "#3A2E2A", ["#5A4A44"], seed + 3, n=3, iw=1, inkc="#1A1210"))
+    o.append(fluff(c, blob_pts(24, -46, 9, 6, seed + 4, 0.1, 8), seed + 4, n=3, bumps=0.2, inkc=None, curls=False))
+    o.append(f'<circle cx="33" cy="-40" r="1.6" fill="#FFFFFF" opacity="0.8"/>')
+    o.append("</g>")
+    return "".join(o)
+
+
+INK_N2 = "#2A2236"
+
+
+def silent_night():
+    c = C("sin")
+    sky = c.lg([(0, "#121A36"), (0.55, "#26346A"), (1, "#4A5890")])
+    o = [f'<rect width="600" height="600" fill="url(#{sky})"/>',
+         strokes(c.id("sk"), "M -20 -20 L 620 -20 L 620 420 L -20 420 Z", (-40, -40, 640, 420), ["#2E3E78", "#1A2450", "#3A4A86", "#4E5C98"], 3,
+                 n=220, angle=-6, length=(50, 140), width=(5, 12), opacity=(0.12, 0.3), curve=0.1)]
+    rnd = random.Random(4)
+    for _ in range(70):
+        x, y = rnd.uniform(0, 600), rnd.uniform(0, 330)
+        if 110 < x < 490 and 130 < y < 230:
+            continue
+        if rnd.random() < 0.18:
+            o.append(glint(x, y, rnd.uniform(3, 6), "#FFF6D8", rnd.uniform(0.6, 1)))
+        else:
+            o.append(f'<circle cx="{F(x)}" cy="{F(y)}" r="{rnd.uniform(0.7, 1.8):.1f}" fill="#FFF6E0" opacity="{rnd.uniform(0.4, 0.9):.2f}"/>')
+    # the star: glow, long rays, a soft beam falling to the stable
+    sx, sy = 300, 92
+    o.append(c.glow(sx, sy, 170, "#F6D683", 0.45))
+    o.append(f'<path d="M {sx - 4} {sy + 10} L {sx - 92} 330 L {sx + 92} 330 L {sx + 4} {sy + 10} Z" fill="#FFE8A8" opacity="0.1"/>')
+    o.append(f'<path d="M {sx - 2} {sy + 10} L {sx - 46} 330 L {sx + 46} 330 L {sx + 2} {sy + 10} Z" fill="#FFE8A8" opacity="0.1"/>')
+    for a, Lr, w in ((90, 120, 5), (-90, 48, 4), (0, 120, 4), (180, 120, 4), (45, 46, 2.6), (135, 46, 2.6), (-45, 46, 2.6), (-135, 46, 2.6)):
+        ex, ey = sx + Lr * math.cos(math.radians(a)), sy + Lr * math.sin(math.radians(a))
+        nx, ny = -math.sin(math.radians(a)) * w, math.cos(math.radians(a)) * w
+        o.append(f'<path d="M {F(sx + nx)} {F(sy + ny)} L {F(ex)} {F(ey)} L {F(sx - nx)} {F(sy - ny)} Z" fill="#FFF0C0" opacity="0.85"/>')
+    o.append(glint(sx, sy, 34, "#FFF6D8") + glint(sx, sy, 18, "#FFFFFF"))
+    # distant snowy hills
+    o.append(snow_field(c, [(-20, 340), (100, 318), (220, 334), (380, 314), (500, 330), (620, 316)], 5, base="#B8BEE0", n=50))
+    for x in range(-10, 620, 22):
+        h = rnd.uniform(14, 30)
+        yb = 334 - 12 * math.sin(x / 90) + rnd.uniform(-3, 3)
+        o.append(fir(c, x, yb, h, h * 0.55, rnd.randint(0, 999), cols=("#4A5888", "#3A4878", "#5A68A0", "#44528A"), tiers=3, snow=False, inkc=None, trunk=None))
+    o.append(snow_field(c, [(-20, 372), (140, 358), (300, 366), (460, 354), (620, 366)], 6, base="#D4D6F0", n=60))
+    # ---- the stable
+    o.append(c.oglow(300, 380, 170, 90, "#FFC86A", 0.35))
+    wall = jitter([(222, 314), (378, 314), (380, 420), (220, 420)], 7, 1.2)
+    wd = "M " + " L ".join(f"{F(a)} {F(b)}" for a, b in wall) + " Z"
+    o.append(wash(wd, "#5A3E34", 7, 2, 0.8, 0.5))
+    o.append(strokes(c.id("pl"), wd, (218, 310, 382, 422), ["#6E4E40", "#3E2A24", "#7A6A8A", "#4A3A3A"], 8, n=60, angle=-90, length=(20, 60),
+                     width=(2, 5), opacity=(0.3, 0.6)))
+    o.append(f'<g stroke="#2A1C18" stroke-width="1.6" opacity="0.7">' + "".join(f'<path d="M {x} 316 L {x + 0.5} 420"/>' for x in range(236, 378, 16)) + "</g>")
+    # open doorway with warm light, hay, manger and a hanging lantern
+    door = "M 256 420 L 256 350 Q 256 336 270 336 L 330 336 Q 344 336 344 350 L 344 420 Z"
+    g = c.lg([(0, "#F6B44A"), (0.6, "#E88A2E"), (1, "#C8641E")])
+    o.append(f'<path d="{door}" fill="url(#{g})"/>')
+    dc = c.id("dr")
+    o.append(f'<clipPath id="{dc}"><path d="{door}"/></clipPath><g clip-path="url(#{dc})">'
+             + c.glow(300, 360, 60, "#FFF2C4", 0.85)
+             + strokes(c.id("hy"), door, (250, 396, 350, 422), ["#F2D07A", "#C9933A", "#FFE8A8"], 9, n=70, angle=-20, length=(8, 18), width=(0.8, 1.6), opacity=(0.6, 1))
+             + f'<path d="M 270 398 L 330 398 L 324 414 L 276 414 Z" fill="#6A3E22"/>'
+             + strokes(c.id("mg"), "M 268 388 Q 300 380 332 388 L 330 400 L 270 400 Z", (266, 378, 334, 402), ["#F6DA8A", "#E2B65A"], 10, n=30, angle=-80,
+                       length=(6, 14), width=(0.8, 1.4), opacity=(0.8, 1))
+             + "</g>")
+    o.append(ink(door, "#2A1C18", 2.4, 4, 1, 0.9))
+    o.append(ink("M 300 336 L 300 346", "#2A1C18", 1.4, 5, 1, 1) + c.glow(300, 354, 16, "#FFFFFF", 0.9) + f'<path d="{blob(300, 354, 4, 5.5, 3, 0.1, 8)}" fill="#FFF6D8"/>')
+    for sx_ in (-1, 1):
+        o.append(c.oglow(300 + sx_ * 46, 368, 10, 12, "#FFC86A", 0.6) +
+                 f'<path d="M {300 + sx_ * 46 - 7} 360 L {300 + sx_ * 46 + 7} 360 L {300 + sx_ * 46 + 7} 376 L {300 + sx_ * 46 - 7} 376 Z" fill="#FFD27A" stroke="#2A1C18" stroke-width="1.6"/>')
+    o.append(ink(wd, INK_N2, 2, 6, 1, 0.8))
+    # roof with thick snow
+    roof = jitter([(198, 322), (300, 254), (402, 322), (392, 330), (300, 268), (208, 330)], 9, 1.2)
+    rd = "M " + " L ".join(f"{F(a)} {F(b)}" for a, b in roof) + " Z"
+    o.append(shape(c, roof, "#4A3028", ["#6E4A3A", "#2E1E18"], 10, angle=-30, n=30, iw=1.8, inkc=INK_N2, d=rd))
+    o.append(snow_lump(c, [(192, 324), (230, 290), (270, 262), (300, 246), (330, 262), (370, 290), (408, 324), (396, 330), (360, 312), (300, 268),
+                           (240, 312), (204, 330)], 11, inkc="#7A80B8"))
+    o.append(snow_lump(c, drape((262, 330), (338, 330), 7, 12, 2, up=3), 12, iw=0.8))
+    # fence with snow
+    for px in (78, 128, 178):
+        o.append(shape(c, [(px - 5, 444), (px - 4, 400), (px + 4, 398), (px + 5, 444)], "#5A3E34", ["#6E4E40", "#3E2A24"], px, angle=-90, n=6, iw=1.4,
+                       inkc=INK_N2, d=f"M {px - 5} 444 L {px - 4} 400 L {px + 4} 398 L {px + 5} 444 Z"))
+        o.append(snow_lump(c, blob_pts(px, 398, 8, 4, px, 0.1, 8), px, iw=0.6))
+    for ry in (410, 428):
+        o.append(ink(f"M 66 {ry} L 196 {ry - 4}", "#4A3028", 5, ry, 1, 1))
+        o.append(snow_lump(c, drape((70, ry - 2), (194, ry - 6), 2.5, ry, 1, up=2), ry, iw=0.5))
+    # foreground snow
+    o.append(snow_field(c, [(-20, 424), (120, 414), (300, 420), (470, 410), (620, 418)], 13, base="#E6E6F6",
+                        shade_box=(-20, 470, 620, 620), inkc="#6E74B0"))
+    o.append(c.oglow(300, 436, 140, 26, "#FFC86A", 0.45))
+    # footprints winding up to the stable door
+    for k in range(9):
+        t = k / 8
+        px = 330 + 40 * math.sin(t * 3.2) - 30 * t
+        py = 520 - 84 * t
+        side = 7 if k % 2 else -7
+        o.append(f'<path d="{blob(px + side * (1 - t * 0.5), py, 5 - t * 2, 3.2 - t * 1.2, k, 0.1, 8)}" fill="{SHADE_D}" opacity="0.55"/>')
+    # animals
+    o.append(donkey(c, 446, 448, 0.98, 20))
+    o.append(sheep(c, 176, 470, 1.05, 21))
+    o.append(sheep(c, 112, 484, 0.8, 22))
+    o.append(sheep(c, 252, 478, 0.9, 23, flip=False))
+    # little blue firs at the edges
+    for bx, sd, h in ((560, 31, 120), (38, 32, 100)):
+        o.append(fir(c, bx, 470, h, h * 0.7, sd, cols=("#2E4A5A", "#1E3446", "#4A6878", "#36525E"), tiers=4, iw=1.2, inkc=INK_N2))
+    o.append(spatter(24, 50, (0, 430, 600, 600), ["#FFFFFF"], r=(0.8, 2.2), op=(0.6, 1)))
+    # lettering
+    o.append(L(c, 300, 212, "silent night", SERIF_IT, 96, CREAM, ["#FFFFFF", "#F6E6C2", "#E8D6A8"], max_w=470, shadow="#0E1428", seed=40, angle=-35))
+    lw = measure("CHRISTMAS EVE", CINZEL, 22, 4)
+    o.append(f'<text x="301.5" y="528" text-anchor="middle" {CINZEL} font-size="22" letter-spacing="4" fill="#26305E">CHRISTMAS EVE</text>')
+    for sx_ in (-1, 1):
+        o.append(ink(f"M {F(300 + sx_ * (lw / 2 + 10))} 521 L {F(300 + sx_ * (lw / 2 + 44))} 521", "#26305E", 1.8, 41 + sx_, 1, 0.8))
+        o.append(glint(300 + sx_ * (lw / 2 + 54), 521, 6, "#26305E"))
+    return finish(c, "".join(o), gop=0.7)
+
+
+# ================================================================ NEW: chill-out (polar bear in a scarf on an ice floe)
+def chill_out():
+    c = C("cho")
+    sky = c.lg([(0, "#16234A"), (0.45, "#2C4C7E"), (0.8, "#6E92B8"), (1, "#B8CCE0")])
+    o = [f'<rect width="600" height="600" fill="url(#{sky})"/>',
+         strokes(c.id("sk"), "M -20 -20 L 620 -20 L 620 420 L -20 420 Z", (-40, -40, 640, 420), ["#2A4476", "#3E5E92", "#1E2E5A", "#7A9AC0"], 3,
+                 n=220, angle=-8, length=(50, 140), width=(5, 12), opacity=(0.1, 0.28), curve=0.1)]
+    rnd = random.Random(5)
+    for _ in range(60):
+        x, y = rnd.uniform(0, 600), rnd.uniform(0, 300)
+        o.append(f'<circle cx="{F(x)}" cy="{F(y)}" r="{rnd.uniform(0.7, 1.8):.1f}" fill="#FFFFFF" opacity="{rnd.uniform(0.3, 0.85):.2f}"/>')
+    # aurora ribbons: soft bands filled with vertical brushwork
+    for k, (pts, cols) in enumerate((
+            ([(-20, 250), (120, 196), (260, 232), (420, 180), (620, 214)], ["#7FE0B0", "#5AC8A0", "#A8F0C8"]),
+            ([(-20, 300), (140, 262), (300, 288), (460, 240), (620, 262)], ["#5AC0C8", "#7FD8D0", "#8A7AD8"]))):
+        top = [(x, y - 70) for x, y in pts]
+        d = smooth_open(top) + " " + smooth_open(pts[::-1]).replace("M", "L", 1) + " Z"
+        ag = c.lg([(0, cols[0], 0), (0.55, cols[0], 0.2), (0.85, cols[1], 0.38), (1, cols[1], 0)])
+        o.append(f'<path d="{d}" fill="url(#{ag})"/>')
+        for j in range(0, 5):
+            px, py = pts[j]
+            o.append(c.oglow(px, py - 22, 110, 34, cols[2], 0.28))
+        o.append(strokes(c.id("au"), d, (-20, 100, 620, 310), cols, 6 + k, n=150, angle=-90, length=(40, 90), width=(1.5, 4), opacity=(0.1, 0.32),
+                         curve=0.03))
+    # sea, distant bergs
+    sea = "M -20 404 L 620 404 L 620 620 L -20 620 Z"
+    g = c.lg([(0, "#3E6A90"), (1, "#16304E")])
+    o.append(f'<path d="{sea}" fill="url(#{g})"/>')
+    o.append(strokes(c.id("se"), sea, (-20, 404, 620, 620), ["#5A8AB0", "#1E3A5A", "#7FD0C0", "#2A4E74"], 7, n=170, angle=0, length=(30, 100),
+                     width=(1.5, 4), opacity=(0.25, 0.55), curve=0.04))
+    for bx, bw, bh, sd in ((60, 70, 30, 1), (520, 90, 40, 2), (150, 40, 16, 3)):
+        bp = [(bx - bw / 2, 406), (bx - bw * 0.3, 406 - bh * 0.7), (bx - bw * 0.05, 406 - bh), (bx + bw * 0.2, 406 - bh * 0.8), (bx + bw / 2, 406)]
+        o.append(shape(c, bp, "#DCE6F2", ["#FFFFFF", "#B4C4DC"], sd, angle=-80, n=10, iw=1.2, inkc="#4A6488"))
+        o.append(f'<path d="M {bx - bw / 2} 408 L {bx + bw / 2} 408 L {bx + bw * 0.3} {410 + bh * 0.4} L {bx - bw * 0.3} {410 + bh * 0.4} Z" fill="#DCE6F2" opacity="0.25"/>')
+    # ice floe
+    floe_top = [(96, 512), (130, 488), (210, 478), (300, 474), (400, 478), (486, 490), (512, 512), (470, 536), (300, 546), (140, 538)]
+    o.append(f'<path d="{smooth_closed([(x, y + 24) for x, y in floe_top])}" fill="#0E2238" opacity="0.4" transform="translate(6 8)"/>')
+    side = smooth_closed([(x, y + (22 if y > 500 else 0)) for x, y in floe_top])
+    o.append(f'<path d="{side}" fill="#7FA8CC"/>' + strokes(c.id("fs"), side, (90, 470, 520, 572), ["#9AC0DC", "#5A86AE", "#B8D4E8"], 8, n=40, angle=-85,
+                                                             length=(8, 20), width=(2, 4), opacity=(0.3, 0.6)) + ink(side, "#2E4A6E", 1.8, 8, 1, 0.6))
+    ft = smooth_closed(floe_top)
+    o.append(f'<path d="{ft}" fill="{SNOW}"/>' + strokes(c.id("ft"), ft, (90, 470, 520, 550), [SHADE_L, "#FFFFFF", ICE_L, SHADE], 9, n=80, angle=-3,
+                                                         length=(20, 60), width=(2, 5), opacity=(0.25, 0.55)) + ink(ft, "#6A7AA8", 1.6, 9, 1, 0.5))
+    for k in range(4):
+        o.append(ink(f"M {60 + k * 140} {566 + (k % 2) * 14} q 30 -5 60 0", "#9AC8DC", 2, k, 1, 0.6))
+    # ---- the bear
+    fur, fur_sh = "#F7F4EE", SHADE
+    o.append(cast(300, 512, 130, 12, SHADE_D, 0.45, 10))
+    body = blob_pts(300, 424, 98, 94, 11, 0.03, 20)
+    o.append(shape(c, body, fur, ["#FFFFFF", SHADE_L, "#E8E4EE", fur_sh], 11, angle=-70, n=150, length=(8, 20), width=(2, 4.5), op=(0.25, 0.55),
+                   iw=2.4, inkc="#4A4A6A"))
+    cl = c.id("by")
+    o.append(f'<clipPath id="{cl}"><path d="{smooth_closed(body)}"/></clipPath><g clip-path="url(#{cl})">'
+             f'<path d="{blob(370, 450, 60, 100, 12, 0.1)}" fill="{SHADE}" opacity="0.4"/>'
+             f'<path d="{blob(300, 380, 70, 30, 13, 0.1)}" fill="{SHADE_D}" opacity="0.25"/></g>')
+    o.append(ink(smooth_open([(210, 452), (206, 410), (220, 368)]), "#C8F4E0", 2, 3, 1, 0.5))
+    # hind feet with pads facing us
+    for sx_ in (-1, 1):
+        fx = 300 + sx_ * 66
+        o.append(shape(c, blob_pts(fx, 506, 38, 26, 14 + sx_, 0.05, 14), fur, ["#FFFFFF", SHADE_L, fur_sh], 14 + sx_, n=24, iw=2.2, inkc="#4A4A6A"))
+        o.append(f'<path d="{blob(fx, 512, 16, 11, 15 + sx_, 0.08, 12)}" fill="#4A4A5E"/>')
+        for k in (-1, 0, 1):
+            o.append(f'<path d="{blob(fx + k * 13, 494 - (0 if k else 3), 5.5, 5, 16 + k, 0.08, 8)}" fill="#4A4A5E"/>')
+    # front legs hugging a red mug
+    for sx_ in (-1, 1):
+        arm = limb([(300 + sx_ * 66, 372), (300 + sx_ * 58, 414), (300 + sx_ * 34, 446)], 46, 36)
+        o.append(shape(c, arm, fur, ["#FFFFFF", SHADE_L, fur_sh], 20 + sx_, angle=-60 * sx_ - 90, n=40, iw=2.2, inkc="#4A4A6A"))
+    mx, my = 300, 438
+    o.append(c.glow(mx, my - 40, 50, "#FFFFFF", 0.3))
+    mug = [(mx - 26, my - 30), (mx + 26, my - 30), (mx + 24, my + 18), (mx - 24, my + 18)]
+    md = f"M {mx - 26} {my - 30} L {mx + 26} {my - 30} Q {mx + 26} {my + 20} {mx + 20} {my + 20} L {mx - 20} {my + 20} Q {mx - 26} {my + 20} {mx - 26} {my - 30} Z"
+    o.append(shape(c, mug, RED, ["#E2524A", CRAN, "#F07058"], 22, angle=-90, n=20, iw=2, d=md))
+    o.append(f'<ellipse cx="{mx}" cy="{my - 30}" rx="26" ry="6" fill="#6A3420"/><ellipse cx="{mx}" cy="{my - 30}" rx="26" ry="6" fill="none" stroke="{INK}" stroke-width="1.6"/>')
+    o.append(flake(mx, my - 4, 11, CREAM, 2.2, 0))
+    for k, sxs in enumerate((-10, 6)):
+        o.append(ink(f"M {mx + sxs} {my - 40} q -10 -14 0 -26 q 10 -12 0 -26", "#FFFFFF", 3.4 - k, 23 + k, 1, 0.7))
+    for sx_ in (-1, 1):
+        o.append(shape(c, blob_pts(mx + sx_ * 30, my - 2, 18, 15, 24 + sx_, 0.06, 12), fur, ["#FFFFFF", SHADE_L], 24 + sx_, n=10, iw=2, inkc="#4A4A6A"))
+    # scarf
+    sc = [(232, 354), (300, 370), (368, 354), (372, 374), (300, 392), (228, 374)]
+    tail = [(250, 376), (276, 382), (270, 452), (244, 456)]
+    for pts_, sd in ((tail, 25), (sc, 26)):
+        d = smooth_closed(pts_)
+        o.append(wash(d, RED, sd, 2, 0.8, 0.5))
+        cl2 = c.id("sc")
+        if pts_ is sc:
+            pat = "".join(f'<rect x="{x}" y="340" width="10" height="60" fill="{CREAM}"/>' for x in range(236, 372, 26))
+        else:
+            pat = "".join(f'<rect x="230" y="{y}" width="60" height="9" fill="{CREAM}"/>' for y in range(394, 460, 20))
+        o.append(f'<clipPath id="{cl2}"><path d="{d}"/></clipPath><g clip-path="url(#{cl2})">{pat}</g>')
+        o.append(strokes(c.id("ss"), d, bbox(pts_), ["#E2524A", CRAN, "#FFFFFF"], sd, n=40, angle=-80 if pts_ is tail else -8, length=(8, 20),
+                         width=(1.5, 3), opacity=(0.2, 0.45)))
+        o.append(ink(d, INK, 2, sd, 1, 0.7))
+    o.append(f'<g stroke="{RED}" stroke-width="3.6" stroke-linecap="round">' + "".join(f'<path d="M {246 + k * 5.5} {456 - k * 0.8:.1f} l -1 12"/>' for k in range(5)) + "</g>")
+    # head
+    for sx_ in (-1, 1):
+        o.append(shape(c, blob_pts(300 + sx_ * 50, 262, 18, 17, 27 + sx_, 0.05, 12), fur, ["#FFFFFF", fur_sh], 27 + sx_, n=10, iw=2.2, inkc="#4A4A6A"))
+        o.append(f'<path d="{blob(300 + sx_ * 50, 264, 9, 8, 28 + sx_, 0.08, 10)}" fill="#C8C2D6"/>')
+    head = blob_pts(300, 312, 70, 60, 29, 0.03, 20)
+    o.append(shape(c, head, fur, ["#FFFFFF", SHADE_L, "#E8E4EE", fur_sh], 29, angle=-40, n=90, length=(6, 16), width=(1.8, 4), iw=2.4, inkc="#4A4A6A"))
+    cl3 = c.id("hd")
+    o.append(f'<clipPath id="{cl3}"><path d="{smooth_closed(head)}"/></clipPath><g clip-path="url(#{cl3})"><path d="{blob(352, 330, 40, 54, 30, 0.1)}" fill="{SHADE}" opacity="0.35"/></g>')
+    o.append(ink(smooth_open([(238, 330), (234, 300), (248, 272)]), "#C8F4E0", 2, 4, 1, 0.5))
+    o.append(shape(c, blob_pts(300, 336, 32, 23, 31, 0.05, 14), "#FBF8F2", ["#FFFFFF", SHADE_L], 31, n=14, iw=1.6, inkc="#6A6A8A"))
+    o.append(f'<path d="M 286 320 Q 300 314 314 320 Q 312 332 300 336 Q 288 332 286 320 Z" fill="#2A2630"/><path d="M 292 320 q 5 -2 9 0" stroke="#8A8494" stroke-width="2" fill="none" stroke-linecap="round"/>')
+    o.append(ink("M 300 336 L 300 344 M 288 346 Q 294 352 300 344 Q 306 352 312 346", "#2A2630", 2, 32, 1, 0.9))
+    for sx_ in (-1, 1):
+        ex = 300 + sx_ * 30
+        o.append(ink(f"M {ex - 10} 304 Q {ex} 294 {ex + 10} 304", "#2A2630", 3.4, 33 + sx_, 1, 0.95))
+        o.append(f'<path d="{blob(300 + sx_ * 46, 326, 12, 8, 34 + sx_, 0.1)}" fill="{PINK}" opacity="0.6"/>')
+    # snowfall and sparkles
+    o.append(spatter(35, 70, (0, 0, 600, 600), ["#FFFFFF"], r=(1.2, 3.2), op=(0.6, 1), avoid=[(200, 240, 400, 520), (80, 40, 520, 240)]))
+    for x, y, r, rt in ((84, 330, 12, 5), (520, 340, 12, 20), (110, 440, 8, 12), (494, 446, 9, 0)):
+        o.append(flake(x, y, r, "#FFFFFF", 2.4, rt))
+    # lettering
+    o.append(L(c, 300, 150, "chill", SERIF_IT, 132, "#FFFFFF", ["#FFFFFF", ICE_L, "#D8E8F0"], max_w=330, shadow="#16234A", seed=36, angle=-35,
+               sdx=0.025, sdy=0.04))
+    o.append(L(c, 300, 230, "OUT", BEBAS, 100, "#F07A6A", ["#E2524A", "#F8A090", RED], max_w=220, ls=16, shadow="#16234A", seed=37, angle=-80))
+    for sx_ in (-1, 1):
+        o.append(ink(f"M {300 + sx_ * 76} 192 L {300 + sx_ * 126} 192", "#FFFFFF", 2.4, 38 + sx_, 1, 0.8))
+    return finish(c, "".join(o), gop=0.7)
+
+
+# ================================================================ NEW: noel (poinsettia wreath, Rifle-Paper style)
+def noel():
+    c = C("noe")
+    o = [paper(c.id("pp"), PAPER, FLECK, 51)]
+    cx, cy, R = 300, 306, 190
+    bd = blob(cx, cy, 150, 150, 3, 0.08, 22)
+    o.append(wash(bd, "#F6E2C6", 4, 3, 3, 0.4))
+    o.append(clip_strokes(c, bd, (140, 150, 460, 460), ["#F2D8B4", "#FBEEDC", "#EBCFA8"], 5, n=80, angle=-20, length=(30, 80), width=(4, 10),
+                          op=(0.15, 0.35)))
+    # ring of fir: dark underpainting then needles on three rings
+    o.append(f'<path d="{blob(cx, cy, R + 22, R + 22, 6, 0.02, 30)} {blob(cx, cy, R - 22, R - 22, 7, 0.02, 30)}" fill="{GREEN_D}" fill-rule="evenodd" opacity="0.85"/>')
+    for k, rr in enumerate((R - 16, R + 16, R, R - 4, R + 6)):
+        o.append(needles(c, ring_pts(cx, cy, rr, k * 13, 360 + k * 13, 60, 0.015, 8 + k), 20 + k, length=(14, 28), density=0.5, w=2.6))
+    # eucalyptus sprigs
+    rnd = random.Random(9)
+    for a in (-160, -100, -20, 40, 110, 160, 200):
+        bx, by = cx + R * math.cos(math.radians(a)), cy + R * math.sin(math.radians(a))
+        stem = [(bx, by)]
+        for j in range(1, 4):
+            ta = math.radians(a + 90 + 0)
+            stem.append((bx + 18 * j * math.cos(ta) + rnd.uniform(-3, 3), by + 18 * j * math.sin(ta) + rnd.uniform(-3, 3)))
+        o.append(ink(smooth_open(stem), "#6A7A60", 2, a, 1, 0.9))
+        for j, (sxp, syp) in enumerate(stem[1:]):
+            o.append(f'<path d="{blob(sxp, syp, 9, 8, a + j, 0.08, 10)}" fill="{SAGE}"/><path d="{blob(sxp - 2, syp - 2, 4, 3, a + j, 0.1, 8)}" fill="#B8CCB0" opacity="0.8"/>'
+                     + ink(blob(sxp, syp, 9, 8, a + j, 0.08, 10), "#4A6050", 1.2, a + j, 1, 0.6))
+    # cones, holly, berries, snowberries
+    for a in (-60, 70, 150):
+        px, py = cx + R * math.cos(math.radians(a)), cy + R * math.sin(math.radians(a))
+        o.append(pinecone(c, px, py, 0.62, a + 70, a + 400))
+    for a in (-120, 10, 120):
+        px, py = cx + (R + 4) * math.cos(math.radians(a)), cy + (R + 4) * math.sin(math.radians(a))
+        o.append(holly(c, px, py, 0.8, a, a + 500))
+    for a in (-140, -40, 30, 95, 175, 220):
+        px, py = cx + (R - 6) * math.cos(math.radians(a)), cy + (R - 6) * math.sin(math.radians(a))
+        for j in range(4):
+            o.append(f'<path d="{blob(px + rnd.uniform(-9, 9), py + rnd.uniform(-9, 9), 5, 5, a + j, 0.08, 8)}" fill="#FBF8F2" stroke="#9A98B8" stroke-width="1"/>')
+    # poinsettias
+    o.append(poinsettia(c, cx - 4, cy + R - 4, 64, 8, 60))
+    o.append(poinsettia(c, cx - 120, cy + R * 0.66, 42, -20, 70))
+    o.append(poinsettia(c, cx + 128, cy + R * 0.62, 46, 20, 80))
+    o.append(poinsettia(c, cx - R * 0.74, cy - R * 0.66, 44, 40, 90))
+    # velvet bow at the top
+    bx, by = cx + 40, cy - R - 2
+    for sx_ in (-1, 1):
+        tl = [(bx, by + 4), (bx + sx_ * 14, by + 40), (bx + sx_ * 28, by + 66), (bx + sx_ * 16, by + 70), (bx + sx_ * 4, by + 34)]
+        o.append(shape(c, tl, CRAN, [RED, CRAN_D], 100 + sx_, n=12, iw=1.8))
+    for sx_ in (-1, 1):
+        lp = [(bx, by), (bx + sx_ * 22, by - 30), (bx + sx_ * 48, by - 34), (bx + sx_ * 56, by - 14), (bx + sx_ * 42, by + 6), (bx + sx_ * 18, by + 8)]
+        o.append(shape(c, lp, CRAN, [RED, CRAN_D, "#C8404A"], 104 + sx_, angle=-20 if sx_ > 0 else -160, n=26, iw=2))
+        o.append(f'<path d="{smooth_closed([(bx + sx_ * 10, by - 4), (bx + sx_ * 28, by - 22), (bx + sx_ * 42, by - 20), (bx + sx_ * 34, by - 6)])}" fill="{CRAN_D}" opacity="0.5"/>')
+    o.append(shape(c, blob_pts(bx, by - 2, 11, 10, 108, 0.08, 10), CRAN_D, [CRAN], 108, n=6, iw=1.8))
+    # gold sparkles around
+    o.append(spatter(114, 70, (40, 40, 560, 560), [GOLD, GOLD_L, RED], r=(1, 2.4), op=(0.4, 0.8), avoid=[(80, 80, 520, 530)]))
+    for a, rr, sz in ((-80, R + 56, 9), (-30, R + 50, 6), (200, R + 48, 7), (60, R + 52, 6), (-170, R + 40, 5)):
+        o.append(glint(cx + rr * math.cos(math.radians(a)), cy + rr * math.sin(math.radians(a)), sz, GOLD))
+    # lettering
+    o.append(c.glow(cx + 46, cy - 92, 30, GOLD_L, 0.6) + pstar(c, cx + 46, cy - 92, 14, GOLD, 110, iw=1.2))
+    o.append(L(c, cx, cy + 42, "Noël", DMS, 150, CRAN, [RED, CRAN_D, "#C8404A", "#8A1A2E"], max_w=270, shadow="#E4C79A", seed=111, angle=-70,
+               sdx=0.02, sdy=0.03))
+    o.append(ink(f"M {cx - 70} {cy + 72} Q {cx} {cy + 86} {cx + 70} {cy + 72}", GOLD_D, 2.6, 112, 2, 0.85))
+    o.append(f'<path d="{blob(cx, cy + 80, 4, 4, 113, 0.1, 8)}" fill="{GOLD}"/>')
+    return finish(c, "".join(o))
+
+
 DESIGNS = {
     "winter-wonder": winter_wonder,
     "snow-much-fun": snow_much_fun,
@@ -1178,6 +2227,13 @@ DESIGNS = {
     "oh-deer": oh_deer,
     "joy-to-the-world": joy_to_the_world,
     "fresh-cut-trees": fresh_cut_trees,
+    "sleigh-all-day": sleigh_all_day,
+    "warm-and-cozy": warm_and_cozy,
+    "home-for-christmas": home_for_christmas,
+    "hes-been-here": hes_been_here,
+    "silent-night": silent_night,
+    "chill-out": chill_out,
+    "noel": noel,
 }
 
 

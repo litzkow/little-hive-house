@@ -6,8 +6,8 @@ VOLUME = [(100, 25), (50, 20), (20, 10)]   # magnets in the cart -> % off, desig
 
 COLLECTIONS = [
     {
-        "slug": "places", "name": "American Places", "tag": "Colorful US travel posters",
-        "blurb": "Bright, poster-style illustrations of the American cities, parks and beaches people love most.",
+        "slug": "places", "name": "USA Places", "tag": "Travel posters across the United States",
+        "blurb": "Painted travel posters of the cities, national parks and coastlines people love most across the United States of America.",
         "titles": {"washington-dc": "Washington, DC", "st-augustine": "St. Augustine", "st-louis": "St. Louis",
                   "blue-ridge": "Blue Ridge Parkway", "glacier": "Glacier National Park"},
         "order": ["new-york", "san-francisco", "nashville", "yellowstone", "las-vegas", "chicago", "grand-canyon",
@@ -81,7 +81,10 @@ COLLECTIONS = [
         "slug": "world", "name": "World Places", "tag": "Travel posters from around the globe",
         "blurb": "Our colorful travel posters go abroad: Paris at sunset, Mount Fuji in cherry blossom season, the blue domes of Santorini and more.",
         "titles": {},
-        "order": ["paris", "japan", "santorini", "rome", "london", "venice", "cairo", "sydney"],
+        "order": ["paris", "santorini", "japan", "iceland", "florence", "budapest", "london", "venice", "amsterdam",
+                 "edinburgh", "rome", "swiss-alps", "sydney", "cinque-terre", "berlin", "lisbon", "prague",
+                 "amalfi-coast", "provence", "cairo", "dublin", "athens", "norway", "porto", "barcelona", "pisa",
+                 "dubrovnik", "vienna"],
     },
     {
         "slug": "fall", "name": "Fall", "tag": "Pumpkins, leaves and cozy sweaters",
@@ -121,12 +124,15 @@ COLLECTIONS = [
         "titles": {"merry-and-bright": "Merry & Bright", "ho-ho-ho": "Ho Ho Ho!", "tis-the-season": "'Tis the Season",
                   "seasons-greetings": "Season's Greetings", "peace-on-earth": "Peace on Earth",
                   "hung-with-care": "Hung with Care", "wrapped-with-love": "Wrapped with Love",
-                  "cookies-for-santa": "Cookies for Santa", "trim-the-tree": "Trim the Tree"},
-        "order": ["peace-on-earth", "merry-christmas", "tis-the-season", "believe", "hung-with-care",
-                 "merry-and-bright", "warmest-wishes", "north-pole-post-office", "let-it-snow", "seasons-greetings",
-                 "cookies-for-santa", "hot-cocoa-season", "feliz-natal", "trim-the-tree", "gingerbread-lane",
-                 "naughty-or-nice", "fresh-cut-trees", "joy-to-the-world", "snow-much-fun", "ho-ho-ho",
-                 "wrapped-with-love", "oh-deer"],
+                  "cookies-for-santa": "Cookies for Santa", "trim-the-tree": "Trim the Tree",
+                  "hes-been-here": "He's Been Here", "warm-and-cozy": "Warm & Cozy", "noel": "Noël",
+                  "north-pole-post-office": "North Pole Post Office"},
+        "order": ["home-for-christmas", "merry-christmas", "let-it-snow", "seasons-greetings", "peace-on-earth",
+                 "silent-night", "feliz-natal", "chill-out", "hung-with-care", "sleigh-all-day", "warmest-wishes",
+                 "winter-wonder", "believe", "hes-been-here", "cookies-for-santa", "warm-and-cozy",
+                 "hot-cocoa-season", "gingerbread-lane", "noel", "tis-the-season", "trim-the-tree",
+                 "north-pole-post-office", "merry-and-bright", "joy-to-the-world", "snow-much-fun", "ho-ho-ho",
+                 "oh-deer", "naughty-or-nice", "fresh-cut-trees", "wrapped-with-love"],
     },
     {
         "slug": "summer", "name": "Summer", "tag": "Sun, sea and good vibes",
@@ -183,7 +189,7 @@ SEASONS = [
     ("11-01", "11-27", "Gather & give thanks", "Thanksgiving", "Cozy magnets for the table, the hosts and the people we are thankful for.", "fall",
      [("fall", "gather-together"), ("fall", "harvest"), ("fall", "save-room-for-pie"), ("fall", "give-thanks")], ("#B4532A", "#F6EDE0", "#F3D27A")),
     ("11-28", "12-25", "Merry little magnets", "Christmas", "Stocking stuffers and gift toppers for the merriest time of the year.", "christmas",
-     [("christmas", "peace-on-earth"), ("christmas", "tis-the-season"), ("christmas", "believe"), ("christmas", "hung-with-care")], ("#1E4D3A", "#F6EFE0", "#E9B949")),
+     [("christmas", "home-for-christmas"), ("christmas", "merry-christmas"), ("christmas", "let-it-snow"), ("christmas", "seasons-greetings")], ("#1E4D3A", "#F6EFE0", "#E9B949")),
 ]
 
 # Gift guide cards on the home page: (title, line, link inside the site)
