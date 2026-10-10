@@ -8,7 +8,7 @@ import random
 import sys
 
 from common import BEBAS, CINZEL, DMS, JOS, JOST, MONO, SERIF_IT, esc, fit_size, measure, save, text
-from paint import P, conifer, lg, rough, y_on
+from paint import P, conifer, grass, lg, rough, y_on
 from poster import ANTON, poster
 
 COL = "fall"
@@ -2174,8 +2174,606 @@ def pick_your_own():
     return D.render(out)
 
 
+# ================================================================ 23. misty mornings (a buck at the forest edge, dawn)
+DEER = [(-14, -84), (-10, -90), (-2, -97), (8, -100), (14, -94), (22, -84), (32, -72), (42, -66), (60, -64), (80, -65), (92, -64), (98, -60),
+        (100, -52), (97, -42), (93, -34), (90, -24), (92, -16), (91, 0), (86, 0), (85, -14), (82, -26), (77, -34), (66, -37), (50, -36), (38, -37),
+        (32, -30), (31, -14), (30, 0), (25, 0), (25, -14), (23, -30), (20, -44), (14, -60), (6, -72), (-2, -78), (-10, -80)]
+
+
+def deer(D, x, y, s, rim="#FFD9A0", antlers=True):
+    """White-tailed buck in profile facing left; (x, y) = front hoof on the ground."""
+    g = D.lin([(0, "#B07A4C"), (0.6, "#8A5634"), (1, "#5A3420")], key="deerbody")
+    out = [f'<g transform="translate({x} {y}) scale({s})">',
+           '<polygon points="36,-36 39,-14 39,0 35,0 34,-14 31,-34" fill="#4A2C1A"/><polygon points="74,-36 80,-22 81,0 77,0 76,-20 68,-34" fill="#4A2C1A"/>',
+           f'<polygon points="{P(DEER)}" fill="{g}"/>',
+           '<path d="M 38 -40 Q 56 -34 74 -38" stroke="#E8D4B4" stroke-width="3" fill="none" opacity="0.6"/>',
+           '<ellipse cx="10" cy="-66" rx="4" ry="7" fill="#F2E6D2" opacity="0.85" transform="rotate(30 10 -66)"/><ellipse cx="-9" cy="-82" rx="4" ry="2.6" fill="#F2E6D2" opacity="0.85"/>',
+           '<path d="M 96 -62 Q 104 -58 101 -48" stroke="#F6EEE0" stroke-width="4" fill="none" stroke-linecap="round"/>',
+           '<polygon points="8,-99 23,-113 26,-107 15,-95" fill="#7A4A2C"/><polygon points="11,-99 22,-110 23,-107 15,-97" fill="#D8B494"/>',
+           '<circle cx="-14" cy="-84" r="2.6" fill="#1E120A"/><circle cx="-2" cy="-90" r="2" fill="#1E120A"/><circle cx="-2.6" cy="-90.6" r="0.6" fill="#FFFFFF"/>',
+           '<g fill="#2A1A10"><rect x="24.5" y="-3" width="6" height="3" rx="1"/><rect x="85.5" y="-3" width="6" height="3" rx="1"/></g>']
+    if antlers:
+        out.append('<g fill="none" stroke="#6E5A44" stroke-width="2.6" stroke-linecap="round"><path d="M 0 -99 C -2 -118 10 -130 26 -136"/><path d="M 4 -116 l -6 -12 M 12 -126 l -2 -15 M 20 -132 l 4 -13"/></g>'
+                   '<g fill="none" stroke="#E2D2B4" stroke-width="3" stroke-linecap="round"><path d="M 4 -99 C 6 -116 18 -128 36 -130"/><path d="M 10 -113 l -2 -17 M 20 -122 l 2 -18 M 30 -128 l 8 -14"/></g>')
+    rimpts = [(-14, -84), (-10, -90), (-2, -97), (8, -100)]
+    chest = [(-2, -78), (6, -72), (14, -60), (20, -44), (23, -30), (25, -14)]
+    back = [(14, -94), (22, -84), (32, -72), (42, -66), (60, -64), (80, -65), (92, -64), (98, -60)]
+    out.append(f'<polyline points="{P(rimpts)}" fill="none" stroke="{rim}" stroke-width="2.4" stroke-linecap="round"/>'
+               f'<polyline points="{P(chest)}" fill="none" stroke="{rim}" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/>'
+               f'<polyline points="{P(back)}" fill="none" stroke="{rim}" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>')
+    out.append("</g>")
+    return "".join(out)
+
+
+@design("misty-mornings")
+def misty_mornings():
+    D = Doc("mmo")
+    out = [f'<rect width="600" height="600" fill="{D.lin([(0, "#B4B0CC"), (0.3, "#E2C4BE"), (0.52, "#F6D8B2"), (1, "#F2DCB8")])}"/>']
+    out.append(glow(D, 160, 318, 320, "#FFE6B8", 0.9))
+    out.append('<circle cx="160" cy="318" r="24" fill="#FFF6DE"/>')
+    out.append(word(300, 128, "misty", SERIF_IT, 104, "#5A3A4A", max_w=320))
+    out.append(word(300, 196, "MORNINGS", JOS, 54, "#9A4A34", max_w=420, ls=16))
+    # far spruce ridge in lavender haze
+    line = rough([(-10, 318), (140, 310), (300, 316), (460, 306), (610, 314)], 21, amp=4)
+    out.append(f'<polygon points="{P(line + [(610, 420), (-10, 420)])}" fill="#B8A6BC"/>')
+    rnd = random.Random(22)
+    out.append("".join(conifer(x + rnd.uniform(-5, 5), (y_on(line, x) or 312) + 6, rnd.uniform(14, 44), rnd.choice(["#B4A4BA", "#A898B2", "#BCAEC2"]), rnd.random()) for x in range(-10, 620, 13)))
+    out.append(f'<rect x="0" y="290" width="600" height="80" fill="{D.lin([(0, "#F6E6D6", 0), (0.6, "#F6E6D6", 0.85), (1, "#F6E6D6", 0.3)])}"/>')
+    # middle woods, hazy autumn colour
+    haze = [(["#B08478"], ["#C9987E"], ["#E8C49C"]), (["#A8907E"], ["#C8AE8C"], ["#E2D0A8"]), (["#A87A70"], ["#C2907E"], ["#E2B496"])]
+    cr = []
+    for row, y0 in enumerate((350, 362, 376)):
+        for x in range(-10 + row * 9, 620, 18):
+            cr.append(crown(D, x + rnd.uniform(-5, 5), y0 + rnd.uniform(-4, 4), rnd.uniform(12, 16), haze[rnd.randrange(3)], x * 3 + row, light=(-0.8, -0.5), n=3))
+    out.append("".join(cr))
+    out.append(f'<rect x="0" y="350" width="600" height="60" fill="{D.lin([(0, "#F6E6D6", 0.2), (1, "#F6E6D6", 0.7)])}"/>')
+    # god rays from the low sun
+    out.append('<g fill="#FFF0D0" opacity="0.18">' + "".join(f'<polygon points="160,318 {x1},620 {x2},620"/>' for x1, x2 in ((260, 330), (400, 470), (540, 600), (680, 740))) + "</g>")
+    # the near forest edge on the right, peak colour
+    pals = [(["#8E2E20"], ["#C2482A", "#B4402A"], ["#F08A4A", "#F29A5A"]), (["#A8641E"], ["#E0862E", "#D87A2A"], ["#F8B860", "#FBC870"]),
+            (["#B07A1E"], ["#E0A62E"], ["#F8D870"]), (["#4E5A26"], ["#7E8A3A"], ["#C2C064"])]
+    fp = [(["#8E2E20", "#7A2A22"], ["#C2482A", "#B4402A"], ["#F08A4A", "#F29A5A"]), (["#A8641E", "#9A5A1E"], ["#E0862E", "#D87A2A"], ["#F8B860", "#FBC870"]),
+          (["#B07A1E", "#9A6A1A"], ["#E0A62E", "#D8A030"], ["#F8D870", "#FBE08A"]), (["#4E5A26", "#5A6428"], ["#7E8A3A", "#8A9640"], ["#C2C064", "#D0C870"])]
+    for k, (x, cy, rx, ry, pi) in enumerate(((400, 330, 46, 62, 1), (590, 300, 70, 96, 0), (470, 300, 58, 84, 2), (536, 336, 50, 70, 3), (430, 372, 40, 46, 0))):
+        out.append(f'<path d="M {x - 5} 432 L {x - 3} {cy} L {x + 3} {cy} L {x + 5} 432 Z" fill="#4A3030"/>'
+                   f'<path d="M {x} {cy + ry * 0.4:.0f} l {-rx * 0.4:.0f} {-ry * 0.3:.0f} M {x} {cy + ry * 0.2:.0f} l {rx * 0.35:.0f} {-ry * 0.35:.0f}" stroke="#4A3030" stroke-width="3"/>')
+        out.append(foliage(D, x, cy, rx, ry, fp[pi], 300 + k, n=int(rx * ry / 14), size=(4, 8), light=(-0.85, -0.45), leafy=True))
+    rnd = random.Random(27)
+    out.append("".join(conifer(x, 432, rnd.uniform(70, 110), "#4E4A44", rnd.random(), light="#C8A07A") for x in (366, 504, 560)))
+    out.append(f'<rect x="330" y="380" width="290" height="60" fill="{D.lin([(0, "#F6E6D6", 0), (1, "#F6E6D6", 0.65)])}"/>')
+    # meadow with low mist
+    out.append(f'<path d="M -10 420 Q 200 410 400 424 Q 520 432 610 426 L 610 610 L -10 610 Z" fill="{D.lin([(0, "#C8B47A"), (0.4, "#9A8E52"), (1, "#5A5A2E")])}"/>')
+    out.append(f'<ellipse cx="260" cy="446" rx="300" ry="26" fill="{D.rad([(0, "#FFF4E2", 0.75), (1, "#FFF4E2", 0)])}"/>')
+    out.append(grass(160, 33, (-10, 430, 610, 600), ["#D8C88A", "#A89A5A", "#7A7A3E", "#E8D49A"], h=(8, 22)))
+    out.append(shadow(D, 300, 478, 120, 8, "#3A3418", 0.4))
+    out.append(deer(D, 222, 476, 1.55))
+    out.append(f'<ellipse cx="320" cy="482" rx="220" ry="16" fill="{D.rad([(0, "#FFF4E2", 0.55), (1, "#FFF4E2", 0)])}"/>')
+    out.append(grass(120, 34, (-10, 470, 610, 610), ["#6E6A34", "#8A7E44", "#C9B47A", "#4E4E26"], h=(14, 36), sw=2.2))
+    # seed heads and goldenrod in the foreground
+    for x, h in ((70, 120), (96, 96), (520, 130), (548, 100), (500, 90)):
+        out.append(f'<path d="M {x} 610 Q {x + 6} {600 - h / 2} {x + 2} {600 - h}" stroke="#7A6A30" stroke-width="2.4" fill="none"/>')
+        out.append("".join(f'<ellipse cx="{x + 2 + (i % 2) * 6 - 3}" cy="{600 - h + i * 6}" rx="4" ry="2.6" fill="{"#F2C24A" if i % 3 else "#D8A030"}"/>' for i in range(7)))
+    out.append(falling(D, [("maple", 470, 470, 16, L_RED, 30), ("slim", 120, 380, 14, L_GOLD, -40)]))
+    out.append(birds([(250, 254, 7), (268, 246, 5), (232, 262, 5)], "#6A4A5A", 1.8))
+    return D.render(out)
+
+
+# ================================================================ 24. happy fall, y'all (hayride at sunset)
+@design("happy-fall-yall")
+def happy_fall_yall():
+    D = Doc("hfy")
+    out = [f'<rect width="600" height="600" fill="{D.lin([(0, "#4A3C6E"), (0.3, "#B8607A"), (0.5, "#EE945A"), (0.6, "#FBC878"), (1, "#FBC878")])}"/>']
+    out.append(glow(D, 450, 350, 300, "#FFE09A", 0.9))
+    out.append('<circle cx="450" cy="342" r="30" fill="#FFF2C8"/>')
+    out.append('<g fill="#F6A88A" opacity="0.5">' + "".join(f'<ellipse cx="{x}" cy="{y}" rx="{w}" ry="4"/>' for x, y, w in ((110, 290, 80), (520, 270, 70), (360, 300, 50))) + "</g>")
+    out.append(word(300, 124, "happy fall,", SERIF_IT, 90, "#FCEBD2", max_w=420, sh="#3A2A4A", off=(0, 4), sh_op=0.6))
+    out.append(word(300, 268, "Y'ALL", ANTON, 140, "#FCEBD2", max_w=420, ls=16, sh="#3A2A4A", off=(0, 6), sh_op=0.55))
+    # tree line on the horizon, backlit
+    rnd = random.Random(4)
+    tl = []
+    for x in range(-10, 620, 16):
+        if 400 < x < 500:
+            continue
+        tl.append(crown(D, x + rnd.uniform(-4, 4), 344 + rnd.uniform(-6, 4), rnd.uniform(12, 20), (["#5A3448"], ["#7A4458"], ["#C8786A"]), x, light=(0.8, -0.4), n=3))
+    out.append("".join(tl))
+    out.append(f'<rect x="0" y="320" width="600" height="40" fill="{D.lin([(0, "#FBC878", 0), (1, "#FBC878", 0.5)])}"/>')
+    # stubble field with rows running to the sun
+    out.append(f'<rect x="-10" y="352" width="620" height="260" fill="{D.lin([(0, "#E8B060"), (0.35, "#C2863E"), (1, "#6E4422")])}"/>')
+    out.append('<g stroke="#8A5A2A" stroke-width="2" opacity="0.4">' + "".join(f'<line x1="450" y1="352" x2="{x}" y2="610"/>' for x in range(-600, 1400, 70)) + "</g>")
+    for x, y, r in ((120, 372, 9), (170, 368, 7), (560, 376, 10)):
+        out.append(f'<ellipse cx="{x}" cy="{y}" rx="{r * 1.2}" ry="{r}" fill="#8A5A2A"/><ellipse cx="{x + r * 0.4}" cy="{y - r * 0.2}" rx="{r * 0.6}" ry="{r * 0.6}" fill="#E8B060" opacity="0.6"/>')
+    # dirt track
+    out.append(f'<path d="M -10 452 Q 300 430 610 438 L 610 460 Q 300 452 -10 474 Z" fill="{D.lin([(0, "#C8925A"), (1, "#E8B880")], 0, 0, 1, 0)}"/>')
+    # hay wagon with riders
+    out.append(shadow(D, 300, 456, 230, 10, "#3A1E0E", 0.5))
+    out.append('<g fill="#5A3A26"><rect x="98" y="398" width="236" height="14"/></g><rect x="98" y="398" width="236" height="3" fill="#FFC88A" opacity="0.8"/>')
+    for x in range(104, 334, 26):
+        out.append(f'<rect x="{x}" y="376" width="5" height="24" fill="#6E4630"/>')
+    out.append('<rect x="98" y="374" width="236" height="5" fill="#6E4630"/><rect x="98" y="374" width="236" height="2" fill="#FFC88A" opacity="0.7"/>')
+    hay = D.lin([(0, "#F6D488"), (1, "#B88A3E")], key="hfyhay")
+    for x0, y0, w, h in ((110, 360, 70, 38), (186, 360, 70, 38), (262, 360, 66, 38), (146, 326, 66, 34), (220, 326, 66, 34)):
+        out.append(f'<rect x="{x0}" y="{y0}" width="{w}" height="{h}" rx="3" fill="{hay}"/><rect x="{x0 + w - 6}" y="{y0}" width="6" height="{h}" fill="#FFE2A0" opacity="0.6"/>'
+                   f'<line x1="{x0 + w * 0.3:.0f}" y1="{y0}" x2="{x0 + w * 0.3:.0f}" y2="{y0 + h}" stroke="#8A5A24" stroke-width="2"/><line x1="{x0 + w * 0.7:.0f}" y1="{y0}" x2="{x0 + w * 0.7:.0f}" y2="{y0 + h}" stroke="#8A5A24" stroke-width="2"/>')
+    riders = [(132, 326, "#3E4A6A", "#B4532A"), (172, 292, "#7A2E3A", None), (214, 292, "#2E5A4A", "#E9B54A"), (254, 292, "#B4532A", None), (300, 326, "#4A3A6A", "#E9B54A")]
+    for x, top, coat, hat in riders:
+        out.append(f'<path d="M {x - 10} {top + 34} L {x - 11} {top + 12} Q {x} {top + 6} {x + 11} {top + 12} L {x + 10} {top + 34} Z" fill="{coat}"/>'
+                   f'<circle cx="{x}" cy="{top}" r="8" fill="#3A2420"/><path d="M {x + 9} {top + 12} L {x + 11} {top + 32}" stroke="#FFC88A" stroke-width="2"/>'
+                   f'<path d="M {x + 5} {top - 6} q 4 4 3 10" stroke="#FFC88A" stroke-width="1.8" fill="none"/>')
+        if hat:
+            out.append(f'<path d="M {x - 9} {top - 3} Q {x} {top - 18} {x + 9} {top - 3} Z" fill="{hat}"/>')
+    out.append('<path d="M 214 304 q 14 -18 8 -34" stroke="#2E5A4A" stroke-width="5" stroke-linecap="round" fill="none"/>')
+    out.append('<g stroke="#3A2420" stroke-width="4" stroke-linecap="round"><path d="M 126 398 l -4 18 M 138 398 l 2 18"/><path d="M 294 398 l -2 18 M 306 398 l 4 18"/></g>')
+    for wx in (138, 300):
+        out.append(f'<circle cx="{wx}" cy="436" r="17" fill="#2E1E18"/><circle cx="{wx}" cy="436" r="11" fill="none" stroke="#6E4630" stroke-width="3"/><circle cx="{wx}" cy="436" r="3" fill="#6E4630"/>'
+                   f'<path d="M {wx + 6} 420 A 17 17 0 0 1 {wx + 17} 432" stroke="#FFC88A" stroke-width="2.4" fill="none"/>')
+    out.append('<line x1="334" y1="406" x2="372" y2="420" stroke="#2E1E18" stroke-width="4"/>')
+    # vintage tractor
+    red = D.lin([(0, "#D84A34"), (1, "#7A2018")], key="tred")
+    out.append(f'<path d="M 404 414 L 404 386 Q 404 380 410 380 L 492 380 Q 500 382 504 392 L 508 414 Z" fill="{red}"/>'
+               '<rect x="410" y="380" width="94" height="3" fill="#FFC88A" opacity="0.8"/><path d="M 500 384 L 508 414" stroke="#FFC88A" stroke-width="2.4"/>'
+               '<g stroke="#5A1A12" stroke-width="2" opacity="0.7">' + "".join(f'<line x1="{x}" y1="388" x2="{x}" y2="410"/>' for x in range(470, 500, 6)) + "</g>"
+               '<rect x="476" y="354" width="7" height="28" fill="#2E2420"/>')
+    out.append(f'<path d="M 362 420 A 40 40 0 0 1 438 400 L 438 412 L 362 432 Z" fill="{red}"/>')
+    out.append('<circle cx="398" cy="420" r="34" fill="#241814"/><circle cx="398" cy="420" r="20" fill="#C8302A"/><circle cx="398" cy="420" r="7" fill="#E8C870"/>')
+    out.append('<g stroke="#3A2A24" stroke-width="5">' + "".join(f'<line x1="{398 + 30 * math.cos(math.radians(a)):.1f}" y1="{420 + 30 * math.sin(math.radians(a)):.1f}" x2="{398 + 36 * math.cos(math.radians(a)):.1f}" y2="{420 + 36 * math.sin(math.radians(a)):.1f}"/>' for a in range(0, 360, 24)) + "</g>")
+    out.append('<path d="M 410 388 A 34 34 0 0 1 430 404" stroke="#FFC88A" stroke-width="2.6" fill="none"/>')
+    out.append('<circle cx="488" cy="434" r="18" fill="#241814"/><circle cx="488" cy="434" r="9" fill="#C8302A"/><path d="M 496 420 A 18 18 0 0 1 505 430" stroke="#FFC88A" stroke-width="2.2" fill="none"/>')
+    out.append('<rect x="392" y="362" width="18" height="6" fill="#2E2420"/><path d="M 420 372 L 432 360" stroke="#2E2420" stroke-width="3"/><ellipse cx="434" cy="358" rx="8" ry="3" fill="#2E2420"/>')
+    out.append(person(400, 384, 46, "#3E5A7A", rim="#FFC88A", hat="#C9A060").replace('d="M -8 -46 L 9 -46 L 12 -2 L 6 -2 L 3 -28 L -1 -2 L -7 -2 L -10 -44 Z"', 'd="M -8 -46 L 9 -46 L 30 -40 L 30 -20 L 24 -20 L 22 -34 L -8 -34 Z"'))
+    out.append('<g fill="#F2E2C8" opacity="0.55"><circle cx="482" cy="344" r="7"/><circle cx="476" cy="330" r="9"/><circle cx="466" cy="314" r="11"/></g>')
+    out.append(f'<ellipse cx="70" cy="440" rx="70" ry="18" fill="{D.rad([(0, "#F6D8A0", 0.6), (1, "#F6D8A0", 0)])}"/>')
+    # foreground stubble, pumpkins, a corn shock
+    rnd = random.Random(9)
+    out.append('<g stroke-width="2" stroke-linecap="round">' + "".join(
+        f'<line x1="{x:.0f}" y1="{y:.0f}" x2="{x + rnd.uniform(-2, 2):.0f}" y2="{y - 6 - (y - 470) * 0.06:.0f}" stroke="{rnd.choice(["#F2C27A", "#A8703A", "#6E4422"])}"/>' for x, y in [(rnd.uniform(-10, 610), rnd.uniform(476, 600)) for _ in range(220)]) + "</g>")
+    for i in range(13):
+        t = i / 12
+        xb = 476 + 92 * t
+        xt = 500 + 44 * t + (t - 0.5) * 30
+        out.append(f'<path d="M {xb:.0f} 598 Q {518 + (t - 0.5) * 16:.0f} 512 {xt:.0f} 434" stroke="{["#C8A060", "#A8803E", "#E2C07A", "#8A6A30"][i % 4]}" stroke-width="7" fill="none" stroke-linecap="round"/>')
+    out.append('<path d="M 500 506 Q 520 514 540 506" stroke="#6E3A18" stroke-width="5" fill="none"/><path d="M 470 470 q 20 -6 30 -30 M 560 470 q -14 -10 -14 -34" stroke="#C8A060" stroke-width="4" fill="none" stroke-linecap="round"/>')
+    out.append(mirror(pumpkin(D, 150, 540, 120, 86, PK_ORANGE, leaf=L_OLIVE, cast=0.3), 150) + mirror(pumpkin(D, 262, 556, 70, 50, PK_CREAM, cast=0.3), 262)
+               + mirror(pumpkin(D, 430, 560, 80, 58, PK_GOLD, cast=0.3), 430))
+    return D.render(out)
+
+
+# ================================================================ 25. harvest moon over the cornfield
+def cornstalk(x, base, h, col, seed, rim=None, lean=0.0):
+    rnd = random.Random(seed)
+    tx = x + lean * h
+    out = [f'<path d="M {x:.1f} {base:.1f} Q {x + lean * h * 0.3:.1f} {base - h * 0.5:.1f} {tx:.1f} {base - h:.1f}" stroke="{col}" stroke-width="{max(1.2, h * 0.022):.1f}" fill="none"/>']
+    for i in range(6):
+        t = 0.2 + i * 0.12
+        px, py = x + lean * h * t, base - h * t
+        sgn = 1 if i % 2 else -1
+        L = h * rnd.uniform(0.32, 0.45)
+        d = f"M {px:.1f} {py:.1f} Q {px + sgn * L * 0.6:.1f} {py - L * 0.5:.1f} {px + sgn * L:.1f} {py + L * 0.15:.1f} Q {px + sgn * L * 0.5:.1f} {py - L * 0.25:.1f} {px:.1f} {py + h * 0.02:.1f} Z"
+        out.append(f'<path d="{d}" fill="{col}"/>')
+        if rim and sgn > 0:
+            out.append(f'<path d="M {px:.1f} {py:.1f} Q {px + sgn * L * 0.6:.1f} {py - L * 0.5:.1f} {px + sgn * L:.1f} {py + L * 0.15:.1f}" stroke="{rim}" stroke-width="{max(0.8, h * 0.008):.1f}" fill="none" opacity="0.7"/>')
+    out.append("".join(f'<line x1="{tx:.1f}" y1="{base - h:.1f}" x2="{tx + dx * h * 0.06:.1f}" y2="{base - h - h * 0.1:.1f}" stroke="{col}" stroke-width="{max(1, h * 0.012):.1f}"/>' for dx in (-1, -0.3, 0.4, 1)))
+    if h > 60:
+        out.append(f'<ellipse cx="{x + lean * h * 0.5 - h * 0.04:.1f}" cy="{base - h * 0.5:.1f}" rx="{h * 0.03:.1f}" ry="{h * 0.09:.1f}" transform="rotate(-20 {x:.1f} {base - h * 0.5:.1f})" fill="{col}"/>')
+    if rim:
+        out.append(f'<path d="M {x + 1:.1f} {base:.1f} Q {x + lean * h * 0.3 + 1:.1f} {base - h * 0.5:.1f} {tx + 1:.1f} {base - h:.1f}" stroke="{rim}" stroke-width="{max(0.8, h * 0.008):.1f}" fill="none" opacity="0.6"/>')
+    return "".join(out)
+
+
+@design("harvest-moon")
+def harvest_moon():
+    D = Doc("hmn")
+    out = [f'<rect width="600" height="600" fill="{D.lin([(0, "#161B3C"), (0.45, "#2E2E5A"), (0.68, "#7A4E6A"), (0.76, "#D0805A"), (1, "#D0805A")])}"/>']
+    rnd = random.Random(3)
+    out.append('<g fill="#F6EDE0">' + "".join(f'<circle cx="{rnd.uniform(0, 600):.0f}" cy="{rnd.uniform(0, 300):.0f}" r="{rnd.uniform(0.6, 1.8):.1f}" opacity="{rnd.uniform(0.3, 0.9):.2f}"/>' for _ in range(80)) + "</g>")
+    out.append(glow(D, 300, 336, 300, "#F6B868", 0.55))
+    moon = D.rad([(0, "#FFF0C0"), (0.55, "#F8C878"), (1, "#E0904A")], cx=0.42, cy=0.38, r=0.62)
+    out.append(f'<circle cx="300" cy="336" r="132" fill="{moon}"/>')
+    out.append('<g fill="#D8904A" opacity="0.2"><ellipse cx="256" cy="300" rx="34" ry="24"/><ellipse cx="338" cy="352" rx="40" ry="28"/><ellipse cx="318" cy="276" rx="16" ry="12"/><ellipse cx="262" cy="372" rx="18" ry="12"/></g>')
+    out.append(word(300, 112, "HARVEST", JOS, 62, "#F6EDE0", max_w=440, ls=20))
+    out.append(word(300, 192, "moon", SERIF_IT, 130, "#F6C462", max_w=360, sh="#0E1028", off=(0, 5)))
+    out.append(birds([(232, 286, 10), (256, 270, 8), (280, 292, 7), (214, 306, 6), (300, 260, 6)], "#241A30", 2.6))
+    # distant farm on the horizon
+    out.append('<path d="M -10 408 Q 150 396 300 404 Q 450 410 610 398 L 610 440 L -10 440 Z" fill="#2E2238"/>')
+    out.append('<polygon points="84,404 84,382 102,368 120,382 120,404" fill="#22182C"/><rect x="92" y="388" width="8" height="8" fill="#FFC870"/>' + glow(D, 96, 392, 18, "#FFC870", 0.6))
+    out.append('<rect x="128" y="372" width="12" height="34" fill="#22182C"/><path d="M 128 372 Q 134 362 140 372 Z" fill="#22182C"/>')
+    # rows of corn, far (moon-lit) to near (silhouette)
+    rows = [(420, 34, "#3A2E48", "#F2B868", 7), (446, 56, "#2E2440", "#F2B868", 11), (486, 96, "#241C34", "#F2B868", 18), (540, 150, "#1A1428", "#E8A858", 28), (612, 240, "#120E1E", "#D8985A", 46)]
+    for base, h, col, rim, step in rows:
+        x = -20 + rnd.uniform(0, step)
+        g = []
+        while x < 620:
+            if not (base > 500 and 150 < x < 450):
+                g.append(cornstalk(x, base + rnd.uniform(-3, 3), h * rnd.uniform(0.85, 1.1), col, int(x * 7 + base), rim=rim, lean=rnd.uniform(-0.08, 0.08)))
+            x += step * rnd.uniform(0.8, 1.3)
+        out.append(f'<rect x="-10" y="{base - 4}" width="620" height="{620 - base}" fill="{col}"/>' + "".join(g))
+        if base == 486:
+            # scarecrow among the rows
+            out.append('<g fill="#1E182C"><rect x="176" y="380" width="6" height="110"/><rect x="140" y="404" width="80" height="6"/>'
+                       '<path d="M 164 398 L 196 398 L 202 448 L 158 448 Z"/><circle cx="179" cy="388" r="11"/><path d="M 160 384 L 198 384 L 188 376 Q 179 360 170 376 Z"/>'
+                       '<path d="M 140 408 l -8 6 l 6 2 l -6 6 M 220 408 l 8 6 l -6 2 l 6 6" stroke="#1E182C" stroke-width="3" fill="none"/></g>'
+                       '<path d="M 196 398 L 202 448 M 188 380 L 198 384 M 220 404 L 220 410" stroke="#F2B868" stroke-width="1.6" fill="none" opacity="0.7"/>')
+    # a moonlit pumpkin at the field's edge
+    out.append(f'<ellipse cx="300" cy="566" rx="80" ry="10" fill="#08060E" opacity="0.6"/>')
+    out.append(pumpkin(D, 300, 534, 120, 84, ("#C88A4A", "#7A4A2A", "#2A1A14"), stem=("#6E6A44", "#3A3420"), cast=0, leaf=("#4E5A3A", "#2A321E")))
+    out.append(f'<path d="M 252 504 Q 300 488 348 504" stroke="#F6C462" stroke-width="2.4" fill="none" opacity="0.7"/>')
+    return D.render(out)
+
+
+# ================================================================ 26. sunflower fields (poster)
+def sunflower(D, cx, cy, r, tilt=1.0, rot_=0, seed=0):
+    petal = D.lin([(0, "#FFE468"), (0.6, "#F8C030"), (1, "#E0901E")], key="sfp")
+    out = [f'<g transform="translate({cx:.1f} {cy:.1f}) rotate({rot_:.1f}) scale({tilt:.2f} 1)">']
+    n = 21
+    for k, (dist, rx, ry, col, off) in enumerate(((0.6, 0.15, 0.42, "#D8901E", 0.5), (0.62, 0.16, 0.44, petal, 0))):
+        for i in range(n):
+            a = (i + off) * 360 / n
+            out.append(f'<ellipse cx="0" cy="{-dist * r:.1f}" rx="{rx * r:.1f}" ry="{ry * r:.1f}" transform="rotate({a:.1f})" fill="{col}"/>')
+    out.append(f'<circle r="{0.52 * r:.1f}" fill="{D.rad([(0, "#9A6A2A"), (0.5, "#5A3414"), (1, "#2A1808")], key="sfd")}"/>')
+    m = int(40 + r * 2.2)
+    seeds = []
+    for i in range(m):
+        a = i * 137.508
+        d = 0.47 * r * math.sqrt((i + 0.5) / m)
+        seeds.append(f'<circle cx="{d * math.cos(math.radians(a)):.1f}" cy="{d * math.sin(math.radians(a)):.1f}" r="{max(0.8, r * 0.022):.1f}"/>')
+    out.append(f'<g fill="#C8903A" opacity="0.7">{"".join(seeds[::2])}</g><g fill="#1E1006" opacity="0.8">{"".join(seeds[1::2])}</g>')
+    out.append(f'<circle r="{0.5 * r:.1f}" fill="none" stroke="#F2B640" stroke-width="{max(1, r * 0.03):.1f}" opacity="0.6"/>'
+               f'<path d="M {-0.3 * r:.1f} {-0.3 * r:.1f} A {0.42 * r:.1f} {0.42 * r:.1f} 0 0 1 {0.2 * r:.1f} {-0.38 * r:.1f}" stroke="#FFF0C0" stroke-width="{max(1, r * 0.03):.1f}" fill="none" opacity="0.5"/></g>')
+    return "".join(out)
+
+
+def sf_leaf(D, x, y, s, rot_):
+    g = D.lin([(0, "#6E8A3A"), (1, "#2E4A1E")], key="sfl")
+    return (f'<g transform="translate({x:.1f} {y:.1f}) rotate({rot_:.1f}) scale({s / 40:.3f})">'
+            f'<path d="M 0 0 C -24 -6 -34 -34 -6 -56 C 0 -60 4 -60 8 -56 C 34 -34 24 -6 0 0 Z" fill="{g}"/>'
+            '<path d="M 0 0 L 2 -54 M 1 -18 l -14 -10 M 1 -18 l 14 -10 M 1 -34 l -11 -9 M 1 -34 l 11 -9" stroke="#C8D27A" stroke-width="1.4" fill="none" opacity="0.6"/></g>')
+
+
+def sunflower_fields_art():
+    D = Doc("sff")
+    C = Cam(f=300, cx=300, vpy=262, eye=1.6)
+    out = [f'<rect width="600" height="444" fill="{D.lin([(0, "#7E9CBC"), (0.42, "#E8C49A"), (0.58, "#F8D898"), (1, "#F8D898")])}"/>']
+    out.append(glow(D, 470, 248, 260, "#FFE6A8", 0.9) + '<circle cx="470" cy="246" r="20" fill="#FFF6D8"/>')
+    out.append('<g fill="#F6C4A0" opacity="0.5">' + "".join(f'<ellipse cx="{x}" cy="{y}" rx="{w}" ry="4"/>' for x, y, w in ((140, 150, 90), (100, 162, 50), (380, 132, 70))) + "</g>")
+    out.append(birds([(250, 170, 7), (268, 162, 5)], "#5A4A5A", 1.8))
+    # far trees, a barn and a windmill
+    rnd = random.Random(2)
+    out.append(f'<rect x="0" y="250" width="600" height="20" fill="#A8907A"/>')
+    out.append("".join(crown(D, x + rnd.uniform(-3, 3), 252 + rnd.uniform(-3, 2), rnd.uniform(7, 11), (["#9A7A6E"], ["#B8967E"], ["#E2C098"]), x, light=(0.8, -0.5), n=2) for x in range(-10, 620, 11) if not 440 < x < 500))
+    out.append('<polygon points="150,258 150,240 162,232 174,240 174,258" fill="#A8483A"/><polygon points="174,242 192,244 192,258 174,258" fill="#C8604A"/><polygon points="162,232 174,240 192,244 180,236" fill="#6E5458"/>')
+    out.append('<g stroke="#5A4A4E" stroke-width="1.6"><line x1="96" y1="258" x2="100" y2="214"/><line x1="108" y1="258" x2="104" y2="214"/><line x1="98" y1="236" x2="106" y2="236"/></g>'
+               '<g transform="translate(102 212)" stroke="#5A4A4E" stroke-width="1.4">' + "".join(f'<line x1="0" y1="0" x2="{10 * math.cos(math.radians(a)):.1f}" y2="{10 * math.sin(math.radians(a)):.1f}"/>' for a in range(0, 360, 30)) + '</g><circle cx="102" cy="212" r="2" fill="#5A4A4E"/>')
+    out.append(f'<rect x="0" y="236" width="600" height="30" fill="{D.lin([(0, "#F8D898", 0), (1, "#F8D898", 0.5)])}"/>')
+    # the field: rows of heads receding to the horizon, foliage below
+    out.append(f'<rect x="0" y="262" width="600" height="190" fill="{D.lin([(0, "#7A8A3A"), (1, "#2E3E1A")])}"/>')
+    heads = []
+    for X in [-14 + i * 0.9 for i in range(32)]:
+        Z = 40
+        while Z > 1.6:
+            heads.append((Z, X + rnd.uniform(-0.2, 0.2)))
+            Z *= rnd.uniform(0.8, 0.9)
+    for Z, X in sorted(heads, reverse=True):
+        x, y = C(X, 1.75, Z)
+        r = C.f * 0.16 / Z
+        if r < 1 or x < -30 or x > 630:
+            continue
+        gx, gy = C(X, 0, Z)
+        if r < 7:
+            out.append(f'<path d="M {x:.1f} {y:.1f} L {x:.1f} {min(gy, 450):.1f}" stroke="#4E6A2A" stroke-width="{max(0.6, r * 0.25):.1f}"/>'
+                       f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="#F2B42A"/><circle cx="{x + r * 0.1:.1f}" cy="{y:.1f}" r="{r * 0.45:.1f}" fill="#5A3414"/>')
+        else:
+            out.append(f'<path d="M {x:.1f} {y:.1f} Q {x - r * 0.2:.1f} {(y + 450) / 2:.1f} {x:.1f} 450" stroke="#4E6A2A" stroke-width="{r * 0.14:.1f}" fill="none"/>')
+            out.append(sf_leaf(D, x - r * 0.1, y + r * 2.2, r * 0.8, -60) + sf_leaf(D, x + r * 0.1, y + r * 3.0, r * 0.7, 70))
+            out.append(sunflower(D, x, y, r, tilt=0.86, rot_=rnd.uniform(-12, 12), seed=int(x)))
+    # hero blooms in the foreground
+    for x, y, r, t, ro in ((112, 214, 74, 0.9, -10), (512, 256, 60, 0.84, 14), (330, 330, 46, 0.9, 6)):
+        out.append(f'<path d="M {x} {y} Q {x + 10} {(y + 450) / 2} {x - 4} 450" stroke="#4E6A2A" stroke-width="{r * 0.16:.1f}" fill="none"/>')
+        out.append(sf_leaf(D, x - 10, y + r * 1.6, r * 0.8, -64) + sf_leaf(D, x + 8, y + r * 2.2, r * 0.7, 58))
+        out.append(sunflower(D, x, y, r, tilt=t, rot_=ro))
+    return D.render(out)
+
+
+@design("sunflower-fields")
+def sunflower_fields():
+    return sunflower_fields_art()
+
+
+# ================================================================ 27. forage (mushrooms and acorns on a mossy log)
+def toadstool(D, x, base, h, w, cap=("#F25A3A", "#C22A1E", "#7A140E"), spots=True, stem="#F6EEE0", lean=0, seed=0):
+    g = D.rad([(0, cap[0]), (0.55, cap[1]), (1, cap[2])], cx=0.38, cy=0.3, r=0.75, key=("cap", cap))
+    sg = D.lin([(0, "#FFFFFF"), (0.5, stem), (1, "#B8A88E")], 0, 0, 1, 0, key=("stm", stem))
+    top = base - h
+    tx = x + lean
+    out = [f'<path d="M {x - w * 0.13:.1f} {base:.1f} Q {x - w * 0.16:.1f} {base - h * 0.5:.1f} {tx - w * 0.1:.1f} {top + h * 0.12:.1f} L {tx + w * 0.1:.1f} {top + h * 0.12:.1f} Q {x + w * 0.16:.1f} {base - h * 0.5:.1f} {x + w * 0.13:.1f} {base:.1f} Z" fill="{sg}"/>',
+           f'<ellipse cx="{tx:.1f}" cy="{top + h * 0.14:.1f}" rx="{w * 0.5:.1f}" ry="{w * 0.1:.1f}" fill="#D8C4A0"/>',
+           f'<g stroke="#B09A78" stroke-width="1" opacity="0.8">' + "".join(f'<line x1="{tx:.1f}" y1="{top + h * 0.14:.1f}" x2="{tx + w * 0.48 * math.cos(math.radians(a)):.1f}" y2="{top + h * 0.14 + w * 0.09 * math.sin(math.radians(a)):.1f}"/>' for a in range(0, 360, 20)) + "</g>",
+           f'<path d="M {tx - w * 0.5:.1f} {top + h * 0.14:.1f} Q {tx - w * 0.5:.1f} {top - h * 0.3:.1f} {tx:.1f} {top - h * 0.32:.1f} Q {tx + w * 0.5:.1f} {top - h * 0.3:.1f} {tx + w * 0.5:.1f} {top + h * 0.14:.1f} Q {tx:.1f} {top + h * 0.22:.1f} {tx - w * 0.5:.1f} {top + h * 0.14:.1f} Z" fill="{g}"/>']
+    if spots:
+        rnd = random.Random(seed)
+        out.append('<g fill="#FBF3E6">' + "".join(f'<ellipse cx="{tx + rnd.uniform(-0.36, 0.36) * w:.1f}" cy="{top + rnd.uniform(-0.22, 0.06) * h:.1f}" rx="{rnd.uniform(0.03, 0.06) * w:.1f}" ry="{rnd.uniform(0.025, 0.045) * w:.1f}"/>' for _ in range(9)) + "</g>")
+    out.append(f'<path d="M {tx - w * 0.3:.1f} {top - h * 0.12:.1f} Q {tx - w * 0.2:.1f} {top - h * 0.27:.1f} {tx:.1f} {top - h * 0.28:.1f}" stroke="#FFFFFF" stroke-width="{max(1.5, w * 0.04):.1f}" fill="none" opacity="0.4" stroke-linecap="round"/>')
+    return "".join(out)
+
+
+def fern(x, y, L, ang, col="#5E7A3A", lit="#9AB04A"):
+    out = [f'<g transform="translate({x} {y}) rotate({ang})">', f'<path d="M 0 0 Q {L * 0.1:.1f} {-L * 0.5:.1f} {L * 0.35:.1f} {-L:.1f}" stroke="{col}" stroke-width="2.4" fill="none"/>']
+    for i in range(1, 14):
+        t = i / 14
+        px, py = L * 0.35 * t ** 2 + L * 0.1 * t * (1 - t) * 2, -L * t
+        ll = L * 0.22 * (1 - t) + 4
+        for sgn in (-1, 1):
+            out.append(f'<ellipse cx="{px + sgn * ll / 2:.1f}" cy="{py:.1f}" rx="{ll / 2:.1f}" ry="{max(2, ll * 0.18):.1f}" transform="rotate({sgn * -20} {px:.1f} {py:.1f})" fill="{lit if sgn < 0 else col}"/>')
+    out.append("</g>")
+    return "".join(out)
+
+
+@design("forage")
+def forage():
+    D = Doc("fg")
+    out = [f'<rect width="600" height="600" fill="{D.rad([(0, "#566E44"), (0.6, "#33452C"), (1, "#1C2618")], cx=0.3, cy=0.25, r=0.9)}"/>']
+    out.append('<g fill="#FFF0C0" opacity="0.07"><polygon points="40,-10 150,-10 420,620 250,620"/><polygon points="190,-10 240,-10 520,620 450,620"/></g>')
+    rnd = random.Random(4)
+    out.append("".join(f'<circle cx="{rnd.uniform(0, 600):.0f}" cy="{rnd.uniform(0, 360):.0f}" r="{rnd.uniform(3, 9):.1f}" fill="#F6E6A8" opacity="{rnd.uniform(0.06, 0.2):.2f}"/>' for _ in range(30)))
+    out.append(word(300, 172, "forage", DMS, 150, "#F6ECD6", max_w=420, sh="#141C10", off=(0, 5)))
+    out.append(ruled(232, "WANDER · GATHER · SAVOR", "#E9C46A", size=18, ls=4, line_w=30))
+    # ferns behind the log
+    out.append(fern(70, 470, 200, -30) + fern(110, 470, 160, -12, "#4E6A30", "#8AA048") + fern(520, 470, 190, 24) + fern(480, 470, 150, 8, "#4E6A30", "#8AA048"))
+    # the log, with its cut end showing growth rings
+    bark = D.lin([(0, "#8A6040"), (0.4, "#6A4428"), (1, "#2E1C10")])
+    out.append(shadow(D, 280, 474, 290, 16, "#0A1006", 0.6))
+    out.append(f'<path d="M -12 376 Q 220 366 470 380 L 470 470 Q 220 478 -12 468 Z" fill="{bark}"/>')
+    lid = D.clip('<path d="M -12 376 Q 220 366 470 380 L 470 470 Q 220 478 -12 468 Z"/>')
+    br = "".join(f'<path d="M {x:.0f} {y:.0f} q {rnd.uniform(30, 60):.0f} {rnd.uniform(-3, 3):.0f} {rnd.uniform(70, 130):.0f} {rnd.uniform(-2, 2):.0f}" stroke="{rnd.choice(["#2A1A0E", "#9A7050"])}"/>'
+                 for x, y in [(rnd.uniform(-60, 440), rnd.uniform(380, 470)) for _ in range(40)])
+    out.append(f'<g {lid}><g fill="none" stroke-width="2" opacity="0.6">{br}</g></g>')
+    out.append(f'<ellipse cx="470" cy="425" rx="28" ry="46" fill="{D.rad([(0, "#E8C890"), (0.7, "#C89A60"), (1, "#8A5A30")])}"/>'
+               + "".join(f'<ellipse cx="{470 + k * 0.6:.1f}" cy="425" rx="{28 - k * 4.5:.1f}" ry="{46 - k * 7.5:.1f}" fill="none" stroke="#9A6A3A" stroke-width="1.3" opacity="0.8"/>' for k in range(1, 6))
+               + '<ellipse cx="470" cy="425" rx="28" ry="46" fill="none" stroke="#4A2E18" stroke-width="5"/><path d="M 470 425 l 18 -22" stroke="#7A4A22" stroke-width="1.4"/>')
+    # moss along the top of the log
+    moss = []
+    for i in range(170):
+        x = rnd.uniform(-10, 450)
+        y = 374 - (x / 470) * -6 + rnd.uniform(-8, 10)
+        moss.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{rnd.uniform(3, 7):.1f}" fill="{rnd.choice(["#4E6A2A", "#6E8A3A", "#8AA44A", "#A8BC5A"])}"/>')
+    out.append("".join(moss))
+    # shelf fungi on the side of the log
+    for x, y, w in ((70, 430, 46), (112, 446, 38), (60, 452, 30)):
+        out.append("".join(f'<path d="M {x - w * f:.1f} {y:.1f} A {w * f:.1f} {w * f * 0.55:.1f} 0 0 1 {x + w * f:.1f} {y:.1f} Z" fill="{c}"/>'
+                           for f, c in ((1, "#7A4A2A"), (0.8, "#C9A070"), (0.62, "#6E5A44"), (0.44, "#E8D4B0"), (0.28, "#9A6A3A"))))
+    # mushrooms on top: fly agarics, a bolete, a tuft of little ones by the cut end
+    out.append(toadstool(D, 170, 382, 96, 104, seed=1) + toadstool(D, 226, 380, 56, 60, seed=2, lean=6))
+    out.append(toadstool(D, 330, 384, 70, 96, cap=("#C8925A", "#8A5432", "#4A2A16"), spots=False, stem="#E8D8B8"))
+    for i, (x, h) in enumerate(((396, 30), (410, 40), (424, 34), (436, 26), (404, 22))):
+        out.append(toadstool(D, x, 386, h, 22, cap=("#F2D29A", "#D8A660", "#9A6A30"), spots=False, lean=(i - 2) * 2))
+    # a snail making its way along
+    out.append('<path d="M 262 382 q 22 2 40 -2 q 8 -2 10 -8" stroke="#C8B49A" stroke-width="8" fill="none" stroke-linecap="round"/>'
+               '<line x1="310" y1="374" x2="316" y2="362" stroke="#C8B49A" stroke-width="2"/><circle cx="316" cy="361" r="2" fill="#4A3A2A"/>'
+               f'<circle cx="280" cy="368" r="14" fill="{D.rad([(0, "#F2C890"), (1, "#9A5A2A")], cx=0.4, cy=0.35, r=0.7)}"/>'
+               '<path d="M 280 368 m -9 0 a 9 9 0 1 1 9 9 a 6 6 0 1 1 -5 -6 a 3 3 0 1 1 3 3" stroke="#6E3A1A" stroke-width="1.8" fill="none"/>')
+    # the forest floor: leaves, acorns, a stray fern
+    out.append(f'<rect x="-10" y="466" width="620" height="140" fill="{D.lin([(0, "#3A2A1A"), (1, "#1E140C")])}"/>')
+    out.append(leaf_pile(D, 300, 520, 640, 60, 13, n=60, size=(14, 22)))
+    for x, y, r_ in ((150, 506, -20), (196, 520, 30), (420, 512, 10), (470, 530, -40), (300, 534, 20)):
+        out.append(acorn(D, x, y, 22, r_))
+    return D.render(out)
+
+
+# ================================================================ 28. stick with me (caramel apple)
+@design("stick-with-me")
+def stick_with_me():
+    D = Doc("swm")
+    out = [paper(D, "#3E6E70", "#1E3C42", 101, ink="#0A1A1C", op=0.12, wash=["#5E8A86", "#14282C"])]
+    rnd = random.Random(5)
+    out.append('<g fill="#F2C878">' + "".join(f'<circle cx="{rnd.uniform(20, 580):.0f}" cy="{rnd.uniform(20, 440):.0f}" r="{rnd.uniform(1.2, 2.6):.1f}" opacity="{rnd.uniform(0.2, 0.5):.2f}"/>' for _ in range(40)) + "</g>")
+    out.append(glow(D, 300, 300, 220, "#F2C27A", 0.25))
+    # parchment square
+    out.append(f'<g transform="rotate(-6 300 410)"><rect x="160" y="370" width="290" height="90" fill="#140C08" opacity="0.3" transform="translate(5 6)"/><rect x="160" y="370" width="290" height="90" fill="{D.lin([(0, "#FBF3E2"), (1, "#E2D2B4")])}"/></g>')
+    # stick and bow
+    out.append(f'<g transform="rotate(4 300 210)"><rect x="293" y="66" width="14" height="150" rx="5" fill="{D.lin([(0, "#F2DCB0"), (0.4, "#D8B47E"), (1, "#9A7444")], 0, 0, 1, 0)}"/>'
+               '<g stroke="#B08A54" stroke-width="1" opacity="0.6"><line x1="298" y1="74" x2="298" y2="210"/><line x1="303" y1="90" x2="303" y2="200"/></g></g>')
+    cx, cy, r = 300, 300, 118
+    out.append(apple(D, cx, cy, r, pal=("#F25A4A", "#C2241E", "#6E0E0E"), leaf=False, seed=3))
+    d = (f"M {cx:.1f} {cy - 0.68 * r:.1f} C {cx + 0.3 * r:.1f} {cy - 0.98 * r:.1f} {cx + 1.05 * r:.1f} {cy - 0.92 * r:.1f} {cx + r:.1f} {cy - 0.08 * r:.1f} "
+         f"C {cx + 0.96 * r:.1f} {cy + 0.66 * r:.1f} {cx + 0.48 * r:.1f} {cy + 0.98 * r:.1f} {cx:.1f} {cy + 0.86 * r:.1f} "
+         f"C {cx - 0.48 * r:.1f} {cy + 0.98 * r:.1f} {cx - 0.96 * r:.1f} {cy + 0.66 * r:.1f} {cx - r:.1f} {cy - 0.08 * r:.1f} "
+         f"C {cx - 1.05 * r:.1f} {cy - 0.92 * r:.1f} {cx - 0.3 * r:.1f} {cy - 0.98 * r:.1f} {cx:.1f} {cy - 0.68 * r:.1f} Z")
+    cid = D.clip(f'<path d="{d}"/>')
+    car = D.rad([(0, "#F6C070"), (0.4, "#D0822E"), (0.8, "#9A4E16"), (1, "#5E2A0A")], cx=0.36, cy=0.28, r=0.8)
+    # caramel: a soft wavy edge high on the shoulder, with a few rounded runs
+    ye = cy - 0.42 * r
+    xs = [cx - 1.2 * r + i * 0.2 * r for i in range(13)]
+    d_edge = f"M {xs[0]:.1f} {ye:.1f}"
+    for i in range(12):
+        x1, x2 = xs[i], xs[i + 1]
+        dip = 0.07 * r * (1 if i % 2 else -1) * (1.6 if i in (4, 7) else 1)
+        d_edge += f" C {x1 + 0.05 * r:.1f} {ye + dip:.1f} {x2 - 0.05 * r:.1f} {ye + dip:.1f} {x2:.1f} {ye:.1f}"
+    cpath = d_edge + f" L {cx + 1.3 * r:.1f} {cy + 1.3 * r:.1f} L {cx - 1.3 * r:.1f} {cy + 1.3 * r:.1f} Z"
+    out.append(f'<g {cid}><path d="{cpath}" fill="{car}"/>'
+               f'<path d="{d_edge}" stroke="#F8D49A" stroke-width="3" fill="none" opacity="0.55" transform="translate(0 3)"/>'
+               f'<path d="M {cx - 0.8 * r:.1f} {cy - 0.12 * r:.1f} Q {cx - 0.92 * r:.1f} {cy + 0.3 * r:.1f} {cx - 0.62 * r:.1f} {cy + 0.6 * r:.1f}" stroke="#FFF0C8" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.5"/>'
+               f'<path d="M {cx - 0.42 * r:.1f} {cy - 0.18 * r:.1f} Q {cx - 0.2 * r:.1f} {cy - 0.26 * r:.1f} {cx + 0.1 * r:.1f} {cy - 0.22 * r:.1f}" stroke="#FFF6DC" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.6"/>'
+               f'<path d="M {cx + 0.55 * r:.1f} {cy - 0.1 * r:.1f} Q {cx + 0.78 * r:.1f} {cy + 0.2 * r:.1f} {cx + 0.7 * r:.1f} {cy + 0.5 * r:.1f}" stroke="#3A1606" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.25"/></g>')
+    # caramel puddle at the foot, chopped nuts round the bottom
+    out.append(f'<path d="M {cx - 0.8 * r:.1f} {cy + 0.7 * r:.1f} Q {cx - 1.0 * r:.1f} {cy + 0.9 * r:.1f} {cx - 0.7 * r:.1f} {cy + 0.98 * r:.1f} Q {cx:.1f} {cy + 1.06 * r:.1f} {cx + 0.74 * r:.1f} {cy + 0.98 * r:.1f} Q {cx + 1.14 * r:.1f} {cy + 0.9 * r:.1f} {cx + 0.88 * r:.1f} {cy + 0.64 * r:.1f} Q {cx:.1f} {cy + 1.0 * r:.1f} {cx - 0.86 * r:.1f} {cy + 0.66 * r:.1f} Z" fill="{car}"/>')
+    nuts = []
+    for _ in range(70):
+        a = rnd.uniform(0.15, math.pi - 0.15)
+        d = rnd.uniform(0.62, 0.95)
+        x, y = cx + math.cos(a) * d * r, cy + math.sin(a) * d * r * 0.95
+        k = rnd.uniform(3, 6)
+        pts = [(x + k * math.cos(t), y + k * 0.8 * math.sin(t)) for t in (rnd.uniform(0, 1), rnd.uniform(1.6, 2.6), rnd.uniform(3.2, 4.2), rnd.uniform(4.8, 5.8))]
+        nuts.append(f'<polygon points="{P(pts)}" fill="{rnd.choice(["#F2D8A4", "#E2BC80", "#C99A5A"])}"/>')
+    out.append(f'<g {cid}>' + "".join(nuts) + "</g>")
+    # gingham bow on the stick
+    gh = gingham(D, "#B4322A", "swmgh")
+    out.append(f'<path d="M 304 190 C 268 160 246 186 262 200 C 276 212 296 200 304 192 Z" fill="{gh}" stroke="#8A2018" stroke-width="2"/>'
+               f'<path d="M 306 190 C 342 160 364 186 348 200 C 334 212 314 200 306 192 Z" fill="{gh}" stroke="#8A2018" stroke-width="2"/>'
+               f'<path d="M 300 196 L 282 236 L 292 234 L 296 244 L 304 198 Z" fill="{gh}" stroke="#8A2018" stroke-width="2"/>'
+               f'<path d="M 308 196 L 330 232 L 320 232 L 318 242 L 304 198 Z" fill="{gh}" stroke="#8A2018" stroke-width="2"/>'
+               '<ellipse cx="305" cy="194" rx="9" ry="8" fill="#B4322A" stroke="#8A2018" stroke-width="2"/>')
+    out.append(maple(D, 432, 420, 22, L_GOLD, 40, spots=2) + maple(D, 170, 430, 18, L_RED, -30))
+    # type: one line, two voices
+    a_size = fit_size("stick", SERIF_IT, 88, 200)
+    b_size = fit_size("WITH ME", BEBAS, 96, 240, 6)
+    wa, wb = measure("stick", SERIF_IT, a_size), measure("WITH ME", BEBAS, b_size, 6)
+    x0 = 300 - (wa + 20 + wb) / 2
+    out.append(text(x0 + 3, 522, "stick", SERIF_IT, a_size, "#0E2024", anchor="start") + text(x0, 518, "stick", SERIF_IT, a_size, "#FBEBD2", anchor="start"))
+    out.append(text(x0 + wa + 20, 524, "WITH ME", BEBAS, b_size, "#0E2024", 6, anchor="start") + text(x0 + wa + 20, 518, "WITH ME", BEBAS, b_size, "#F2B94A", 6, anchor="start"))
+    return D.render(out)
+
+
+# ================================================================ 29. boots & blankets (still life)
+def boot(D, x, y, s, leather=("#C07A40", "#8A4A24", "#4A2410"), sock=("#F6EDE0", "#B4322A"), dim=0.0):
+    light, base, dark = leather
+    g = D.lin([(0, light), (0.45, base), (1, dark)], 0, 0, 1, 0.4, key=("lth", leather))
+    outline = "M 6 -146 L 46 -146 Q 52 -100 48 -60 Q 50 -30 58 -18 L 58 0 L -70 0 Q -88 -2 -86 -16 Q -84 -34 -60 -40 Q -24 -48 -8 -72 Q 2 -96 6 -146 Z"
+    cid = D.clip(f'<path d="{outline}"/>')
+    out = [f'<g transform="translate({x} {y}) scale({s})">',
+           f'<path d="M 2 -156 Q 26 -170 52 -156 L 50 -140 L 4 -140 Z" fill="{sock[0]}"/>'
+           f'<g stroke="{sock[1]}" stroke-width="4"><path d="M 4 -153 Q 26 -164 50 -153"/></g>'
+           + "".join(f'<line x1="{x0}" y1="-158" x2="{x0}" y2="-142" stroke="#C8B8A0" stroke-width="1.6"/>' for x0 in range(8, 50, 6)),
+           f'<path d="{outline}" fill="{g}"/>',
+           f'<g {cid}><path d="M -90 -12 L 70 -12 L 70 4 L -90 4 Z" fill="#2A160A"/><rect x="22" y="-22" width="40" height="24" fill="#3A2010"/>'
+           f'<path d="M -84 -16 Q -82 -34 -58 -40 Q -36 -44 -26 -52" stroke="#2A1408" stroke-width="2" fill="none" stroke-dasharray="4 3" opacity="0.7"/>'
+           f'<path d="M -84 -14 L 56 -14" stroke="#E8C890" stroke-width="1.6" stroke-dasharray="4 3" opacity="0.6"/>'
+           f'<path d="M 30 -146 Q 34 -100 30 -60" stroke="{dark}" stroke-width="2" fill="none" opacity="0.5"/>'
+           f'<path d="M -70 -30 Q -60 -40 -40 -40" stroke="#FFF0D0" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.4"/>'
+           f'<path d="M 14 -134 Q 18 -110 14 -86" stroke="#FFF0D0" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.3"/></g>']
+    eyes = [(-6 + 2 * i, -80 - 14 * i) for i in range(5)]
+    lace = []
+    for i in range(4):
+        (x1, y1), (x2, y2) = eyes[i], eyes[i + 1]
+        lace.append(f'<line x1="{x1 + 8:.1f}" y1="{y1:.1f}" x2="{x2 - 4:.1f}" y2="{y2:.1f}"/><line x1="{x1 - 4:.1f}" y1="{y1:.1f}" x2="{x2 + 8:.1f}" y2="{y2:.1f}"/>')
+    out.append(f'<g stroke="#F2E2C2" stroke-width="2.6" stroke-linecap="round">{"".join(lace)}</g>')
+    out.append("".join(f'<circle cx="{ex - 4:.1f}" cy="{ey:.1f}" r="2.6" fill="#E9C46A"/><circle cx="{ex + 8:.1f}" cy="{ey:.1f}" r="2.6" fill="#E9C46A"/>' for ex, ey in eyes))
+    out.append('<path d="M 6 -138 q 16 4 26 26 M 6 -138 q -4 16 -16 26" stroke="#F2E2C2" stroke-width="2.6" fill="none" stroke-linecap="round"/>')
+    out.append(f'<path d="M 46 -146 L 52 -162 L 58 -160 L 50 -142" fill="{dark}"/>')
+    if dim:
+        out.append(f'<path d="{outline}" fill="#1E0E04" opacity="{dim}"/>')
+    out.append("</g>")
+    return "".join(out)
+
+
+@design("boots-and-blankets")
+def boots_and_blankets():
+    D = Doc("bab")
+    out = [f'<rect width="600" height="600" fill="{D.lin([(0, "#F2E2C8"), (1, "#DCC2A0")])}"/>']
+    out.append('<g fill="#C9A882" opacity="0.18">' + "".join(f'<rect x="{x}" y="0" width="16" height="440"/>' for x in range(10, 600, 46)) + "</g>")
+    out.append(grain(111, "#5A3A22", 260, op=0.08))
+    out.append(word(300, 152, "BOOTS", ANTON, 128, "#A8432A", max_w=380, ls=12, sh="#E2C6A0", off=(4, 4)))
+    out.append(word(300, 232, "& blankets", SERIF_IT, 76, BROWN, max_w=380))
+    # wooden floor
+    out.append(f'<rect x="-10" y="440" width="620" height="170" fill="{D.lin([(0, "#9A6A42"), (1, "#5A3A22")])}"/>')
+    out.append('<g stroke="#3E2414" stroke-width="2" opacity="0.5">' + "".join(f'<line x1="-10" y1="{y}" x2="610" y2="{y}"/>' for y in (470, 506, 548)) + "</g>")
+    out.append(wood_grain(5, (-10, 444, 610, 600), "#3E2414", n=16, op=0.3))
+    out.append('<rect x="-10" y="436" width="620" height="8" fill="#6E4428"/>')
+    # chunky knit blanket, folded, with a mug of cider on top
+    knit = knit_pattern(D, "#EADCC4", "#FBF4E6", scale=2.4, key="chunky")
+    for k, (x0, y0, w, h) in enumerate(((58, 420, 290, 76), (70, 360, 266, 66))):
+        shape = f"M {x0 + 26} {y0} L {x0 + w - 26} {y0} Q {x0 + w + 4} {y0} {x0 + w} {y0 + h / 2} Q {x0 + w - 4} {y0 + h} {x0 + w - 26} {y0 + h} L {x0 + 26} {y0 + h} Q {x0 - 4} {y0 + h} {x0} {y0 + h / 2} Q {x0 + 4} {y0} {x0 + 26} {y0} Z"
+        cid = D.clip(f'<path d="{shape}"/>')
+        out.append(shadow(D, x0 + w / 2 + 8, y0 + h, w * 0.55, 10, "#2A1406", 0.5))
+        out.append(f'<path d="{shape}" fill="#EADCC4"/><g {cid}><rect x="{x0 - 10}" y="{y0 - 10}" width="{w + 20}" height="{h + 20}" fill="{knit}"/>'
+                   f'<rect x="{x0 - 10}" y="{y0 - 10}" width="{w + 20}" height="{h + 20}" fill="{D.lin([(0, "#FFFFFF", 0.2), (0.4, "#000", 0), (1, "#3A2410", 0.4)], key="bkshade")}"/>'
+                   f'<rect x="{x0 - 10}" y="{y0 - 10}" width="{w + 20}" height="{h + 20}" fill="{D.lin([(0, "#3A2410", 0.3), (0.15, "#000", 0), (0.85, "#000", 0), (1, "#3A2410", 0.35)], 0, 0, 1, 0, key="bkside")}"/></g>')
+    out.append('<g stroke="#D8C4A0" stroke-width="3" stroke-linecap="round">' + "".join(f'<line x1="{x}" y1="496" x2="{x + 2}" y2="512"/>' for x in range(84, 330, 9)) + "</g>")
+    def mband(l, r, t, b):
+        return f'<rect x="{l - 5:.1f}" y="{t + 26}" width="{r - l + 10:.1f}" height="14" fill="#5E6B34"/>'
+    out.append(mug(D, 196, 296, 86, 66, glaze=("#E8F0EA", "#B8C8BE", "#6E8478"), liquid="#B8662A", band=mband))
+    out.append(cinnamon(D, 214, 300, 246, 254, 9))
+    out.append(steam(D, 190, 286, 60, "#FFFFFF", n=2, gap=20, sw=5, op=0.7, seed=3))
+    # the boots
+    out.append(shadow(D, 440, 490, 130, 10, "#2A1406", 0.55))
+    out.append(boot(D, 478, 470, 1.0, dim=0.25))
+    out.append(boot(D, 420, 490, 1.06))
+    # a small pumpkin and fallen leaves on the floor
+    out.append(pumpkin(D, 120, 546, 70, 50, PK_ORANGE, leaf=L_OLIVE))
+    out.append(maple(D, 200, 552, 24, L_RED, 160, spots=2) + oak(D, 520, 540, 22, L_GOLD, 60) + maple(D, 250, 556, 18, L_GOLD, -120) + slim_leaf(D, 436, 556, 18, L_ORANGE, 100))
+    return D.render(out)
+
+
+# ================================================================ 30. cat nap season (tabby asleep in a basket by a lantern)
+@design("cat-nap-season")
+def cat_nap_season():
+    D = Doc("cns")
+    out = [f'<rect width="600" height="600" fill="{D.rad([(0, "#5A3446"), (0.6, "#341C2A"), (1, "#20101A")], cx=0.65, cy=0.4, r=0.85)}"/>']
+    out.append(grain(121, "#F6EDE0", 220, op=0.05))
+    # window behind with a crescent moon and falling leaves
+    out.append(f'<rect x="70" y="64" width="190" height="170" rx="4" fill="{D.lin([(0, "#1E2448"), (1, "#4A3A6A")])}"/>')
+    out.append('<circle cx="206" cy="112" r="24" fill="#F6E2A8"/><circle cx="216" cy="104" r="22" fill="#232A50"/>')
+    rnd = random.Random(9)
+    out.append('<g fill="#F6EDE0">' + "".join(f'<circle cx="{rnd.uniform(80, 250):.0f}" cy="{rnd.uniform(74, 220):.0f}" r="{rnd.uniform(0.6, 1.6):.1f}"/>' for _ in range(16)) + "</g>")
+    out.append(maple(D, 120, 140, 12, L_RED, 40) + maple(D, 170, 190, 10, L_GOLD, -30))
+    out.append('<g fill="#EADCC4"><rect x="62" y="56" width="206" height="10"/><rect x="62" y="232" width="206" height="12"/><rect x="62" y="56" width="10" height="186"/><rect x="258" y="56" width="10" height="186"/><rect x="160" y="62" width="8" height="174"/><rect x="66" y="144" width="198" height="7"/></g>')
+    # lantern glow
+    out.append(glow(D, 470, 240, 300, "#FFB24A", 0.55))
+    # rug and floor line
+    out.append(f'<rect x="-10" y="372" width="620" height="240" fill="{D.lin([(0, "#4A2A30"), (1, "#24121A")])}"/>')
+    out.append(f'<ellipse cx="300" cy="394" rx="290" ry="30" fill="#6E3A30"/><ellipse cx="300" cy="394" rx="270" ry="24" fill="none" stroke="#C88A4A" stroke-width="3" stroke-dasharray="10 6" opacity="0.6"/>')
+    # books under the lantern, the lantern itself
+    out.append(shadow(D, 470, 384, 80, 9, "#0A0408", 0.6))
+    out.append(book(D, 402, 352, 140, 28, "#3E5A6A", "#1E2E38") + book(D, 412, 326, 120, 26, "#B4532A", "#6E2A12"))
+    iron = D.lin([(0, "#5A5050"), (0.3, "#8A7E78"), (1, "#2A2424")], 0, 0, 1, 0)
+    out.append(f'<rect x="438" y="306" width="64" height="20" rx="4" fill="{iron}"/><ellipse cx="470" cy="306" rx="34" ry="6" fill="#3A3232"/>')
+    out.append(glow(D, 470, 252, 90, "#FFE6A0", 0.85))
+    out.append(f'<path d="M 446 302 Q 428 252 452 210 L 488 210 Q 512 252 494 302 Z" fill="#FFE6A8" opacity="0.35"/>')
+    flame = D.rad([(0, "#FFFFFF"), (0.4, "#FFE9A0"), (1, "#F09A30")], cx=0.5, cy=0.7, r=0.6)
+    out.append(f'<path d="M 470 236 C 480 254 480 270 470 280 C 460 270 460 254 470 236 Z" fill="{flame}"/><rect x="466" y="280" width="8" height="10" fill="#6E5A44"/>')
+    out.append('<path d="M 446 302 Q 428 252 452 210 L 488 210 Q 512 252 494 302" fill="none" stroke="#FFF6DC" stroke-width="2" opacity="0.6"/>'
+               '<path d="M 452 222 Q 440 252 452 290" stroke="#FFFFFF" stroke-width="4" fill="none" opacity="0.5" stroke-linecap="round"/>')
+    out.append(f'<rect x="446" y="200" width="48" height="12" rx="3" fill="{iron}"/><path d="M 456 200 L 462 184 L 478 184 L 484 200 Z" fill="{iron}"/>'
+               '<path d="M 440 210 Q 470 140 500 210" stroke="#3A3232" stroke-width="3" fill="none"/><g stroke="#3A3232" stroke-width="2.4"><line x1="448" y1="212" x2="440" y2="302"/><line x1="492" y1="212" x2="500" y2="302"/></g>')
+    # wicker basket
+    seg = D.lin([(0, "#E8BC80"), (0.45, "#C08A4E"), (1, "#6E4420")], key="cseg")
+    body = "M 100 300 L 400 300 L 378 384 Q 250 398 122 384 Z"
+    cid = D.clip(f'<path d="{body}"/>')
+    rows = [f'<rect x="90" y="296" width="320" height="100" fill="#3E2410"/>']
+    for x in range(90, 412, 20):
+        rows.append(f'<rect x="{x - 2}" y="296" width="4" height="100" fill="#A8743E"/>')
+    for i, y in enumerate(range(300, 392, 10)):
+        off = 10 if i % 2 else 0
+        rows.append("".join(f'<rect x="{x + 3}" y="{y + 1}" width="16" height="8.5" rx="4" fill="{seg}"/>' for x in range(90 - off, 412, 20)))
+    out.append(shadow(D, 254, 390, 170, 12, "#0A0408", 0.6))
+    out.append(f'<path d="{body}" fill="#5A3416"/><g {cid}>{"".join(rows)}<rect x="90" y="296" width="320" height="100" fill="{cyl(D, "#FFFFFF", "#000000", "#000000", key="cbs")}" opacity="0.25"/></g>')
+    # plaid blanket in the basket
+    pl = plaid(D, "#5E6B34", "#B4532A", "#E9C46A", "#F6EDE0", "cnspl")
+    out.append(f'<path d="M 92 304 Q 110 270 160 268 L 360 266 Q 400 270 410 304 Q 380 316 330 312 Q 300 330 260 314 Q 200 324 160 310 Q 120 322 92 304 Z" fill="{pl}"/>'
+               '<path d="M 92 304 Q 120 322 160 310 Q 200 324 260 314 Q 300 330 330 312 Q 380 316 410 304" stroke="#2A1A0A" stroke-width="2" fill="none" opacity="0.4"/>')
+    # the cat: grey tabby curled up, head on its paws, tail wrapped round
+    fur = D.rad([(0, "#B8B0B4"), (0.55, "#8A8288"), (1, "#4E464E")], cx=0.45, cy=0.25, r=0.8)
+    cbody = "M 150 290 C 150 230 220 196 290 198 C 360 200 392 240 384 284 C 360 298 200 300 150 290 Z"
+    bid = D.clip(f'<path d="{cbody}"/>')
+    stripes = "".join(f'<path d="M {x} {y} q {14 + i % 3 * 3} 18 4 40" />' for i, (x, y) in enumerate(((210, 210), (240, 200), (270, 196), (300, 198), (330, 204), (358, 218), (376, 236))))
+    out.append(f'<path d="{cbody}" fill="{fur}"/><g {bid}><g fill="none" stroke="#3E363E" stroke-width="7" stroke-linecap="round" opacity="0.55">{stripes}</g>'
+               f'<rect x="140" y="250" width="260" height="50" fill="{D.lin([(0, "#000", 0), (1, "#14101A", 0.4)])}"/></g>')
+    out.append('<path d="M 210 206 C 250 192 320 192 360 214" stroke="#FFD8A0" stroke-width="3" fill="none" opacity="0.5" stroke-linecap="round"/>')
+    tail = "M 384 270 C 404 300 360 312 300 312 C 240 312 196 308 170 300 C 160 296 162 288 174 288 C 220 296 280 298 330 292 C 360 288 376 282 384 270 Z"
+    tid = D.clip(f'<path d="{tail}"/>')
+    out.append(f'<path d="{tail}" fill="{fur}"/><g {tid}><g stroke="#3E363E" stroke-width="7" opacity="0.5">' + "".join(f'<line x1="{x}" y1="280" x2="{x - 6}" y2="320"/>' for x in range(190, 390, 22)) + "</g></g>")
+    out.append('<ellipse cx="214" cy="296" rx="22" ry="9" fill="#C8C0C4"/><ellipse cx="248" cy="298" rx="20" ry="8" fill="#B8B0B4"/>')
+    head = "M 152 286 C 140 260 150 228 186 224 C 222 222 240 248 236 272 C 232 292 206 302 182 300 C 166 298 156 294 152 286 Z"
+    hid = D.clip(f'<path d="{head}"/>')
+    out.append(f'<polygon points="158,240 158,204 184,228" fill="#7A727A"/><polygon points="162,236 162,214 178,228" fill="#E2A8B0"/>'
+               f'<polygon points="206,226 228,198 232,236" fill="#7A727A"/><polygon points="210,226 226,206 228,232" fill="#E2A8B0"/>')
+    out.append(f'<path d="{head}" fill="{D.rad([(0, "#C8C0C4"), (0.6, "#948C92"), (1, "#5A5258")], cx=0.45, cy=0.3, r=0.75)}"/>'
+               f'<g {hid}><g stroke="#3E363E" stroke-width="4" opacity="0.5" fill="none"><path d="M 186 226 l 0 14"/><path d="M 176 228 l 3 12"/><path d="M 196 227 l -2 12"/></g></g>')
+    out.append('<ellipse cx="190" cy="282" rx="22" ry="12" fill="#F2ECE6" opacity="0.9"/>')
+    out.append('<path d="M 166 262 q 8 7 16 0 M 196 262 q 8 7 16 0" stroke="#2A2228" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+               '<path d="M 186 274 l 6 0 l -3 4 Z" fill="#D88A94"/><path d="M 189 278 q -4 5 -8 3 M 189 278 q 4 5 8 3" stroke="#2A2228" stroke-width="1.5" fill="none"/>')
+    out.append('<g stroke="#F6F0EA" stroke-width="1.6" opacity="0.8" stroke-linecap="round"><path d="M 176 278 l -26 -4 M 176 282 l -26 4"/><path d="M 202 278 l 26 -4 M 202 282 l 26 4"/></g>')
+    out.append(f'<g {SERIF_IT} fill="#E9C46A" opacity="0.85"><text x="276" y="196" font-size="32">z</text><text x="298" y="168" font-size="26">z</text><text x="316" y="146" font-size="21">z</text></g>')
+    # a ball of yarn rolled away
+    yarn = D.rad([(0, "#E07A4A"), (1, "#8A3418")], cx=0.4, cy=0.35, r=0.7)
+    out.append(f'<circle cx="548" cy="390" r="22" fill="{yarn}"/>' + "".join(f'<path d="M {548 - 20} {390 + k * 6 - 12} Q 548 {376 + k * 8} {568} {390 + k * 4 - 10}" stroke="#F2A06A" stroke-width="1.6" fill="none" opacity="0.7"/>' for k in range(5))
+               + '<path d="M 528 398 Q 480 420 420 404" stroke="#E07A4A" stroke-width="2" fill="none"/>')
+    # type
+    out.append(word(300, 486, "cat nap", SERIF_IT, 100, "#FBEBD2", max_w=380))
+    out.append(word(300, 536, "SEASON", BEBAS, 52, "#E9B54A", max_w=380, ls=18))
+    return D.render(out)
+
+
 # ---------------------------------------------------------------- build
-POSTERS = {"apple-picking": ("APPLE PICKING", "FRESH FROM THE ORCHARD", "#3A2418", "#C2482A", "#F6EDE0", "#E9B54A")}
+POSTERS = {"apple-picking": ("APPLE PICKING", "FRESH FROM THE ORCHARD", "#3A2418", "#C2482A", "#F6EDE0", "#E9B54A"),
+           "sunflower-fields": ("SUNFLOWER FIELDS", "GOLDEN HOUR · EARLY FALL", "#343A1C", "#E9A21E", "#F6EDE0", "#F2C25A")}
 
 
 def build(only=None):

@@ -11,10 +11,11 @@
 <meta property="og:description" content="Fall: Warm rust, mustard and olive for the coziest season of the year.">
 <meta property="og:type" content="website">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<script>(function(){var t;try{t=localStorage.getItem('lhh-theme')}catch(e){}if(t!=='light'&&t!=='dark'){var h=new Date().getHours();t=(h>=6&&h<19)?'light':'dark'}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter';if(k>=201&&k<=214)z='valentine';else if(k>=301&&k<=531)z='spring';else if(k>=601&&k<=831)z='summer';else if(k>=1015&&k<=1031)z='halloween';else if((k>=901&&k<=1014)||(k>=1101&&k<=1127))z='fall';else if(k>=1128)z='christmas';document.documentElement.setAttribute('data-season',z)})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600&family=DM+Mono:wght@500&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=4">
+<link rel="stylesheet" href="../assets/site.css?v=5">
 </head>
 <body>
 <a class="visually-hidden" href="#main">Skip to content</a>
@@ -41,6 +42,10 @@
       <a href="../big-orders.html">Big orders</a>
       <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="mobile-menu">
         <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 4h14M2 9h14M2 14h14"/></svg><span class="menu-label">Menu</span>
+      </button>
+      <button type="button" class="theme-btn" id="theme-btn" aria-label="Switch between light and dark">
+        <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z"/></svg>
       </button>
       <button type="button" class="cart-btn" data-open-cart aria-haspopup="dialog">
         Cart <span class="cart-count" data-cart-count>0</span>
@@ -72,6 +77,7 @@
     </nav>
   </div>
 </header>
+<div class="garland" aria-hidden="true"></div>
 
 <main id="main">
   <div class="wrap page-head">
@@ -79,15 +85,15 @@
     <p class="eyebrow">Pumpkins, leaves and cozy sweaters</p>
     <h1>Fall</h1>
     <p class="lede">Warm rust, mustard and olive for the coziest season of the year.</p>
-    <div class="head-row"><span class="deal">Any 3 designs for $12</span> <span class="deal alt">10% off 20+ magnets</span><span class="count">22 designs · $5 each</span></div>
+    <div class="head-row"><span class="deal">Any 3 designs for $12</span> <span class="deal alt">10% off 20+ magnets</span><span class="count">30 designs · $5 each</span></div>
   </div>
 <div class="tabs-bar">
   <nav class="wrap tabs" aria-label="Collections">
-    <a class="tab" href="../shop.html">All <small>229</small></a>
+    <a class="tab" href="../shop.html">All <small>237</small></a>
     <a class="tab" href="../collections/places.html">American Places <small>51</small></a>
     <a class="tab" href="../collections/world.html">World Places <small>8</small></a>
     <a class="tab" href="../collections/ink-cities.html">Ink Cities <small>12</small></a>
-    <a class="tab" href="../collections/fall.html" aria-current="page">Fall <small>22</small></a>
+    <a class="tab" href="../collections/fall.html" aria-current="page">Fall <small>30</small></a>
     <a class="tab" href="../collections/halloween.html">Halloween <small>22</small></a>
     <a class="tab" href="../collections/christmas.html">Christmas <small>22</small></a>
     <a class="tab" href="../collections/holidays.html">Holidays &amp; Dates <small>10</small></a>
@@ -116,6 +122,15 @@
   </div>
   <button type="button" class="btn btn-small" data-add="fall/pumpkin-patch" data-name="Pumpkin Patch" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
+<li class="product" data-collection="fall" data-search="harvest moon fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Harvest Moon larger"><img class="mag" src="../assets/art/fall/harvest-moon.webp" width="600" height="600" alt="" decoding="async"></button>
+  <div class="product-info">
+    <h3>Harvest Moon</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/harvest-moon" data-name="Harvest Moon" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
 <li class="product" data-collection="fall" data-search="hello fall fall pumpkins, leaves and cozy sweaters">
   <button type="button" class="product-art" data-view aria-label="See Hello Fall larger"><img class="mag" src="../assets/art/fall/hello-fall.webp" width="600" height="600" alt="" decoding="async"></button>
   <div class="product-info">
@@ -143,8 +158,17 @@
   </div>
   <button type="button" class="btn btn-small" data-add="fall/farmers-market" data-name="Farmers Market" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
+<li class="product" data-collection="fall" data-search="misty mornings fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Misty Mornings larger"><img class="mag" src="../assets/art/fall/misty-mornings.webp" width="600" height="600" alt="" decoding="async"></button>
+  <div class="product-info">
+    <h3>Misty Mornings</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/misty-mornings" data-name="Misty Mornings" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
 <li class="product" data-collection="fall" data-search="pumpkin spice &amp; everything nice fall pumpkins, leaves and cozy sweaters">
-  <button type="button" class="product-art" data-view aria-label="See Pumpkin Spice &amp; Everything Nice larger"><img class="mag" src="../assets/art/fall/pumpkin-spice.webp" width="600" height="600" alt="" decoding="async"></button>
+  <button type="button" class="product-art" data-view aria-label="See Pumpkin Spice &amp; Everything Nice larger"><img class="mag" src="../assets/art/fall/pumpkin-spice.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
   <div class="product-info">
     <h3>Pumpkin Spice &amp; Everything Nice</h3>
     <p class="spec">2 × 2 in magnet</p>
@@ -153,13 +177,22 @@
   <button type="button" class="btn btn-small" data-add="fall/pumpkin-spice" data-name="Pumpkin Spice &amp; Everything Nice" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
 <li class="product" data-collection="fall" data-search="leaf me alone fall pumpkins, leaves and cozy sweaters">
-  <button type="button" class="product-art" data-view aria-label="See Leaf Me Alone larger"><img class="mag" src="../assets/art/fall/leaf-me-alone.webp" width="600" height="600" alt="" decoding="async"></button>
+  <button type="button" class="product-art" data-view aria-label="See Leaf Me Alone larger"><img class="mag" src="../assets/art/fall/leaf-me-alone.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
   <div class="product-info">
     <h3>Leaf Me Alone</h3>
     <p class="spec">2 × 2 in magnet</p>
     <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" data-add="fall/leaf-me-alone" data-name="Leaf Me Alone" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
+<li class="product" data-collection="fall" data-search="happy fall, y&#x27;all fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Happy Fall, Y&#x27;all larger"><img class="mag" src="../assets/art/fall/happy-fall-yall.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
+  <div class="product-info">
+    <h3>Happy Fall, Y&#x27;all</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/happy-fall-yall" data-name="Happy Fall, Y&#x27;all" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
 <li class="product" data-collection="fall" data-search="whooo loves fall? fall pumpkins, leaves and cozy sweaters">
   <button type="button" class="product-art" data-view aria-label="See Whooo Loves Fall? larger"><img class="mag" src="../assets/art/fall/whooo-loves-fall.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
@@ -179,6 +212,15 @@
   </div>
   <button type="button" class="btn btn-small" data-add="fall/cozy-season" data-name="Cozy Season" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
+<li class="product" data-collection="fall" data-search="cat nap season fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Cat Nap Season larger"><img class="mag" src="../assets/art/fall/cat-nap-season.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
+  <div class="product-info">
+    <h3>Cat Nap Season</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/cat-nap-season" data-name="Cat Nap Season" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
 <li class="product" data-collection="fall" data-search="save room for pie fall pumpkins, leaves and cozy sweaters">
   <button type="button" class="product-art" data-view aria-label="See Save Room for Pie larger"><img class="mag" src="../assets/art/fall/save-room-for-pie.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
   <div class="product-info">
@@ -196,6 +238,15 @@
     <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" data-add="fall/cider-mill" data-name="Cider Mill" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
+<li class="product" data-collection="fall" data-search="forage fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Forage larger"><img class="mag" src="../assets/art/fall/forage.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
+  <div class="product-info">
+    <h3>Forage</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/forage" data-name="Forage" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
 <li class="product" data-collection="fall" data-search="apple picking fall pumpkins, leaves and cozy sweaters">
   <button type="button" class="product-art" data-view aria-label="See Apple Picking larger"><img class="mag" src="../assets/art/fall/apple-picking.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
@@ -215,6 +266,15 @@
   </div>
   <button type="button" class="btn btn-small" data-add="fall/falling-for-you" data-name="Falling For You" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
+<li class="product" data-collection="fall" data-search="sunflower fields fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Sunflower Fields larger"><img class="mag" src="../assets/art/fall/sunflower-fields.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
+  <div class="product-info">
+    <h3>Sunflower Fields</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/sunflower-fields" data-name="Sunflower Fields" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
 <li class="product" data-collection="fall" data-search="rainy days &amp; good books fall pumpkins, leaves and cozy sweaters">
   <button type="button" class="product-art" data-view aria-label="See Rainy Days &amp; Good Books larger"><img class="mag" src="../assets/art/fall/rainy-days-good-books.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
   <div class="product-info">
@@ -232,6 +292,15 @@
     <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" data-add="fall/give-thanks" data-name="Give Thanks" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
+<li class="product" data-collection="fall" data-search="stick with me fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Stick With Me larger"><img class="mag" src="../assets/art/fall/stick-with-me.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
+  <div class="product-info">
+    <h3>Stick With Me</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/stick-with-me" data-name="Stick With Me" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
 <li class="product" data-collection="fall" data-search="sweater weather fall pumpkins, leaves and cozy sweaters">
   <button type="button" class="product-art" data-view aria-label="See Sweater Weather larger"><img class="mag" src="../assets/art/fall/sweater-weather.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
@@ -259,6 +328,15 @@
     <p class="price">$5</p>
   </div>
   <button type="button" class="btn btn-small" data-add="fall/harvest" data-name="Harvest" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
+</li>
+<li class="product" data-collection="fall" data-search="boots &amp; blankets fall pumpkins, leaves and cozy sweaters">
+  <button type="button" class="product-art" data-view aria-label="See Boots &amp; Blankets larger"><img class="mag" src="../assets/art/fall/boots-and-blankets.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
+  <div class="product-info">
+    <h3>Boots &amp; Blankets</h3>
+    <p class="spec">2 × 2 in magnet</p>
+    <p class="price">$5</p>
+  </div>
+  <button type="button" class="btn btn-small" data-add="fall/boots-and-blankets" data-name="Boots &amp; Blankets" data-collection="Fall" data-href="../collections/fall.html">Add to cart</button>
 </li>
 <li class="product" data-collection="fall" data-search="autumn leaves &amp; pumpkins please fall pumpkins, leaves and cozy sweaters">
   <button type="button" class="product-art" data-view aria-label="See Autumn Leaves &amp; Pumpkins Please larger"><img class="mag" src="../assets/art/fall/autumn-leaves-pumpkins-please.webp" width="600" height="600" alt="" loading="lazy" decoding="async"></button>
@@ -455,6 +533,6 @@
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-<script src="../assets/site.js?v=4"></script>
+<script src="../assets/site.js?v=5"></script>
 </body>
 </html>

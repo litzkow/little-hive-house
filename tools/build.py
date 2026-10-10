@@ -13,7 +13,7 @@ from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, PRICE, SEASONS, VOLUME
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "4"
+VERSION = "5"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -98,6 +98,7 @@ def head(pg, title, desc, path):
 <meta property="og:description" content="{E(desc)}">
 <meta property="og:type" content="website">
 <link rel="icon" href="{pg.p}assets/favicon.svg" type="image/svg+xml">
+<script>(function(){{var t;try{{t=localStorage.getItem('lhh-theme')}}catch(e){{}}if(t!=='light'&&t!=='dark'){{var h=new Date().getHours();t=(h>=6&&h<19)?'light':'dark'}}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter';if(k>=201&&k<=214)z='valentine';else if(k>=301&&k<=531)z='spring';else if(k>=601&&k<=831)z='summer';else if(k>=1015&&k<=1031)z='halloween';else if((k>=901&&k<=1014)||(k>=1101&&k<=1127))z='fall';else if(k>=1128)z='christmas';document.documentElement.setAttribute('data-season',z)}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
@@ -127,6 +128,10 @@ def header(pg, active):
       <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="mobile-menu">
         <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 4h14M2 9h14M2 14h14"/></svg><span class="menu-label">Menu</span>
       </button>
+      <button type="button" class="theme-btn" id="theme-btn" aria-label="Switch between light and dark">
+        <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z"/></svg>
+      </button>
       <button type="button" class="cart-btn" data-open-cart aria-haspopup="dialog">
         Cart <span class="cart-count" data-cart-count>0</span>
       </button>
@@ -139,6 +144,7 @@ def header(pg, active):
     </nav>
   </div>
 </header>
+<div class="garland" aria-hidden="true"></div>
 """
 
 
@@ -379,6 +385,7 @@ def page_home():
       </div>
       <div class="seal">
         {seal("hero")}
+        <div class="season-scene" aria-hidden="true"></div>
       </div>
     </div>
   </section>

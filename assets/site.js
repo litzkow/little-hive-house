@@ -118,6 +118,39 @@
     });
   }
 
+  // seasonal drifting leaves / snow / petals in the hero
+  (function () {
+    var hero = document.querySelector('.hero');
+    var season = document.documentElement.getAttribute('data-season');
+    var sets = { fall: ['fall-leaf1', 'fall-leaf2', 'fall-leaf3', 'fall-leaf4'], halloween: ['halloween-bat', 'fall-leaf1', 'fall-leaf3'],
+                 christmas: ['snow1', 'snow2', 'snow3'], winter: ['snow1', 'snow2', 'snow3'], valentine: ['heart1', 'heart2'],
+                 spring: ['petal1', 'petal2', 'petal3'], summer: [] };
+    var list = sets[season];
+    if (!hero || !list || !list.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var me = document.querySelector('script[src*="site.js"]');
+    var base = me ? me.src.replace(/site\.js.*$/, 'decor/') : 'assets/decor/';
+    var box = document.createElement('div'); box.className = 'drift'; box.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < 9; i++) {
+      var el = document.createElement('i');
+      var s = 18 + Math.random() * 16;
+      el.style.left = (Math.random() * 96) + '%';
+      el.style.width = el.style.height = s + 'px';
+      el.style.backgroundImage = 'url(' + base + list[i % list.length] + '.svg)';
+      el.style.animationDuration = (11 + Math.random() * 9) + 's';
+      el.style.animationDelay = (-Math.random() * 18) + 's';
+      box.appendChild(el);
+    }
+    hero.insertBefore(box, hero.firstChild);
+  })();
+
+  // day / night toggle
+  var tb = $('theme-btn');
+  if (tb) tb.addEventListener('click', function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('lhh-theme', next); } catch (e) {}
+  });
+
   // quick view
   var qv = $('quick-view');
   if (qv && typeof qv.showModal === 'function') {
