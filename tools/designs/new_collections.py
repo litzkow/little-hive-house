@@ -338,8 +338,10 @@ def build_home():
 
 
 if __name__ == "__main__":
+    # Legacy: superseded by the painted/gouache/ink generators (kitchen_ink.py, holidays_gouache.py, summer_gouache.py, ...).
+    # Only the builds below that no newer generator replaces are kept.
     build_bees()
     build_pets()
     build_brasil()
-    build_holidays()
+    # build_holidays()
     build_home()

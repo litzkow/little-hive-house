@@ -8,6 +8,7 @@ import sys
 from paint import (P, blobs, conifer, dots, glow, grass, lg, mist, rg, ridge_poly, rough, streaks, tree_line, y_on)
 from places_painted import Cam, puff_column, palm_tree
 from poster import poster
+import figures as F
 
 
 def defs(*items):
@@ -59,16 +60,13 @@ def ripples(n, seed, box, colors, w=(8, 30), h=1.6, opacity=(0.3, 0.8), persp=Tr
     return "".join(out)
 
 
-def person(x, base, h, coat, legs="#2A2430", head="#2A1E1A", rim=None, hat=None):
-    """Small standing figure seen from behind/side."""
-    out = [f'<path d="M {x - h * 0.13:.1f} {base - h * 0.42:.1f} L {x - h * 0.15:.1f} {base - h * 0.78:.1f} Q {x:.1f} {base - h * 0.86:.1f} {x + h * 0.15:.1f} {base - h * 0.78:.1f} L {x + h * 0.13:.1f} {base - h * 0.42:.1f} Z" fill="{coat}"/>',
-           f'<path d="M {x - h * 0.09:.1f} {base - h * 0.44:.1f} L {x - h * 0.07:.1f} {base:.1f} M {x + h * 0.09:.1f} {base - h * 0.44:.1f} L {x + h * 0.07:.1f} {base:.1f}" stroke="{legs}" stroke-width="{h * 0.09:.1f}" stroke-linecap="round"/>',
-           f'<circle cx="{x:.1f}" cy="{base - h * 0.9:.1f}" r="{h * 0.09:.1f}" fill="{head}"/>']
+def person(x, base, h, coat, legs="#2A2430", head="#2A1E1A", rim=None, hat=None, pose="stand_back", facing=1, light=1, seed=None, pal=None, tint=None):
+    """Small painted figure (figures.py); base = feet."""
+    p = {"top": coat}
     if hat:
-        out.append(f'<ellipse cx="{x:.1f}" cy="{base - h * 0.95:.1f}" rx="{h * 0.16:.1f}" ry="{h * 0.035:.1f}" fill="{hat}"/><ellipse cx="{x:.1f}" cy="{base - h * 0.98:.1f}" rx="{h * 0.08:.1f}" ry="{h * 0.05:.1f}" fill="{hat}"/>')
-    if rim:
-        out.append(f'<path d="M {x + h * 0.15:.1f} {base - h * 0.78:.1f} L {x + h * 0.13:.1f} {base - h * 0.42:.1f}" stroke="{rim}" stroke-width="{max(1, h * 0.05):.1f}" stroke-linecap="round"/>')
-    return "".join(out)
+        p.update(hat_kind="cap", hat=hat)
+    p.update(pal or {})
+    return F.person(x, base, h, pose, facing, p, seed=int(x * 5 + base) if seed is None else seed, rim=rim, light=light, tint=tint)
 
 
 def gull(x, y, s=1.0, rot=0, body="#FFFFFF", wing="#DCE2E6", under="#B8C4CC", tip="#26262A"):
@@ -311,7 +309,7 @@ def niagara():
     out.append('<g stroke="#2E3A3A" stroke-width="1.6"><path d="M -10 238 L 30 232 L 70 238 L 92 252" fill="none"/>' +
                "".join(f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + 8}"/>' for x, y in ((0, 237), (14, 235), (28, 233), (42, 234), (56, 236), (70, 238), (82, 245))) + "</g>")
     for x, c in ((40, "#C94A4A"), (50, "#3A5A8A"), (66, "#E0B040"), (76, "#4A4A6A")):
-        out.append(person(x, 244 - (x / 70) * 2 + (4 if x > 70 else 0), 15, c))
+        out.append(person(x, 244 - (x / 70) * 2 + (4 if x > 70 else 0), 15, c, pose={40: "stand_back", 50: "photo", 66: "lean_back", 76: "stand_34"}[x], light=1, pal={"season": "summer"}))
     # lower river: churning, foam streaks swirling out of the mist
     out.append(f'<path d="M -10 318 Q 300 300 610 320 L 610 444 L -10 444 Z" fill="url(#{u}-river)"/>')
     out.append(defs(lg(f"{u}-rfl", [(0, "#1E3E34", 0.45), (1, "#1E3E34", 0)], 0, 0, 1, 0), lg(f"{u}-rfr", [(0, "#1E3E34", 0), (1, "#1E3E34", 0.5)], 0, 0, 1, 0)))
@@ -369,8 +367,10 @@ def niagara():
                '<rect x="0" y="-22" width="38" height="16" fill="#7A8A9A" opacity="0.2"/>'
                '<rect x="-40" y="-25" width="80" height="4" rx="1.5" fill="#2E4E7A"/>'
                '<rect x="-30" y="-36" width="60" height="11" fill="#F4F2EC"/><rect x="-32" y="-38" width="64" height="3" fill="#2E4E7A"/>'
-               + "".join(f'<path d="M {-38 + i * 6.5:.1f} -25 q 2.8 -9 5.6 0 Z" fill="#3E86D6"/><circle cx="{-35.2 + i * 6.5:.1f}" cy="-30" r="2" fill="#5A9AE6"/>' for i in range(12))
-               + "".join(f'<path d="M {-28 + i * 6.5:.1f} -38 q 2.8 -9 5.6 0 Z" fill="#3E86D6"/><circle cx="{-25.2 + i * 6.5:.1f}" cy="-43" r="2" fill="#5A9AE6"/>' for i in range(9))
+               + "".join(F.person(-35.2 + i * 6.5, -25, 15, "tiny", 1, {"top": "#3E86D6", "top_kind": "coat", "hair": "#5A9AE6", "bottom": "#2E4E7A"}, seed=660 + i, shadow=0)
+                         for i in range(12))
+               + "".join(F.person(-25.2 + i * 6.5, -38, 15, "tiny", 1, {"top": "#3E86D6", "top_kind": "coat", "hair": "#5A9AE6", "bottom": "#2E4E7A"}, seed=680 + i, shadow=0)
+                         for i in range(9))
                + '<line x1="22" y1="-38" x2="22" y2="-54" stroke="#2E4E7A" stroke-width="1.8"/><path d="M 22 -54 L 33 -51 L 22 -47 Z" fill="#E8504A"/>'
                "</g>")
     # gulls riding the updraft
@@ -532,10 +532,12 @@ def key_west():
                + ' Q 330 ' + f'{388 - 340 * 16 / 620 - 14:.1f}' + ' 390 ' + f'{388 - 400 * 16 / 620 - 26:.1f}'
                + ' Q 450 ' + f'{388 - 460 * 16 / 620 - 14:.1f}' + ' 510 ' + f'{388 - 520 * 16 / 620 - 26:.1f}" fill="none" stroke="#C88A5A" stroke-width="2.6"/>')
     # sunset watchers on the pier, rim-lit
-    for x, h, c, hat in ((214, 44, "#2E2A4A", None), (230, 40, "#5A2E4A", "#E8C890"), (330, 46, "#2A3A4A", None), (346, 38, "#7A3A4A", None), (446, 42, "#3A2A3E", "#2A2030")):
-        yb = 392 - (x + 10) * 16 / 620
-        out.append(person(x, yb, h, c, legs="#1E1626", head="#24181E", rim="#FFB878", hat=hat))
-    out.append(person(358, 392 - 368 * 16 / 620, 24, "#E86A5A", legs="#1E1626", head="#24181E", rim="#FFD8A0"))
+    kw = dict(rim="#FFB878", tint=("#2A1A34", 0.42))
+    yb = 392 - 232 * 16 / 620
+    out.append(F.couple(222, yb, 43, palette={"top": "#2E2A4A", "season": "summer"}, seed=611, light=1, gap=38, **kw))
+    for x, h, c, pose, sd in ((330, 46, "#2A3A4A", "stand_back", 612), (346, 38, "#7A3A4A", "stand_back", 613), (446, 42, "#3A2A3E", "photo", 614)):
+        out.append(person(x, 392 - (x + 10) * 16 / 620, h, c, pose=pose, facing=-1, light=1 if x < 388 else -1, seed=sd, pal={"season": "summer", "form": "f" if x == 346 else None}, **kw))
+    out.append(person(358, 392 - 368 * 16 / 620, 24, "#E86A5A", pose="child_back", light=-1, seed=615, **dict(kw, rim="#FFD8A0")))
     # a Key West rooster on the nearest piling
     yb = 388 - 520 * 16 / 620
     out.append(rooster(510, yb - 34, 0.85, flip=True))
@@ -714,15 +716,13 @@ def canaveral():
         out.append(grass(14, x, (x, (y_on(shore, x) or 404) - 4, x + 40, (y_on(shore, x) or 404) + 8), ["#2A2C48", "#3A3A5A", "#5A4A6A"], h=(6, 14)))
     # launch watchers: a family, the kid up on dad's shoulders, someone pointing at the rocket
     for x, h, c in ((262, 34, "#3A3A5E"), (284, 30, "#5A3A5A"), (330, 32, "#2E3A52")):
-        out.append(person(x, (y_on(shore, x) or 404) + 2, h, c, legs="#14162A", head="#1A1A2A", rim="#FFB890"))
+        out.append(person(x, (y_on(shore, x) or 404) + 2, h, c, rim="#FFB890", pose="stand_back", light=1 if x < 300 else -1, tint=("#1E1E36", 0.32)))
     gy_ = lambda x: (y_on(shore, x) or 400) + 10
-    out.append(person(96, gy_(96), 62, "#3A3E62", legs="#14162A", head="#1A1A2A", rim="#FFB890"))
-    out.append(person(96, gy_(96) - 52, 30, "#C8584A", legs="#2A1E2A", head="#1A1A2A", rim="#FFC8A0"))
-    out.append(f'<path d="M 102 {gy_(96) - 66:.1f} l 10 -12" stroke="#C8584A" stroke-width="3.2" stroke-linecap="round"/>')
-    out.append(person(124, gy_(124), 56, "#5A3A5A", legs="#14162A", head="#1A1A2A", rim="#FFB890"))
-    out.append(f'<path d="M 130 {gy_(124) - 44:.1f} l 16 -18" stroke="#5A3A5A" stroke-width="3.6" stroke-linecap="round"/>')
-    out.append(person(170, gy_(170) - 2, 58, "#2E3A52", legs="#14162A", head="#1A1A2A", rim="#FFB890", hat="#1A1A2A"))
-    out.append(person(190, gy_(190) - 2, 40, "#7A4A5A", legs="#14162A", head="#1A1A2A", rim="#FFB890"))
+    tn = ("#1E1E36", 0.3)
+    out.append(F.parent_child(96, gy_(96), 62, 1, {"top": "#3A3E62", "form": "m"}, seed=621, rim="#FFB890", light=1, tint=tn, view="back"))
+    out.append(person(124, gy_(124), 56, "#5A3A5A", rim="#FFB890", pose="point", facing=1, light=1, seed=622, tint=tn, pal={"form": "f"}))
+    out.append(person(170, gy_(170) - 2, 58, "#2E3A52", rim="#FFB890", hat="#1A1A2A", pose="stand_back", light=1, seed=623, tint=tn, pal={"form": "m"}))
+    out.append(person(190, gy_(190) - 2, 38, "#7A4A5A", rim="#FFB890", pose="child_back", light=1, seed=624, tint=tn))
     out.append(egret(398, 422, 0.66))
     out.append(gulls([(420, 210, 7), (440, 220, 6), (462, 214, 6), (484, 226, 5)], "#2A2848", 2))
     return "\n".join(out)
@@ -770,8 +770,8 @@ def lobster_boat(x, y, s=1.0, hull="#F4F2EC", trim="#2E4A6A", cabin="#F4F2EC", f
             '<path d="M 2 -27 L 28 -27" stroke="' + trim + '" stroke-width="2.4"/>'
             '<line x1="14" y1="-27" x2="14" y2="-44" stroke="#3A3A44" stroke-width="1.6"/><line x1="10" y1="-38" x2="18" y2="-38" stroke="#3A3A44" stroke-width="1.4"/>'
             '<rect x="-30" y="-16" width="8" height="6" fill="#E8C04A"/><rect x="-20" y="-15" width="8" height="5" fill="#C84A3A"/>'
-            '<circle cx="-4" cy="-18" r="2.6" fill="#2A2A30"/><rect x="-6" y="-16" width="4" height="7" fill="#E89A3A"/>'
-            '</g>')
+            '' + F.person(-4, -9, 13, "stand_side", 1, {"top": "#E89A3A", "top_kind": "jacket", "bottom": "#E89A3A", "bottom_kind": "trousers", "hat_kind": "beanie", "hat": "#2A2A30", "form": "m"}, seed=641, shadow=0)
+            + '</g>')
 
 
 def buoy(x, y, s, a="#E8463A", b="#F4E04A", c="#F4F2EC"):
@@ -1376,9 +1376,7 @@ def tybee():
     fp = random.Random(94)
     out.append("".join(f'<ellipse cx="{300 + 120 * t + (5 if i % 2 else -5):.1f}" cy="{440 - 70 * t:.1f}" rx="{3.4 - 1.6 * t:.1f}" ry="{1.8 - 0.8 * t:.1f}" fill="#3A3452" opacity="0.6"/>'
                        for i, t in enumerate([j / 13 for j in range(14)])))
-    out.append(person(300, H + 74, 30, "#3A4A6E", legs="#1E2238", head="#1E1E2E", rim="#FFF2D0"))
-    out.append(person(312, H + 74, 27, "#8A4A6A", legs="#1E2238", head="#1E1E2E", rim="#FFF2D0"))
-    out.append(f'<path d="M 304 {H + 60} L 308 {H + 60}" stroke="#2A2840" stroke-width="2.2" stroke-linecap="round"/>')
+    out.append(F.couple(306, H + 74, 30, palette={"top": "#3A4A6E", "season": "summer"}, seed=631, rim="#FFF2D0", light=1, tint=("#2A2848", 0.2), gap=40))
     out.append(f'<g opacity="0.3"><rect x="296" y="{H + 76}" width="8" height="14" fill="#3A4A6E"/><rect x="308" y="{H + 76}" width="8" height="12" fill="#8A4A6A"/></g>')
     out.append(ghost_crab(470, 418, 1.0))
     out.append(f'<ellipse cx="470" cy="426" rx="14" ry="2.5" fill="#2A2640" opacity="0.5"/>')
@@ -1419,13 +1417,11 @@ def flats_skiff(x, y, s=1.0):
             '<path d="M -40 -4 L 42 -6 Q 48 -6 50 -2 L 44 4 L -38 4 Z" fill="#F4F2EC"/><path d="M -38 2 L 44 2 L 42 4 L -38 4 Z" fill="#5A8AA8"/>'
             '<path d="M -36 -4 L -36 -16 M -24 -4 L -24 -16 M -38 -16 L -22 -16" stroke="#C8CCD0" stroke-width="1.8"/>'
             # guide on the poling platform
-            '<rect x="-33" y="-36" width="6" height="14" rx="2" fill="#E8E4D8"/><circle cx="-30" cy="-40" r="3.2" fill="#C88A60"/><path d="M -35 -42 L -25 -42 L -30 -46 Z" fill="#E8E0C8"/>'
-            '<path d="M -32 -22 L -34 -16 M -28 -22 L -26 -16" stroke="#4A5A6A" stroke-width="2"/>'
             '<line x1="-46" y1="10" x2="-14" y2="-62" stroke="#3A3A3A" stroke-width="1.4"/>'
+            + F.person(-31, -16, 27, "stand_side", 1, {"top": "#E8E4D8", "top_kind": "long", "bottom": "#4A5A6A", "bottom_kind": "trousers", "hat_kind": "cap", "hat": "#E8E0C8", "form": "m", "skin": "#C88A60"}, seed=651, shadow=0, rim="#FFF4D8", light=1)
             # angler at the bow
-            '<rect x="28" y="-24" width="6" height="14" rx="2" fill="#5A8AC8"/><circle cx="31" cy="-28" r="3.2" fill="#C88A60"/><rect x="27" y="-32" width="9" height="3" fill="#E8E0C8"/>'
-            '<path d="M 29 -10 L 28 -4 M 33 -10 L 34 -4" stroke="#E8E4D8" stroke-width="2"/>'
-            '<path d="M 34 -22 L 50 -48" stroke="#2A2A2A" stroke-width="1.2"/><path d="M 50 -48 Q 70 -40 86 -6" stroke="#FFFFFF" stroke-width="0.9" fill="none" opacity="0.8"/>'
+            + F.person(30, -4, 26, "point", 1, {"top": "#5A8AC8", "top_kind": "long", "bottom": "#E8E4D8", "bottom_kind": "shorts", "hat_kind": "sunhat", "hat": "#E8E0C8", "form": "m", "skin": "#C88A60"}, seed=652, shadow=0, rim="#FFF4D8", light=1) +
+            '<path d="M 35 -30 L 50 -48" stroke="#2A2A2A" stroke-width="1.2"/><path d="M 50 -48 Q 70 -40 86 -6" stroke="#FFFFFF" stroke-width="0.9" fill="none" opacity="0.8"/>'
             '</g>')
 
 

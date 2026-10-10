@@ -8,6 +8,7 @@ import sys
 from paint import (P, blobs, conifer, dots, glow, grass, lg, mist, rg, ridge_poly, rough, streaks, tree_line, y_on)
 from places_painted import Cam, bison, defs, puff_column, facade_windows
 from poster import poster
+import figures as F
 
 
 # ---------------------------------------------------------------- shared helpers
@@ -35,16 +36,13 @@ def cumulus(cx, cy, w, h, seed, grad, hi="#FFFFFF", hi_op=0.6, shade="#8E86A8", 
             + f'<g fill="{hi}" opacity="{hi_op}">' + "".join(lights) + "</g></g>")
 
 
-def walker(x, base, h, col, head="#1E1A22", legs="#1E1A22", rim=None, rim_side=1, bag=None):
-    """Tiny pedestrian silhouette, h = full height in px."""
-    out = (f'<path d="M {x - h * 0.13:.1f} {base - h * 0.42:.1f} L {x - h * 0.15:.1f} {base - h * 0.76:.1f} Q {x:.1f} {base - h * 0.84:.1f} {x + h * 0.15:.1f} {base - h * 0.76:.1f} L {x + h * 0.13:.1f} {base - h * 0.42:.1f} Z" fill="{col}"/>'
-           f'<circle cx="{x:.1f}" cy="{base - h * 0.89:.1f}" r="{h * 0.09:.1f}" fill="{head}"/>'
-           f'<path d="M {x - h * 0.08:.1f} {base - h * 0.44:.1f} L {x - h * 0.11:.1f} {base:.1f} M {x + h * 0.08:.1f} {base - h * 0.44:.1f} L {x + h * 0.1:.1f} {base:.1f}" stroke="{legs}" stroke-width="{max(1.0, h * 0.08):.1f}" stroke-linecap="round"/>')
-    if rim:
-        out += f'<path d="M {x + rim_side * h * 0.15:.1f} {base - h * 0.76:.1f} L {x + rim_side * h * 0.13:.1f} {base - h * 0.44:.1f}" stroke="{rim}" stroke-width="{max(0.8, h * 0.05):.1f}" stroke-linecap="round" opacity="0.9"/>'
+def walker(x, base, h, col, head="#1E1A22", legs="#1E1A22", rim=None, rim_side=1, bag=None, pose="walk", facing=1, seed=None, pal=None, tint=None):
+    """Small painted pedestrian (figures.py), h = full height in px; the rim light sits on rim_side."""
+    p = {"top": col}
     if bag:
-        out += f'<rect x="{x + h * 0.12:.1f}" y="{base - h * 0.55:.1f}" width="{h * 0.14:.1f}" height="{h * 0.16:.1f}" rx="{h * 0.03:.1f}" fill="{bag}"/>'
-    return out
+        p.update(bag=bag)
+    p.update(pal or {})
+    return F.person(x, base, h, pose, facing, p, seed=int(x * 3 + base) if seed is None else seed, rim=rim, light=rim_side, tint=tint)
 
 
 def ripples(n, seed, box, colors, w=(6, 30), h=(0.8, 2), opacity=(0.3, 0.8), persp=None):
@@ -238,13 +236,11 @@ def los_angeles():
     # a dog walker on the left sidewalk, a skateboarder on the right
     x, b = C(-9.6, 0, 13)
     hh = C.f * 1.7 / 13
-    out.append(walker(x, b, hh, "#E07A5A", head="#2A1A22", rim="#FFC27A", rim_side=-1))
-    out.append(f'<path d="M {x + hh * 0.15:.1f} {b - hh * 0.5:.1f} Q {x + hh * 0.35:.1f} {b - hh * 0.25:.1f} {x + hh * 0.45:.1f} {b - hh * 0.14:.1f}" stroke="#2A1A2E" stroke-width="1.2" fill="none"/>'
-               f'<path d="M {x + hh * 0.4:.1f} {b - hh * 0.06:.1f} l 0 -{hh * 0.12:.1f} l {hh * 0.22:.1f} 0 l {hh * 0.04:.1f} -{hh * 0.08:.1f} l {hh * 0.06:.1f} {hh * 0.02:.1f} l -{hh * 0.02:.1f} {hh * 0.1:.1f} l 0 {hh * 0.08:.1f} M {x + hh * 0.42:.1f} {b - hh * 0.12:.1f} l -{hh * 0.06:.1f} -{hh * 0.06:.1f}" stroke="#2A1A2E" stroke-width="{hh * 0.06:.1f}" fill="#2A1A2E" stroke-linejoin="round" stroke-linecap="round"/>')
+    out.append(walker(x, b, hh, "#E07A5A", rim="#FFC27A", rim_side=-1, pose="dog_walker", facing=1, seed=11, pal={"dog": "#2A1A2E", "form": "f"}, tint=("#3A2448", 0.15)))
     x, b = C(9.5, 0, 26)
     hh = C.f * 1.7 / 26
-    out.append(walker(x, b - hh * 0.07, hh, "#4A7AB0", rim="#FFC27A", rim_side=-1))
-    out.append(f'<rect x="{x - hh * 0.24:.1f}" y="{b - hh * 0.08:.1f}" width="{hh * 0.48:.1f}" height="{hh * 0.04:.1f}" rx="1" fill="#2A1A2E"/>')
+    out.append(walker(x, b, hh, "#4A7AB0", rim="#FFC27A", rim_side=-1, pose="skate", facing=-1, seed=12, pal={"board": "#2A1A2E", "bottom_kind": "shorts", "hat_kind": "cap", "form": "m"},
+                      tint=("#3A2448", 0.15)))
     out.append(gulls([(262, 120, 10), (280, 130, 7)], "#3A2244"))
     return "\n".join(out)
 
@@ -405,30 +401,17 @@ def st_louis():
     out.append(riverboat(bx, by, 1.0, u))
     # evening strollers on the levee
     for x, h, c in ((70, 13, "#3E3550"), (80, 12, "#5A3A52"), (240, 12, "#3E3550"), (396, 13, "#4A3A5A"), (560, 12, "#3E3550")):
-        out.append(walker(x, 314, h, c, head="#2A2236", legs="#2A2236", rim="#FFC890", rim_side=1))
+        out.append(walker(x, 314, h, c, rim="#FFC890", rim_side=1, facing=-1 if x in (80, 396) else 1, tint=("#2A2236", 0.3)))
     out.append(gulls([(234, 150, 10), (252, 160, 7), (520, 140, 9)], "#3A2E50"))
     return "\n".join(out)
 
 
 # ---------------------------------------------------------------- San Diego (Ocean Beach pier at golden hour)
 def surfer(x, base, h, board="#F2E2C0", body="#2A2030", pose="ride", flip=1):
-    """Silhouette surfer; pose 'ride' (crouched on a wave), 'sit' (waiting on the board), 'walk' (board under arm)."""
-    k = h / 40
-    f = flip
-    if pose == "ride":
-        return (f'<g transform="translate({x:.1f} {base:.1f}) scale({k * f:.3f} {k:.3f})">'
-                f'<path d="M -22 0 Q 0 4 24 -3 L 22 1 Q 0 7 -20 3 Z" fill="{board}"/>'
-                f'<path d="M -8 -2 L -4 -16 L 4 -24 L 10 -18 L 8 -2 L 4 -2 L 5 -14 L 0 -12 L -4 -2 Z" fill="{body}"/>'
-                f'<path d="M 2 -24 L -12 -22 M 7 -22 L 20 -28" stroke="{body}" stroke-width="3.2" stroke-linecap="round"/>'
-                f'<circle cx="5" cy="-30" r="4.2" fill="{body}"/></g>')
-    if pose == "sit":
-        return (f'<g transform="translate({x:.1f} {base:.1f}) scale({k * f:.3f} {k:.3f})">'
-                f'<path d="M -20 0 Q -2 3 20 -2 L 18 2 Q -2 6 -18 3 Z" fill="{board}"/>'
-                f'<path d="M -4 0 L -4 -16 Q 0 -20 4 -16 L 5 0 Z" fill="{body}"/><circle cx="0" cy="-22" r="4" fill="{body}"/></g>')
-    return (f'<g transform="translate({x:.1f} {base:.1f}) scale({k * f:.3f} {k:.3f})">'
-            f'<path d="M -5 -40 Q 0 -44 5 -40 L 6 -20 L 3 -20 L 4 0 L 0 0 L 0 -14 L -1 0 L -5 0 L -4 -20 L -6 -20 Z" fill="{body}"/>'
-            f'<circle cx="0" cy="-45" r="4.2" fill="{body}"/>'
-            f'<path d="M 6 -46 Q 14 -28 9 -6 Q 6 -2 4 -8 Q 8 -28 3 -46 Z" fill="{board}"/></g>')
+    """Painted surfer; pose 'ride' (on a wave), 'sit' (waiting on the board), 'walk' (board under the arm)."""
+    p, k = {"ride": ("surf_ride", 1.25), "sit": ("surf_sit", 1.25), "walk": ("surfer", 1.2)}[pose]
+    return F.person(x, base, h * k, p, flip, {"top": body, "top_kind": "swim", "bottom": body, "bottom_kind": "trousers", "board": board, "form": "m",
+                                              "skin": "#B87A52", "hair_style": "short"}, seed=int(x + base), rim="#FFE2A8", light=-1, tint=("#4A3A50", 0.1))
 
 
 def san_diego():
@@ -547,7 +530,7 @@ def san_diego():
     for Z, h, col in ((26, 1.75, "#3E4A6A"), (38, 1.7, "#B8574A"), (56, 1.7, "#2E3A4E"), (90, 1.7, "#5A3A52")):
         x, b = C(X0 + 0.8, 8.2, Z)
         hh = C.f * h / Z
-        out.append(walker(x, b, hh, col, head="#2A2030", legs="#2A2030", rim="#FFD8A0", rim_side=-1))
+        out.append(walker(x, b, hh, col, rim="#FFD8A0", rim_side=-1, pose="stand_side", facing=-1, tint=("#4A3A50", 0.2)))
         rx, ry = x - hh * 1.6, b - hh * 1.3
         out.append(f'<path d="M {x - hh * 0.1:.1f} {b - hh * 0.6:.1f} L {rx:.1f} {ry:.1f}" stroke="#2A2030" stroke-width="{max(0.7, hh * 0.04):.1f}"/>'
                    f'<path d="M {rx:.1f} {ry:.1f} Q {rx - hh * 0.3:.1f} {b:.1f} {rx - hh * 0.2:.1f} {C(0, 0, Z)[1] + 4:.1f}" stroke="#FFF6E6" stroke-width="0.6" fill="none" opacity="0.35"/>')
@@ -706,9 +689,10 @@ def portland():
     out.append(f'<path d="M {rx - 70} {ry} L {rx + 74} {ry - 1} L {rx + 70} {ry + 2} L {rx - 66} {ry + 2} Z" fill="#F0E6D8"/>')
     for i in range(8):
         x_ = rx - 52 + i * 14
-        out.append(f'<circle cx="{x_}" cy="{ry - 9}" r="2.6" fill="#2A2E48"/><rect x="{x_ - 2.4}" y="{ry - 7}" width="4.8" height="7" rx="1.5" fill="{["#C8384A", "#2A2E48"][i % 2]}"/>'
-                   f'<line x1="{x_ - 2}" y1="{ry - 3}" x2="{x_ - 14}" y2="{ry + 9}" stroke="#2A2E48" stroke-width="1.2"/><rect x="{x_ - 17}" y="{ry + 8}" width="5" height="2.2" fill="#C8384A"/>')
-    out.append(f'<circle cx="{rx + 62}" cy="{ry - 6}" r="2.4" fill="#2A2E48"/>')
+        out.append(f'<line x1="{x_ - 2}" y1="{ry - 3}" x2="{x_ - 14}" y2="{ry + 9}" stroke="#2A2E48" stroke-width="1.2"/><rect x="{x_ - 17}" y="{ry + 8}" width="5" height="2.2" fill="#C8384A"/>'
+                   + F.person(x_, ry - 0.5, 21, "paddle", 1, {"top": ["#C8384A", "#2A2E48"][i % 2], "top_kind": "tank", "bottom": "#2A2E48", "no_legs": True, "form": "fm"[i % 2]},
+                              seed=60 + i, rim="#FFE8D8", light=-1, shadow=0))
+    out.append(F.person(rx + 62, ry - 0.5, 18, "sit", -1, {"top": "#2A2E48", "no_legs": True, "hat_kind": "cap", "hat": "#C8384A"}, seed=69, rim="#FFE8D8", light=-1, shadow=0))
     out.append(f'<path d="M {rx - 70} {ry + 3} q -40 3 -90 1" stroke="#E8E0F0" stroke-width="1.6" fill="none" opacity="0.6"/>')
     out.append(f'<g opacity="0.25"><rect x="{rx - 66}" y="{ry + 3}" width="136" height="3" fill="#F0E6D8"/></g>')
     # west-bank waterfront: seawall, railing, path, a cyclist, and the rose garden in bloom
@@ -724,11 +708,8 @@ def portland():
         out.append(glow(lx, ly - 66, 26, "#FFE2A0", f"{u}-wl{lx}", 0.8) + f'<rect x="{lx - 4}" y="{ly - 70:.1f}" width="8" height="6" fill="#FFF0C8"/>')
     # cyclist
     cx_, cy_ = 470, 404
-    out.append(f'<g fill="none" stroke="#20243A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="{cx_ - 14}" cy="{cy_}" r="8"/><circle cx="{cx_ + 14}" cy="{cy_}" r="8"/>'
-               f'<path d="M {cx_ - 14} {cy_} L {cx_ - 2} {cy_ - 12} L {cx_ + 10} {cy_ - 12} L {cx_ + 14} {cy_} M {cx_ - 2} {cy_ - 12} L {cx_ + 1} {cy_} L {cx_ + 10} {cy_ - 12} M {cx_ + 9} {cy_ - 16} L {cx_ + 13} {cy_ - 16}"/></g>'
-               f'<path d="M {cx_ - 4} {cy_ - 16} L {cx_ + 3} {cy_ - 30} L {cx_ + 11} {cy_ - 17}" stroke="#E8A040" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
-               f'<path d="M {cx_ - 3} {cy_ - 15} L {cx_ + 2} {cy_ - 6}" stroke="#20243A" stroke-width="3" stroke-linecap="round"/>'
-               f'<circle cx="{cx_ + 5}" cy="{cy_ - 35}" r="4" fill="#20243A"/><path d="M {cx_ + 1} {cy_ - 37} q 4 -5 9 -1" fill="#C8384A"/>')
+    out.append(F.person(cx_, cy_ + 8, 44, "cyclist", 1, {"top": "#E8A040", "bottom": "#20243A", "bottom_kind": "trousers", "accent": "#20243A",
+                                                     "hat_kind": "helmet", "hat": "#C8384A"}, seed=21, rim="#FFE2A0", light=-1))
     # roses: dense bushes across the foreground with pink and red blooms
     rnd = random.Random(77)
     leaves = []
@@ -897,18 +878,18 @@ def maui():
     out.append(silversword(150, 420, 14, 6))
     # sunrise watchers: a couple under a blanket and a photographer at his tripod
     def blanket_pair(x, base, s):
-        return (f'<g transform="translate({x} {base}) scale({s})">'
-                '<path d="M -26 0 Q -28 -26 -16 -34 Q -8 -40 0 -36 Q 8 -42 16 -34 Q 28 -26 26 0 Z" fill="#B8323A"/>'
-                '<path d="M -26 0 Q -28 -26 -16 -34 Q -8 -40 0 -36 L 0 0 Z" fill="#8A2430"/>'
+        sil = dict(rim="#FFB07A", light=1, shadow=0)
+        return (F.person(x - 8.5 * s, base, 84 * s, "sit_back", 1, "silhouette:#24161C", seed=31, **sil)
+                + F.person(x + 9 * s, base, 80 * s, "sit_back", 1, "silhouette:#24161C", seed=32, **sil)
+                + f'<g transform="translate({x} {base}) scale({s})">'
+                '<path d="M -26 0 Q -28 -22 -18 -30 Q -8 -36 0 -32 Q 8 -37 18 -30 Q 28 -22 26 0 Z" fill="#B8323A"/>'
+                '<path d="M -26 0 Q -28 -22 -18 -30 Q -8 -36 0 -32 L 0 0 Z" fill="#8A2430"/>'
                 '<path d="M -22 -12 L 22 -12 M -24 -6 L 24 -6" stroke="#F2C24A" stroke-width="2" opacity="0.8"/>'
-                '<circle cx="-8" cy="-42" r="7" fill="#24161C"/><circle cx="9" cy="-41" r="6.5" fill="#24161C"/>'
-                '<path d="M -14 -44 Q -8 -52 -2 -46" stroke="#FFB07A" stroke-width="1.6" fill="none"/><path d="M 15 -44 Q 10 -50 4 -46" stroke="#FFB07A" stroke-width="1.6" fill="none"/>'
-                '<path d="M 16 -34 Q 28 -26 26 0" stroke="#FFB07A" stroke-width="2" fill="none" opacity="0.8"/></g>')
+                '<path d="M 18 -30 Q 28 -22 26 0" stroke="#FFB07A" stroke-width="2" fill="none" opacity="0.8"/></g>')
     out.append(blanket_pair(300, 372, 1.0))
-    out.append('<g fill="#24161C"><path d="M 210 366 L 202 334 L 214 334 L 216 366 Z"/><rect x="200" y="300" width="14" height="34" rx="4"/><circle cx="207" cy="292" r="7"/>'
-               '<path d="M 214 308 L 226 306" stroke="#24161C" stroke-width="4" stroke-linecap="round"/><rect x="224" y="300" width="12" height="9" rx="2"/>'
-               '<path d="M 230 309 L 222 362 M 230 309 L 232 362 M 230 309 L 240 360" stroke="#24161C" stroke-width="2"/></g>'
-               '<path d="M 214 302 L 214 334" stroke="#FFB07A" stroke-width="1.6" opacity="0.8"/><path d="M 211 287 Q 215 292 213 298" stroke="#FFB07A" stroke-width="1.5" fill="none"/>')
+    out.append('<g fill="#24161C"><rect x="224" y="300" width="12" height="9" rx="2"/>'
+               '<path d="M 230 309 L 222 362 M 230 309 L 232 362 M 230 309 L 240 360" stroke="#24161C" stroke-width="2"/></g>')
+    out.append(F.person(209, 366, 80, "lean", 1, "silhouette:#24161C", seed=33, rim="#FFB07A", light=1))
     out.append(gulls([(120, 150, 9), (136, 158, 6)], "#2A1E3E", sw=1.8))
     return "\n".join(out)
 
@@ -1038,7 +1019,7 @@ def brooklyn():
                    f'<circle cx="{x + r * 0.3:.1f}" cy="{b - r * 1.9:.1f}" r="{r * 0.5:.1f}" fill="#B8CC80" opacity="0.6"/>')
     for X, col in ((-3.5, "#C8573E"), (-2.6, "#2E4A6A"), (3.2, "#E8A040")):
         x, b = C(X, 0, 140)
-        out.append(walker(x, b, C.f * 1.7 / 140, col, head="#2A1E22", legs="#2A2A3A"))
+        out.append(walker(x, b, C.f * 1.7 / 140, col, facing=1 if X < 0 else -1))
     # cobbled street with old freight rails
     out.append(f'<polygon points="{P([C(-6.5, 0, 150), C(6.5, 0, 150), C(6.5, 0, 3), C(-6.5, 0, 3)])}" fill="url(#{u}-cob)"/>')
     rnd = random.Random(17)
@@ -1159,15 +1140,10 @@ def brooklyn():
     # a dog walker heading for the river, a cyclist, a couple photographing the bridge
     x, b = C(-2.4, 0, 11)
     hh = C.f * 1.7 / 11
-    out.append(walker(x, b, hh, "#C8573E", head="#2A1E22", legs="#2A2A3A", rim="#FFD8A0", rim_side=-1))
-    out.append(f'<path d="M {x + hh * 0.15:.1f} {b - hh * 0.5:.1f} Q {x + hh * 0.35:.1f} {b - hh * 0.25:.1f} {x + hh * 0.42:.1f} {b - hh * 0.16:.1f}" stroke="#2A1E22" stroke-width="1.6" fill="none"/>'
-               f'<path d="M {x + hh * 0.36:.1f} {b:.1f} l 0 -{hh * 0.13:.1f} l {hh * 0.24:.1f} 0 l {hh * 0.05:.1f} -{hh * 0.08:.1f} l {hh * 0.07:.1f} {hh * 0.02:.1f} l -{hh * 0.02:.1f} {hh * 0.1:.1f} l 0 {hh * 0.09:.1f} M {x + hh * 0.38:.1f} {b - hh * 0.12:.1f} l -{hh * 0.07:.1f} -{hh * 0.07:.1f}" stroke="#E8C080" stroke-width="{hh * 0.07:.1f}" fill="#E8C080" stroke-linejoin="round" stroke-linecap="round"/>')
+    out.append(walker(x, b, hh, "#C8573E", rim="#FFD8A0", rim_side=-1, pose="dog_walker", facing=1, seed=41, pal={"dog": "#E8C080", "top_kind": "jacket", "form": "m"}))
     for X, Z, col in ((1.3, 26, "#2E4A6A"), (2.0, 26, "#E8A040")):
         x, b = C(X, 0, Z)
-        out.append(walker(x, b, C.f * 1.7 / Z, col, head="#2A1E22", legs="#2A2A3A", rim="#FFD8A0", rim_side=-1))
-    x, b = C(1.3, 0, 26)
-    hp = C.f * 1.7 / 26
-    out.append(f'<path d="M {x - hp * 0.05:.1f} {b - hp * 0.7:.1f} L {x - hp * 0.12:.1f} {b - hp * 0.95:.1f}" stroke="#2E4A6A" stroke-width="{hp * 0.08:.1f}" stroke-linecap="round"/><rect x="{x - hp * 0.2:.1f}" y="{b - hp * 1.04:.1f}" width="{hp * 0.14:.1f}" height="{hp * 0.09:.1f}" fill="#1E1A22"/>')
+        out.append(walker(x, b, C.f * 1.7 / Z, col, rim="#FFD8A0", rim_side=-1, pose="photo" if X < 1.5 else "stand_back", facing=-1, seed=int(X * 10)))
     out.append(gulls([(200, 150, 9), (216, 160, 6), (420, 128, 8)], "#4A4A62", sw=1.8))
     return "\n".join(out)
 
@@ -1551,14 +1527,16 @@ def annapolis():
     out.append(f'<path d="M {kx + 12} {ky - 100} L {kx + 64} {ky - 14} L {kx + 14} {ky - 16} Z" fill="#EEF2F6"/><path d="M {kx + 12} {ky - 100} L {kx + 64} {ky - 14}" stroke="#B8C4D0" stroke-width="1"/>')
     out.append(f'<path d="M {kx - 50} {ky - 18} L {kx + 2} {ky - 16}" stroke="#8A6A4A" stroke-width="2"/>')
     out.append(f'<path d="M {kx + 52} {ky - 12} L {kx + 74} {ky - 16}" stroke="#8A6A4A" stroke-width="1.6"/>')
-    out.append(walker(kx - 24, ky - 10, 13, "#C8573E", head="#2A2228", legs="#2A2228"))
+    out.append(walker(kx - 24, ky - 10, 14, "#C8573E", pose="stand_side", facing=1, seed=51, pal={"hat_kind": "cap", "hat": "#F4F2EC"}))
     out.append(f'<g opacity="0.22" transform="translate(0 {2 * ky + 6}) scale(1 -1)"><path d="M {kx + 8} {ky - 112} L {kx - 50} {ky - 18} L {kx + 2} {ky - 16} Z" fill="#FFFFFF"/></g>')
     # a paddler in a red kayak crossing the foreground
     kx2, ky2 = 112, 412
     out.append(f'<path d="M {kx2 - 60} {ky2 + 4} q 30 4 56 1" stroke="#FFFFFF" stroke-width="1.6" fill="none" opacity="0.6"/>'
                f'<path d="M {kx2 - 34} {ky2} Q {kx2} {ky2 - 8} {kx2 + 36} {ky2 - 1} Q {kx2} {ky2 + 6} {kx2 - 34} {ky2} Z" fill="#D8463A"/><path d="M {kx2 - 30} {ky2 - 1} Q {kx2} {ky2 - 7} {kx2 + 32} {ky2 - 1.5}" stroke="#FF9A7A" stroke-width="1.4" fill="none"/>'
-               f'<ellipse cx="{kx2}" cy="{ky2 - 3}" rx="7" ry="2" fill="#2A2228"/><path d="M {kx2 - 4} {ky2 - 3} L {kx2 - 3} {ky2 - 16} Q {kx2 + 1} {ky2 - 19} {kx2 + 4} {ky2 - 16} L {kx2 + 4} {ky2 - 3} Z" fill="#F2C24A"/>'
-               f'<circle cx="{kx2}" cy="{ky2 - 21}" r="3.6" fill="#2A2228"/><path d="M {kx2 - 22} {ky2 - 2} L {kx2 + 20} {ky2 - 24}" stroke="#2A2228" stroke-width="1.8"/>'
+               f'<ellipse cx="{kx2}" cy="{ky2 - 3}" rx="7" ry="2" fill="#2A2228"/>'
+               + F.person(kx2, ky2 - 3, 42, "paddle", 1, {"top": "#F2C24A", "top_kind": "tank", "no_legs": True, "hat_kind": "cap", "hat": "#2A2228", "season": "summer"},
+                          seed=52, rim="#FFF6E0", light=-1, shadow=0)
+               + f'<path d="M {kx2 - 22} {ky2 - 2} L {kx2 + 20} {ky2 - 24}" stroke="#2A2228" stroke-width="1.8"/>'
                f'<ellipse cx="{kx2 - 23}" cy="{ky2 - 1}" rx="4" ry="1.8" fill="#2A2228" transform="rotate(-28 {kx2 - 23} {ky2 - 1})"/><ellipse cx="{kx2 + 21}" cy="{ky2 - 25}" rx="4" ry="1.8" fill="#2A2228" transform="rotate(-28 {kx2 + 21} {ky2 - 25})"/>'
                f'<path d="M {kx2 - 26} {ky2 + 3} Q {kx2} {ky2 + 9} {kx2 + 28} {ky2 + 3}" stroke="#D8463A" stroke-width="3" fill="none" opacity="0.25"/>')
     # foreground: a weathered dock corner with pilings, a coiled line, and a gull on a post

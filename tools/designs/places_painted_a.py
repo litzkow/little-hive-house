@@ -8,6 +8,7 @@ from paint import (P, blobs, conifer, dots, glow, grass, lg, mist, rg, ridge_pol
 from places_painted import Cam, palm_tree, facade_windows
 from common import BEBAS, SERIF_IT, MONO, JOS
 from poster import ANTON, poster
+import figures as F
 
 
 def defs(*items):
@@ -33,16 +34,12 @@ def cumulus(u, cx, cy, w, h, seed, lit="#FFF4E4", body="#F2D6C8", shade="#B9A2B8
     return (f'<g opacity="{op}"><g fill="{shade}">{base}{sh}</g><g fill="{body}">{bd}</g><g fill="{lit}" opacity="0.85">{li}</g></g>')
 
 
-def stroll(x, base, h, col, head="#1A1418", flip=1, rim=None):
-    """Small standing / walking person silhouette, h = height in px."""
-    k = h / 100
-    g = (f'<g transform="translate({x:.1f} {base:.1f}) scale({k * flip:.3f} {k:.3f})">'
-         '<path d="M -9 -46 L 10 -46 L 13 -2 L 7 -2 L 4 -30 L -1 -2 L -7 -2 L -11 -44 Z" fill="#1A1620"/>'
-         f'<path d="M -13 -86 Q 0 -94 13 -86 L 14 -44 L -12 -44 Z" fill="{col}"/>'
-         f'<circle cx="0" cy="-95" r="8.5" fill="{head}"/>')
-    if rim:
-        g += f'<path d="M -13 -86 L -12 -44" stroke="{rim}" stroke-width="3" stroke-linecap="round"/>'
-    return g + "</g>"
+def stroll(x, base, h, col, head="#1A1418", flip=1, rim=None, pose="walk", light=None, tint=None, seed=None, pal=None):
+    """Small painted person (figures.py); h = height in px. The rim light sits on the side the old silhouettes lit."""
+    p = {"top": col}
+    p.update(pal or {})
+    return F.person(x, base, h, pose, flip, p, seed=int(x * 7 + base) if seed is None else seed, rim=rim,
+                    light=-flip if light is None else light, tint=tint)
 
 
 def reflect_streaks(seed, xs, y0, y1, colors, w=(2, 6), op=(0.3, 0.8), step=(3, 7)):
@@ -258,9 +255,8 @@ def new_york():
         out.append(f'<rect x="{bx - 4}" y="311" width="8" height="10" fill="#FFF0C8"/>')
     for x in (92, 430):
         out.append(f'<ellipse cx="{x}" cy="{402 - x * 8 / 600:.1f}" rx="46" ry="5" fill="#FFD98E" opacity="0.22"/>')
-    out.append(stroll(212, 402, 46, "#3E2E48", rim="#F6B480"))
-    out.append(stroll(228, 402, 42, "#6A3048", flip=-1, rim="#F6B480"))
-    out.append(stroll(350, 400, 40, "#2A3A5A", rim="#F6B480"))
+    out.append(F.couple(220, 402, 45, palette={"top": "#3E2E48", "season": "winter"}, seed=31, rim="#F6B480", light=-1, tint=("#1E1A3A", 0.3)))
+    out.append(stroll(350, 400, 38, "#2A3A5A", rim="#F6B480", pose="lean_back", light=1, tint=("#1E1A3A", 0.3), seed=33))
     # gulls
     out.append('<g fill="none" stroke="#F6E6D8" stroke-width="1.8" stroke-linecap="round" opacity="0.85"><path d="M 300 184 q 6 -5 12 0 q 6 -5 12 0"/><path d="M 326 200 q 4 -4 8 0 q 4 -4 8 0"/></g>')
     return "\n".join(out)
@@ -458,8 +454,7 @@ def san_francisco():
         for i in range(6):
             out.append(f'<ellipse cx="{cx + rnd.uniform(0, r * 0.8):.1f}" cy="{cy - rnd.uniform(2, r * 0.45):.1f}" rx="3" ry="2" fill="#C8B866" opacity="0.8"/>')
     # a couple watching the bridge, warm light on their right side
-    out.append(stroll(520, 356, 44, "#2E4A6A", rim="#FFD08A"))
-    out.append(stroll(538, 354, 40, "#8A3A3A", flip=-1, rim="#FFD08A"))
+    out.append(F.couple(529, 355, 43, palette={"top": "#2E4A6A"}, seed=41, rim="#FFD08A", light=1, tint=("#3A3050", 0.12)))
     # sailboat heeling on the bay with a wake
     out.append('<path d="M 100 382 Q 140 388 196 386" fill="none" stroke="#E8F0F4" stroke-width="2" opacity="0.5"/>')
     out.append('<g transform="translate(96 380) rotate(-6)"><path d="M -18 0 L 18 0 L 13 7 L -14 7 Z" fill="#F4EEE4"/><path d="M 0 -2 L 0 -44 L 16 -4 Z" fill="#FFF6E8"/><path d="M -2 -2 L -2 -38 L -16 -4 Z" fill="#E8D8C8"/><rect x="-0.8" y="-46" width="1.6" height="46" fill="#4A4A4A"/></g>')
@@ -616,8 +611,8 @@ def grand_canyon():
     out.append(f'<polyline points="{P(rim[:7])}" fill="none" stroke="#FFF2D8" stroke-width="2.4" stroke-linejoin="round"/>')
     out.append(grass(40, 72, (-10, 362, 170, 400), ["#B8A070", "#8A8058", "#D8C08A"], h=(4, 10)))
     out.append(juniper(58, 362, 1.0, 5))
-    out.append(stroll(150, 378, 30, "#3E5A7A", rim="#FFD8A0"))
-    out.append(stroll(167, 383, 27, "#B8504A", flip=-1, rim="#FFD8A0"))
+    out.append(stroll(150, 378, 30, "#3E5A7A", rim="#FFD8A0", pose="hiker", light=1, seed=51, pal={"bag": "#C8573E", "hat_kind": "sunhat", "bottom_kind": "shorts"}))
+    out.append(stroll(168, 383, 28, "#B8504A", rim="#FFD8A0", pose="point", light=1, seed=52, pal={"bag": "#2E3A58", "form": "f"}))
     # ravens riding the morning updraft
     out.append('<g fill="#2A2030"><path d="M 330 150 q 8 -7 14 -1 q 6 -6 14 1 q -7 -1 -14 3 q -7 -4 -14 -3 Z"/><path d="M 372 168 q 6 -5 10 -1 q 4 -4 10 1 q -5 -1 -10 2 q -5 -3 -10 -2 Z"/></g>')
     return "\n".join(out)
@@ -762,9 +757,9 @@ def washington_dc():
     out.append(f'<polygon points="{P([(-10, 410), (610, 404), (610, 444), (-10, 444)])}" fill="url(#{u}-path)"/>')
     out.append(dots(160, 26, (-10, 404, 610, 444), "#F8C8D8", r=(0.8, 1.8), opacity=(0.5, 0.95)))
     # an early walker and a photographer on the walk
-    out.append(stroll(120, 404, 36, "#3E4A7A", rim="#FFD8B8"))
-    out.append(stroll(380, 401, 34, "#A84A5A", flip=-1, rim="#FFD8B8"))
-    out.append('<g stroke="#2A2238" stroke-width="1.4"><line x1="390" y1="401" x2="396" y2="381"/><line x1="402" y1="401" x2="396" y2="381"/><line x1="396" y1="401" x2="396" y2="381"/></g><rect x="392" y="375" width="9" height="6" rx="1" fill="#2A2238"/>')
+    out.append(stroll(120, 404, 37, "#3E4A7A", rim="#FFD8B8", pose="jog", flip=1, light=-1, seed=61, pal={"top_kind": "tee", "bottom_kind": "shorts", "shoes": "#E6E0D6"}))
+    out.append('<g stroke="#2A2238" stroke-width="1.4"><line x1="389" y1="401" x2="395" y2="372"/><line x1="401" y1="401" x2="395" y2="372"/><line x1="395" y1="401" x2="395" y2="372"/></g>')
+    out.append(stroll(383, 401, 35, "#A84A5A", rim="#FFD8B8", pose="photo", flip=1, light=-1, seed=62, pal={"top_kind": "jacket"}))
     # cherry trees framing the view: a gnarled trunk on the right, branches arching over from both corners
     segs, tips = branch_tree(596, 470, -98, 104, 24, 5, 31, droop=0.02)
     segs2, tips2 = branch_tree(-24, 50, 24, 74, 16, 4, 37, droop=0.16)
@@ -935,7 +930,8 @@ def miami_beach():
         out.append(umbrella(x, b, hh, col))
     for X, Z, h, col, rim in ((14.6, 24, 1.7, "#3A3A6A", "#7AF0F0"), (15.0, 50, 1.65, "#A84A7A", "#FF8FD0"), (14.4, 15, 1.75, "#F0E8F0", "#FF8FD0"), (14.9, 72, 1.7, "#2A4A5A", "#7AF0F0")):
         x, b = C(X, 0, Z)
-        out.append(stroll(x, b, 330 * h / C.depth(X, Z), col, rim=rim))
+        out.append(stroll(x, b, 330 * h / C.depth(X, Z), col, rim=rim, pose=("stand_back", "stand", "stand_34", "walk")[int(Z) % 4], flip=-1, light=1,
+                          tint=("#3A2A5A", 0.22), pal={"season": "summer"}))
     # a pink-and-white convertible parked at the curb
     x, b = C(11.6, 0, 9)
     out.append(deco_car(x, b, 330 / C.depth(11.6, 9) / 22, flip=1))
@@ -959,9 +955,9 @@ def miami_beach():
     k = 330 / C.depth(-3.2, 12) / 60
     out.append(f'<g transform="translate({x:.1f} {b:.1f}) scale({k:.3f})"><rect x="-40" y="-26" width="80" height="6" fill="#4A3A5A"/><rect x="-40" y="-44" width="80" height="5" fill="#4A3A5A"/>'
                '<rect x="-36" y="-26" width="4" height="26" fill="#2A2038"/><rect x="32" y="-26" width="4" height="26" fill="#2A2038"/>'
-               '<path d="M -22 -26 L -22 -60 Q -14 -68 -6 -60 L -6 -26 Z" fill="#E86A8A"/><circle cx="-14" cy="-72" r="8" fill="#2A1A2A"/><path d="M -22 -26 L -26 0 M -8 -26 L -12 0" stroke="#2A2038" stroke-width="6"/>'
-               '<path d="M 4 -26 L 4 -62 Q 12 -70 20 -62 L 20 -26 Z" fill="#3A6A9A"/><circle cx="12" cy="-74" r="8" fill="#3A2A2A"/><path d="M 6 -26 L 2 0 M 18 -26 L 14 0" stroke="#2A2038" stroke-width="6"/>'
-               '<path d="M -6 -60 L -6 -26" stroke="#FF9AB8" stroke-width="2"/></g>')
+               '</g>')
+    out.append(F.person(x - 14 * k, b - 26 * k, 100 * k, "sit_front", 1, {"top": "#E86A8A", "form": "f", "season": "summer"}, seed=71, rim="#FF9AB8", light=1, tint=("#3A2A5A", 0.25)))
+    out.append(F.person(x + 12 * k, b - 26 * k, 104 * k, "sit_front", 1, {"top": "#3A6A9A", "form": "m", "season": "summer"}, seed=72, rim="#FF9AB8", light=1, tint=("#3A2A5A", 0.25)))
     # sea grape shrubs in the corner, catching pink light
     rnd = random.Random(61)
     for cx, cy, r in ((20, 420, 40), (80, 436, 34), (-4, 380, 30), (150, 444, 30)):
@@ -991,10 +987,8 @@ def outrigger(x, y, s, hull="#C8402E", seed=1):
         col = rnd.choice(["#2A2A3A", "#3A2A2A", "#E8504A", "#F0C040", "#2A6A8A"])
         out.append(f'<line x1="{px + 6}" y1="-24" x2="{px - 12}" y2="2" stroke="#7A5638" stroke-width="2.2"/><path d="M {px - 13} -2 L {px - 9} 0 L {px - 13} 8 L {px - 17} 6 Z" fill="#7A5638"/>'
                    f'<path d="M {px - 19} 4 q 4 -4 10 0" fill="none" stroke="#FFFFFF" stroke-width="1.6" opacity="0.8"/>'
-                   f'<path d="M {px - 5} -8 L {px - 6} -22 Q {px} -27 {px + 6} -22 L {px + 5} -8 Z" fill="{col}"/>'
-                   f'<path d="M {px + 2} -22 L {px + 7} -24" stroke="{col}" stroke-width="3" stroke-linecap="round"/>'
-                   f'<circle cx="{px}" cy="-30" r="4.2" fill="#3A2420"/><path d="M {px + 3} -33 Q {px + 5} -30 {px + 3} -27" stroke="#FFD08A" stroke-width="1.4" fill="none"/>'
-                   f'<path d="M {px + 5} -21 L {px + 5} -9" stroke="#FFD08A" stroke-width="1.6" opacity="0.8"/>')
+                   + F.person(px - 2, -9, 46, "paddle", 1, {"top": col, "top_kind": rnd.choice(["tank", "tee", "swim"]), "bottom_kind": "shorts", "season": "beach"},
+                              seed=seed * 10 + i, rim="#FFD08A", light=1, shadow=0))
     out.append(f'<path d="M -78 -10 Q 0 -6 78 -12 L 72 0 Q 0 4 -72 0 Z" fill="{hull}"/>'
                '<path d="M -76 -9 Q 0 -5 76 -11" fill="none" stroke="#FFE8C0" stroke-width="1.6" opacity="0.8"/>'
                '<path d="M -72 -2 Q 0 2 72 -2" fill="none" stroke="#5A1A18" stroke-width="2" opacity="0.5"/>')
@@ -1003,12 +997,8 @@ def outrigger(x, y, s, hull="#C8402E", seed=1):
 
 
 def surfer(x, y, s, board="#F4E8D0", suit="#2A2A3A", flip=1):
-    return (f'<g transform="translate({x} {y}) scale({s * flip} {s})">'
-            f'<path d="M -26 0 Q 0 -6 28 -2 Q 0 4 -26 0 Z" fill="{board}"/><path d="M -24 0 Q 0 -4 26 -2" stroke="#E8504A" stroke-width="1.4" fill="none"/>'
-            f'<path d="M -8 -2 L -2 -16 L 6 -2" fill="none" stroke="{suit}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
-            f'<path d="M -2 -16 L 2 -30" stroke="{suit}" stroke-width="6" stroke-linecap="round"/>'
-            f'<path d="M 0 -26 L -12 -24 M 2 -27 L 14 -31" stroke="{suit}" stroke-width="3" stroke-linecap="round"/>'
-            '<circle cx="3" cy="-36" r="4.4" fill="#3A2420"/></g>')
+    return F.person(x, y, 54 * s, "surf_ride", flip, {"board": board, "top": suit, "top_kind": "swim", "bottom_kind": "swim", "bottom": suit, "season": "beach"},
+                    seed=int(x + y), rim="#FFE0A8", light=1)
 
 
 def honolulu():
@@ -1271,13 +1261,12 @@ def savannah():
         out.append(f'<path d="M {lx - 6} {base - h - 1} L {lx - 4} {base - h - 13} L {lx + 4} {base - h - 13} L {lx + 6} {base - h - 1} Z" fill="#FFF0C8" stroke="#1E2420" stroke-width="1.6"/>'
                    f'<path d="M {lx - 6} {base - h - 13} L {lx} {base - h - 19} L {lx + 6} {base - h - 13} Z" fill="#1E2420"/>')
     # a woman walking her dog along the path, a reader on a bench
-    out.append(stroll(470, 424, 50, "#E8A0B0", rim="#FFF0C8"))
-    out.append('<g transform="translate(500 424)"><path d="M -12 -4 Q -10 -12 0 -12 L 8 -12 L 10 -18 L 14 -16 L 13 -10 Q 14 -6 10 -4 L 10 0 L 7 0 L 7 -4 L -6 -4 L -8 0 L -11 0 Z" fill="#8A5A3A"/><path d="M -12 -8 L -18 -14" stroke="#8A5A3A" stroke-width="2.4" stroke-linecap="round"/></g>')
-    out.append('<path d="M 476 400 Q 488 410 504 410" fill="none" stroke="#2A2A2A" stroke-width="1"/>')
+    out.append(stroll(466, 424, 50, "#E8A0B0", rim="#FFF0C8", pose="dog_walker", flip=1, light=-1, seed=81, pal={"form": "f", "top_kind": "dress", "dog": "#8A5A3A"}))
     out.append('<g transform="translate(110 414)"><rect x="-30" y="-14" width="60" height="4" fill="#2A3A2E"/><rect x="-30" y="-30" width="60" height="3" fill="#2A3A2E"/><rect x="-30" y="-24" width="60" height="3" fill="#2A3A2E"/>'
                '<rect x="-26" y="-14" width="3" height="14" fill="#1E2420"/><rect x="23" y="-14" width="3" height="14" fill="#1E2420"/>'
-               '<path d="M -6 -14 L -6 -40 Q 2 -46 10 -40 L 10 -14 Z" fill="#4A6A8A"/><circle cx="2" cy="-50" r="6.4" fill="#3A2A22"/><rect x="4" y="-36" width="10" height="7" fill="#F4ECDC"/>'
-               '<path d="M -4 -14 L 14 -12 L 14 0 M 8 -14 L 20 -12 L 20 0" stroke="#2A2A3A" stroke-width="4" fill="none"/></g>')
+               '</g>')
+    out.append(F.person(108, 400, 52, "read", 1, {"top": "#4A6A8A", "bottom": "#2A2A3A", "top_kind": "long", "bottom_kind": "trousers", "accent": "#B8463A"}, seed=82,
+                        rim="#FFF0C8", light=-1))
     # dappled morning light on the ground
     rnd = random.Random(17)
     out.append("".join(f'<ellipse cx="{rnd.uniform(0, 600):.1f}" cy="{rnd.uniform(350, 440):.1f}" rx="{rnd.uniform(8, 26):.1f}" ry="{rnd.uniform(2, 5):.1f}" fill="#FFF4C8" opacity="{rnd.uniform(0.15, 0.35):.2f}"/>' for _ in range(30)))

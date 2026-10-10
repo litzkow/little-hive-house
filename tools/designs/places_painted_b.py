@@ -8,6 +8,7 @@ from paint import (P, blobs, conifer, dots, glow, grass, lg, mist, rg, ridge_pol
 from places_painted import Cam, palm_tree, puff_column
 from common import SERIF_IT, MONO
 from poster import ANTON, poster
+import figures as F
 
 
 def defs(*items):
@@ -46,22 +47,15 @@ def gulls(spec, color="#3A3A4A", sw=2):
             + "".join(f'<path d="M {x} {y} q {s * 0.5:.1f} {-s * 0.4:.1f} {s:.1f} 0 q {s * 0.5:.1f} {-s * 0.4:.1f} {s:.1f} 0"/>' for x, y, s in spec) + "</g>")
 
 
-def figure(x, base, h, coat, legs="#2A2420", head="#3A2A22", rim=None, skirt=False, hat=None):
-    """Small standing person silhouette, base = feet."""
-    w = h * 0.26
-    out = []
+def figure(x, base, h, coat, legs="#2A2420", head="#3A2A22", rim=None, skirt=False, hat=None, pose="stand_34", facing=1, light=-1, seed=None, pal=None, tint=None):
+    """Small painted person (figures.py), base = feet. skirt -> a woman in a dress or skirt; hat -> a sun hat."""
+    p = {"top": coat}
     if skirt:
-        out.append(f'<path d="M {x - w * 0.5:.1f} {base - h * 0.78:.1f} L {x + w * 0.5:.1f} {base - h * 0.78:.1f} L {x + w * 0.75:.1f} {base - h * 0.3:.1f} L {x - w * 0.75:.1f} {base - h * 0.3:.1f} Z" fill="{coat}"/>')
-        out.append(f'<path d="M {x - w * 0.25:.1f} {base - h * 0.32:.1f} L {x - w * 0.25:.1f} {base:.1f} M {x + w * 0.25:.1f} {base - h * 0.32:.1f} L {x + w * 0.25:.1f} {base:.1f}" stroke="{legs}" stroke-width="{max(1, h * 0.07):.1f}" stroke-linecap="round"/>')
-    else:
-        out.append(f'<path d="M {x - w * 0.3:.1f} {base - h * 0.45:.1f} L {x - w * 0.28:.1f} {base:.1f} M {x + w * 0.3:.1f} {base - h * 0.45:.1f} L {x + w * 0.28:.1f} {base:.1f}" stroke="{legs}" stroke-width="{max(1.2, h * 0.11):.1f}" stroke-linecap="round"/>')
-        out.append(f'<path d="M {x - w * 0.5:.1f} {base - h * 0.42:.1f} L {x - w * 0.55:.1f} {base - h * 0.76:.1f} Q {x:.1f} {base - h * 0.84:.1f} {x + w * 0.55:.1f} {base - h * 0.76:.1f} L {x + w * 0.5:.1f} {base - h * 0.42:.1f} Z" fill="{coat}"/>')
-    out.append(f'<circle cx="{x:.1f}" cy="{base - h * 0.89:.1f}" r="{h * 0.095:.1f}" fill="{head}"/>')
+        p.update(form="f", top_kind="dress")
     if hat:
-        out.append(f'<ellipse cx="{x:.1f}" cy="{base - h * 0.95:.1f}" rx="{h * 0.16:.1f}" ry="{h * 0.035:.1f}" fill="{hat}"/><rect x="{x - h * 0.08:.1f}" y="{base - h * 1.03:.1f}" width="{h * 0.16:.1f}" height="{h * 0.08:.1f}" rx="{h * 0.03:.1f}" fill="{hat}"/>')
-    if rim:
-        out.append(f'<path d="M {x + w * 0.55:.1f} {base - h * 0.76:.1f} L {x + w * 0.5:.1f} {base - h * 0.42:.1f}" stroke="{rim}" stroke-width="{max(0.8, h * 0.05):.1f}" stroke-linecap="round"/>')
-    return "".join(out)
+        p.update(hat_kind="sunhat", hat=hat)
+    p.update(pal or {})
+    return F.person(x, base, h, pose, facing, p, seed=int(x * 3 + base * 7) if seed is None else seed, rim=rim, light=light, tint=tint)
 
 
 # ---------------------------------------------------------------- St. Augustine (the Castillo by the bay)
@@ -270,9 +264,9 @@ def st_augustine():
     out.append(f'<path d="M {fx:.1f} {fty + 1:.1f} q {fw * 0.5:.1f} -5 {fw:.1f} 1 l 0 {fh_:.1f} q {-fw * 0.5:.1f} -6 {-fw:.1f} -1 Z" fill="#FBF6EA"/>')
     out.append(f'<g stroke="#C2322A" stroke-width="3.6" stroke-linecap="round" fill="none"><path d="M {fx + 5:.1f} {fty + 4:.1f} q 8 7 {fw - 10:.1f} {fh_ - 4:.1f}"/><path d="M {fx + fw - 5:.1f} {fty + 3:.1f} q -9 9 {-fw + 10:.1f} {fh_ - 2:.1f}"/></g>')
     out.append(f'<path d="M {fx + fw * 0.55:.1f} {fty - 0.5:.1f} q {fw * 0.2:.1f} 1 {fw * 0.45:.1f} 2.5 l 0 {fh_:.1f} q {-fw * 0.2:.1f} -2 {-fw * 0.45:.1f} -3 Z" fill="#6E6458" opacity="0.18"/>')
-    for X, Z, c in ((pt[0] - 13, pt[1] + 20, "#3E6A9A"), (pt[0] - 12, pt[1] + 20.5, "#D8574A"), (pt[0] + 9, pt[1] + 18, "#E0B040"), (pt[0] + 10, pt[1] + 18.3, "#5A7A5A")):
+    for k_, (X, Z, c) in enumerate(((pt[0] - 13, pt[1] + 20, "#3E6A9A"), (pt[0] - 12, pt[1] + 20.5, "#D8574A"), (pt[0] + 9, pt[1] + 18, "#E0B040"), (pt[0] + 10, pt[1] + 18.3, "#5A7A5A"))):
         x, b = V(X, H + 1.6, Z)
-        out.append(figure(x, b + 1, 380 * 1.7 / Z, c))
+        out.append(figure(x, b + 1, 380 * 1.7 / Z, c, pose=("stand_34", "point", "stand", "photo")[k_], facing=(1, -1, 1, -1)[k_], seed=100 + k_, pal={"season": "summer"}))
     # the garita (sentry box) cantilevered from the salient, sunlit from the left
     gx_, gyb = V(tpt[0] - 0.1, H - 1.2, tpt[1] - 0.5)
     _, gyt = V(tpt[0] - 0.1, H + 2.7, tpt[1] - 0.5)
@@ -308,7 +302,7 @@ def st_augustine():
     # strollers on the promenade
     for x, b, h, c, sk, hat in ((262, 318, 22, "#2E5E8A", False, None), (271, 316, 20, "#E06A5A", True, "#F2E2B4"), (252, 356, 30, "#F2F0E8", False, "#E8D8A8"), (244, 410, 44, "#C8574A", True, None)):
         out.append(f'<ellipse cx="{x + 5}" cy="{b + 1}" rx="{h * 0.3:.1f}" ry="{h * 0.06:.1f}" fill="#7A6A4A" opacity="0.35"/>')
-        out.append(figure(x, b, h, c, skirt=sk, hat=hat, rim="#FFF4D8"))
+        out.append(figure(x, b, h, c, skirt=sk, hat=hat, rim="#FFF4D8", pose="walk", facing=-1 if b < 340 else 1, pal={"season": "summer"}))
     # cannonball pyramid on the lawn
     for bx, by in ((420, 384), (433, 384), (446, 384), (459, 384), (426, 373), (439, 373), (452, 373), (432, 362), (445, 362), (438, 351)):
         out.append(f'<circle cx="{bx}" cy="{by}" r="7" fill="#2A2624"/><circle cx="{bx - 2.4}" cy="{by - 2.4}" r="2.3" fill="#8A8278"/>')
@@ -327,25 +321,9 @@ def st_augustine():
 # ---------------------------------------------------------------- New Orleans (a French Quarter street at dusk)
 def musician(x, base, h, coat="#2E2A3A", rim="#FFC870", brass="#E8B64A"):
     """Street trumpeter facing left, horn raised; (x, base) = feet."""
-    k = h / 100
-    return (f'<g transform="translate({x:.1f} {base:.1f}) scale({k:.3f})">'
-            '<path d="M -7 -46 L 9 -46 L 12 -2 L 6 -2 L 2 -30 L -2 -2 L -9 -2 Z" fill="#16141C"/>'
-            '<path d="M -10 -2 L -10 2 L -20 2 Q -20 -2 -14 -3 Z M 7 -2 L 7 2 L 16 2 Q 15 -2 11 -3 Z" fill="#0E0C10"/>'
-            f'<path d="M -12 -84 Q 0 -90 13 -84 L 12 -44 L -10 -44 Z" fill="{coat}"/>'
-            '<path d="M -3 -84 L 0 -72 L 3 -84 Z" fill="#E8DCC8"/><path d="M -1 -80 L 1 -80 L 1.6 -66 L -1.6 -66 Z" fill="#C23A3A"/>'
-            '<circle cx="0" cy="-92" r="8" fill="#3A2620"/>'
-            '<path d="M -12 -97 L 12 -97 L 10 -104 Q 0 -108 -10 -104 Z" fill="#1A1820"/><rect x="-15" y="-98" width="30" height="3.2" rx="1.6" fill="#1A1820"/><rect x="-10" y="-99" width="20" height="1.8" fill="#B8503E"/>'
-            # arms raised to the horn
-            f'<path d="M -10 -80 Q -22 -74 -24 -88" fill="none" stroke="{coat}" stroke-width="7" stroke-linecap="round"/>'
-            f'<path d="M 11 -80 Q 4 -70 -14 -84" fill="none" stroke="{coat}" stroke-width="7" stroke-linecap="round"/>'
-            # trumpet: mouthpiece at the lips, bell tilted up to the left
-            f'<path d="M -6 -90 L -30 -98" stroke="{brass}" stroke-width="2.6" stroke-linecap="round"/>'
-            f'<path d="M -18 -91 L -26 -94 L -26 -88 L -18 -86 Z" fill="none" stroke="{brass}" stroke-width="1.8"/>'
-            f'<path d="M -30 -98 L -42 -108 L -36 -92 Z" fill="{brass}"/><ellipse cx="-40" cy="-100" rx="3" ry="8.4" transform="rotate(-36 -40 -100)" fill="#FFF0B8"/>'
-            '<g fill="#FFF4D0"><rect x="-22" y="-96" width="1.6" height="4"/><rect x="-19" y="-95" width="1.6" height="4"/></g>'
-            f'<path d="M 13 -84 L 12 -44" stroke="{rim}" stroke-width="2.6" stroke-linecap="round"/><path d="M 8 -98 Q 10 -92 7 -86" stroke="{rim}" stroke-width="2" fill="none" stroke-linecap="round"/>'
-            f'<path d="M 9 -46 L 12 -2" stroke="{rim}" stroke-width="1.8" opacity="0.7"/>'
-            "</g>")
+    return F.person(x, base, h, "trumpet", -1, {"top": coat, "top_kind": "jacket", "bottom": "#16141C", "hat_kind": "cap", "hat": "#1A1820", "skin": "#6A4028",
+                                                "hair_style": "short", "form": "m", "brass": brass, "shoes": "#0E0C10", "inner": "#E8DCC8"},
+                    seed=7, rim=rim, light=1, tint=("#2A2040", 0.15))
 
 
 def lace_railing(C, X, z0, z1, y0, y1, color, seed):
@@ -578,7 +556,14 @@ def new_orleans():
     for X, Z, h, c, sk in ((-2.4, 60, 1.7, "#E0C27A", False), (-1.8, 60.5, 1.6, "#B8574A", True), (2.6, 34, 1.75, "#3E6A8A", False),
                            (-4.6, 24, 1.7, "#7A5A9A", False), (4.4, 18, 1.6, "#E89A6A", True), (-1.3, 12.5, 1.65, "#C8486A", True), (-0.6, 12.6, 1.8, "#2E3A5A", False)):
         x, b = C(X, 0.15 if abs(X) > XO else 0, Z)
-        out.append(figure(x, b, C.f * h / Z, c, legs="#16121A", head="#2A1E1A", skirt=sk, rim="#FFB870"))
+        hh = C.f * h / Z
+        if Z == 12.5:      # the dancing couple: she twirls under his raised hand
+            out.append(figure(x, b, hh, c, skirt=True, rim="#FFB870", pose="wave", light=1, seed=201, tint=("#2A2040", 0.22)))
+        elif Z == 12.6:
+            out.append(figure(x, b, hh, c, rim="#FFB870", pose="point", facing=-1, light=1, seed=202, tint=("#2A2040", 0.22), pal={"top_kind": "jacket", "bottom": "#1E1A26", "hat_kind": "cap"}))
+        else:
+            out.append(figure(x, b, hh, c, skirt=sk, rim="#FFB870", pose=("stand_back", "walk", "stand_34")[int(Z) % 3], facing=-1 if X > 0 else 1, light=1 if X < 0 else -1,
+                              tint=("#2A2040", 0.25)))
     # the trumpeter on the near banquette, his open case catching coins
     mx, mb = C(3.1, 0, 7.0)
     out.append(f'<ellipse cx="{mx:.1f}" cy="{mb + 2:.1f}" rx="34" ry="5" fill="#140E18" opacity="0.5"/>')
@@ -616,9 +601,10 @@ def carriage(x, y, s, angle):
             '<path d="M 4 -88 ' + " ".join(f'q 3.6 5 7.2 0' for _ in range(16)) + ' L 4 -88 Z" fill="#F6F0E2"/>'
             '<path d="M 4 -94 Q 60 -104 118 -94 L 118 -91 Q 60 -100 4 -91 Z" fill="#D8C8A8"/>'
             # passengers and the driver
-            + "".join(f'<path d="M {px - 7} -44 L {px - 7} -62 Q {px} -68 {px + 7} -62 L {px + 7} -44 Z" fill="{c}"/><circle cx="{px}" cy="-72" r="6" fill="{hc}"/>'
+            + "".join(F.person(px, -41, 70, "sit_front", 1, {"top": c, "hair": hc, "no_legs": True, "season": "summer"}, seed=300 + px, rim="#FFF0D0", light=1, shadow=0)
                       for px, c, hc in ((30, "#E07A6A", "#5A3A2A"), (48, "#3E6A9A", "#2A1E18"), (76, "#F2D07A", "#7A4A30"), (94, "#7A5A9A", "#3A2A20")))
-            + '<path d="M 4 -44 L 4 -66 Q 12 -72 18 -64 L 18 -44 Z" fill="#2A2A30"/><circle cx="11" cy="-74" r="6" fill="#6A4A34"/><path d="M 2 -78 L 20 -78 L 18 -84 Q 11 -88 4 -84 Z" fill="#E8DCC0"/><rect x="0" y="-79" width="22" height="2.4" fill="#E8DCC0"/>'
+            + F.person(11, -41, 74, "sit", -1, {"top": "#2A2A30", "top_kind": "jacket", "bottom": "#2A2A30", "hat_kind": "sunhat", "hat": "#E8DCC0", "form": "m", "no_legs": True},
+                       seed=311, rim="#FFF0D0", light=1, shadow=0) +
             '<path d="M 4 -56 L -50 -58" stroke="#2A2420" stroke-width="1.2"/>'
             + "".join(f'<g transform="translate({wx} -14)"><circle r="{wr}" fill="none" stroke="#E8B848" stroke-width="3.4"/><circle r="3" fill="#E8B848"/>'
                       + "".join(f'<line x1="0" y1="0" x2="{wr * math.cos(i * math.pi / 5):.1f}" y2="{wr * math.sin(i * math.pi / 5):.1f}" stroke="#E8B848" stroke-width="1.4"/>' for i in range(10)) + "</g>"
@@ -768,7 +754,7 @@ def charleston():
     # people on the sidewalk
     for X, Z, h, c, sk in ((-22.6, 30, 1.7, "#E07A6A", True), (-22.2, 30.6, 1.8, "#3E5A8A", False), (-22.4, 52, 1.7, "#F2F0E8", False), (-22.0, 18, 1.65, "#7A5A9A", True), (-22.8, 40, 1.6, "#5A8A6A", False)):
         x, b = C(X, 0.1, Z)
-        out.append(figure(x, b, C.f * h / Z, c, skirt=sk, head="#5A3A2A", rim="#FFF0D0"))
+        out.append(figure(x, b, C.f * h / Z, c, skirt=sk, rim="#FFF0D0", pose=("walk", "stand_back", "stand")[int(Z) % 3], facing=1, light=1, pal={"season": "summer"}))
     # the carriage clopping toward us
     cx_, cy_ = C(-11.5, 0, 14)
     ang = math.degrees(math.atan2(340 - cy_, 520 - cx_))
@@ -852,7 +838,7 @@ def wsf_ferry(x, y, s, u):
     g.append(f'<path d="M {-L + 22} -52 L {-L + 40} -52 M {L - 40} -52 L {L - 22} -52" stroke="#E8E2E6" stroke-width="1.4"/>')
     g.append("".join(f'<line x1="{i}" y1="-52" x2="{i}" y2="-46" stroke="#E8E2E6" stroke-width="1"/>' for i in list(range(-L + 22, -L + 40, 4)) + list(range(L - 40, L - 21, 4))))
     for px, c in ((-L + 28, "#2A2A3E"), (-L + 34, "#6A2A4A"), (L - 30, "#2A3A5A")):
-        g.append(f'<rect x="{px - 1.6}" y="-55" width="3.2" height="7" rx="1.2" fill="{c}"/><circle cx="{px}" cy="-56.5" r="1.8" fill="#2A2028"/>')
+        g.append(F.person(px, -46, 12, "stand_back", 1, {"top": c}, seed=int(px) + 700, shadow=0))
     # a pilot house at each end (double-ended), dark windows with a glint
     for sx in (-1, 1):
         hx = sx * (L - 58)
@@ -1084,11 +1070,8 @@ def seattle():
         out.append(f'<ellipse cx="{x}" cy="{b + 6:.1f}" rx="44" ry="6" fill="#FFD098" opacity="0.28"/>')
         out.append(lamp_post(x, b, h, u, k))
     # two people leaning on the rail, watching the boat
-    out.append('<path d="M 112 402 L 110 372 Q 118 364 126 372 L 126 402 Z" fill="#3A3460"/><circle cx="118" cy="364" r="6" fill="#1E1828"/>'
-               '<path d="M 126 372 L 126 400" stroke="#F0A8B4" stroke-width="1.4" opacity="0.7"/>'
-               '<path d="M 130 403 L 128 376 Q 136 368 144 376 L 144 403 Z" fill="#7A3A5A"/><circle cx="136" cy="367" r="5.6" fill="#3A2018"/>'
-               '<path d="M 144 376 L 144 402" stroke="#F0A8B4" stroke-width="1.4" opacity="0.7"/>'
-               '<path d="M 126 378 Q 128 374 130 378" stroke="#5A4870" stroke-width="4" stroke-linecap="round" fill="none"/>')
+    out.append(figure(118, 402, 44, "#3A3460", rim="#F0A8B4", pose="lean_back", light=1, seed=401, pal={"season": "winter", "form": "m"}, tint=("#2A2448", 0.25)))
+    out.append(figure(136, 403, 41, "#7A3A5A", rim="#F0A8B4", pose="lean_back", light=1, seed=402, pal={"season": "winter", "form": "f", "hair_style": "long"}, tint=("#2A2448", 0.25)))
     # lone pilings out in the water on the right, a gull standing on the tallest
     for x, top, w in ((474, 384, 11), (494, 396, 10), (512, 390, 10), (534, 402, 9)):
         out.append(f'<path d="M {x} {top + 2} Q {x + w / 2} {top - 2} {x + w} {top + 2} L {x + w} 444 L {x} 444 Z" fill="#1E1830"/>'
@@ -1351,7 +1334,7 @@ def boston():
     for X, Z, h, c, sk in ((0.6, 26, 1.7, "#2E4A6A", False), (0.2, 44, 1.65, "#C86A4A", True)):
         x, b = C(X, g(Z), Z)
         out.append(f'<ellipse cx="{x:.1f}" cy="{b + 1:.1f}" rx="{C.f * 0.5 / Z:.1f}" ry="{C.f * 0.08 / Z:.1f}" fill="#2A1E1A" opacity="0.4"/>')
-        out.append(figure(x, b, C.f * h / Z, c, skirt=sk, head="#3A2A22", rim="#FFE0A0"))
+        out.append(figure(x, b, C.f * h / Z, c, skirt=sk, rim="#FFE0A0", pose="stand_back", light=1, seed=int(Z), pal={"season": "winter"}))
     dx_, dy_ = C(1.0, g(26.5), 26.5)
     out.append(f'<g transform="translate({dx_:.1f} {dy_:.1f}) scale({C.f / 26.5 / 40:.3f})"><ellipse cx="0" cy="-10" rx="12" ry="5" fill="#C8904A"/><circle cx="10" cy="-15" r="4.5" fill="#C8904A"/><path d="M -8 -6 l -1 6 M -4 -6 l 0 6 M 5 -6 l 0 6 M 8 -6 l 1 6" stroke="#8A5A2A" stroke-width="2"/></g>')
     # falling leaves caught mid-air in the light
@@ -1557,17 +1540,16 @@ def philadelphia():
     gx, gb = C(-1.2, 0, 13)
     gh = C.f * 1.8 / 13
     out.append(f'<path d="M {gx:.1f} {gb:.1f} L {gx + gh * 1.2:.1f} {gb + 3:.1f} L {gx + gh * 1.2:.1f} {gb + 6:.1f} L {gx - 3:.1f} {gb + 2:.1f} Z" fill="#4A2A22" opacity="0.3"/>')
-    out.append(f'<g transform="translate({gx:.1f} {gb:.1f}) scale({gh / 100:.3f})">'
-               '<path d="M -8 -44 L -7 -2 M 8 -44 L 7 -2" stroke="#F2EEE6" stroke-width="7"/><path d="M -7 -14 L -7 0 M 7 -14 L 7 0" stroke="#1E1A1A" stroke-width="7.4"/>'
-               '<path d="M -14 -86 Q 0 -92 14 -86 L 18 -40 L -18 -40 Z" fill="#2E3E6A"/><path d="M -3 -86 L 3 -86 L 2 -48 L -2 -48 Z" fill="#E8DCC0"/>'
-               '<path d="M 14 -86 L 18 -40" stroke="#FFE0A8" stroke-width="2.4"/><circle cx="0" cy="-95" r="8.4" fill="#E8B898"/>'
-               '<path d="M -14 -100 Q 0 -112 14 -100 Q 0 -104 -14 -100 Z" fill="#1E1A1A"/><path d="M -12 -100 L 0 -110 L 12 -100 Z" fill="#1E1A1A"/>'
-               '<path d="M -14 -82 Q -24 -70 -20 -54" stroke="#2E3E6A" stroke-width="7" stroke-linecap="round" fill="none"/>'
-               '<path d="M 14 -82 Q 28 -96 30 -110" stroke="#2E3E6A" stroke-width="7" stroke-linecap="round" fill="none"/><circle cx="30" cy="-112" r="4" fill="#E8B898"/></g>')
+    out.append(F.person(gx, gb, gh, "point", 1, {"top": "#2E3E6A", "top_kind": "coat", "bottom": "#F2EEE6", "bottom_kind": "trousers", "shoes": "#1E1A1A",
+                                                 "hat_kind": "tricorn", "hat": "#1E1A1A", "hair_style": "ponytail", "hair": "#E8E2D8", "form": "m", "skin": "#E8B898"},
+                        seed=501, rim="#FFE0A8", light=-1))
     for X, Z, h, c, sk in ((1.0, 15, 1.7, "#E07A5A", True), (1.9, 15.4, 1.75, "#4A6A8A", False), (1.5, 14.4, 1.1, "#F2C84A", False), (-1.6, 30, 1.7, "#7A5A9A", False), (1.0, 38, 1.7, "#D8574A", True), (-6, 26, 1.7, "#3E7A6A", False)):
         x, b = C(X, 0, Z)
         out.append(f'<path d="M {x:.1f} {b:.1f} L {x + C.f * 2.2 / Z:.1f} {b + 2:.1f} L {x + C.f * 2.2 / Z:.1f} {b + 4:.1f} L {x - 2:.1f} {b + 1.5:.1f} Z" fill="#4A2A22" opacity="0.3"/>')
-        out.append(figure(x, b, C.f * h / Z, c, skirt=sk, head="#4A3022", rim="#FFE6B0"))
+        if h < 1.5:
+            out.append(F.person(x, b, C.f * h / Z, "child_34", -1, {"top": c}, seed=510, rim="#FFE6B0", light=-1))
+        else:
+            out.append(figure(x, b, C.f * h / Z, c, skirt=sk, rim="#FFE6B0", pose="stand_34" if Z < 20 else "walk", facing=-1, light=-1, seed=int(X * 10 + Z)))
     # big sycamores of the square framing the hall, sunlit from the left
     for cx_, cy_, r, sd in ((10, 150, 130, 1), (594, 130, 130, 2), (112, 262, 60, 3), (492, 256, 60, 4)):
         tb = 356 if r < 100 else 444
@@ -1692,7 +1674,7 @@ def yosemite():
         out.append(conifer(x, b, h, "#142020", sd, width=0.36, trunk="#2A1E1A"))
     # two hikers at the rail, and a raven riding the evening air
     for x, c, h in ((300, "#C8574A", 26), (314, "#3E5A7A", 28)):
-        out.append(figure(x, 414, h, c, legs="#2A2420", head="#3A2A22", rim="#F8C8A0"))
+        out.append(figure(x, 414, h, c, rim="#F8C8A0", pose="lean_back", light=1, seed=x, pal={"pack": True, "bag": "#3A4A3A" if x < 310 else "#B8573E", "season": "any"}))
     out.append('<path d="M 304 396 L 318 404" stroke="#3A3A3A" stroke-width="1.6"/>')
     out.append(gulls([(250, 160, 12), (230, 150, 7)], "#2A2430", 2.2))
     return "\n".join(out)

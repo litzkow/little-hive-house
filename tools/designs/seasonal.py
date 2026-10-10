@@ -505,6 +505,8 @@ def build_stickers():
 
 
 if __name__ == "__main__":
-    build_dates()
-    build_summer()
+    # Legacy: superseded by the painted/gouache/ink generators (kitchen_ink.py, holidays_gouache.py, summer_gouache.py, ...).
+    # Only the builds below that no newer generator replaces are kept.
+    # build_dates()
+    # build_summer()
     build_stickers()

@@ -10,6 +10,7 @@ import sys
 from paint import (P, blobs, conifer, dots, glow, grass, lg, mist, rg, ridge_poly, rough, streaks, tree_line, y_on)
 from places_painted import Cam, puff_column
 from poster import poster
+import figures as F
 
 
 def defs(*items):
@@ -264,19 +265,13 @@ def aspen(x, base, h, seed, gold=("#B8761E", "#E2A12C", "#F7D25A"), lean=0.0, ba
     return "".join(out)
 
 
-def figure(x, base, h, body="#2A2A34", head="#1E1A1E", pack=None, pole=False, flip=1):
-    """Small standing person silhouette (hiker), h = total height."""
-    k = h / 100
-    out = [f'<g transform="translate({x:.1f} {base:.1f}) scale({k * flip:.3f} {k:.3f})">',
-           '<path d="M -9 -44 L -11 0 L -4 0 L 0 -30 L 4 0 L 11 0 L 9 -44 Z" fill="#1E1C24"/>',
-           f'<path d="M -12 -82 Q 0 -90 12 -82 L 11 -42 L -11 -42 Z" fill="{body}"/>',
-           f'<circle cx="0" cy="-92" r="9" fill="{head}"/>']
+def figure(x, base, h, body="#2A2A34", head="#1E1A1E", pack=None, pole=False, flip=1, pose="stand_side", light=1, rim=None, seed=None, pal=None):
+    """Small painted person (figures.py), h = total height; pack = backpack colour."""
+    p = {"top": body}
     if pack:
-        out.append(f'<rect x="8" y="-84" width="12" height="30" rx="4" fill="{pack}"/>')
-    if pole:
-        out.append('<path d="M -12 -66 L -22 0" stroke="#1E1C24" stroke-width="3" stroke-linecap="round"/>')
-    out.append("</g>")
-    return "".join(out)
+        p.update(pack=True, bag=pack)
+    p.update(pal or {})
+    return F.person(x, base, h, "hiker" if pole else pose, flip, p, seed=int(x + base) if seed is None else seed, rim=rim, light=light)
 
 
 def ripple_lines(n, seed, box, color, op=(0.3, 0.8), w=(8, 40), sw=1.4):
@@ -390,7 +385,7 @@ def rocky_mountains():
         out.append(f'<ellipse cx="{bx}" cy="{by}" rx="{r * 1.4}" ry="{r * 0.8}" fill="#6E6A66"/><ellipse cx="{bx - r * 0.4}" cy="{by - r * 0.3}" rx="{r * 0.8}" ry="{r * 0.35}" fill="#A8A29A"/>')
     out.append(grass(170, 13, (-10, 398, 610, 444), ["#C9A24A", "#A88A3A", "#E2C06A", "#7A6A30"], h=(8, 22)))
     # photographer with a tripod waiting for the light
-    out.append(figure(250, 412, 26, body="#B8463A", pack="#2E3A4A"))
+    out.append(figure(254, 412, 26, body="#B8463A", pack="#2E3A4A", pose="stand_side", rim="#FFD8A0", light=-1, pal={"hat_kind": "beanie", "hat": "#2E3A4A", "season": "winter"}))
     out.append('<path d="M 266 384 L 260 412 M 266 384 L 272 412 M 266 384 L 266 412" stroke="#1E1C24" stroke-width="1.6"/><rect x="261" y="378" width="10" height="7" rx="1.5" fill="#1E1C24"/>')
     for x, b, h, sd, ln in ((-6, 444, 190, 1, 0.03), (40, 440, 150, 2, -0.02), (92, 444, 120, 3, 0.04),
                             (510, 444, 160, 4, -0.03), (562, 442, 200, 5, 0.02), (604, 444, 140, 6, -0.04)):
@@ -1044,9 +1039,8 @@ def blue_ridge():
             x += w
     out.append("".join(stones))
     out.append(f'<polyline points="{P(ov)}" fill="none" stroke="#F6E0B8" stroke-width="2.2" opacity="0.8"/>')
-    out.append(figure(120, 430, 46, body="#2E4A6A", head="#3A2A20"))
-    out.append(figure(140, 431, 42, body="#C8562E", head="#6A4428"))
-    out.append('<path d="M 132 392 L 156 374" stroke="#C8562E" stroke-width="3.4" stroke-linecap="round"/>')
+    out.append(figure(120, 430, 46, body="#2E4A6A", pose="stand_back", rim="#F6E0B8", light=1, pal={"form": "m", "top_kind": "jacket"}))
+    out.append(figure(140, 431, 42, body="#C8562E", pose="point", rim="#F6E0B8", light=1, pal={"form": "f", "top_kind": "sweater"}))
     out.append(birds_v([(300, 150, 12), (322, 142, 9)], "#3A4060"))
     return "\n".join(out)
 
@@ -1169,8 +1163,8 @@ def lake_tahoe():
     out.append(f'<path d="M {kx + 30} {ky + 2} L {kx + 90} {ky - 5} M {kx + 30} {ky + 5} L {kx + 90} {ky + 11}" stroke="#EFFFFA" stroke-width="1.4" opacity="0.45"/>')
     out.append(f'<ellipse cx="{kx}" cy="{ky + 6}" rx="38" ry="4" fill="#1E6A7A" opacity="0.4"/>')
     out.append(f'<path d="M {kx - 36} {ky} Q {kx} {ky + 8} {kx + 36} {ky} Q {kx} {ky - 4} {kx - 36} {ky} Z" fill="#F2B52A"/><path d="M {kx - 34} {ky} Q {kx} {ky - 3} {kx + 34} {ky}" stroke="#FFE08A" stroke-width="1.4" fill="none"/>')
-    out.append(f'<path d="M {kx - 4} {ky - 2} L {kx - 6} {ky - 18} Q {kx} {ky - 21} {kx + 6} {ky - 18} L {kx + 4} {ky - 2} Z" fill="#D8463A"/><circle cx="{kx}" cy="{ky - 24}" r="5" fill="#3A2A22"/>'
-               f'<path d="M {kx - 7} {ky - 30} Q {kx} {ky - 33} {kx + 7} {ky - 30} L {kx + 9} {ky - 27} L {kx - 9} {ky - 27} Z" fill="#F4EEE2"/>')
+    out.append(F.person(kx + 1, ky - 2, 48, "paddle", -1, {"top": "#D8463A", "top_kind": "tank", "bottom": "#2A2A30", "hat_kind": "sunhat", "hat": "#F4EEE2", "no_legs": True, "season": "summer"},
+                        seed=81, rim="#FFF6DC", light=1, shadow=0))
     out.append(f'<path d="M {kx - 30} {ky - 4} L {kx + 28} {ky - 22}" stroke="#2A2A2A" stroke-width="2"/><path d="M {kx - 36} {ky - 1} l 8 -6 l 2 3 Z M {kx + 26} {ky - 24} l 8 -4 l -1 4 Z" fill="#2A2A2A"/>')
     # granite boulders breaking the surface, foreground and framing
     for args in ((120, 318, 30, 12, 1, 322), (470, 316, 22, 9, 2, 320), (520, 330, 34, 16, 3, 336), (210, 340, 18, 8, 4, 343)):
