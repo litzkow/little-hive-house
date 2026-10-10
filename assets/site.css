@@ -460,3 +460,18 @@ section.tight { padding-block: 28px 72px; }
   100% { transform: translate(0, 100vh) rotate(360deg); }
 }
 .hero-grid { position: relative; z-index: 2; }
+
+/* photo builder: frame picker and framed thumbnails */
+.frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
+.frame-opt { position: relative; }
+.frame-opt input { position: absolute; opacity: 0; inset: 0; }
+.frame-opt label { display: grid; gap: 6px; justify-items: center; padding: 8px 6px 10px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; text-align: center; font-size: 13px; line-height: 1.2; }
+.frame-opt input:checked + label { border-color: var(--ink); background: var(--honey-soft); }
+.frame-opt input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+.fprev { position: relative; width: 64px; aspect-ratio: 1; border-radius: 6px; overflow: hidden; box-shadow: var(--shadow); background: #ddd; }
+.fprev i { position: absolute; left: var(--x); top: var(--y); width: var(--w); height: var(--h); border-radius: var(--r); background: linear-gradient(160deg, #7FB8D8 0%, #F6D08A 55%, #E8792E 56%, #B9531E 100%); }
+.fprev img, .thumb .fr { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.caption-row { margin-top: 12px; display: grid; gap: 6px; }
+.caption-row input { min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: 16px var(--body); }
+.thumb .ph { position: absolute; object-fit: cover; }
+.thumb .cap { position: absolute; left: 0; right: 0; top: 80%; text-align: center; font: italic 700 clamp(8px, 1.6vw, 12px) "Playfair Display", Georgia, serif; color: #3A2418; white-space: nowrap; overflow: hidden; }

@@ -4,6 +4,7 @@ const fs = require('fs');
 (async () => {
   const jobs = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
   const fontsDir = process.argv[3];
+  const scale = Number(process.argv[4] || 1);
   const css = `
 @font-face{font-family:"Anton";src:url("file://${fontsDir}/Anton-Regular.ttf")}
 @font-face{font-family:"Bebas Neue";src:url("file://${fontsDir}/BebasNeue-Regular.ttf")}
@@ -15,7 +16,7 @@ const fs = require('fs');
 @font-face{font-family:"Playfair Display";font-style:italic;font-weight:400 900;src:url("file://${fontsDir}/PlayfairDisplay-Italic[wght].ttf")}
 html,body{margin:0;background:transparent} #s>svg{width:600px;height:600px;display:block}`;
   const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 600, height: 600 }, deviceScaleFactor: 1 });
+  const p = await b.newPage({ viewport: { width: 600, height: 600 }, deviceScaleFactor: scale });
   const os = require('os'), path = require('path');
   const hp = path.join(os.tmpdir(), 'lhh-raster-' + process.pid + '.html');
   fs.writeFileSync(hp, `<html><head><style>${css}</style></head><body><div id="s"></div>

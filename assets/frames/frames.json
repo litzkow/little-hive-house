@@ -1,0 +1,158 @@
+[
+ {
+  "id": "none",
+  "name": "No border",
+  "window": [
+   0,
+   0,
+   600,
+   600
+  ],
+  "radius": 0,
+  "caption": false,
+  "note": "Your photo fills the whole magnet"
+ },
+ {
+  "id": "classic",
+  "name": "Classic white",
+  "window": [
+   74,
+   74,
+   452,
+   452
+  ],
+  "radius": 0,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "polaroid",
+  "name": "Instant photo",
+  "window": [
+   78,
+   72,
+   444,
+   384
+  ],
+  "radius": 0,
+  "caption": true,
+  "note": "Add a short caption"
+ },
+ {
+  "id": "rounded",
+  "name": "Soft corners",
+  "window": [
+   80,
+   80,
+   440,
+   440
+  ],
+  "radius": 46,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "honey",
+  "name": "Honey line",
+  "window": [
+   92,
+   92,
+   416,
+   416
+  ],
+  "radius": 0,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "gallery",
+  "name": "Gallery black",
+  "window": [
+   96,
+   96,
+   408,
+   408
+  ],
+  "radius": 0,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "scallop",
+  "name": "Pink scallop",
+  "window": [
+   102,
+   102,
+   396,
+   396
+  ],
+  "radius": 0,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "film",
+  "name": "Film strip",
+  "window": [
+   52,
+   86,
+   496,
+   428
+  ],
+  "radius": 0,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "autumn",
+  "name": "Autumn leaves",
+  "window": [
+   84,
+   84,
+   432,
+   432
+  ],
+  "radius": 8,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "holly",
+  "name": "Holly & berries",
+  "window": [
+   84,
+   84,
+   432,
+   432
+  ],
+  "radius": 8,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "hearts",
+  "name": "Little hearts",
+  "window": [
+   84,
+   84,
+   432,
+   432
+  ],
+  "radius": 12,
+  "caption": false,
+  "note": ""
+ },
+ {
+  "id": "starry",
+  "name": "Starry night",
+  "window": [
+   88,
+   88,
+   424,
+   424
+  ],
+  "radius": 10,
+  "caption": false,
+  "note": ""
+ }
+]

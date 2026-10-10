@@ -614,6 +614,14 @@ def page_collection(col):
 
 def page_photo():
     pg = Page("")
+    import json as _json
+    _frames = _json.loads((ROOT / "assets" / "frames" / "frames.json").read_text(encoding="utf-8"))
+    frame_opts = "\n".join(
+        f'            <div class="frame-opt"><input type="radio" name="frame" id="frame-{f["id"]}" value="{f["id"]}"{" checked" if f["id"] == "none" else ""}>'
+        f'<label for="frame-{f["id"]}"><span class="fprev" style="--x:{f["window"][0] / 6}%;--y:{f["window"][1] / 6}%;--w:{f["window"][2] / 6}%;--h:{f["window"][3] / 6}%;--r:{f["radius"] / 6}%">'
+        f'<i></i><img src="{pg.p}assets/frames/{f["id"]}.svg" alt=""></span><span class="fname">{E(f["name"])}</span></label></div>'
+        for f in _frames)
+    frames_js = _json.dumps({f["id"]: f for f in _frames}, separators=(",", ":"))
     body = f"""{header(pg, "photo")}
 <main id="main">
   <div class="wrap page-head">
@@ -641,6 +649,16 @@ def page_photo():
             <div class="pack"><input type="radio" name="pack" id="pack-16" value="16" data-price="40"><label for="pack-16"><strong>16 magnets</strong><span>$40</span></label></div>
             <div class="pack"><input type="radio" name="pack" id="pack-25" value="25" data-price="65"><label for="pack-25"><strong>25 magnets</strong><span>$65</span></label></div>
             <div class="pack"><input type="radio" name="pack" id="pack-50" value="50" data-price="120"><label for="pack-50"><strong>50 magnets</strong><span>$120</span></label></div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Frame</legend>
+          <div class="frames" id="frames">
+{frame_opts}
+          </div>
+          <div class="caption-row" id="caption-row" hidden>
+            <label class="label" for="caption">Caption <span class="muted">(optional, up to 28 letters)</span></label>
+            <input type="text" id="caption" maxlength="28" placeholder="Summer 2026">
           </div>
         </fieldset>
         <div>
@@ -687,7 +705,8 @@ def page_photo():
   </section>
 </main>
 {footer(pg)}"""
-    write("photo-magnets.html", head(pg, "Custom photo magnets", "Custom 2 × 2 inch photo magnets from your own pictures. Packs of 4, 9 or 16.", "photo-magnets.html") + body + chrome_end(pg, ("custom.js",)))
+    body += f'\n<script>window.LHH_FRAMES={frames_js};window.LHH_FRAMES_BASE="assets/frames/";</script>'
+    write("photo-magnets.html", head(pg, "Custom photo magnets", "Custom 2 × 2 inch photo magnets from your own pictures, with or without a frame. Packs of 4 to 50.", "photo-magnets.html") + body + chrome_end(pg, ("custom.js",)))
 
 
 PACKAGES = [
