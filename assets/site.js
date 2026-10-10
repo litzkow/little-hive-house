@@ -155,7 +155,7 @@
     for (var i = 0; i < 9; i++) {
       var el = document.createElement('i');
       var s = 18 + Math.random() * 16;
-      el.style.left = (Math.random() * 96) + '%';
+      el.style.left = 'calc(' + (Math.random() * 100).toFixed(1) + '% - ' + Math.round(s + 30) + 'px)';
       el.style.width = el.style.height = s + 'px';
       el.style.backgroundImage = 'url(' + base + list[i % list.length] + '.svg)';
       el.style.animationDuration = (11 + Math.random() * 9) + 's';

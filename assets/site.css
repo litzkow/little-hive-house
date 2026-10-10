@@ -32,11 +32,12 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; overscroll-behavior-x: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
 body {
   margin: 0;
-  overflow-x: clip; /* safety net: nothing may ever push the page sideways on phones */
+  overflow-x: clip; /* safety net: nothing may ever push the page sideways on phones (html above stops iPhone side-panning) */
+  position: relative; width: 100%; max-width: 100vw; overscroll-behavior-x: none;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--body);
@@ -239,7 +240,7 @@ footer { padding-block: 48px 64px; }
 
 /* collection tabs */
 .tabs-bar { border-bottom: 1px solid var(--line); background: var(--surface); }
-.tabs { display: flex; gap: 8px; overflow-x: auto; padding-block: 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tabs { display: flex; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; padding-block: 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); text-decoration: none; font: 500 15px var(--body); cursor: pointer; white-space: nowrap; }
 .tab small { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -506,7 +507,7 @@ html.studio-open { overflow: hidden; }
 .cap-help { margin: 0; font-size: 13px; color: var(--muted); }
 .linkish { justify-self: start; border: 0; background: none; padding: 6px 0; min-height: 32px; color: var(--ink); font: 600 14px var(--body); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .studio-pick { min-height: 0; overflow: auto; padding: 0 18px 18px; overscroll-behavior: contain; }
-.chips { position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; padding: 14px 0 12px; overflow-x: auto; background: var(--surface); scrollbar-width: none; }
+.chips { position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; padding: 14px 0 12px; overflow-x: auto; overscroll-behavior-x: contain; background: var(--surface); scrollbar-width: none; }
 .chip { flex: none; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font: 500 14px var(--body); cursor: pointer; white-space: nowrap; }
 .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .swatches { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 14px 12px; }
@@ -596,7 +597,7 @@ html.studio-open { overflow: hidden; }
 .fav[aria-pressed="true"] svg { fill: currentColor; }
 .fav.pop { animation: lhh-pop .35s ease; }
 @keyframes lhh-pop { 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
-@media (max-width: 760px) { .fav { top: -4px; right: -4px; width: 38px; height: 38px; } }
+@media (max-width: 760px) { .fav { top: -4px; right: 0; width: 38px; height: 38px; } }
 
 /* cart drawer: checkout extras. The whole drawer scrolls when the cart is long, so nothing gets squeezed. */
 .drawer { overflow-y: auto; overscroll-behavior: contain; }
