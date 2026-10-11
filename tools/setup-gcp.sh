@@ -37,7 +37,7 @@ if retry gcloud services enable cloudfunctions.googleapis.com cloudbuild.googlea
     compute.googleapis.com iam.googleapis.com iamcredentials.googleapis.com sts.googleapis.com \
     cloudresourcemanager.googleapis.com serviceusage.googleapis.com orgpolicy.googleapis.com \
     firestore.googleapis.com firebaserules.googleapis.com firebasestorage.googleapis.com \
-    identitytoolkit.googleapis.com storage.googleapis.com --project "$PROJECT"; then ok "APIs ligadas"; else warn "Algumas APIs não ligaram"; fi
+    identitytoolkit.googleapis.com storage.googleapis.com cloudbilling.googleapis.com --project "$PROJECT"; then ok "APIs ligadas"; else warn "Algumas APIs não ligaram"; fi
 
 step "2/5 Regras da organização"
 ORG=$(gcloud projects get-ancestors "$PROJECT" --format='csv[no-heading](id,type)' 2>/dev/null | awk -F, '$2=="organization"{print $1}')

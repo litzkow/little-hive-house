@@ -118,6 +118,14 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
+      - name: Make sure the Google APIs the deploy needs are on
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          gcloud services enable cloudbilling.googleapis.com cloudfunctions.googleapis.com cloudbuild.googleapis.com run.googleapis.com \
+            artifactregistry.googleapis.com eventarc.googleapis.com pubsub.googleapis.com cloudscheduler.googleapis.com \
+            firestore.googleapis.com firebaserules.googleapis.com firebasestorage.googleapis.com --project "$PROJECT" \
+            || echo "::warning title=APIs::Could not check the Google APIs; the deploy will say if one is missing"
+
       - name: Install function dependencies
         if: steps.check.outputs.ready == 'true'
         working-directory: functions
