@@ -156,6 +156,23 @@
     });
   }
 
+  // seasonal collections: in season they sit right after the place collections, out of season at the end
+  (function () {
+    var d = new Date(), md = (d.getMonth() + 1) * 100 + d.getDate();
+    var inSeason = function (r) { var p = r.split('-'), a = +p[0], b = +p[1]; return a <= b ? (md >= a && md <= b) : (md >= a || md <= b); };
+    var seen = [];
+    document.querySelectorAll('[data-col-season]').forEach(function (el) {
+      var box = el.parentNode; if (seen.indexOf(box) >= 0) return; seen.push(box);
+      var items = Array.prototype.filter.call(box.children, function (c) { return c.hasAttribute('data-col-season'); });
+      var anchor = Array.prototype.filter.call(box.children, function (c) { return c.hasAttribute('data-col-anchor'); })[0];
+      var now = items.filter(function (c) { return inSeason(c.getAttribute('data-col-season')); });
+      var later = items.filter(function (c) { return !inSeason(c.getAttribute('data-col-season')); });
+      var ref = anchor ? anchor.nextSibling : box.firstChild;
+      now.forEach(function (c) { box.insertBefore(c, ref); });
+      later.forEach(function (c) { box.appendChild(c); });
+    });
+  })();
+
   // seasonal drifting leaves / snow / petals in the hero
   (function () {
     var hero = document.querySelector('.hero');

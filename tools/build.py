@@ -9,7 +9,7 @@ import re
 
 import datetime
 
-from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, PRICE, SEASONS, VOLUME, title_for
+from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, PRICE, SEASONAL, SEASONS, VOLUME, title_for
 BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
 PARENT = {ch: g for g in GROUPS for ch in g["children"]}
 
@@ -31,7 +31,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "13"
+VERSION = "14"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -147,7 +147,7 @@ def header(pg, active):
         for href, label, key in NAV)
     mobile = "\n".join(f'      <a href="{pg.p}{href}">{label}</a>' for href, label, _ in NAV)
     def _sub(c):
-        line = f'      <a class="sub" href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a>'
+        line = f'      <a class="sub"{season_attr(c)} href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a>'
         if "children" in c:
             line += "".join(f'\n      <a class="sub sub2" href="{pg.p}collections/{k["slug"]}.html">{E(k["name"])}</a>' for k in group_kids(c))
         return line
@@ -199,7 +199,7 @@ def tabs_links(pg, active):
     items = [f'<a class="tab" href="{pg.p}shop.html"{CUR if active == "all" else ""}>All <small>{TOTAL}</small></a>']
     for c in COLLECTIONS:
         cur = ' aria-current="page"' if c["slug"] == active else ""
-        items.append(f'<a class="tab" href="{pg.p}collections/{c["slug"]}.html"{cur}>{E(c["name"])} <small>{len(c["order"])}</small></a>')
+        items.append(f'<a class="tab"{season_attr(c)} href="{pg.p}collections/{c["slug"]}.html"{cur}>{E(c["name"])} <small>{len(c["order"])}</small></a>')
     return f"""<div class="tabs-bar">
   <nav class="wrap tabs" aria-label="Collections">
     {chr(10).join("    " + i for i in items).strip()}
@@ -237,6 +237,15 @@ def product(pg, col, slug, show_col=True):
 </li>"""
 
 
+def season_attr(col):
+    """data-season on seasonal collections (site.js moves them up in season, down out of season);
+    data-season-anchor marks where in-season ones go (right after the place collections)."""
+    if col["slug"] in SEASONAL:
+        a, b = SEASONAL[col["slug"]]
+        return f' data-col-season="{a:04d}-{b:04d}"'
+    return ' data-col-anchor' if col["slug"] == "city-sketches" else ""
+
+
 def col_card(pg, col):
     if "children" in col:
         kids = group_kids(col)
@@ -251,7 +260,7 @@ def col_card(pg, col):
   </div>
 </a></li>"""
     fan = "".join(f'<span class="m">{pg.svg(col["slug"], s, cls="fan-svg")}</span>' for s in col["order"][:3])
-    return f"""<li><a class="col-card" href="{pg.p}collections/{col["slug"]}.html">
+    return f"""<li{season_attr(col)}><a class="col-card" href="{pg.p}collections/{col["slug"]}.html">
   <div class="fan" aria-hidden="true">{fan}</div>
   <div class="col-body">
     <h3>{E(col["name"])}</h3>

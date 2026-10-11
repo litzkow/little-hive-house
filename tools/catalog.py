@@ -358,18 +358,40 @@ COLLECTIONS = [
         "titles": {"cafe-creme": "Café Crème", "cocorico": "Cocorico!", "mont-saint-michel": "Mont-Saint-Michel", "bon-appetit": "Bon Appétit!", "le-marche": "Le Marché", "crepes": "Crêpes", "la-mariniere": "La Marinière", "galette-des-rois": "Galette des Rois", "le-gouter": "Le Goûter", "l-heure-de-l-apero": "L'Heure de l'Apéro", "oh-la-la": "Oh Là Là!", "bonjour": "Bonjour!", "c-est-la-vie": "C'est la Vie", "joie-de-vivre": "Joie de Vivre", "on-tire-ou-on-pointe": "On Tire ou On Pointe?", "petit-a-petit": "Petit à Petit", "val-de-loire": "Val de Loire", "le-14-juillet": "Le 14 Juillet", "porte-bonheur": "Porte-Bonheur", "bonne-fete": "Bonne Fête"},
         "order": ["la-baguette", "cafe-creme", "bisous", "mamie", "l-heure-de-l-apero", "oh-la-la", "bonjour", "le-fromage", "cocorico", "c-est-la-vie", "mont-saint-michel", "petit-a-petit", "la-mariniere", "galette-des-rois", "le-marche", "mon-petit-chou", "ma-petite-maison", "macarons", "on-tire-ou-on-pointe", "le-14-juillet", "la-madeleine", "porte-bonheur", "bonne-fete", "val-de-loire", "crepes", "le-gouter", "les-bouquinistes", "bon-appetit", "joie-de-vivre", "papi"],
     },
+    {
+        "slug": "mythology", "name": "Mythology", "tag": "The great myths, hand-painted",
+        "blurb": "The world's great myths, from Medusa's shield and Odin's ravens to the Boat of Ra and Maui's fishhook, painted like the plates of an old illustrated book of legends.",
+        "titles": {"athenas-owl": "Athena's Owl", "baba-yagas-hut": "Baba Yaga's Hut", "bifrost": "Bifröst", "huginn-and-muninn": "Huginn & Muninn", "mauis-fishhook": "Maui's Fishhook", "romulus-and-remus": "Romulus & Remus", "the-boat-of-ra": "The Boat of Ra", "the-churning-of-the-ocean": "The Churning of the Ocean", "the-dragons-pearl": "The Dragon's Pearl", "the-weighing-of-the-heart": "The Weighing of the Heart", "thors-goats": "Thor's Goats"},
+        "order": ["medusa", "quetzalcoatl", "the-simurgh", "mauis-fishhook", "orpheus", "the-labyrinth", "gilgamesh", "fenrir", "the-phoenix", "baba-yagas-hut", "the-boat-of-ra", "kitsune", "the-golden-fleece", "poseidon", "the-selkie", "bifrost", "athenas-owl", "huginn-and-muninn", "the-dragons-pearl", "prometheus", "sleipnir", "the-sirens", "amaterasu", "bastet", "the-sphinx", "the-weighing-of-the-heart", "the-moon-rabbit", "romulus-and-remus", "thors-goats", "the-churning-of-the-ocean"],
+    },
+    {
+        "slug": "horror", "name": "Horror Classics", "tag": "Tales of terror, beautifully told",
+        "blurb": "The great tales of terror and old folklore monsters, painted like vintage pulp covers, silent-film cards and penny dreadfuls: moonlight, fog and candle glow, all dread and no gore.",
+        "titles": {"jekyll-and-hyde": "Dr Jekyll & Mr Hyde", "the-monkeys-paw": "The Monkey's Paw", "the-pit-and-the-pendulum": "The Pit and the Pendulum", "the-fall-of-the-house-of-usher": "The Fall of the House of Usher", "the-masque-of-the-red-death": "The Masque of the Red Death", "the-hound-of-the-baskervilles": "The Hound of the Baskervilles", "the-picture-of-dorian-gray": "The Picture of Dorian Gray", "the-call-of-cthulhu": "The Call of Cthulhu", "the-phantom-of-the-opera": "The Phantom of the Opera", "the-turn-of-the-screw": "The Turn of the Screw", "the-house-on-the-hill": "The House on the Hill", "double-double-toil-and-trouble": "Double, Double, Toil and Trouble", "will-o-the-wisp": "Will-o'-the-Wisp", "the-signal-man": "The Signal-Man", "spring-heeled-jack": "Spring-Heeled Jack"},
+        "order": ["dracula", "nosferatu", "the-headless-horseman", "the-masque-of-the-red-death", "bloody-mary", "the-call-of-cthulhu", "the-fall-of-the-house-of-usher", "krampus", "the-jersey-devil", "the-tell-tale-heart", "jekyll-and-hyde", "the-banshee", "double-double-toil-and-trouble", "the-phantom-of-the-opera", "the-picture-of-dorian-gray", "the-house-on-the-hill", "the-monkeys-paw", "the-cursed-tomb", "will-o-the-wisp", "la-llorona", "the-pit-and-the-pendulum", "the-hound-of-the-baskervilles", "frankenstein", "the-graveyard-bell", "the-invisible-man", "the-demeter", "the-werewolf", "the-signal-man", "the-turn-of-the-screw", "spring-heeled-jack"],
+    },
 ]
 
-DISPLAY = ["places", "world", "ink-cities", "city-sketches", "fall", "halloween", "christmas", "holidays", "summer", "kitchen-words",
-           "bumper-stickers", "night-sky", "birth-flowers", "bee-kind", "furry-friends", "brasil", "mexico", "italia", "japan", "korea", "philippines", "india", "ireland", "france", "greece", "puerto-rico", "americana", "home-notes", "great-masters", "storybook-classics", "fairy-tales", "wise-words"]
+DISPLAY = [  # most popular first; seasonal ones also move up/down by date on the site (SEASONAL below)
+    "places", "world", "ink-cities", "city-sketches",
+    "fall", "halloween", "horror",
+    "furry-friends", "kitchen-words",
+    "americana", "mexico", "ireland", "italia", "puerto-rico", "philippines", "india", "korea", "japan", "brasil", "greece", "france",
+    "great-masters", "mythology", "home-notes", "bee-kind", "night-sky", "birth-flowers",
+    "storybook-classics", "fairy-tales", "wise-words", "holidays", "bumper-stickers",
+    "christmas", "summer"]
 COLLECTIONS.sort(key=lambda c: DISPLAY.index(c["slug"]))
+
+# When a seasonal collection is in season (MMDD, inclusive) the site moves it up, right after the place collections;
+# out of season it moves to the end.
+SEASONAL = {"fall": (820, 1130), "halloween": (901, 1031), "horror": (901, 1031), "christmas": (1101, 1231), "summer": (501, 831)}
 
 # Parent collections: one page that gathers several collections (shown as sub-collections).
 GROUPS = [
     {"slug": "heritage", "name": "Heritage", "tag": "A little piece of home",
      "blurb": "Hand-painted magnets from the cultures we carry with us: the foods, words, places and little rituals of home, "
               "for everyone who misses a country, grew up between two, or simply fell in love with one.",
-     "children": ["brasil", "mexico", "puerto-rico", "italia", "france", "greece", "ireland", "japan", "korea", "philippines", "india", "americana"]},
+     "children": ["americana", "mexico", "ireland", "italia", "puerto-rico", "philippines", "india", "korea", "japan", "brasil", "greece", "france"]},
 ]
 
 # The home page spotlight changes with the calendar. (start MM-DD, end MM-DD), first match wins.
