@@ -9,7 +9,8 @@ let dbReady = false;
 function ensureApp() {
   if (!app) {
     const { initializeApp, getApps } = require("firebase-admin/app");
-    app = getApps().length ? getApps()[0] : initializeApp();
+    // firebase-functions creates its own *named* app for callable checks, so look for the default app by name
+    app = getApps().find((a) => a.name === "[DEFAULT]") || initializeApp();
   }
   return app;
 }
@@ -19,8 +20,7 @@ module.exports = {
   reset() { injected = null; },
   db() {
     if (injected && injected.db) return injected.db;
-    ensureApp();
-    const db = require("firebase-admin/firestore").getFirestore();
+    const db = require("firebase-admin/firestore").getFirestore(ensureApp());
     if (!dbReady) {
       dbReady = true;
       try { db.settings({ ignoreUndefinedProperties: true }); } catch (e) { /* already configured */ }
@@ -29,13 +29,11 @@ module.exports = {
   },
   auth() {
     if (injected && injected.auth) return injected.auth;
-    ensureApp();
-    return require("firebase-admin/auth").getAuth();
+    return require("firebase-admin/auth").getAuth(ensureApp());
   },
   bucket() {
     if (injected && injected.bucket) return injected.bucket;
-    ensureApp();
-    return require("firebase-admin/storage").getStorage().bucket();
+    return require("firebase-admin/storage").getStorage(ensureApp()).bucket();
   },
   /** firebase-admin/storage getDownloadURL, or null when not available (tests). */
   getDownloadURL(file) {
