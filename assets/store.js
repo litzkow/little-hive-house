@@ -26,7 +26,7 @@
   var REGION = 'us-east1';
   var SUPPORT = 'support@littlehivehouse.com';
   var C = window.LHH_FIREBASE || {};
-  var configured = !!(C.apiKey && C.projectId);
+  var configured = !!(C.apiKey && C.projectId && C.live !== false);
   var me = document.querySelector('script[src*="store.js"]');
   var base = me ? me.getAttribute('src').replace(/assets\/store\.js.*$/, '') : '';
 
