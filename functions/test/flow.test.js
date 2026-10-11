@@ -452,3 +452,13 @@ test("sales tax: Stripe Tax params, tax kept apart from sales, fallback while St
   assert.equal(S.sessions[`cs_test_${S.n}`].params["automatic_tax[enabled]"], undefined);
   delete process.env.STRIPE_TAX;
 });
+
+test("backfillFees saves the real Stripe fee once Stripe has it", async () => {
+  const { db, net } = setup();
+  db.docs.set("orders/o1", { status: "paid", stripe: { paymentIntent: "pi_9", fee: null } });
+  db.docs.set("orders/o2", { status: "pending", stripe: { paymentIntent: null, fee: null } });
+  net.handlers["GET /v1/payment_intents/*"] = () => ({ id: "pi_9", latest_charge: { balance_transaction: { fee: 82 } } });
+  const r = await require("../scheduled").backfillFees();
+  assert.equal(r.fixed, 1);
+  assert.equal(db.docs.get("orders/o1").stripe.fee, 0.82);
+});

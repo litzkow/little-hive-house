@@ -88,6 +88,7 @@ exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 120, maxInst
 /* ---------- automatic delivery tracking: every 2 hours (tracking.js) ---------- */
 exports.trackShipments = onSchedule({ region: REGION, schedule: "every 2 hours", timeZone: "America/New_York", timeoutSeconds: 300, memory: "256MiB" }, async () => {
   await tracking().trackShipments();
+  await scheduled().backfillFees().catch((err) => console.warn("[backfillFees] failed", err.message));
 });
 
 /* ---------- daily ---------- */

@@ -39,4 +39,29 @@ async function deliveredFollowUp() {
   return { late: late.length };
 }
 
-module.exports = { deliveredFollowUp, lateShipments, DAYS };
+/* backfillFees (every 2 hours): Stripe often settles the card fee a moment after checkout, so the fee may be missing
+   when the order is marked paid. Fetch it later so reports use the real fee instead of an estimate. */
+async function backfillFees(limit = 40) {
+  const stripe = require("./stripe");
+  const { dollars } = require("./pricing");
+  const q = await deps.db().collection("orders").where("stripe.fee", "==", null).limit(limit * 3).get();
+  let fixed = 0;
+  for (const d of q.docs) {
+    if (fixed >= limit) break;
+    const o = d.data();
+    const pi = o.stripe && o.stripe.paymentIntent;
+    if (!pi || o.status === "pending" || o.status === "canceled") continue;
+    try {
+      const p = await stripe.request("GET", `/payment_intents/${encodeURIComponent(pi)}`, { expand: ["latest_charge.balance_transaction"] });
+      const bt = p && p.latest_charge && p.latest_charge.balance_transaction;
+      if (bt && typeof bt === "object" && Number.isFinite(bt.fee)) {
+        await d.ref.update({ "stripe.fee": dollars(bt.fee) });
+        fixed += 1;
+      }
+    } catch (err) { console.warn("[backfillFees]", d.id, err.message); }
+  }
+  if (fixed) console.log(`[backfillFees] saved the real Stripe fee on ${fixed} order(s)`);
+  return { fixed };
+}
+
+module.exports = { deliveredFollowUp, backfillFees, lateShipments, DAYS };
