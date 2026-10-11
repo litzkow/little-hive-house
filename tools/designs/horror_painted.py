@@ -343,6 +343,369 @@ def lit_slit(D, x, y, w, h, col="#FFC860", glow=True):
     return "".join(out)
 
 
+# ================================================================ gallery toolkit (2026 repaint): soft light, lost edges, ink texture
+# Everything below paints in light rather than in outlines: value gradients along a light direction, blurred shadow
+# cores and reflected light, crisp rims only where the eye should go, fog and clouds built from many soft puffs,
+# Finlay-style stipple and engraved hatching for texture. Each design ends with gfin() (painterly varnish).
+from painterly import painterly as _painterly
+import re as _re
+
+
+def gb(D, sd):
+    """filter attribute for a gaussian blur of sd px (soft, lost edges)."""
+    key = ("gb", sd)
+    if key not in D.cache:
+        i = D.nid()
+        D.defs.append(f'<filter id="{i}" x="-200" y="-200" width="1000" height="1000" filterUnits="userSpaceOnUse">'
+                      f'<feGaussianBlur stdDeviation="{sd}"/></filter>')
+        D.cache[key] = f'filter="url(#{i})"'
+    return D.cache[key]
+
+
+def soft(D, inner, sd, op=None):
+    o = f' opacity="{op}"' if op is not None else ""
+    return f'<g {gb(D, sd)}{o}>{inner}</g>'
+
+
+def _unit(v):
+    L = math.hypot(*v) or 1
+    return v[0] / L, v[1] / L
+
+
+def gform(D, pts, pal, seed, light=(-0.6, -0.8), angle=-90, n=None, core=0.3, core_op=0.75, refl=None, refl_op=0.35,
+          hi_op=0.5, hik=0.07, rim=None, rim_w=2.4, rim_op=0.9, rim_blur=0.6, slen=None, sw=None, sop=(0.1, 0.3),
+          cols=None, edge=None, edge_w=1.4, edge_op=0.55, lost=0, closed=True, d=None, sharp=False):
+    """A form painted in light. pal = (light, mid, dark). A value gradient along the light, a soft (blurred) shadow
+    core on the far side, a breath of reflected light at the very shadow edge, a soft lit crescent, form-following
+    translucent strokes, an optional crisp rim light, and a broken (lost-and-found) edge line instead of an outline."""
+    hi, mid, dkc = pal
+    if sharp:
+        closed = False
+    d = d or (smooth_closed(pts) if closed else pd(pts))
+    x0, y0, x1, y1 = bbox(pts)
+    W, H = max(1, x1 - x0), max(1, y1 - y0)
+    lx, ly = _unit(light)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    R = 0.5 * math.hypot(W * lx, H * ly) + 1
+    g = D.lin([(0, hi), (0.42, mid), (1, dkc)], cx + lx * R, cy + ly * R, cx - lx * R, cy - ly * R, "userSpaceOnUse")
+    out = []
+    if lost:
+        out.append(f'<path d="{d}" fill="{mid}" {gb(D, lost)} opacity="0.7"/>')
+    out.append(f'<path d="{d}" fill="{g}"/>')
+    cid = D.clip(f'<path d="{d}"/>')
+    inner = []
+    m = min(W, H)
+
+    def sh(k):
+        return smooth_closed(shift(pts, lx * W * k, ly * H * k)) if closed else pd(shift(pts, lx * W * k, ly * H * k))
+    if core:
+        inner.append(f'<path d="{d} {sh(core)}" fill-rule="evenodd" fill="{dkc}" opacity="{core_op}" {gb(D, round(max(1.5, m * 0.07), 1))}/>')
+    if refl:
+        inner.append(f'<path d="{d} {sh(0.05)}" fill-rule="evenodd" fill="{refl}" opacity="{refl_op}" {gb(D, round(max(1, m * 0.025), 1))}/>')
+    if hi_op:
+        inner.append(f'<path d="{d} {sh(-hik)}" fill-rule="evenodd" fill="{hi}" opacity="{hi_op}" {gb(D, round(max(1, m * 0.04), 1))}/>')
+    n = n if n is not None else int(max(8, min(200, W * H / 110)))
+    if n:
+        vert = abs(math.sin(math.radians(angle))) > 0.7
+        slen = slen or (0.1 * (H if vert else W), 0.35 * (H if vert else W))
+        sw = sw or (max(0.6, m * 0.012), max(1.2, m * 0.035))
+        inner.append(strokes(D.nid(), d, (x0 - 4, y0 - 4, x1 + 4, y1 + 4), cols or [hi, dkc, mid, hi], seed + 1, n=n, angle=angle,
+                             length=slen, width=sw, opacity=sop, curve=0.22))
+    if rim:
+        rw = rim_w
+        inner.append(f'<path d="{d} {smooth_closed(shift(pts, -lx * rw, -ly * rw)) if closed else pd(shift(pts, -lx * rw, -ly * rw))}" fill-rule="evenodd" '
+                     f'fill="{rim}" opacity="{rim_op}"' + (f' {gb(D, rim_blur)}' if rim_blur else "") + "/>")
+    out.append(f'<g {cid}>{"".join(inner)}</g>')
+    if edge:
+        rnd = random.Random(seed + 7)
+        dash = " ".join(f"{rnd.uniform(14, 60):.0f} {rnd.uniform(6, 34):.0f}" for _ in range(6))
+        out.append(f'<path d="{d}" fill="none" stroke="{edge}" stroke-width="{edge_w}" stroke-dasharray="{dash}" '
+                   f'stroke-linecap="round" stroke-linejoin="round" opacity="{edge_op}"/>')
+    return "".join(out)
+
+
+def rimlit(D, pts, fill, rim, light=(-0.6, -0.8), w=2.2, op=0.9, blur=0.5, glow=None, glow_op=0.35, d=None):
+    """A silhouette against light: flat dark body, a thin crisp rim on the side that faces the light and an optional
+    soft halo of the light bleeding round the edge."""
+    d = d or smooth_closed(pts)
+    lx, ly = _unit(light)
+    out = []
+    if glow:
+        out.append(f'<path d="{d}" fill="none" stroke="{glow}" stroke-width="{w * 4:.1f}" opacity="{glow_op}" {gb(D, w * 2.5)}/>')
+    out.append(f'<path d="{d}" fill="{fill}"/>')
+    cid = D.clip(f'<path d="{d}"/>')
+    out.append(f'<g {cid}><path d="{d} {smooth_closed(shift(pts, -lx * w, -ly * w))}" fill-rule="evenodd" fill="{rim}" opacity="{op}"'
+               + (f' {gb(D, blur)}' if blur else "") + "/></g>")
+    return "".join(out)
+
+
+def union_rim(D, ds, rim, dx, dy, op=0.85, blur=0.5, glow=None, glow_op=0.3, glow_w=6):
+    """Rim light on the OUTER contour of a silhouette made of several overlapping shapes (ds = path strings): a mask of
+    the union minus the union shifted away from the light by (dx, dy). Returns (behind, front): an optional soft glow
+    to draw before the silhouette, and the rim to draw after it."""
+    mid = D.nid()
+    shapes = "".join(f'<path d="{d}"/>' for d in ds)
+    D.defs.append(f'<mask id="{mid}" maskUnits="userSpaceOnUse" x="-100" y="-100" width="800" height="800"><g fill="#FFFFFF">{shapes}</g>'
+                  f'<g fill="#000000" transform="translate({dx:.2f} {dy:.2f})">{shapes}</g></mask>')
+    front = f'<g mask="url(#{mid})"><rect x="-20" y="-20" width="640" height="640" fill="{rim}" opacity="{op}"' + (f' {gb(D, blur)}' if blur else "") + "/></g>"
+    behind = ""
+    if glow:
+        behind = f'<g fill="none" stroke="{glow}" stroke-width="{glow_w}" opacity="{glow_op}" {gb(D, glow_w * 0.8)}>{shapes}</g>'
+    return behind, front
+
+
+def limb_w(a, b, c, d, split=0.5, bulge=0.15):
+    """Width profile for a two-segment limb (thigh+shin or upper arm+forearm): a at the root, b at the joint, c at the
+    belly of the lower segment, d at the wrist/ankle, with a little muscle swell on the upper segment."""
+    def f(t):
+        if t < split:
+            u = t / split
+            return a + (b - a) * u + a * bulge * math.sin(math.pi * u)
+        u = (t - split) / (1 - split)
+        if u < 0.3:
+            return b + (c - b) * (u / 0.3)
+        return c + (d - c) * ((u - 0.3) / 0.7)
+    return f
+
+
+def crown(D, cx, cy, rx, ry, seed, cols, light=(-1, -0.4), n=70, dab=(0.12, 0.22), rim=None, soft_sd=0.6, trunk=None):
+    """A broad tree crown painted from many overlapping irregular dabs: darker inside and away from the light,
+    lighter on the lit side, ragged edges; optional trunk (x, base, w)."""
+    rnd = random.Random(seed)
+    lx, ly = _unit(light)
+    out = []
+    if trunk:
+        tx_, tb, tw = trunk
+        out.append(taper([(tx_, tb), (tx_ + rnd.uniform(-4, 4), (tb + cy) / 2), (cx, cy)], tw, tw * 0.5, cols[-1]))
+    items = []
+    for _ in range(n):
+        a = rnd.uniform(0, 2 * math.pi)
+        r = math.sqrt(rnd.random())
+        x, y = cx + math.cos(a) * rx * r, cy + math.sin(a) * ry * r
+        v = (math.cos(a) * lx + math.sin(a) * ly) * r
+        sz = rnd.uniform(*dab) * min(rx, ry * 1.6)
+        k = 0 if v > 0.35 else (1 if v > -0.2 else 2)
+        items.append((v, x, y, sz, cols[min(k, len(cols) - 1)]))
+    dabs = "".join(f'<path d="{blob(x, y, sz, sz * 0.7, rnd.randint(0, 9999), 0.3, 9, rnd.uniform(0, 180))}" fill="{c}" opacity="{rnd.uniform(0.8, 1):.2f}"/>'
+                   for v, x, y, sz, c in sorted(items))
+    out.append(soft(D, dabs, soft_sd))
+    if rim:
+        rr = [(x + lx * sz * 0.4, y + ly * sz * 0.4, sz) for v, x, y, sz, c in sorted(items)[-n // 5:]]
+        out.append(soft(D, "".join(f'<path d="{blob(x, y, sz * 0.5, sz * 0.25, rnd.randint(0, 999), 0.3, 8, rnd.uniform(0, 180))}" fill="{rim}" opacity="0.6"/>' for x, y, sz in rr), 0.6))
+    return "".join(out)
+
+
+def stipple(D, d, box, seed, col, n=600, light=(-0.6, -0.8), r=(0.45, 1.25), gamma=1.5, op=(0.45, 0.9), floor=0.0):
+    """Virgil Finlay stipple: ink dots whose density grows away from the light (clipped to d)."""
+    rnd = random.Random(seed)
+    x0, y0, x1, y1 = box
+    lx, ly = _unit(light)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    R = 0.5 * math.hypot((x1 - x0) * lx, (y1 - y0) * ly) + 1
+    dots = []
+    for _ in range(n):
+        x, y = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
+        t = 0.5 - ((x - cx) * lx + (y - cy) * ly) / (2 * R)
+        if rnd.random() < floor + (1 - floor) * max(0, min(1, t)) ** gamma:
+            dots.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{rnd.uniform(*r):.2f}" opacity="{rnd.uniform(*op):.2f}"/>')
+    return f'<g {D.clip(f"<path d=\"{d}\"/>")} fill="{col}">{"".join(dots)}</g>'
+
+
+def hatch(D, d, box, seed, col, ang=-35, step=4.5, w=1.1, light=(-0.6, -0.8), gamma=1.3, op=0.75, cut=0.18, wob=0.6):
+    """Engraved hatching: parallel tapered lines that swell in the shadow and vanish toward the light (clipped)."""
+    rnd = random.Random(seed)
+    x0, y0, x1, y1 = box
+    lx, ly = _unit(light)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    R = 0.5 * math.hypot((x1 - x0) * lx, (y1 - y0) * ly) + 1
+    a = math.radians(ang)
+    ux, uy = math.cos(a), math.sin(a)
+    nx, ny = -uy, ux
+    diag = math.hypot(x1 - x0, y1 - y0) / 2 + 4
+    segs = []
+    k = -diag
+    while k < diag:
+        px, py = cx + nx * k, cy + ny * k
+        t0 = -diag
+        while t0 < diag:
+            t1 = t0 + 9
+            mx, my = px + ux * (t0 + 4.5), py + uy * (t0 + 4.5)
+            tv = 0.5 - ((mx - cx) * lx + (my - cy) * ly) / (2 * R)
+            v = max(0, min(1, tv)) ** gamma
+            if v > cut:
+                ww = w * (0.35 + v)
+                segs.append(f'<path d="M {px + ux * t0:.1f} {py + uy * t0 + rnd.uniform(-wob, wob):.1f} L {px + ux * t1:.1f} {py + uy * t1 + rnd.uniform(-wob, wob):.1f}" stroke-width="{ww:.2f}"/>')
+            t0 = t1
+        k += step * rnd.uniform(0.85, 1.15)
+    return f'<g {D.clip(f"<path d=\"{d}\"/>")} stroke="{col}" stroke-linecap="round" fill="none" opacity="{op}">{"".join(segs)}</g>'
+
+
+def gsky(D, stops, seed, cols=None, n=60, blooms=(), sop=(0.05, 0.14), x1=0, y1=0, x2=0, y2=1):
+    """Painted sky: graded wash, soft colour blooms (blurred), long scumbled horizontal strokes."""
+    out = [f'<rect x="-20" y="-20" width="640" height="640" fill="{D.lin(stops, x1, y1, x2, y2)}"/>']
+    if blooms:
+        out.append(soft(D, "".join(f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="{ry}" fill="{c}" opacity="{o}"/>' for x, y, rx, ry, c, o in blooms), 30))
+    if cols:
+        out.append(soft(D, strokes(D.nid(), "M -20 -20 L 620 -20 L 620 620 L -20 620 Z", (-120, -20, 620, 620), cols, seed, n=n, angle=-2,
+                                   length=(90, 260), width=(6, 18), opacity=sop, curve=0.08), 1.6))
+    return "".join(out)
+
+
+def gcloud(D, cx, cy, w, h, seed, pal, light=(-0.5, -0.8), op=1.0, n=26, lit_n=18, sd=(7, 3), flat=0.55):
+    """A cloud bank from many puffs: a soft dark mass, mid-tone puffs leaning to the light, then sharper lit edges
+    on the side facing the light (lost and found)."""
+    lit, mid, dark = pal
+    rnd = random.Random(seed)
+    lx, ly = _unit(light)
+    puffs = []
+    for _ in range(n):
+        a = rnd.uniform(0, 2 * math.pi)
+        rr = math.sqrt(rnd.random())
+        x = cx + math.cos(a) * w / 2 * rr
+        y = cy + math.sin(a) * h / 2 * rr
+        if y > cy + h * 0.25:
+            y = cy + h * 0.25 - rnd.uniform(0, h * 0.1) * flat
+        r = rnd.uniform(0.16, 0.3) * min(w, h * 2.2) * (1.1 - 0.5 * rr)
+        puffs.append((x, y, r))
+    base = "".join(f'<path d="{blob(x, y, r, r * 0.78, rnd.randint(0, 9999), 0.12, 12)}" fill="{dark}"/>' for x, y, r in puffs)
+    midp = "".join(f'<path d="{blob(x + lx * r * 0.25, y + ly * r * 0.25, r * 0.78, r * 0.62, rnd.randint(0, 9999), 0.14, 12)}" fill="{mid}" opacity="0.8"/>'
+                   for x, y, r in puffs)
+    edges = []
+    th = math.atan2(ly, lx)
+    for x, y, r in sorted(puffs, key=lambda p: (p[0] - cx) * lx + (p[1] - cy) * ly)[-lit_n:]:
+        a0 = th + rnd.uniform(-0.3, 0.3)
+        span = rnd.uniform(0.6, 1.1)
+        arc = [(x + r * 0.86 * math.cos(a0 + span * (t - 0.5)), y + r * 0.66 * math.sin(a0 + span * (t - 0.5))) for t in (0, 0.25, 0.5, 0.75, 1)]
+        edges.append(taper(arc, r * 0.05, r * 0.22, lit, rnd.uniform(0.45, 0.85)))
+    return (f'<g opacity="{op}">' + soft(D, base, sd[0]) + soft(D, midp, sd[1] * 1.6) + soft(D, "".join(edges), sd[1] * 0.45) + "</g>")
+
+
+def gfog(D, y, h, seed, col, op=0.5, x0=-80, x1=680, n=None, sd=9, rx=(50, 140)):
+    """Ground fog / mist band from many blurred lozenges."""
+    rnd = random.Random(seed)
+    n = n or int((x1 - x0) / 22)
+    puffs = "".join(f'<ellipse cx="{rnd.uniform(x0, x1):.1f}" cy="{y + rnd.uniform(-h / 2, h / 2):.1f}" rx="{rnd.uniform(*rx):.1f}" ry="{h * rnd.uniform(0.12, 0.32):.1f}" '
+                    f'fill="{col}" opacity="{rnd.uniform(0.25, 0.7):.2f}"/>' for _ in range(n))
+    return soft(D, puffs, sd, op)
+
+
+def gmoon(D, cx, cy, r, seed, pal=("#FFFDF2", "#EEE8D2", "#B8B096"), halo="#E8ECFF", halo_r=3.4, halo_op=0.55, ring=True,
+          light=(-0.35, -0.4), maria="#9A9886"):
+    """A painted moon: wide halo, a faint corona ring, a disc shaded toward the limb and soft blurred maria."""
+    hi, mid, dkc = pal
+    rnd = random.Random(seed)
+    out = [f'<circle cx="{cx}" cy="{cy}" r="{r * halo_r:.1f}" fill="{D.rad([(0, halo, halo_op), (0.25, halo, halo_op * 0.45), (0.6, halo, halo_op * 0.12), (1, halo, 0)])}"/>']
+    if ring:
+        out.append(f'<circle cx="{cx}" cy="{cy}" r="{r * 1.9:.1f}" fill="none" stroke="{halo}" stroke-width="{r * 0.35:.1f}" opacity="0.12" {gb(D, r * 0.18)}/>')
+    lx, ly = light
+    g = D.rad([(0, hi), (0.55, mid), (1, dkc)], 0.5 + lx * 0.4, 0.5 + ly * 0.4, 0.75)
+    disc = blob(cx, cy, r, r, seed, 0.006, 32)
+    out.append(f'<path d="{disc}" fill="{g}"/>')
+    cid = D.clip(f'<path d="{disc}"/>')
+    ms = "".join(f'<path d="{blob(cx + r * mx, cy + r * my, r * mr, r * mr * 0.7, rnd.randint(0, 999), 0.3, 12, rnd.uniform(0, 180))}" fill="{maria}" opacity="{rnd.uniform(0.18, 0.35):.2f}"/>'
+                 for mx, my, mr in ((-0.25, -0.2, 0.32), (0.2, -0.32, 0.22), (0.3, 0.05, 0.26), (-0.1, 0.25, 0.2), (0.05, -0.05, 0.14), (-0.42, 0.12, 0.14)))
+    out.append(f'<g {cid}>{soft(D, ms, round(r * 0.05, 1))}'
+               f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{D.rad([(0, "#FFFFFF", 0), (0.75, "#FFFFFF", 0), (1, dkc, 0.35)])}"/></g>')
+    return "".join(out)
+
+
+def gglow(D, cx, cy, r, col, s=0.7, ry=None):
+    g = D.rad([(0, col, s), (0.22, col, s * 0.6), (0.5, col, s * 0.22), (1, col, 0)])
+    if ry:
+        return f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{r:.1f}" ry="{ry:.1f}" fill="{g}"/>'
+    return f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="{g}"/>'
+
+
+def folds(D, d, lines, dark, light, seed, w=(3, 1), op=0.5, sd=1.2, lw=(1.6, 0.4), lop=0.45, loff=(1.6, -1.2)):
+    """Drapery folds clipped to a garment: a soft shadow valley along each fold line and a thin light ridge beside it."""
+    out = []
+    for i, pts in enumerate(lines):
+        out.append(taper(catmull(pts, 5), w[0], w[1], dark, op))
+    hi = [taper(catmull(shift(pts, *loff), 5), lw[0], lw[1], light, lop) for pts in lines]
+    return f'<g {D.clip(f"<path d=\"{d}\"/>")}>' + soft(D, "".join(out), sd) + soft(D, "".join(hi), sd * 0.5) + "</g>"
+
+
+def willow(D, x, base, h, seed, col, op=1.0, strands=46, lean=0):
+    """A weeping willow: a short leaning trunk, a dome of limbs and long hanging curtains of fronds."""
+    rnd = random.Random(seed)
+    out = [taper([(x - 4, base), (x + lean * 0.3, base - h * 0.35), (x + lean, base - h * 0.62)], h * 0.09, h * 0.04, col)]
+    for k in range(5):
+        a = -90 + rnd.uniform(-70, 70)
+        L = h * rnd.uniform(0.25, 0.45)
+        sx, sy = x + lean, base - h * 0.6
+        out.append(taper([(sx, sy), (sx + math.cos(math.radians(a)) * L * 0.6, sy + math.sin(math.radians(a)) * L * 0.6 - 6),
+                          (sx + math.cos(math.radians(a)) * L, sy + math.sin(math.radians(a)) * L + 4)], h * 0.03, 1, col))
+    for _ in range(strands):
+        a = rnd.uniform(-170, -10)
+        rr = h * rnd.uniform(0.2, 0.5)
+        sx = x + lean + math.cos(math.radians(a)) * rr * 1.3
+        sy = base - h * 0.62 + math.sin(math.radians(a)) * rr * 0.7
+        L = (base - sy) * rnd.uniform(0.5, 0.95)
+        out.append(taper([(sx, sy), (sx + rnd.uniform(-4, 4), sy + L * 0.5), (sx + rnd.uniform(-6, 8), sy + L)], rnd.uniform(2, 5), 0.5, col, rnd.uniform(0.6, 1)))
+    return f'<g opacity="{op}">{"".join(out)}</g>'
+
+
+def tube_pts(pts, w0, w1, n=6, wfn=None):
+    """Outline points of a tapered limb along a smooth spine (w0 -> w1, or wfn(t) for a custom profile)."""
+    path = catmull(pts, n)
+    m = len(path)
+    left, right = [], []
+    for i, (x, y) in enumerate(path):
+        a, b = path[max(i - 1, 0)], path[min(i + 1, m - 1)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        L = math.hypot(dx, dy) or 1
+        nx, ny = -dy / L, dx / L
+        t = i / max(1, m - 1)
+        w = (wfn(t) if wfn else (w0 + (w1 - w0) * t)) / 2
+        left.append((x + nx * w, y + ny * w))
+        right.append((x - nx * w, y - ny * w))
+    return left + right[::-1]
+
+
+def limb(D, pts, w0, w1, pal, seed, light=(-0.6, -0.8), rim=None, rim_w=1.6, wfn=None, angle=None, n=10, core=0.32, edge=None):
+    o = tube_pts(pts, w0, w1, wfn=wfn)
+    if angle is None:
+        angle = math.degrees(math.atan2(pts[-1][1] - pts[0][1], pts[-1][0] - pts[0][0]))
+    return gform(D, o, pal, seed, light, angle=angle, n=n, core=core, rim=rim, rim_w=rim_w, hi_op=0.35, edge=edge)
+
+
+def forest_band(D, top, bottom, seed, cols, x0=-20, x1=620, tip=(8, 24), light=None, density=1.0):
+    """A far forest as one painted mass: a ragged crown line of spruce tips (no stick trees), lit tips on the
+    left, a darker skirt, softened a touch for distance."""
+    rnd = random.Random(seed)
+    pts = [(x0, bottom)]
+    x = x0
+    while x < x1:
+        w = rnd.uniform(4, 9) / density
+        h = rnd.uniform(*tip)
+        y = top + rnd.uniform(-4, 6)
+        pts += [(x, y), (x + w * 0.45, y - h), (x + w * 0.55, y - h + 1), (x + w, y + rnd.uniform(-2, 3))]
+        x += w * rnd.uniform(0.7, 1.1)
+    pts.append((x1, bottom))
+    d = pd(pts)
+    out = [f'<path d="{d}" fill="{cols[0]}"/>']
+    out.append(f'<g {D.clip(f"<path d=\"{d}\"/>")}>' + strokes(D.nid(), d, (x0, top - tip[1], x1, bottom), cols + [cols[0]], seed, n=int((x1 - x0) / 3),
+                                                                   angle=-90, length=(8, 26), width=(1.5, 4), opacity=(0.3, 0.7)) + "</g>")
+    if light:
+        out.append(f'<g {D.clip(f"<path d=\"{d}\"/>")}><path d="{d}" fill="none" stroke="{light}" stroke-width="2.4" opacity="0.5" transform="translate(1.2 1)"/></g>')
+    return soft(D, "".join(out), 0.5)
+
+
+def gfin(D, out, seed, pf_seed, edge=3.0, bristle=0.5, grain=0.2, bg="#000000", gcol="#000000", gop=0.35, freq=0.05):
+    """Finish: pigment grain, then the painterly varnish (brushy edges, bristle texture, crisp text on top).
+    A full-bleed ground goes under the filtered art so the displaced edges never show paper."""
+    body = finish(D, out, seed, gcol, gop)
+    pf = _painterly(body, seed=pf_seed, edge=edge, bristle=bristle, grain=grain, freq=freq, prefix=D.u.replace("-", "") + "pf")
+    i = pf.index('aria-hidden="true">')
+    head, ink_ = pf[:i], pf[i:]
+    # the second (text-only) copy never shows anything but <text>: drop its hidden shapes to keep files lean
+    ink_ = _re.sub(r'<(path|circle|ellipse|rect|polygon|polyline|line|stop|feGaussianBlur|feTurbulence|feDisplacementMap|'
+                   r'feColorMatrix|feComposite|feBlend|use)\b[^>]*/>', "", ink_)
+    for _ in range(6):
+        ink_ = _re.sub(r'<(g|clipPath|linearGradient|radialGradient|filter|pattern|defs|mask)\b[^>]*>\s*</\1>', "", ink_)
+    return f'<rect x="-10" y="-10" width="620" height="620" fill="{bg}"/>' + head + ink_
+
+
 # ================================================================ 1. dracula — face down, crawling down the castle wall
 def count_crawling(D, x, y, s, seed, col="#05040A", cape=("#3A2A48", "#1A1224", "#06040A"), rim="#B8C8F0"):
     """The Count, head-first down the wall like a lizard: elbows and knees splayed, the cloak spreading out around
@@ -394,62 +757,170 @@ def count_crawling(D, x, y, s, seed, col="#05040A", cape=("#3A2A48", "#1A1224", 
     return "".join(out)
 
 
+# --- repaint:dracula
+def count_on_wall(D, x, y, s, seed, ang=-8, light=(-0.85, -0.5), rim="#D2DCF8"):
+    """The Count seen from behind, head-first down the wall like a lizard: elbows and knees splayed, the cloak spread
+    between arm and leg on each side like a bat's wings, long pale hands gripping the stones. (x, y) = nape."""
+    def L(p):
+        return T(p, x, y, s, False, ang)
+    col = "#08070E"
+    lx, ly = _unit(light)
+    out = []
+    arms = [[(22, 6), (58, 14), (64, 50)], [(-22, 6), (-56, 26), (-52, 62)]]
+    hands = [((64, 50), (70, 66)), ((-52, 62), (-56, 78))]
+    legs = [[(12, -62), (44, -100), (34, -148)], [(-12, -62), (-48, -92), (-46, -140)]]
+    boots = [[(34, -146), (36, -160), (44, -170)], [(-46, -138), (-48, -152), (-56, -162)]]
+    torso = [(-20, 8), (-27, 0), (-25, -16), (-17, -40), (-14, -54), (-22, -80), (-8, -86), (0, -76), (8, -86), (22, -80), (14, -54), (17, -40), (25, -16), (27, 0), (20, 8), (0, 4)]
+    wings = [[(26, 2), (58, 10), (66, 48), (80, 40), (96, 22), (106, -14), (90, -20), (98, -56), (78, -62), (78, -98), (58, -90), (44, -102), (30, -86),
+              (16, -60), (18, -30)],
+             [(-26, 2), (-56, 22), (-54, 60), (-70, 52), (-92, 34), (-108, 0), (-92, -6), (-104, -44), (-84, -50), (-88, -86), (-66, -80), (-50, -94),
+              (-30, -80), (-16, -58), (-18, -28)]]
+    ribs = [[(30, 0), (70, 10), (100, 20)], [(28, -8), (66, -10), (100, -14)], [(24, -24), (60, -36), (96, -56)], [(20, -40), (52, -62), (76, -96)],
+            [(-30, 4), (-70, 26), (-96, 32)], [(-28, -6), (-68, -2), (-104, 0)], [(-24, -22), (-62, -34), (-100, -44)], [(-20, -40), (-56, -62), (-86, -86)]]
+    shapes = [smooth_closed(L(w)) for w in wings] + [smooth_closed(L(torso))]
+    shapes += [smooth_closed(tube_pts(L(a), 15 * s, 10 * s)) for a in arms] + [smooth_closed(tube_pts(L(lg), 19 * s, 12 * s)) for lg in legs]
+    shapes += [smooth_closed(tube_pts(L(b), 13 * s, 9 * s)) for b in boots]
+    # the cast shadow, down and right on the stones
+    out.append(f'<g transform="translate({16 * s:.1f} {12 * s:.1f})" fill="#02030A" opacity="0.55">{soft(D, "".join(f"<path d=\"{p}\"/>" for p in shapes), 4)}</g>')
+    # far limbs/legs first, then the wings, the body over them
+    for k, lg in enumerate(legs):
+        out.append(rimlit(D, tube_pts(L(lg), 19 * s, 12 * s, wfn=lambda t: (24 - 13 * t + 5 * math.sin(t * 3.14)) * s), col, rim, light, w=1.4, op=0.6, blur=0.5))
+        out.append(rimlit(D, tube_pts(L(boots[k]), 13 * s, 9 * s), "#050408", rim, light, w=1.4, op=0.85, blur=0.3))
+    for k, w in enumerate(wings):
+        wp = L(w)
+        out.append(gform(D, wp, ("#3E3654", "#16101E", "#030206"), seed + k, light, angle=-90, n=30, core=0.28, refl="#2A2448", rim=rim, rim_w=1.8,
+                         sop=(0.08, 0.2), hik=0.04, hi_op=0.3, slen=(10, 30), sw=(1, 2.4), rim_op=0.6, rim_blur=0.8))
+        rb = [L(r) for r in ribs[k * 4:(k + 1) * 4]]
+        out.append(folds(D, smooth_closed(wp), rb, "#000000", "#8A7EAA", seed + k, w=(7 * s, 1.2), op=0.8, sd=1.4, lw=(1.6, 0.3), lop=0.45, loff=(-1.6, -1.6)))
+    out.append(gform(D, L(torso), ("#4A4258", "#1A1422", "#030206"), seed + 4, light, angle=-90, n=14, core=0.35, rim=rim, rim_w=1.3, rim_op=0.6, hi_op=0.3))
+    out.append(folds(D, smooth_closed(L(torso)), [L([(-14, -6), (-6, -40), (-10, -64)]), L([(10, -2), (6, -36), (10, -62)])], "#000000", "#6A5E88", seed, w=(4 * s, 1), op=0.7))
+    for k, a in enumerate(arms):
+        out.append(rimlit(D, tube_pts(L(a), 15 * s, 10 * s, wfn=lambda t: (15 - 6 * t + 3 * math.sin(t * 6.28)) * s), col, rim, light, w=1.6, op=0.85, blur=0.4))
+        (wx, wy), (hx, hy) = L(list(hands[k]))
+        dirn = math.atan2(hy - wy, hx - wx)
+        hand = []
+        for f in range(4):
+            fa = dirn + (f - 1.5) * 0.36
+            Lf = (17 + (3 if f in (1, 2) else 0)) * s
+            k1 = (wx + math.cos(fa) * 9 * s, wy + math.sin(fa) * 9 * s)
+            k2 = (k1[0] + math.cos(fa) * Lf * 0.55, k1[1] + math.sin(fa) * Lf * 0.55)
+            bend = 0.7 * (1 if k else -1)
+            k3 = (k2[0] + math.cos(fa + bend) * Lf * 0.5, k2[1] + math.sin(fa + bend) * Lf * 0.5)
+            hand.append(taper(catmull([k1, k2, k3], 4), 3.6 * s, 1.3 * s, "#D8D0C4"))
+        th = dirn + (1.3 if k == 0 else -1.3)
+        hand.append(taper(catmull([(wx, wy), (wx + math.cos(th) * 9 * s, wy + math.sin(th) * 9 * s), (wx + math.cos(th + 0.7) * 15 * s, wy + math.sin(th + 0.7) * 15 * s)], 4), 4.6 * s, 1.6 * s, "#D8D0C4"))
+        hand.append(f'<path d="{blob(wx + math.cos(dirn) * 6 * s, wy + math.sin(dirn) * 6 * s, 7 * s, 5.5 * s, seed + k, 0.08, 10, math.degrees(dirn))}" fill="#D8D0C4"/>')
+        out.append("".join(hand))
+        out.append(f'<path d="{blob(wx + math.cos(dirn) * 8 * s + 2, wy + math.sin(dirn) * 8 * s + 2, 5 * s, 3.5 * s, seed + k + 3, 0.1, 8, math.degrees(dirn))}" fill="#7A6E78" opacity="0.6" {gb(D, 1.2)}/>')
+    # the head, lowest of all: thick white hair catching the moon, a sliver of hooked profile and moustache
+    hx, hy = L([(2, 20)])[0]
+    head = blob_pts(hx, hy, 13 * s, 15 * s, seed + 3, 0.05, 14, ang)
+    out.append(gform(D, head, ("#FFFFFF", "#AEAAB8", "#34303E"), seed + 5, light, angle=90 + ang, n=22, slen=(5 * s, 12 * s), sw=(0.6, 1.4), core=0.4,
+                     cols=["#FFFFFF", "#7A7686", "#D8D4DC"], rim="#FFFFFF", rim_w=1.2))
+    out.append(f'<path d="{smooth_closed(L([(-7, 26), (-14, 32), (-16, 40), (-10, 40), (-5, 34)]))}" fill="#D8C8C0"/>')
+    out.append(taper(L([(-8, 32), (-16, 38), (-21, 46)]), 3 * s, 0.6, "#F4F2F0"))
+    out.append(gform(D, L([(-18, 6), (-8, 11), (2, 8), (12, 11), (20, 6), (12, -2), (0, 0), (-12, -2)]), ("#4A4060", "#140E1C", "#000000"), seed + 8, light,
+                     n=0, rim=rim, rim_w=1.2))
+    return "".join(out)
+
+
+def rubble_wall(D, d, box, seed, pal, light=(-0.85, -0.4), n=260, size=(16, 46), joints="#0C0C14", jn=120):
+    """A stone face painted, not drawn: graded wash, many translucent stone-sized patches of warmer and cooler grey,
+    broken mortar joints (lost and found), moonlit arrises and stipple in the shadow."""
+    rnd = random.Random(seed)
+    x0, y0, x1, y1 = box
+    cid = D.clip(f'<path d="{d}"/>')
+    lx, ly = _unit(light)
+    out = []
+    patches = []
+    for _ in range(n):
+        x, y = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
+        w = rnd.uniform(*size)
+        h = w * rnd.uniform(0.45, 0.7)
+        c = rnd.choice(pal)
+        patches.append(f'<path d="{smooth_closed(poly_pts([(x, y), (x + w, y + rnd.uniform(-1, 1)), (x + w + rnd.uniform(-2, 2), y + h), (x + rnd.uniform(-2, 2), y + h)], 6, rnd.randint(0, 999), 1.2))}" '
+                       f'fill="{c}" opacity="{rnd.uniform(0.12, 0.38):.2f}"/>')
+    out.append(soft(D, "".join(patches), 0.7))
+    js = []
+    y = y0 + rnd.uniform(0, 10)
+    while y < y1:
+        h = rnd.uniform(*size) * 0.55
+        x = x0 - rnd.uniform(0, 30)
+        while x < x1:
+            w = rnd.uniform(*size) * 1.2
+            if rnd.random() < 0.75:
+                js.append(f'<path d="M {x:.1f} {y:.1f} L {x + w:.1f} {y + rnd.uniform(-1.5, 1.5):.1f}" stroke-width="{rnd.uniform(0.8, 2):.1f}" opacity="{rnd.uniform(0.12, 0.45):.2f}"/>')
+                js.append(f'<path d="M {x + 2:.1f} {y + 2.2:.1f} L {x + w * rnd.uniform(0.4, 0.9):.1f} {y + 2.2:.1f}" stroke="#C8D0F0" stroke-width="1" opacity="{rnd.uniform(0.1, 0.3):.2f}"/>')
+            if rnd.random() < 0.6:
+                js.append(f'<path d="M {x + w:.1f} {y:.1f} L {x + w + rnd.uniform(-2, 2):.1f} {y + h:.1f}" stroke-width="{rnd.uniform(0.8, 1.8):.1f}" opacity="{rnd.uniform(0.1, 0.4):.2f}"/>')
+            x += w
+        y += h
+    out.append(f'<g stroke="{joints}" stroke-linecap="round" fill="none">{"".join(js)}</g>')
+    return f'<g {cid}>{"".join(out)}</g>'
+
+
 @design("dracula")
 def dracula():
     D = Doc2("hr-dr")
-    out = [night(D, [(0, "#05060E"), (0.45, "#141A34"), (0.8, "#2A2E4A"), (1, "#3A3450")], 1)]
-    out.append(stars_field(2, (0, 0, 300, 420), 90))
-    out.append(moon(D, 150, 300, 56, 3, pal=("#FFFBEA", "#EDE6CC", "#BDB394"), glow="#E8ECFF", gs=0.5, glow_r=3.4))
-    # far Carpathian peaks and the forest abyss in fog
-    out.append(hill(D, ridge([(-20, 470), (40, 420), (90, 446), (150, 396), (210, 440), (260, 410), (330, 460)], 4, 9, 4), 640,
-                    ("#5A6080", "#343A58", "#1A1E34"), 2, inkw=0, n=30, lit="#C8D0F0"))
-    out.append(fog(D, 470, 70, 3, "#9AA4C8", 0.55, -40, 340))
-    out.append(hill(D, ridge([(-20, 520), (60, 500), (140, 512), (220, 496), (320, 516)], 5, 6, 4), 640, ("#2A2E44", "#161A2A", "#06080E"), 3, inkw=0, n=20))
-    rnd = random.Random(4)
-    for k in range(26):
-        xx = rnd.uniform(-10, 330)
-        from paint import conifer
-        out.append(conifer(xx, 530 + rnd.uniform(0, 30), rnd.uniform(26, 50), "#07080E", rnd.random()))
-    out.append(fog(D, 560, 60, 4, "#7A84A8", 0.4, -40, 360))
-    # the castle wall, seen from the window ledge looking down its face: edge leaning in toward the top
-    def edge(y):
-        return 262 + (y / 600) * 74
-    wall = [(edge(-20), -20), (640, -20), (640, 640), (edge(640), 640)]
-    out.append(painted(D, wall, ("#6A6E84", "#3E4052", "#16161E"), 5, sdir=(1, 0.2), sk=0.06, angle=-90, n=140, inkw=0, hi=0, hik=0.04))
-    g = D.lin([(0, "#000000", 0.05), (1, "#000000", 0.6)], 0, 0, 1, 0)
-    out.append(f'<path d="{pd(wall)}" fill="{g}"/>')
-    ys = [-10 + 30 * i + i * i * 0.4 for i in range(22)]
-    cid = D.clip(f'<path d="{pd(wall)}"/>')
-    out.append(f'<g {cid}>{stone_courses(ys, lambda y: edge(y), 640, "#0E0E16", 2.0, 0.6, 6, unit=46)}'
-               f'{stone_courses([y + 2.5 for y in ys], lambda y: edge(y), 640, "#A8ACC0", 1, 0.22, 6, joints=False)}'
-               f'{strokes(D.nid(), pd(wall), (260, -20, 640, 640), ["#8A8EA4", "#1E1E2A", "#5A5E74"], 8, n=140, angle=-90, length=(20, 60), width=(2, 6), opacity=(0.1, 0.28))}</g>')
-    # moonlit quoins down the corner of the tower
-    for i in range(len(ys) - 1):
-        y0, y1 = ys[i] + 1.5, ys[i + 1] - 1.5
-        if y1 < -10 or y0 > 610:
-            continue
-        w0 = 26 if i % 2 == 0 else 15
-        q = [(edge(y0), y0), (edge(y0) + w0, y0), (edge(y1) + w0, y1), (edge(y1), y1)]
-        out.append(painted(D, poly_pts(q, 8, i, 0.6), ("#E2E6F8", "#9AA0BC", "#4A4E66"), 30 + i, sdir=(1, 0.4), sk=0.25, angle=-90, n=4, inkw=1, inkc="#14141E", hi=0.5))
-    # the lit window above (Jonathan watching), its glow across the stones
-    wx0, wx1, wy = 432, 482, 214
-    out.append(soft_glow(D, 457, wy + 30, 110, "#FFB050", 0.45))
-    out.append(f'<path d="{smooth_closed(arch_pts(wx0 - 8, wx1 + 8, wy + 16, wy + 70, 6, "pointed", 0.5))}" fill="#0E0A0C"/>')
-    out.append(gothic_window(D, wx0, wx1, wy + 22, wy + 66, 7, frame="#16100C", point=0.5))
-    out.append(painted(D, poly_pts([(wx0 - 14, wy + 66), (wx1 + 14, wy + 66), (wx1 + 14, wy + 76), (wx0 - 14, wy + 76)], 10, 2, 0.5), ("#9A9EB4", "#5A5E72", "#2A2C3A"), 6, sdir=(0, 1), sk=0.2, angle=0, n=6, inkw=1.2, inkc="#0A0A12", hi=0.4))
-    out.append(cloaked(470, wy + 66, 0.34, "#140C0A", hood=False))
-    # the Count
-    out.append(count_crawling(D, 440, 402, 1.22, 9))
-    # bats wheeling out of the dark
-    for (bx, by, bs, fl, a) in ((224, 252, 1.0, 0.6, -10), (250, 300, 0.7, 0.1, 8), (96, 360, 0.8, 0.8, -4), (204, 372, 0.55, 0.3, 12), (110, 210, 0.5, 0.2, 0)):
-        out.append(bat(bx, by, bs, "#0A0A12", fl, a))
-    out.append(band(D, 0, 200, "#000000", 0.55, 0))
+    light = (-0.85, -0.45)
+    out = [gsky(D, [(0, "#04050C"), (0.35, "#0E1430"), (0.7, "#283058"), (1, "#3A4068")], 1, ["#2A3256", "#0A0E1E", "#4A5070"], 50,
+                blooms=((150, 280, 240, 170, "#6A74A0", 0.4), (60, 520, 200, 120, "#2A3050", 0.5)))]
+    out.append(stars_field(2, (0, 0, 260, 330), 60))
+    out.append(gmoon(D, 140, 272, 46, 3, pal=("#FFFCEC", "#ECE6CE", "#B4AC90"), halo="#D8E0FF", halo_r=4.0, halo_op=0.5))
+    out.append(gcloud(D, 70, 330, 250, 26, 4, ("#C8D0F0", "#3E4670", "#1A1E36"), light=(0.4, -1), op=0.9, n=16, lit_n=9))
+    out.append(gcloud(D, 230, 214, 170, 16, 5, ("#D0D8F8", "#4A5278", "#20263E"), light=(-0.7, 0.6), op=0.6, n=12, lit_n=7))
+    # far Carpathian ranges, paler and bluer with distance, a gorge filling with mist
+    out.append(soft(D, hill(D, ridge([(-20, 400), (40, 364), (96, 388), (150, 350), (214, 384), (270, 360), (330, 404)], 4, 9, 4), 640,
+                            ("#8A94BA", "#666E94", "#4A5076"), 2, inkw=0, n=24, lit="#D0D8F8"), 1.6))
+    out.append(gfog(D, 410, 56, 3, "#A4AED4", 0.7, -60, 360, sd=10))
+    out.append(soft(D, hill(D, ridge([(-20, 452), (50, 430), (130, 450), (210, 430), (330, 462)], 5, 6, 4), 640, ("#4A5274", "#2A3050", "#12142A"), 3, inkw=0, n=20), 0.9))
+    out.append(forest_band(D, 470, 600, 4, ["#0C0E1A", "#141828", "#10142A"], -20, 330, tip=(10, 30), light="#4A5480"))
+    out.append(forest_band(D, 512, 600, 5, ["#06070E", "#0A0C16"], -20, 300, tip=(18, 44), light="#3A4470"))
+    out.append(gfog(D, 500, 80, 6, "#8A94BC", 0.6, -60, 380, sd=12))
+    # the crag the castle grows out of, and the tower itself, its corner toward the moon
+    crag = [(226, 640), (236, 590), (262, 560), (300, 548), (360, 540), (430, 548), (520, 528), (640, 514), (640, 640)]
+    out.append(gform(D, crag, ("#6A7090", "#2A2E44", "#06070E"), 7, light, angle=-70, n=80, core=0.35, rim="#B8C0E0", rim_w=2))
+    out.append(stipple(D, smooth_closed(crag), bbox(crag), 7, "#000000", n=900, light=light, gamma=1.2))
+    xc = 300               # the corner of the tower
+
+    def ex(y):
+        return xc + (y - 100) * 0.03
+    front = [(ex(-30), -30), (640, -30), (640, 560), (ex(560), 560)]
+    side = [(ex(-30) - 62, -30), (ex(-30), -30), (ex(560), 560), (ex(560) - 56, 566)]
+    out.append(gform(D, side, ("#D8DCEE", "#9A9EBA", "#5A5E7C"), 8, (-1, -0.2), angle=-90, n=30, core=0.1, hi_op=0.25))
+    out.append(rubble_wall(D, pd(side), (ex(-30) - 70, -30, ex(560) + 2, 570), 9, ["#F2F4FF", "#8A8EAA", "#B8BCD8", "#6A6E8A"], light, n=140, size=(10, 30), joints="#3A3E58"))
+    out.append(gform(D, front, ("#7A7E9C", "#3E4058", "#0C0C14"), 10, (-1, -0.15), angle=-90, n=0, core=0.0, hi_op=0))
+    out.append(rubble_wall(D, pd(front), (ex(-30), -30, 640, 570), 11, ["#9A9EBC", "#4A4C64", "#2A2C3E", "#6A6E8C", "#7A7088"], light, n=420, size=(16, 44)))
+    out.append(f'<path d="{pd(front)}" fill="{D.lin([(0, "#000000", 0), (0.5, "#02020A", 0.35), (1, "#02020A", 0.75)], 0, 0, 1, 0)}"/>')
+    out.append(stipple(D, pd(front), (ex(-30), -30, 640, 570), 12, "#000000", n=1600, light=(-1, 0), gamma=1.6, op=(0.3, 0.7)))
+    out.append(streaks_dark(D, (ex(0), 40, 640, 520), 13))
+    out.append(pline([(ex(-30), -30), (ex(560), 560)], "#1A1C2A", 2, 3, 0.7, 1))
+    # string course and a buttress foot where tower meets crag
+    # Jonathan's window high up, lit; the Count's own window below it, black and open
+    jx, jy = 548, 214
+    out.append(gglow(D, jx, jy + 20, 90, "#FFB050", 0.35))
+    out.append(f'<path d="{smooth_closed(arch_pts(jx - 20, jx + 20, jy, jy + 50, 6, "pointed", 0.5))}" fill="#0A0606"/>')
+    out.append(gothic_window(D, jx - 14, jx + 14, jy + 6, jy + 46, 7, frame="#16100C", point=0.5))
+    out.append(cloaked(jx + 2, jy + 46, 0.24, "#1A0C08", hood=False))
+    wx, wy = 412, 232
+    out.append(f'<path d="{smooth_closed(arch_pts(wx - 22, wx + 22, wy, wy + 52, 6, "pointed", 0.5))}" fill="#030206"/>')
+    out.append(gform(D, [(wx - 22, wy + 22), (wx - 6, wy + 16), (wx - 4, wy + 52), (wx - 22, wy + 52)], ("#3A3446", "#1A1620", "#040306"), 15, light, n=4))
+    out.append(gform(D, [(wx - 30, wy + 52), (wx + 30, wy + 52), (wx + 34, wy + 60), (wx - 34, wy + 60)], ("#C8CCE0", "#6A6E86", "#22243A"), 16, light, angle=0, n=6))
+    # the Count, crawling face down out of it
+    out.append(count_on_wall(D, 410, 404, 0.86, 9, ang=-6, light=light))
+    # mist boiling up out of the gorge around the foot of the tower
+    out.append(gfog(D, 560, 90, 17, "#7A84AC", 0.55, 180, 680, sd=14))
+    for (bx, by, bs, fl, a) in ((214, 298, 0.9, 0.6, -10), (250, 346, 0.6, 0.1, 8), (84, 388, 0.6, 0.8, -4), (186, 404, 0.45, 0.3, 12)):
+        out.append(bat(bx, by, bs, "#05050C", fl, a))
+    out.append(band(D, 0, 220, "#000000", 0.6, 0))
+    out.append(band(D, 480, 600, "#000000", 0, 0.6))
     # lettering
     out.append(block(D, 300, 142, "DRACULA", ANTON, 100, "#F4ECDA", "#7A0E16", depth=9, ang=(0.7, 1.0), ls=10, max_w=430, face2="#D8C8A8", shadow="#000000"))
     out.append(spaced(300, 178, "BRAM STOKER · 1897", CINZEL, 19, "#E8D8C0", ls=5, shadow="#000000"))
-    out.append(letters(D, 300, 545, "“…his cloak spreading out like great wings.”", SERIF_IT, 26, "#F2E8D8", ["#FFFFFF", "#E8D8C8"], 11, max_w=470,
+    out.append(letters(D, 300, 548, "“…his cloak spreading out like great wings.”", SERIF_IT, 26, "#F2E8D8", ["#FFFFFF", "#E8D8C8"], 11, max_w=470,
                        shadow="#000000", soff=(0.02, 0.06), angle=-40, wob=0.25))
-    return fin(D, out, 12)
+    return gfin(D, out, 12, 101, edge=2.6, bristle=0.45, grain=0.2, bg="#0A0C18")
+# --- end repaint:dracula
 
 
 # ================================================================ 2. the headless horseman — over the bridge with his pumpkin
@@ -500,61 +971,155 @@ def headless_rider(D, x, y, s, seed, col="#06050A", rim="#FFB060"):
     return "".join(out)
 
 
+# --- repaint:the-headless-horseman
+def galloping_horse(D, x, y, s, seed, col="#07040A", rim="#FFB060", glow="#FFC070"):
+    """A horse at full extended gallop, facing right, built from anatomical masses into one silhouette: deep chest,
+    rounded croup, long arched neck carried forward, a lean wedge of a head with a defined jaw, pricked ears, slim
+    legs with knees, hocks and fetlocks, and hooves; mane and tail streaming back. (x, y) = middle of the barrel.
+    Returns (behind, body, front) so a rider can be put between body and rim."""
+    def L(p):
+        return T(p, x, y, s)
+    rnd = random.Random(seed)
+    lw_fore = lambda t: limb_w(13, 7.5, 6.4, 5.6, 0.42, 0.1)(t) * s
+    lw_hind = lambda t: limb_w(16, 8, 6.4, 5.6, 0.45, 0.05)(t) * s
+    far = [tube_pts(L([(28, 12), (44, 30), (34, 44), (24, 48)]), 12 * s, 6 * s, wfn=lw_fore),                 # far fore folded under
+           tube_pts(L([(-24, 10), (-30, 32), (-18, 44), (-10, 48)]), 14 * s, 6 * s, wfn=lw_hind)]             # far hind reaching under
+    far_hooves = [L([(20, 46), (28, 44), (30, 51), (22, 53)]), L([(-12, 46), (-4, 45), (-3, 52), (-12, 53)])]
+    parts = [blob_pts(*L([(0, 0)])[0], 42 * s, 19 * s, seed, 0.03, 20, -2),                                   # barrel
+             blob_pts(*L([(36, -2)])[0], 16 * s, 20 * s, seed + 1, 0.04, 16, 10),                             # chest
+             blob_pts(*L([(-36, -5)])[0], 20 * s, 21 * s, seed + 2, 0.04, 16),                                # croup and quarters
+             tube_pts(L([(30, -10), (48, -30), (64, -44)]), 34 * s, 17 * s, wfn=lambda t: (34 - 20 * t + 4 * math.sin(math.pi * t)) * s),   # neck, arched
+             tube_pts(L([(64, -46), (78, -38), (93, -27)]), 17 * s, 10 * s, wfn=lambda t: (17 - 6 * t - 2 * math.sin(math.pi * t)) * s),   # head
+             blob_pts(*L([(68, -38)])[0], 9 * s, 8 * s, seed + 3, 0.05, 12),                                  # jaw / cheek
+             L([(62, -50), (64, -61), (68, -50)]), L([(66, -49), (70, -59), (71, -47)]),                      # ears pricked
+             tube_pts(L([(34, 10), (62, 20), (84, 28), (94, 30)]), 13 * s, 5.6 * s, wfn=lw_fore),             # leading foreleg reaching
+             tube_pts(L([(-34, 6), (-52, 24), (-78, 30), (-90, 32)]), 16 * s, 5.6 * s, wfn=lw_hind),          # hind leg driving back
+             blob_pts(*L([(-44, 6)])[0], 12 * s, 14 * s, seed + 4, 0.05, 12)]                                 # gaskin
+    hooves = [L([(92, 26), (100, 28), (99, 35), (91, 34)]), L([(-96, 28), (-88, 28), (-88, 36), (-97, 36)])]
+    ds_far = [smooth_closed(p) for p in far] + [pd(h) for h in far_hooves]
+    ds = [smooth_closed(p) for p in parts] + [pd(h) for h in hooves]
+    # mane and tail: streaming locks
+    mane, tail = [], []
+    for k in range(26):
+        t = k / 25
+        rx_, ry_ = L([(36 + t * 28, -32 - t * 16)])[0]
+        ln = rnd.uniform(14, 30) * s
+        mane.append(taper([(rx_, ry_), (rx_ - ln * 0.5, ry_ - rnd.uniform(-2, 6) * s), (rx_ - ln, ry_ + rnd.uniform(-4, 8) * s)], rnd.uniform(2.4, 4.4) * s, 0.4, col))
+    for k in range(20):
+        t = k / 19
+        p0 = L([(-52, -16 + t * 6)])[0]
+        p1 = L([(-80 - rnd.uniform(0, 10), -22 + t * 10 + rnd.uniform(-4, 4))])[0]
+        p2 = L([(-112 - rnd.uniform(0, 26), -14 + t * 22 + rnd.uniform(-8, 8))])[0]
+        tail.append(taper([p0, p1, p2], rnd.uniform(3, 5.5) * s, 0.4, col))
+    behind_glow, rim_front = union_rim(D, ds, rim, -0.6 * s, 1.6 * s, op=0.9, blur=0.5, glow=glow, glow_op=0.35, glow_w=7 * s)
+    behind = (f'<g fill="#030205">' + "".join(f'<path d="{d}"/>' for d in ds_far) + "</g>" + behind_glow + "".join(tail))
+    body = f'<g fill="{col}">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>" + "".join(mane)
+    # a few lit hairs on mane and tail tips, nostril and eye glints
+    lit = []
+    for k in range(10):
+        t = rnd.random()
+        rx_, ry_ = L([(40 + t * 24, -36 - t * 14)])[0]
+        lit.append(taper([(rx_, ry_ - 2), (rx_ - rnd.uniform(8, 18) * s, ry_ - rnd.uniform(0, 5) * s)], 1.2 * s, 0.3, rim, 0.6))
+    ex_, ey_ = L([(72, -44)])[0]
+    front = rim_front + soft(D, "".join(lit), 0.4) + f'<circle cx="{ex_:.1f}" cy="{ey_:.1f}" r="{1.4 * s:.1f}" fill="#FFB060" opacity="0.8"/>'
+    return behind, body, front
+
+
+def headless_rider2(D, x, y, s, seed, col="#06040A", rim="#FFB060"):
+    """The rider: a high-collared riding coat with nothing above the collar, leaning into the gallop, one arm hurling
+    up the lantern-head, the other on the reins, the cloak cracking out behind. (x, y) = the saddle."""
+    def L(p):
+        return T(p, x, y, s)
+    cloak = [(10, -60), (-6, -64), (-40, -76), (-80, -96), (-120, -100), (-98, -80), (-136, -74), (-100, -58), (-118, -40), (-74, -42), (-40, -30), (-8, -20)]
+    parts = [L([(-2, -20), (-30, -4), (-22, 4), (6, 2), (22, 0), (18, -18)]),                              # coat skirts over the horse's back
+             tube_pts(L([(4, -14), (12, -36), (22, -58)]), 18 * s, 24 * s, wfn=lambda t: (17 + 10 * math.sin(math.pi * min(1, t * 0.62))) * s),  # torso
+             blob_pts(*L([(20, -58)])[0], 16 * s, 8 * s, seed, 0.05, 12, -28),                          # shoulders
+             L([(10, -62), (7, -80), (15, -74), (20, -84), (28, -72), (32, -60)]),                       # the empty high collar
+             tube_pts(L([(4, -2), (24, 4), (26, 26), (20, 40)]), 15 * s, 8 * s, wfn=lambda t: limb_w(15, 10, 10, 8, 0.5)(t) * s),   # thigh and boot
+             L([(14, 36), (30, 38), (31, 45), (14, 45)]),
+             tube_pts(L([(24, -58), (40, -66), (52, -76), (60, -84)]), 10 * s, 7 * s, wfn=lambda t: limb_w(10.5, 7.5, 8, 6.5, 0.45)(t) * s),  # arm up
+             tube_pts(L([(18, -50), (34, -36), (50, -36)]), 10 * s, 7 * s)]                              # arm on reins
+    ds = [smooth_closed(p) for p in parts]
+    cd = smooth_closed(L(cloak))
+    behind, front = union_rim(D, ds + [cd], rim, -0.8 * s, 1.5 * s, op=0.9, blur=0.5)
+    out = [gform(D, L(cloak), ("#4A2A3A", "#1A0E18", "#040206"), seed, (0.3, -1), angle=180, n=30, core=0.3, slen=(20, 50), sw=(1, 2.6))]
+    out.append(folds(D, cd, [L([(0, -60), (-50, -82), (-110, -96)]), L([(-4, -40), (-60, -56), (-120, -72)]), L([(-8, -26), (-50, -38), (-100, -48)])],
+                     "#000000", "#8A5A6A", seed, w=(6 * s, 1), op=0.7, sd=1.6))
+    out.append(f'<g fill="{col}">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>")
+    out.append(front)
+    # the hollow inside the collar, a dull red glow where a neck should be
+    cx_, cy_ = L([(19, -76)])[0]
+    out.append(f'<path d="{blob(cx_, cy_, 9 * s, 2.6 * s, seed, 0.1, 10, -6)}" fill="#3A0E08"/>')
+    out.append(f'<path d="{blob(cx_, cy_ - 0.4 * s, 6 * s, 1.4 * s, seed + 1, 0.1, 10, -6)}" fill="#8A2A10" opacity="0.6" {gb(D, 1)}/>')
+    # the reins to the bit
+    hx, hy = L([(50, -36)])[0]
+    return "".join(out), (hx, hy)
+
+
 @design("the-headless-horseman")
 def the_headless_horseman():
     D = Doc2("hr-hh")
-    out = [night(D, [(0, "#0A0816"), (0.4, "#2A1A30"), (0.72, "#6A3A34"), (1, "#2A1A20")], 1)]
-    out.append(stars_field(3, (0, 0, 600, 260), 60))
-    out.append(moon(D, 316, 318, 150, 5, pal=("#FFF0C0", "#F4C070", "#C88040"), glow="#FFB060", gs=0.5, glow_r=1.9))
-    out.append(puff_cloud(D, 110, 236, 220, 4, ("#6A4A5A", "#3A2636", "#1A0E1A"), op=0.8))
-    out.append(puff_cloud(D, 540, 420, 180, 5, ("#7A4A4A", "#3A2430", "#1A0E16"), op=0.6))
-    # the old Dutch church on its knoll, far left: nave, belfry and spire
-    out.append(hill(D, ridge([(-20, 424), (60, 400), (140, 408), (220, 432)], 3, 5, 3), 640, ("#3A2A3A", "#20141E", "#0A060A"), 2, inkw=0, n=10))
-    out.append(poly([(60, 412), (60, 372), (84, 354), (132, 354), (132, 412)], "#0E0810"))
-    out.append(sharp([(52, 376), (84, 350), (138, 350), (138, 356), (84, 356), (58, 380)], "#0E0810"))
-    out.append(sharp([(72, 412), (72, 330), (96, 330), (96, 412)], "#0E0810"))
-    out.append(sharp([(68, 332), (84, 274), (100, 332)], "#0E0810"))
-    out.append(taper([(84, 276), (84, 258)], 1.6, 1.2, "#0E0810"))
-    out.append(taper([(78, 264), (90, 264)], 1.4, 1.4, "#0E0810"))
-    out.append(lit_slit(D, 84, 340, 6, 12, "#FFC060"))
+    out = [gsky(D, [(0, "#08060E"), (0.38, "#24162A"), (0.7, "#6A3A30"), (1, "#24141A")], 1, ["#2A1A2E", "#08040A", "#6A3A34"], 50,
+                blooms=((300, 330, 260, 200, "#C86A3A", 0.35),))]
+    out.append(stars_field(3, (0, 0, 600, 240), 60))
+    out.append(gmoon(D, 300, 322, 150, 5, pal=("#FFF2C8", "#F4C278", "#C8803E"), halo="#FFB060", halo_r=1.9, halo_op=0.55, maria="#D8945A",
+                     light=(0.1, -0.2)))
+    out.append(gcloud(D, 100, 250, 240, 26, 4, ("#E8A070", "#4A2A3A", "#1A0E1A"), light=(1, 0.3), op=0.85, n=16, lit_n=8))
+    out.append(gcloud(D, 530, 410, 200, 20, 5, ("#E89A6A", "#4A2A30", "#1A0E16"), light=(-1, -0.4), op=0.7, n=12, lit_n=6))
+    # the old Dutch church on its knoll and the hollow beyond, in haze
+    out.append(soft(D, hill(D, ridge([(-20, 424), (60, 404), (140, 410), (230, 432)], 3, 5, 3), 640, ("#3A2434", "#20141E", "#0A060A"), 2, inkw=0, n=10), 0.8))
+    church = [sharp([(60, 412), (60, 364), (84, 354), (132, 354), (132, 412)], "#0E0810"), sharp([(52, 376), (84, 350), (138, 350), (138, 356), (84, 356), (58, 380)], "#0E0810"),
+              sharp([(72, 412), (72, 330), (96, 330), (96, 412)], "#0E0810"), sharp([(68, 332), (84, 274), (100, 332)], "#0E0810"),
+              taper([(84, 276), (84, 258)], 1.6, 1.2, "#0E0810"), taper([(78, 264), (90, 264)], 1.4, 1.4, "#0E0810")]
+    out.append(soft(D, "".join(church), 0.5))
+    out.append(gglow(D, 84, 340, 14, "#FFC060", 0.6))
+    out.append(f'<rect x="82" y="334" width="4" height="10" fill="#FFD890"/>')
     for wx in (108, 122):
-        out.append(lit_slit(D, wx, 372, 6, 16, "#FFC060"))
-    # trees framing: a great twisted tree at the right
+        out.append(f'<rect x="{wx - 2}" y="364" width="4" height="12" fill="#FFC870" opacity="0.9"/>')
+    out.append(gfog(D, 420, 40, 6, "#8A5A5A", 0.5, sd=8))
+    # trees framing: a great twisted oak at the right, a smaller one at the left
     out.append(crooked_tree(560, 470, 380, 7, "#07050A", w=18, lean=-12, spread=42, depth=5))
     out.append(crooked_tree(30, 470, 260, 8, "#07050A", w=12, lean=10, spread=40, depth=4))
     # the brook and the wooden bridge
-    out.append(sea(D, 470, 640, [(0, "#3A2430"), (0.5, "#1A1018"), (1, "#06040A")], 6, ["#6A3A3A", "#06040A", "#FFB060"], 60))
-    out.append(f'<path d="{blob(330, 500, 90, 10, 3, 0.2, 14)}" fill="#FFC070" opacity="0.25"/>')
-    out.append(wave_lines(7, (0, 480, 600, 600), ["#C8784A", "#FFC070", "#3A2430"], 50, (10, 30), 1.6, 2, (0.3, 0.6)))
+    out.append(f'<path d="M -20 470 L 620 470 L 620 620 L -20 620 Z" fill="{D.lin([(0, "#4A2A30"), (0.4, "#1A1018"), (1, "#06040A")])}"/>')
+    rnd = random.Random(6)
+    out.append(soft(D, "".join(taper([(x_ := 300 + rnd.uniform(-130, 130), y_ := 480 + rnd.uniform(0, 110)), (x_ + rnd.uniform(14, 46), y_)], 2, 0.6, rnd.choice(["#FFC070", "#E8904A"]),
+                                     rnd.uniform(0.2, 0.6)) for _ in range(46)), 0.8))
     bridge_y = 456
-    out.append(painted(D, poly_pts([(-20, bridge_y), (620, bridge_y), (620, bridge_y + 16), (-20, bridge_y + 16)], 20, 3, 0.5), ("#5A3A2A", "#2A1A14", "#0A0604"), 8, sdir=(0, 1), sk=0.2, angle=0, n=30, inkw=1.4, inkc="#000000", hi=0.3))
+    out.append(gform(D, [(-20, bridge_y), (620, bridge_y), (620, bridge_y + 16), (-20, bridge_y + 16)], ("#7A5040", "#2A1A14", "#0A0604"), 8, (0, -1), angle=0, n=40,
+                     sharp=True, rim="#FFB060", rim_w=1.4))
     for k in range(13):
         px = 10 + k * 50
-        out.append(taper([(px, bridge_y + 14), (px + 1, bridge_y + 80)], 9, 8, "#0A0608"))
+        out.append(taper([(px, bridge_y + 14), (px + 1, bridge_y + 90)], 9, 8, "#0A0608"))
+    # the horse and rider, flying over the bridge across the face of the moon
+    behind, body, front = galloping_horse(D, 300, 364, 1.55, 8)
+    rider, (hx, hy) = headless_rider2(D, 300 + 6 * 1.55, 364 - 22 * 1.55, 1.25, 9)
+    out.append(behind + body + front)
+    mx_, my_ = 300 + 92 * 1.55, 364 - 28 * 1.55
+    out.append(f'<path d="M {hx:.1f} {hy:.1f} Q {(hx + mx_) / 2:.1f} {(hy + my_) / 2 + 10:.1f} {mx_:.1f} {my_:.1f}" stroke="#06040A" stroke-width="1.6" fill="none"/>')
+    out.append(rider)
+    # the rail in front of the hooves
+    for k in range(13):
+        px = 10 + k * 50
         out.append(taper([(px, bridge_y + 2), (px, bridge_y - 32)], 6, 5, "#0E080A"))
     out.append(taper([(-20, bridge_y - 30), (300, bridge_y - 33), (620, bridge_y - 30)], 5, 5, "#0E080A"))
-    out.append(taper([(-20, bridge_y - 30), (300, bridge_y - 33), (620, bridge_y - 30)], 1.6, 1.6, "#FFB060", 0.5))
-    # the horse at full gallop (facing right), the rider hurling his flaming head
-    legs = [((-60, 46), (-98, 52), (-134, 36), (-14, 2), "far"), ((62, 44), (96, 58), (134, 62), (14, 4), "far"),
-            ((-70, 50), (-104, 64), (-138, 58), (-14, 4), "near"), ((70, 48), (100, 66), (130, 82), (14, 6), "near")]
-    hx, hy = 296, 352
-    out.append(horse(D, hx, hy, 0.92, 8, ("#5A3A34", "#160C0E", "#040204"), legs, flip=True, mane="#100608", rim="#FFC070", dapple=False))
-    out.append(headless_rider(D, hx - 12, hy - 20, 0.92, 9))
-    out.append(jack_o_lantern(D, hx + 36, hy - 152, 26, 10))
-    rnd = random.Random(11)
+    out.append(taper([(-20, bridge_y - 31.5), (300, bridge_y - 34.5), (620, bridge_y - 31.5)], 1.6, 1.6, "#FFB060", 0.55))
+    # the lantern head, flung up, sparks streaming
+    jx, jy = 300 + 6 * 1.55 + 64 * 1.25, 364 - 22 * 1.55 - 102 * 1.25
+    out.append(jack_o_lantern(D, jx, jy, 24, 10))
     for _ in range(30):
         a, r = rnd.uniform(-2.6, -0.6), rnd.uniform(26, 70)
-        out.append(f'<circle cx="{hx + 34 + math.cos(a) * r - 20:.1f}" cy="{hy - 150 + math.sin(a) * r * 0.6 + 20:.1f}" r="{rnd.uniform(0.8, 2.2):.1f}" fill="#FFD08A" opacity="{rnd.uniform(0.4, 1):.2f}"/>')
-    # flying leaves and a crow
+        out.append(f'<circle cx="{jx - 4 + math.cos(a) * r - 20:.1f}" cy="{jy + math.sin(a) * r * 0.6 + 20:.1f}" r="{rnd.uniform(0.8, 2.2):.1f}" fill="#FFD08A" opacity="{rnd.uniform(0.4, 1):.2f}"/>')
     for k in range(10):
-        lx, ly = rnd.uniform(60, 560), rnd.uniform(170, 440)
-        out.append(f'<path d="{blob(lx, ly, rnd.uniform(3, 6), rnd.uniform(1.6, 3), k, 0.2, 8, rnd.uniform(0, 180))}" fill="{rnd.choice(["#C8602A", "#8A3A1A", "#E89A3A"])}" opacity="0.9"/>')
-    out.append(band(D, 520, 600, "#000000", 0, 0.7))
-    # lettering
+        lx_, ly_ = rnd.uniform(60, 560), rnd.uniform(200, 440)
+        out.append(f'<path d="{blob(lx_, ly_, rnd.uniform(3, 6), rnd.uniform(1.6, 3), k, 0.2, 8, rnd.uniform(0, 180))}" fill="{rnd.choice(["#C8602A", "#8A3A1A", "#E89A3A"])}" opacity="0.9"/>')
+    out.append(band(D, 510, 600, "#000000", 0, 0.7))
+    out.append(band(D, 0, 200, "#000000", 0.45, 0))
     out.append(block(D, 300, 110, "THE HEADLESS", BEBAS, 66, "#FFD27A", "#5A1A08", depth=6, ang=(0.6, 1.0), ls=6, max_w=440, face2="#F08A2A", shadow="#000000"))
     out.append(block(D, 300, 176, "HORSEMAN", BEBAS, 80, "#FFD27A", "#5A1A08", depth=7, ang=(0.6, 1.0), ls=10, max_w=440, face2="#E8701E", shadow="#000000"))
     out.append(sub_rule(300, 548, "WASHINGTON IRVING · 1820", CINZEL, 18, "#FFE2B0", ls=3, max_w=360, line="#FFB060"))
-    return fin(D, out, 13)
+    return gfin(D, out, 13, 110, edge=2.4, bristle=0.4, grain=0.18, bg="#140C14")
+# --- end repaint:the-headless-horseman
 
 
 # ================================================================ 3. the fall of the house of usher — the fissure and the blood-red moon
@@ -1428,76 +1993,157 @@ def the_picture_of_dorian_gray():
 
 
 # ================================================================ 13. the invisible man — hat, blue spectacles, bandages and nobody
+# --- repaint:the-invisible-man
+def bandaged_void(D, cx, cy, s, seed):
+    """Bandages wound round a head that isn't there: a few spaced bands on an egg-shaped volume; through the gaps you
+    see straight through to the inside of the wraps at the back, and the wall. The goggles float at eye level."""
+    rnd = random.Random(seed)
+    out = []
+    rx, ry = 24 * s, 30 * s
+    ts = (0.07, 0.2, 0.56, 0.69, 0.82, 0.94)
+    bands = []
+    for k, t in enumerate(ts):
+        y = cy - ry + 2 * ry * t
+        half = rx * math.sqrt(max(0.04, 1 - (2 * t - 1) ** 2)) * 1.02
+        tilt = rnd.uniform(-3, 3) * s + (1.5 if k % 2 else -1.5) * s
+        bands.append((y, half, tilt, (3.4 if t not in (0.07, 0.94) else 2.6) * s, k))
+    for y, half, tilt, hw, k in bands:
+        back = [(cx - half, y), (cx - half * 0.5, y - 4.5 * s + tilt * 0.4), (cx, y - 5.5 * s + tilt * 0.5), (cx + half * 0.5, y - 4.5 * s + tilt * 0.6), (cx + half, y + tilt * 0.4)]
+        out.append(gform(D, tube_pts(back, hw * 2, hw * 2), ("#B8A88E", "#6A5A48", "#2A2016"), seed + 40 + k, (1, -0.2), angle=0, n=0, core=0.4, hi_op=0.3))
+    for y, half, tilt, hw, k in bands:
+        front = [(cx - half, y), (cx - half * 0.5, y + 5 * s + tilt * 0.4), (cx, y + 6.5 * s + tilt * 0.6), (cx + half * 0.55, y + 5 * s + tilt * 0.4), (cx + half, y + tilt * 0.4)]
+        out.append(gform(D, tube_pts(front, hw * 2, hw * 2), ("#FFFAEE", "#DCCFB6", "#7A6A56"), seed + k, (-1, -0.3), angle=0, n=10, core=0.35, hi_op=0.55,
+                         sw=(0.4, 1.0), slen=(6, 16), cols=["#FFFFFF", "#B8A88E", "#E8DCC6"]))
+        out.append(taper(catmull([(x, y_ + hw * 0.6) for x, y_ in front], 6), 1.0, 1.0, "#6A5A48", 0.45))
+    # a strip crossing diagonally over the crown, as bandages do
+    cross = [(cx - rx * 0.7, cy - ry * 0.62), (cx - rx * 0.1, cy - ry * 0.94), (cx + rx * 0.55, cy - ry * 0.78), (cx + rx * 0.92, cy - ry * 0.3)]
+    out.append(gform(D, tube_pts(cross, 6 * s, 6 * s), ("#FFFAEE", "#D2C4AA", "#6A5A48"), seed + 9, (-1, -0.3), n=6, core=0.3))
+    # the goggles: two round smoked lenses in brass, the strap round nothing
+    gy = cy - 3 * s
+    out.append(taper(catmull([(cx - rx * 1.0, gy - 3 * s), (cx - rx * 0.6, gy + 1 * s), (cx + rx * 0.6, gy + 1 * s), (cx + rx * 1.0, gy - 3 * s)], 6), 3 * s, 3 * s, "#2A1E14"))
+    for sg in (-1, 1):
+        lx_ = cx + sg * 10.5 * s
+        out.append(f'<circle cx="{lx_:.1f}" cy="{gy:.1f}" r="{8.6 * s:.1f}" fill="{D.lin([(0, "#F2D488"), (0.5, "#8A6A2A"), (1, "#3A2A0A")])}"/>')
+        out.append(f'<circle cx="{lx_:.1f}" cy="{gy:.1f}" r="{6.8 * s:.1f}" fill="{D.rad([(0, "#4A4E58"), (0.7, "#14161C"), (1, "#050608")], 0.4, 0.35, 0.7)}"/>')
+        out.append(f'<path d="M {lx_ - 4 * s:.1f} {gy - 3 * s:.1f} q {2 * s:.1f} {-2.4 * s:.1f} {5 * s:.1f} {-1.6 * s:.1f}" stroke="#FFFFFF" stroke-width="{1.3 * s:.1f}" fill="none" opacity="0.8" stroke-linecap="round"/>')
+        out.append(f'<circle cx="{lx_ + 3.4 * s:.1f}" cy="{gy + 3.2 * s:.1f}" r="{1 * s:.1f}" fill="#FFB060" opacity="0.6"/>')
+    out.append(taper([(cx - 2.4 * s, gy - 0.6 * s), (cx + 2.4 * s, gy - 0.6 * s)], 2 * s, 2 * s, "#8A6A2A"))
+    return "".join(out)
+
+
+def greatcoat(D, cx, top, s, seed, light=(-1, -0.25)):
+    """An empty greatcoat standing as if worn: high turned-up collar, broad shoulders, sleeves with elbow folds, the
+    open front showing the lining at the back of the coat, where a body should be. (cx, top) = back of collar."""
+    def L(p):
+        return T(p, cx, top, s)
+    out = []
+    pal = ("#C08060", "#3A2620", "#0A0604")
+    # the inside back of the coat, seen through the open front
+    out.append(gform(D, L([(-24, 18), (24, 18), (30, 150), (-30, 150)]), ("#5A3A30", "#22140E", "#060302"), seed, light, n=20, core=0.5))
+    for k in range(3):
+        out.append(taper(L([(-14 + k * 12, 30), (-16 + k * 13, 90), (-18 + k * 14, 150)]), 3, 4, "#000000", 0.5))
+    out.append(soft(D, f'<path d="{smooth_closed(L([(-20, 18), (20, 18), (18, 60), (-18, 60)]))}" fill="#000000" opacity="0.65"/>', 6))
+    # sleeves (behind the body edges at the shoulder)
+    sleeves = [[(-58, 26), (-74, 80), (-74, 150)], [(58, 26), (70, 60), (52, 104), (16, 116)]]
+    for k, sl in enumerate(sleeves):
+        out.append(gform(D, tube_pts(L(sl), 34 * s, 26 * s, wfn=lambda t: (34 - 8 * t + (5 if k == 0 else 3) * math.sin(t * 3.14)) * s), pal, seed + 1 + k, light, angle=-80,
+                         n=30, rim="#FFB060" if k == 0 else "#6A86B8", rim_w=2.2))
+    out.append(folds(D, smooth_closed(tube_pts(L(sleeves[0]), 34 * s, 26 * s)), [L([(-66, 70), (-80, 76)]), L([(-70, 96), (-80, 100)]), L([(-66, 120), (-78, 126)])],
+                     "#0A0604", "#C8906A", seed, w=(4, 1), op=0.7))
+    out.append(folds(D, smooth_closed(tube_pts(L(sleeves[1]), 34 * s, 26 * s)), [L([(62, 58), (76, 66)]), L([(52, 90), (60, 102)]), L([(44, 98), (40, 112)])],
+                     "#0A0604", "#C8906A", seed + 1, w=(4, 1), op=0.7))
+    # coat body: two front panels falling from the shoulders, the right one buttoned over
+    left = [(-28, 0), (-60, 18), (-66, 40), (-62, 110), (-66, 180), (-72, 260), (-30, 266), (-14, 150), (-12, 70), (-16, 30)]
+    right = [(28, 0), (60, 18), (66, 40), (62, 110), (66, 180), (72, 262), (16, 266), (6, 150), (10, 70), (16, 30)]
+    for k, pnl in enumerate((left, right)):
+        out.append(gform(D, L(pnl), pal, seed + 5 + k, light, angle=-90, n=60, core=0.38, refl="#5A6A8A", rim="#FFB060" if k == 0 else None, rim_w=2.4,
+                         sop=(0.08, 0.22)))
+    out.append(folds(D, smooth_closed(L(left)), [L([(-50, 40), (-46, 140), (-54, 250)]), L([(-30, 60), (-26, 160), (-36, 256)])], "#060302", "#B88060", seed + 7,
+                     w=(6, 1.5), op=0.6, sd=2))
+    out.append(folds(D, smooth_closed(L(right)), [L([(48, 40), (44, 140), (52, 250)]), L([(24, 70), (22, 170), (30, 256)])], "#060302", "#8A6A70", seed + 8,
+                     w=(6, 1.5), op=0.6, sd=2))
+    # lapels and the high collar, turned up round no neck
+    for sg in (-1, 1):
+        lap = L([(sg * 16, 4), (sg * 34, 6), (sg * 30, 40), (sg * 14, 90), (sg * 12, 60), (sg * 14, 24)])
+        out.append(gform(D, lap, ("#9A7A66", "#4A362C", "#140C08"), seed + 10 + sg, light, n=10, rim="#FFB060" if sg < 0 else None, rim_w=1.6))
+    collar = L([(-30, 6), (-34, -14), (-24, -26), (0, -30), (24, -26), (34, -14), (30, 6), (16, 0), (0, -2), (-16, 0)])
+    out.append(gform(D, collar, ("#A8826A", "#4A362C", "#100A08"), seed + 12, light, angle=-90, n=16, rim="#FFB060", rim_w=2))
+    out.append(f'<path d="{smooth_closed(L([(-22, -14), (0, -20), (22, -14), (14, -2), (0, -6), (-14, -2)]))}" fill="#120806"/>')
+    # buttons
+    for k in range(4):
+        bx, by = L([(18, 100 + k * 40)])[0]
+        out.append(f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="{4 * s:.1f}" fill="{D.rad([(0, "#5A4A3A"), (1, "#140C08")], 0.35, 0.35, 0.7)}"/>')
+        out.append(f'<circle cx="{bx - 1.2 * s:.1f}" cy="{by - 1.2 * s:.1f}" r="{1.1 * s:.1f}" fill="#FFC890" opacity="0.6"/>')
+    # gloves: one hanging empty from the left cuff, the right holding the loosened bandage at the breast
+    gl = ("#6A4A3A", "#2A1A14", "#080404")
+    gx, gy = L([(-74, 156)])[0]
+    out.append(gform(D, poly_pts([(gx - 11 * s, gy - 6 * s), (gx + 11 * s, gy - 6 * s), (gx + 10 * s, gy + 18 * s), (gx + 4 * s, gy + 30 * s), (gx - 6 * s, gy + 28 * s),
+                                  (gx - 12 * s, gy + 14 * s)], 6, seed, 0.6), gl, seed + 20, light, n=8, rim="#FFB060", rim_w=1.6))
+    for f in range(4):
+        out.append(taper([(gx - 7 * s + f * 4.4 * s, gy + 22 * s), (gx - 8 * s + f * 4.6 * s, gy + 34 * s)], 4 * s, 3 * s, gl[1]))
+    hx, hy = L([(14, 112)])[0]
+    out.append(gform(D, blob_pts(hx, hy, 13 * s, 10 * s, seed, 0.12, 12, -20), gl, seed + 21, light, n=6, rim="#6A86B8", rim_w=1.4))
+    for f in range(4):
+        out.append(taper([(hx - 10 * s, hy - 6 * s + f * 4 * s), (hx - 18 * s, hy - 10 * s + f * 4.4 * s), (hx - 16 * s, hy - 4 * s + f * 4 * s)], 4.4 * s, 3.4 * s, gl[1]))
+    return "".join(out)
+
+
 @design("the-invisible-man")
 def the_invisible_man():
     D = Doc2("hr-im")
-    out = [f'<rect width="600" height="600" fill="#1A1410"/>']
-    # the inn parlour: plaster wall, a sash window full of falling snow, a dim fire to the right
-    out.append(f'<rect width="600" height="430" fill="{D.lin([(0, "#4A3A2A"), (1, "#3A2C20")])}"/>')
-    out.append(strokes(D.nid(), "M 0 0 L 600 0 L 600 430 L 0 430 Z", (0, 0, 600, 430), ["#5A4A36", "#2A1E14", "#6A5A42"], 3, n=100, angle=-90, length=(30, 90), width=(3, 8), opacity=(0.1, 0.25)))
-    wx0, wy0, wx1, wy1 = 60, 150, 196, 340
-    out.append(f'<rect x="{wx0}" y="{wy0}" width="{wx1 - wx0}" height="{wy1 - wy0}" fill="{D.lin([(0, "#2A3A5A"), (1, "#6A7A98")])}"/>')
-    wc = D.clip(f'<rect x="{wx0}" y="{wy0}" width="{wx1 - wx0}" height="{wy1 - wy0}"/>')
-    out.append(f'<g {wc}>{snowfall(3, (wx0, wy0, wx1, wy1), 60, (0.8, 2.4), "#FFFFFF", (0.5, 1))}'
-               f'<path d="M {wx0} {wy1 - 20} Q {wx0 + 60} {wy1 - 34} {wx1} {wy1 - 24} L {wx1} {wy1} L {wx0} {wy1} Z" fill="#E8F0FF"/></g>')
-    for xx in ((wx0 + wx1) / 2,):
-        out.append(f'<path d="M {xx} {wy0} L {xx} {wy1} M {wx0} {(wy0 + wy1) / 2} L {wx1} {(wy0 + wy1) / 2}" stroke="#2A1E14" stroke-width="5"/>')
-    out.append(f'<rect x="{wx0}" y="{wy0}" width="{wx1 - wx0}" height="{wy1 - wy0}" fill="none" stroke="#2A1E14" stroke-width="9"/>')
-    out.append(soft_glow(D, 600, 420, 300, "#FF8A3A", 0.35))
-    # table and the empty chair
-    out.append(f'<rect x="-10" y="430" width="620" height="180" fill="{D.lin([(0, "#2A1E14"), (1, "#0E0A06")])}"/>')
-    chair = ("#7A4E2C", "#4A2E18", "#1E1008")
-    out.append(painted(D, poly_pts([(244, 250), (356, 250), (350, 266), (250, 266)], 10, 1, 0.4), chair, 3, sdir=(0.6, 0.6), sk=0.2, angle=0, n=10, inkw=1.4, inkc="#140A04", hi=0.4))
-    for x in (258, 342):
-        out.append(painted(D, poly_pts([(x - 6, 262), (x + 6, 262), (x + 6, 440), (x - 6, 440)], 12, x, 0.4), chair, x, sdir=(0.6, 0.2), sk=0.2, angle=-90, n=8, inkw=1.2, inkc="#140A04", hi=0.4))
-    for k in range(4):
-        out.append(painted(D, poly_pts([(266 + k * 20, 266), (274 + k * 20, 266), (274 + k * 20, 360), (266 + k * 20, 360)], 10, k, 0.4), chair, 20 + k, sdir=(0.6, 0.2), sk=0.2, angle=-90, n=4, inkw=1, inkc="#140A04", hi=0.4))
-    out.append(painted(D, poly_pts([(232, 372), (368, 372), (380, 392), (220, 392)], 14, 4, 0.4), chair, 30, sdir=(0, 1), sk=0.2, angle=0, n=12, inkw=1.4, inkc="#140A04", hi=0.45))
-    for x in (230, 370):
-        out.append(taper([(x, 392), (x + (6 if x > 300 else -6), 470)], 9, 7, chair[2]))
-    # the coat, upright on the chair, collar turned up round nothing
-    coat = [(246, 384), (250, 300), (262, 252), (284, 236), (300, 244), (316, 236), (338, 252), (350, 300), (354, 384)]
-    out.append(painted(D, coat, ("#5A6A80", "#2A3446", "#0E141E"), 5, sdir=(0.6, 0.3), sk=0.18, angle=-90, n=40, inkw=1.6, inkc="#06080E", hi=0.35))
-    for sg in (-1, 1):
-        sleeve = [(300 + sg * 34, 256), (300 + sg * 52, 290), (300 + sg * 60, 340), (300 + sg * 58, 372), (300 + sg * 44, 374), (300 + sg * 40, 330), (300 + sg * 30, 290)]
-        out.append(painted(D, sleeve, ("#5A6A80", "#2A3446", "#0E141E"), 40 + sg, sdir=(0.6, 0.3), sk=0.2, angle=-90, n=12, inkw=1.4, inkc="#06080E", hi=0.3))
-        out.append(f'<path d="{blob(300 + sg * 51, 372, 9, 4, 3 + sg, 0.1, 8)}" fill="#0A0A0E"/>')
-    for sg in (-1, 1):
-        out.append(f'<path d="{smooth_closed([(300, 258), (300 + sg * 22, 250), (300 + sg * 16, 300), (300 + sg * 4, 320)])}" fill="#3A4658"/>')
-    out.append(f'<path d="{smooth_closed([(272, 246), (284, 210), (300, 216), (316, 210), (328, 246), (300, 256)])}" fill="#3A4658"/>')
-    out.append(f'<path d="{smooth_closed([(282, 240), (290, 218), (300, 222), (310, 218), (318, 240), (300, 246)])}" fill="#0A0A0E"/>')
-    for k in range(4):
-        out.append(f'<circle cx="300" cy="{280 + k * 24}" r="3.2" fill="#C8B080"/>')
-    out.append(pline([(300, 256), (300, 384)], "#0E141E", 1.4, 3, 0.7, 1))
-    # the bandage unwinding in mid-air where the head should be
-    bpath = [(300, 214), (270, 200), (262, 176), (290, 164), (328, 170), (334, 150), (300, 136), (262, 140), (248, 120), (278, 108), (330, 112)]
-    pts_ = catmull(bpath, 8)
-    out.append(taper(pts_, 16, 12, "#F2ECDC"))
-    out.append(taper([(x, y + 3) for x, y in pts_], 6, 4, "#B8AE98", 0.6))
-    for k in range(0, len(pts_) - 1, 4):
-        x, y = pts_[k]
-        out.append(f'<path d="M {x - 5:.1f} {y - 4:.1f} L {x + 5:.1f} {y + 4:.1f}" stroke="#C8BEA8" stroke-width="1" opacity="0.7"/>')
-    out.append(ink(smooth_open(pts_), "#6A5E48", 1.2, 4, 1, 0.5))
-    # the blue spectacles, floating at eye height
-    sy = 178
-    for sg in (-1, 1):
-        out.append(f'<circle cx="{300 + sg * 18}" cy="{sy}" r="13" fill="{D.rad([(0, "#5A8AD8"), (1, "#0E1E4A")], 0.35, 0.35, 0.7)}" stroke="#C8B080" stroke-width="2.4"/>')
-        out.append(f'<circle cx="{300 + sg * 18 - 4}" cy="{sy - 4}" r="3" fill="#FFFFFF" opacity="0.7"/>')
-        out.append(f'<path d="M {300 + sg * 31} {sy - 2} L {300 + sg * 46} {sy - 8}" stroke="#C8B080" stroke-width="2"/>')
-    out.append(f'<path d="M 295 {sy - 2} Q 300 {sy - 7} 305 {sy - 2}" stroke="#C8B080" stroke-width="2.2" fill="none"/>')
-    # the hat, hovering above
-    hat_y = 92
-    out.append(painted(D, ell_pts(300, hat_y + 30, 62, 12, 0, 360, 28), ("#6A5A4A", "#3A2E24", "#140E0A"), 6, sdir=(0.5, 1), sk=0.2, angle=0, n=10, inkw=1.4, inkc="#0A0604", hi=0.4))
-    out.append(painted(D, [(258, hat_y + 30), (262, hat_y + 4), (280, hat_y - 10), (300, hat_y - 4), (320, hat_y - 10), (338, hat_y + 4), (342, hat_y + 30)], ("#7A6A58", "#3E3226", "#140E0A"), 7, sdir=(0.6, 0.4), sk=0.2, angle=-90, n=12, inkw=1.4, inkc="#0A0604", hi=0.45))
-    out.append(f'<path d="M 260 {hat_y + 22} Q 300 {hat_y + 28} 340 {hat_y + 22} L 341 {hat_y + 28} Q 300 {hat_y + 34} 259 {hat_y + 28} Z" fill="#1A120C"/>')
-    # a floating glove lifting a cup of tea
-    gx, gy = 404, 300
-    out.append(painted(D, [(gx - 18, gy + 20), (gx - 20, gy - 4), (gx - 12, gy - 16), (gx + 6, gy - 18), (gx + 18, gy - 8), (gx + 16, gy + 20)], ("#E8D8B8", "#B8A07A", "#5A4A30"), 8, sdir=(0.6, 0.6), sk=0.2, n=8, inkw=1.2, inkc="#2A1E10", hi=0.4))
-    out.append(painted(D, poly_pts([(gx - 22, gy - 34), (gx + 22, gy - 34), (gx + 16, gy - 8), (gx - 16, gy - 8)], 8, 3, 0.4), ("#FFFFFF", "#E8E4DA", "#9A9488"), 9, sdir=(0.6, 0.6), sk=0.2, n=8, inkw=1.2, inkc="#3A3428", hi=0.4))
-    out.append(f'<path d="M {gx + 21} {gy - 28} q 12 2 8 14 q -3 6 -10 4" fill="none" stroke="#E8E4DA" stroke-width="3"/>')
-    out.append(steam_lines(gx, gy - 42, 3))
-    out.append(band(D, 0, 200, "#000000", 0.4, 0))
-    out.append(vignette(D, "#000000", 0.6))
+    light = (-1, -0.25)
+    out = [f'<rect width="600" height="600" fill="#1A100C"/>']
+    # the inn parlour: plaster wall warm from the fire off to the left, cold at the right by the snowy window
+    out.append(f'<rect width="600" height="600" fill="{D.lin([(0, "#B07040"), (0.3, "#5A3420"), (0.62, "#20140E"), (1, "#0E1018")], 0, 0, 1, 0.2)}"/>')
+    out.append(gsky(D, [(0, "#8A5A3A", 0), (1, "#000000", 0)], 2, ["#A86A44", "#2A1A14", "#6A4430"], 60, sop=(0.05, 0.15)))
+    out.append(stipple(D, "M 0 0 L 600 0 L 600 600 L 0 600 Z", (0, 0, 600, 600), 4, "#0A0604", n=2400, light=(-1, 0.1), gamma=1.3, op=(0.2, 0.55)))
+    # the wainscot
+    out.append(gform(D, [(-20, 470), (620, 470), (620, 620), (-20, 620)], ("#6A4028", "#2E1A10", "#0A0604"), 3, light, angle=0, n=40))
+    for k in range(7):
+        x = 20 + k * 96
+        out.append(f'<path d="M {x} 486 L {x} 610" stroke="#0A0604" stroke-width="2" opacity="0.6"/><path d="M {x + 2} 486 L {x + 2} 610" stroke="#C8885A" stroke-width="1" opacity="0.3"/>')
+    out.append(f'<path d="M -20 470 L 620 470" stroke="#C8885A" stroke-width="2" opacity="0.5"/>')
+    # the window at the right: snow falling in blue night
+    wx0, wx1, wy0, wy1 = 452, 560, 150, 330
+    out.append(f'<path d="M {wx0 - 12} {wy0 - 12} L {wx1 + 12} {wy0 - 12} L {wx1 + 12} {wy1 + 16} L {wx0 - 12} {wy1 + 16} Z" fill="#1A100A"/>')
+    out.append(f'<path d="M {wx0 - 12} {wy0 - 12} L {wx0 - 12} {wy1 + 16}" stroke="#8A5A38" stroke-width="3" opacity="0.6"/>')
+    win = f"M {wx0} {wy0} L {wx1} {wy0} L {wx1} {wy1} L {wx0} {wy1} Z"
+    out.append(f'<path d="{win}" fill="{D.lin([(0, "#14203A"), (0.7, "#2A3A5A"), (1, "#5A6A8A")])}"/>')
+    out.append(f'<g {D.clip(f"<path d=\"{win}\"/>")}>{snowfall(6, (wx0, wy0, wx1, wy1), 50, (0.8, 2.0), "#FFFFFF", (0.5, 0.9))}'
+               f'<path d="M {wx0} {wy1 - 18} Q {(wx0 + wx1) / 2} {wy1 - 30} {wx1} {wy1 - 14} L {wx1} {wy1} L {wx0} {wy1} Z" fill="#C8D8F0"/></g>')
+    out.append(f'<path d="M {(wx0 + wx1) / 2} {wy0} L {(wx0 + wx1) / 2} {wy1} M {wx0} {(wy0 + wy1) / 2} L {wx1} {(wy0 + wy1) / 2}" stroke="#1A100A" stroke-width="5"/>')
+    out.append(gglow(D, 506, 240, 130, "#6A86C8", 0.22))
+    # the firelight itself, flickering in from the left
+    out.append(gglow(D, -40, 380, 420, "#FF9A40", 0.6))
+    out.append(soft(D, f'<ellipse cx="292" cy="250" rx="70" ry="80" fill="#0A0606" opacity="0.55"/>', 20))
+    # a table with the brandy and a lamp-less candle; a chair back
+    out.append(gform(D, [(380, 440), (600, 440), (600, 456), (380, 456)], ("#A86A40", "#4A2A16", "#140804"), 6, light, angle=0, n=20, rim="#FFC890"))
+    out.append(gform(D, [(392, 456), (404, 456), (404, 600), (392, 600)], ("#7A4A2A", "#3A2010", "#0A0402"), 7, light, n=6))
+    gl_ = [(452, 440), (448, 412), (462, 408), (476, 412), (472, 440)]
+    out.append(f'<path d="{smooth_closed(gl_)}" fill="#E8D8C0" opacity="0.18"/><path d="M 450 424 L 474 424 L 472 440 L 452 440 Z" fill="#B8601A" opacity="0.7"/>')
+    out.append(ink(smooth_closed(gl_), "#FFE8C8", 1.2, 3, 1, 0.6))
+    out.append(gcandle(D, 540, 440, 46, 13, 8, glow_r=90))
+    # the empty coat standing, the hat and goggles and unwinding bandages where a man should be
+    out.append(soft(D, f'<ellipse cx="320" cy="600" rx="150" ry="20" fill="#000000" opacity="0.5"/>', 8))
+    out.append(greatcoat(D, 292, 298, 1.22, 9, light))
+    out.append(bandaged_void(D, 292, 232, 1.18, 11))
+    # the loose bandage: off the head, through the gloved hand, curling to the floor
+    strip = [(318, 252), (342, 262), (346, 290), (330, 322), (320, 360), (312, 400), (309, 430), (316, 456), (302, 490), (322, 530), (298, 570), (310, 620)]
+    sp = tube_pts(strip, 7, 6, wfn=lambda t: 3 + 4 * abs(math.sin(t * 9)))
+    out.append(gform(D, sp, ("#FFF8EA", "#D2C4AA", "#6A5A48"), 12, light, angle=-70, n=20, core=0.3, hi_op=0.5))
+    out.append(ink(smooth_open(catmull(strip, 6)), "#5A4A3A", 0.8, 3, 1, 0.4))
+    # the hat, floating a hand's breadth above nothing
+    def H(p):
+        return T(p, 292, 192, 1.18)
+    hb = H([(-56, 8), (-42, 2), (0, -3), (44, 0), (58, 7), (48, 15), (2, 14), (-46, 16)])
+    crown = H([(-30, 4), (-29, -22), (-18, -34), (0, -38), (19, -34), (29, -22), (31, 2)])
+    out.append(soft(D, f'<ellipse cx="292" cy="218" rx="60" ry="7" fill="#000000" opacity="0.35"/>', 4))
+    out.append(gform(D, crown, ("#8A6A58", "#2E221C", "#080404"), 13, light, angle=-90, n=20, rim="#FFB060", rim_w=2))
+    out.append(f'<path d="{smooth_closed(H([(-30, -8), (0, -4), (31, -8), (31, 2), (0, 6), (-30, 2)]))}" fill="#120A08"/>')
+    out.append(gform(D, hb, ("#9A7A66", "#3A2A22", "#0A0604"), 14, light, angle=0, n=14, rim="#FFB060", rim_w=1.6))
+    out.append(soft(D, f'<path d="{smooth_closed(H([(-44, 4), (0, 0), (46, 3)]))}" fill="none" stroke="#FFC890" stroke-width="1.4" opacity="0.4"/>', 0.5))
+    out.append(band(D, 470, 600, "#000000", 0, 0.75))
+    out.append(band(D, 0, 140, "#000000", 0.35, 0))
     # lettering: the middle word is there, and it isn't
     t = "THE INVISIBLE MAN"
     fs = _fit(t, ANTON, 64, 460, 3)
@@ -1508,10 +2154,12 @@ def the_invisible_man():
     out.append(_t(x0 + 2, 528 + 3, "THE", ANTON, fs, "#000000", 3, "start", ' opacity="0.6"'))
     out.append(_t(x0 + w1 + w2 + 2, 528 + 3, "MAN", ANTON, fs, "#000000", 3, "start", ' opacity="0.6"'))
     out.append(_t(x0, 528, "THE", ANTON, fs, "#F2E8D8", 3, "start"))
-    out.append(_t(x0 + w1, 528, "INVISIBLE", ANTON, fs, "none", 3, "start", ' stroke="#F2E8D8" stroke-width="1.8" stroke-dasharray="6 4" opacity="0.9"'))
+    out.append(_t(x0 + w1, 528, "INVISIBLE", ANTON, fs, "#F2E8D8", 3, "start", ' opacity="0.16"'))
+    out.append(_t(x0 + w1, 528, "INVISIBLE", ANTON, fs, "none", 3, "start", ' stroke="#F2E8D8" stroke-width="1.6" opacity="0.85"'))
     out.append(_t(x0 + w1 + w2, 528, "MAN", ANTON, fs, "#F2E8D8", 3, "start"))
-    out.append(sub_rule(300, 548, "H. G. WELLS · 1897", JOST, 16, "#C8B898", ls=4, max_w=300))
-    return fin(D, out, 24)
+    out.append(sub_rule(300, 552, "H. G. WELLS · 1897", JOST, 17, "#E0C8A0", ls=4, max_w=300))
+    return gfin(D, out, 24, 105, edge=2.6, bristle=0.45, grain=0.2, bg="#1A100C")
+# --- end repaint:the-invisible-man
 
 
 def steam_lines(x, y, seed, col="#FFFFFF"):
@@ -1523,43 +2171,111 @@ def steam_lines(x, y, seed, col="#FFFFFF"):
 
 
 # ================================================================ 14. the hound of the baskervilles — out of the fog on the moor
+# --- repaint:the-hound-of-the-baskervilles
+def spectral_hound(D, x, y, s, seed, col="#040606", rim="#B8FFE8", glow="#7AF0C8"):
+    """The hound in full leap, facing left: a mastiff's bulk (deep chest, heavy neck, broad blunt muzzle, small drop
+    ears), forelegs reaching, hind legs driving, jaws open; its muzzle and hackles burning with cold phosphorescent
+    fire. (x, y) = middle of the barrel."""
+    def L(p):
+        return T(p, x, y, s)
+    rnd = random.Random(seed)
+    fw = lambda t: limb_w(15, 9.5, 9, 8, 0.45, 0.1)(t) * s
+    hw = lambda t: limb_w(20, 10, 8.5, 8, 0.45, 0.05)(t) * s
+    far = [tube_pts(L([(-28, 12), (-48, 30), (-66, 38), (-78, 40)]), 14 * s, 7 * s, wfn=fw),
+           tube_pts(L([(28, 8), (30, 26), (50, 38), (62, 44)]), 17 * s, 7 * s, wfn=hw)]
+    parts = [blob_pts(*L([(0, 0)])[0], 40 * s, 17 * s, seed, 0.03, 18, 4),
+             blob_pts(*L([(-34, -2)])[0], 20 * s, 23 * s, seed + 1, 0.04, 16, -10),
+             blob_pts(*L([(34, -4)])[0], 19 * s, 18 * s, seed + 2, 0.04, 14),
+             tube_pts(L([(-36, -10), (-48, -20), (-58, -28)]), 36 * s, 27 * s),
+             blob_pts(*L([(-64, -32)])[0], 15 * s, 13 * s, seed + 3, 0.05, 14, 10),
+             tube_pts(L([(-70, -30), (-80, -27), (-90, -22)]), 18 * s, 15 * s),
+             tube_pts(L([(-68, -20), (-77, -14), (-86, -8)]), 10 * s, 7 * s),
+             L([(-58, -42), (-49, -44), (-51, -32)]),
+             tube_pts(L([(-34, 10), (-50, 22), (-74, 26), (-88, 24)]), 15 * s, 8 * s, wfn=fw),
+             tube_pts(L([(36, 6), (42, 24), (64, 30), (82, 38)]), 20 * s, 8 * s, wfn=hw),
+             tube_pts(L([(50, -10), (68, -18), (86, -16), (98, -20)]), 10 * s, 3 * s)]
+    paws = [blob_pts(*L([(-90, 24)])[0], 6 * s, 4.4 * s, seed + 5, 0.1, 10), blob_pts(*L([(85, 39)])[0], 6.4 * s, 4.4 * s, seed + 6, 0.1, 10, 20)]
+    ds = [smooth_closed(p) for p in parts + paws]
+    behind, front = union_rim(D, ds, rim, 0.5 * s, 1.8 * s, op=0.75, blur=0.7, glow=glow, glow_op=0.35, glow_w=9 * s)
+    out = [f'<g fill="#020303">' + "".join(f'<path d="{smooth_closed(p)}"/>' for p in far) + "</g>", behind]
+    out.append(f'<g fill="{col}">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>")
+    # a dull sheen modelling the shoulder and haunch
+    for (cx_, cy_, r_) in ((-34, -6, 16), (34, -8, 14)):
+        px_, py_ = L([(cx_, cy_)])[0]
+        out.append(f'<path d="{blob(px_, py_, r_ * s, r_ * 0.7 * s, seed, 0.1, 12)}" fill="#2A3A36" opacity="0.5" {gb(D, 4)}/>')
+    out.append(front)
+    # hackles bristling along the neck and spine
+    hk = []
+    for k in range(30):
+        t = k / 29
+        px_, py_ = L([(-58 + t * 74, -40 + t * 22 - 6 * math.sin(t * math.pi))])[0]
+        hk.append(taper([(px_, py_ + 3 * s), (px_ + rnd.uniform(-1, 3) * s, py_ - rnd.uniform(4, 9) * s)], 3 * s, 0.4, col))
+    out.append("".join(hk))
+    # the cold fire round the jaws, along the hackles, and the burning eye
+    fire = []
+    for k in range(30):
+        t = rnd.random()
+        bx, by = L([(-90 + t * 22, -30 + t * 6 + rnd.uniform(-2, 8))])[0]
+        fire.append(taper([(bx, by), (bx + rnd.uniform(-4, 6) * s, by - rnd.uniform(5, 14) * s), (bx + rnd.uniform(0, 10) * s, by - rnd.uniform(10, 22) * s)],
+                          rnd.uniform(1.4, 3) * s, 0.3, rnd.choice([rim, "#FFFFFF", glow]), rnd.uniform(0.4, 0.9)))
+    for k in range(20):
+        t = rnd.random()
+        bx, by = L([(-58 + t * 70, -46 + t * 22 - 6 * math.sin(t * math.pi))])[0]
+        fire.append(taper([(bx, by), (bx + rnd.uniform(2, 8) * s, by - rnd.uniform(4, 12) * s)], rnd.uniform(1, 2.2) * s, 0.3, rim, rnd.uniform(0.3, 0.7)))
+    mx_, my_ = L([(-82, -18)])[0]
+    out.append(gglow(D, mx_, my_, 40 * s, glow, 0.6))
+    out.append(soft(D, "".join(fire), 0.8))
+    for k in range(4):
+        tx_, ty_ = L([(-86 + k * 4, -21)])[0]
+        out.append(f'<path d="M {tx_:.1f} {ty_:.1f} l {1.2 * s:.1f} {3.4 * s:.1f} l {1.2 * s:.1f} {-3.4 * s:.1f} Z" fill="#E8FFF4"/>')
+    ex_, ey_ = L([(-68, -36)])[0]
+    out.append(gglow(D, ex_, ey_, 12 * s, "#E8FF8A", 0.9))
+    out.append(f'<path d="{blob(ex_, ey_, 2.6 * s, 1.6 * s, seed, 0.05, 8, -8)}" fill="#F8FFC0"/>')
+    return "".join(out)
+
+
 @design("the-hound-of-the-baskervilles")
 def the_hound_of_the_baskervilles():
     D = Doc2("hr-hb")
-    out = [night(D, [(0, "#04080A"), (0.4, "#14242A"), (0.7, "#3A4A48"), (1, "#14201E")], 1)]
-    out.append(stars_field(3, (0, 0, 600, 300), 60))
-    out.append(moon(D, 452, 268, 58, 4, pal=("#FFFCEC", "#E8E8D8", "#B8BCAA"), glow="#DCF2E8", gs=0.5, glow_r=3.0))
-    out.append(puff_cloud(D, 180, 250, 260, 5, ("#4A5A58", "#24302E", "#0A1210"), op=0.85))
-    # the moor: low rolling land, Baskerville Hall far off with two lit windows
-    out.append(hill(D, ridge([(-20, 380), (100, 360), (220, 372), (340, 352), (460, 366), (620, 350)], 3, 6, 4), 640, ("#3A4A40", "#1E2A24", "#0A100C"), 2, inkw=0, n=40))
-    hx = 120
-    out.append(poly([(hx - 30, 366), (hx - 30, 340), (hx - 14, 330), (hx + 10, 330), (hx + 26, 340), (hx + 26, 366)], "#0A0E0C"))
-    for tx_ in (hx - 30, hx + 26):
-        out.append(sharp([(tx_ - 6, 366), (tx_ - 6, 322), (tx_, 314), (tx_ + 6, 322), (tx_ + 6, 366)], "#0A0E0C"))
-    for wx in (hx - 10, hx + 6):
-        out.append(lit_slit(D, wx, 342, 4, 9, "#FFC860"))
-    out.append(fog(D, 372, 44, 4, "#B8C8C0", 0.55))
-    # a granite tor on the right, the hound bounding down from it
-    tor = [(360, 470), (380, 400), (410, 372), (440, 360), (470, 366), (500, 352), (540, 360), (570, 390), (610, 400), (620, 480)]
-    out.append(painted(D, poly_pts(tor, 18, 5, 2), ("#7A8478", "#3A443C", "#121814"), 6, sdir=(-0.7, 0.4), sk=0.2, angle=0, n=60, inkw=1.6, inkc="#060A08", hi=0.45))
+    light = (0.8, -0.6)
+    out = [gsky(D, [(0, "#020606"), (0.4, "#10201E"), (0.72, "#34463E"), (1, "#121C18")], 1, ["#1A2A26", "#040808", "#3A4A44"], 50,
+                blooms=((450, 270, 220, 150, "#5A7066", 0.45),))]
+    out.append(stars_field(3, (0, 0, 600, 260), 50))
+    out.append(gmoon(D, 456, 262, 52, 4, pal=("#FFFCEC", "#E8E8D6", "#B4B8A4"), halo="#D8F0E4", halo_r=3.6, halo_op=0.5, maria="#9AA090"))
+    out.append(gcloud(D, 180, 246, 300, 28, 5, ("#A8BCB0", "#24302C", "#0A1210"), light=(1, -0.2), op=0.85, n=18, lit_n=9))
+    out.append(gcloud(D, 520, 330, 180, 16, 6, ("#C8D8C8", "#2A3832", "#0E1614"), light=(-0.3, -1), op=0.7, n=10, lit_n=5))
+    # the moor: long low swells, Baskerville Hall far off with two lit windows, all in haze
+    out.append(soft(D, hill(D, ridge([(-20, 380), (100, 362), (220, 372), (340, 354), (460, 366), (620, 352)], 3, 6, 4), 640, ("#4A5A50", "#28342E", "#0E1410"), 2,
+                            inkw=0, n=40), 1.2))
+    hall = [sharp([(90, 368), (90, 342), (106, 332), (130, 332), (146, 342), (146, 368)], "#0C120E"), sharp([(84, 368), (84, 324), (90, 316), (96, 324), (96, 368)], "#0C120E"),
+            sharp([(140, 368), (140, 324), (146, 316), (152, 324), (152, 368)], "#0C120E")]
+    out.append(soft(D, "".join(hall), 0.6))
+    for wx in (110, 126):
+        out.append(gglow(D, wx, 348, 10, "#FFC860", 0.6))
+        out.append(f'<rect x="{wx - 2}" y="344" width="4" height="8" fill="#FFD890"/>')
+    out.append(gfog(D, 372, 40, 4, "#B8C8C0", 0.6, sd=8))
+    # the granite tor at the right, weathered into stacked slabs, the mire grass below
+    tor = [(352, 480), (372, 410), (404, 380), (436, 368), (468, 374), (500, 356), (540, 364), (572, 392), (620, 404), (640, 480)]
+    out.append(gform(D, tor, ("#9AA49A", "#3A443E", "#0E1412"), 6, light, angle=0, n=60, core=0.35, rim="#E8F2E8", rim_w=2))
+    out.append(stipple(D, smooth_closed(tor), bbox(tor), 7, "#000000", n=1000, light=light, gamma=1.3))
     for k in range(5):
-        y = 380 + k * 18
-        out.append(pline([(390 + k * 6, y), (480, y + 4), (600, y - 2)], "#0E1410", 1.6, k, 0.6, 1))
-    out.append(hill(D, ridge([(-20, 452), (120, 440), (260, 456), (400, 444), (620, 460)], 6, 6, 4), 640, ("#3A4438", "#1A221C", "#060A08"), 7, inkw=0, n=40))
-    out.append(grass(8, (-10, 446, 610, 600), ["#2A3A2A", "#4A5A40", "#0E140E"], 160, (8, 22)))
-    # the hound: huge, black, its muzzle and hackles outlined in pale flame
-    out.append(soft_glow(D, 300, 380, 170, "#7AF0C8", 0.22))
-    hp = ("#2A2E30", "#0A0C0E", "#000000")
-    hound = canine_leap(D, 330, 478, 1.12, 7, hp, rim="#B8FFE8")
-    out.append(hound)
-    out.append(fog(D, 470, 60, 8, "#A8B8B0", 0.5))
-    out.append(fog(D, 540, 70, 9, "#8A9A94", 0.4))
+        y_ = 386 + k * 18
+        out.append(soft(D, pline([(384 + k * 8, y_), (480, y_ + 4), (620, y_ - 2)], "#060A08", 2, k, 0.6, 1), 0.6))
+        out.append(soft(D, pline([(386 + k * 8, y_ - 2.5), (480, y_ + 1.5), (620, y_ - 4.5)], "#C8D4C8", 1.2, k + 9, 0.3, 1), 0.4))
+    out.append(hill(D, ridge([(-20, 452), (120, 440), (260, 456), (400, 444), (620, 460)], 6, 6, 4), 640, ("#3A4A3E", "#1A241E", "#060A08"), 7, inkw=0, n=60))
+    out.append(soft(D, grass(8, (-10, 446, 610, 600), ["#2A3A2A", "#3A4A34", "#0E140E"], 200, (8, 22), op=(0.4, 0.8)), 0.4))
+    # the hound, bursting out of the fog bank toward us
+    out.append(gglow(D, 300, 400, 200, "#7AF0C8", 0.18))
+    out.append(gfog(D, 476, 60, 8, "#A8B8B0", 0.5, sd=10))
+    out.append(spectral_hound(D, 318, 420, 1.55, 7))
+    out.append(gfog(D, 520, 70, 9, "#8A9A94", 0.55, sd=12))
     out.append(band(D, 0, 200, "#000000", 0.55, 0))
-    # lettering: the pulp cover title
+    out.append(band(D, 510, 600, "#000000", 0, 0.55))
     out.append(block(D, 300, 128, "THE HOUND", ANTON, 92, "#F2F8E8", "#1E5A48", depth=8, ang=(0.7, 1.0), ls=6, max_w=440, face2="#B8E8D0", shadow="#000000"))
     out.append(tx(300, 172, "of the Baskervilles", SERIF_IT, 36, "#D8F2E8", max_w=360))
     out.append(sub_rule(300, 548, "ARTHUR CONAN DOYLE · 1902", CINZEL, 17, "#D8F2E8", ls=2.5, max_w=380, line="#7AF0C8", line_w=24))
-    return fin(D, out, 25)
+    return gfin(D, out, 25, 111, edge=2.4, bristle=0.4, grain=0.18, bg="#0A1210")
+# --- end repaint:the-hound-of-the-baskervilles
 
 
 def canine_leap(D, x, y, s, seed, pal, rim):
@@ -1713,43 +2429,110 @@ def victorian_lady(x, base, s, col, rim=None, flip=False):
     return "".join(out)
 
 
+# --- repaint:the-turn-of-the-screw
+def governess(D, x, base, s, seed, col="#141020", rim="#FFD8B8"):
+    """A governess of the 1840s seen from behind, eight heads tall: hair in a low knot, a shawl over narrow sloping
+    shoulders, a fitted bodice, a full bell skirt to the ground. (x, base) = ground; s=1 is 100 px tall."""
+    def L(p):
+        return T(p, x, base, s)
+    skirt = [(-24, 0), (-22, -14), (-18, -30), (-12, -44), (-7, -54), (7, -54), (12, -44), (18, -30), (22, -14), (25, 0), (12, 1.5), (0, 0.6), (-12, 1.5)]
+    bodice = [(-7, -54), (-8.4, -66), (-9.6, -76), (-10.4, -81), (-6, -84.4), (-3, -86), (3, -86), (6, -84.4), (10.4, -81), (9.6, -76), (8.4, -66), (7, -54)]
+    shawl = [(-11, -82), (-6, -86), (6, -86), (11, -82), (12, -74), (6, -66), (0, -62), (-6, -66), (-12, -74)]
+    neck = [(-2.2, -85.6), (-2.2, -89.4), (2.2, -89.4), (2.2, -85.6)]
+    head = blob_pts(*L([(0, -94.2)])[0], 5.4 * s, 6.4 * s, seed, 0.04, 14)
+    knot = blob_pts(*L([(0.6, -90.6)])[0], 3.2 * s, 2.4 * s, seed + 1, 0.08, 10)
+    arms = [tube_pts(L([(-10.4, -80), (-12, -68), (-10.6, -56)]), 4.4 * s, 3.4 * s), tube_pts(L([(10.4, -80), (12, -68), (10.6, -56)]), 4.4 * s, 3.4 * s)]
+    ds = [smooth_closed(L(skirt)), smooth_closed(L(bodice)), smooth_closed(L(neck)), smooth_closed(head), smooth_closed(knot)] + [smooth_closed(a) for a in arms]
+    behind, front = union_rim(D, ds, rim, -0.9 * s, 0.5 * s, op=0.85, blur=0.3)
+    out = [behind, f'<g fill="{col}">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>", front]
+    out.append(gform(D, L(shawl), ("#5A4A6A", "#2A2034", "#0A0810"), seed + 2, (-1, -0.3), n=6, rim=rim, rim_w=0.8))
+    out.append(folds(D, smooth_closed(L(skirt)), [L([(-8, -50), (-14, -24), (-18, -2)]), L([(-2, -52), (-4, -26), (-6, 0)]), L([(6, -50), (10, -24), (14, -2)])],
+                     "#000000", "#6A5A80", seed, w=(1.6 * s, 0.4), op=0.6, sd=0.8, lw=(0.8, 0.2), lop=0.5, loff=(-0.6, 0)))
+    return "".join(out)
+
+
+def bly_tower(D, x0, x1, top, base, seed, light=(-1, -0.2)):
+    """The old square tower at Bly: rubble masonry lit on its west face by the sunset, crenellations, arrow slits, ivy."""
+    rnd = random.Random(seed)
+    out = []
+    w = x1 - x0
+    body = [(x0, base), (x0, top + 16), (x1, top + 16), (x1, base)]
+    out.append(gform(D, body, ("#B89AA8", "#5A4A62", "#1E1828"), seed, light, angle=-90, n=0, core=0.4, hi_op=0.4, sharp=True))
+    out.append(rubble_wall(D, pd(body), (x0, top + 16, x1, base), seed + 1, ["#E8C8C8", "#5A4A62", "#8A7A90", "#2A2236"], light, n=180, size=(8, 20), joints="#1A1424"))
+    # the parapet and merlons
+    merl = []
+    for k in range(6):
+        mx = x0 - 6 + k * (w + 12) / 5.4
+        merl.append([(mx, top + 18), (mx, top), (mx + w / 9, top), (mx + w / 9, top + 18)])
+    out.append(gform(D, [(x0 - 6, top + 26), (x1 + 6, top + 26), (x1 + 6, top + 12), (x0 - 6, top + 12)], ("#C8AAB8", "#6A5A72", "#241C2E"), seed + 2, light, angle=0, n=6, sharp=True))
+    for k, mpts in enumerate(merl):
+        out.append(gform(D, mpts, ("#C8AAB8", "#6A5A72", "#241C2E"), seed + 3 + k, light, n=0, rim="#FFD8C0", rim_w=1.2, sharp=True))
+    for (sx, sy) in ((x0 + w * 0.5, top + 70), (x0 + w * 0.5, top + 150)):
+        out.append(f'<path d="{smooth_closed(arch_pts(sx - 4, sx + 4, sy, sy + 26, 4))}" fill="#0E0A14"/>')
+    # ivy climbing the shadowed side
+    ivy = []
+    for _ in range(140):
+        iy = rnd.uniform(top + 60, base)
+        ix = x1 - rnd.uniform(0, w * 0.45) * (1 - (base - iy) / (base - top)) ** 0.3
+        ivy.append(f'<path d="{blob(ix, iy, rnd.uniform(2, 4.4), rnd.uniform(1.6, 3), rnd.randint(0, 999), 0.3, 8, rnd.uniform(0, 180))}" fill="{rnd.choice(["#1A2A1E", "#2A3A26", "#0E1810", "#3A4A2E"])}"/>')
+    out.append("".join(ivy))
+    return "".join(out)
+
+
 @design("the-turn-of-the-screw")
 def the_turn_of_the_screw():
     D = Doc2("hr-ts")
     from gouache import paper
     out = [paper(D.nid(), "#2A2030", "#C8A8D8", 6)]
     out.append(vignette(D, "#000000", 0.5))
-    # an oval vignette, like an old engraved frontispiece
     cx, cy, rx, ry = 300, 292, 178, 200
     oval = ell_pts(cx, cy, rx, ry, 0, 360, 72)
     cid = D.clip(f'<path d="{smooth_closed(oval)}"/>')
-    sc = [sky(D, [(0, "#4A4466"), (0.45, "#8A7A98"), (0.7, "#D8A8A0"), (0.82, "#C8A0A0"), (1, "#3A3446")], 1, 600, ["#5A5478", "#2A2440", "#B8A0B8"], 50)]
-    sc.append(soft_glow(D, 200, 380, 170, "#FFD8B8", 0.35))
-    # Bly: the old crenellated tower, a long house beside it
-    tx0, tx1, ttop, tb = 340, 412, 176, 420
-    sc.append(painted(D, poly_pts([(410, tb), (410, 300), (520, 300), (520, tb)], 14, 2, 0.5), ("#6A6078", "#3A3448", "#14101E"), 3, sdir=(0.8, 0.2), sk=0.15, angle=-90, n=30, inkw=1.2, inkc="#0A0810", hi=0.25))
-    sc.append(sharp([(404, 304), (466, 262), (526, 304)], "#2A2436"))
+    light = (-1, -0.15)
+    sc = [gsky(D, [(0, "#3A3A5E"), (0.35, "#6A6088"), (0.6, "#C89AA4"), (0.74, "#F2C0A0"), (0.82, "#E8B49A"), (1, "#5A4A5A")], 1,
+               ["#4A4A70", "#8A7090", "#F2C8B0", "#B88AA0"], 50, blooms=((150, 360, 200, 70, "#FFD8B0", 0.6), (420, 200, 200, 120, "#5A5280", 0.4)))]
+    sc.append(gglow(D, 140, 380, 150, "#FFE0B8", 0.5))
+    sc.append(gcloud(D, 230, 250, 260, 18, 3, ("#FFD8C0", "#8A7090", "#4A4060"), light=(-1, 0.3), op=0.8, n=12, lit_n=7))
+    sc.append(gcloud(D, 420, 180, 200, 14, 4, ("#F2C8C0", "#7A6888", "#3E3658"), light=(-1, 0.4), op=0.7, n=10, lit_n=6))
+    # far park: hazy trees, the lake with the last light on it
+    sc.append(soft(D, forest_band(D, 404, 440, 6, ["#6A5A7A", "#7A6888", "#5A4A6A"], 100, 500, tip=(8, 22)), 1.4))
+    sc.append(f'<path d="M 100 414 Q 220 404 330 412 L 330 428 Q 220 432 100 426 Z" fill="#F2C8B0" opacity="0.7" {gb(D, 1.5)}/>')
+    # the long house and the old tower at Bly
+    sc.append(gform(D, [(400, 430), (400, 320), (530, 320), (530, 430)], ("#A88A98", "#4A3E56", "#1A1424"), 3, light, angle=-90, n=20, sharp=True))
+    sc.append(gform(D, [(392, 324), (464, 280), (538, 324)], ("#6A5A72", "#3A3048", "#14101E"), 4, light, n=10, sharp=True))
     for k in range(3):
-        sc.append(lit_slit(D, 432 + k * 32, 326, 8, 16, "#FFC870") if k == 1 else f'<rect x="{428 + k * 32}" y="326" width="9" height="18" fill="#14101E"/>')
-    tower = [(tx0, tb), (tx0, ttop + 16), (tx0 - 6, ttop + 16), (tx0 - 6, ttop)] + sum([[(tx0 - 6 + k * 14, ttop), (tx0 - 6 + k * 14, ttop - 12), (tx0 + 3 + k * 14, ttop - 12), (tx0 + 3 + k * 14, ttop)] for k in range(6)], []) + [(tx1 + 6, ttop), (tx1 + 6, ttop + 16), (tx1, ttop + 16), (tx1, tb)]
-    sc.append(painted(D, poly_pts(tower, 8, 4, 0.4), ("#7A7088", "#463E56", "#18141F"), 5, sdir=(0.8, 0.2), sk=0.15, angle=-90, n=30, inkw=1.2, inkc="#0A0810", hi=0.25))
-    sc.append(stone_courses([ttop + 30 + k * 22 for k in range(11)], lambda y: tx0, tx1, "#14101E", 1.1, 0.35, 5, unit=24))
-    sc.append(f'<path d="{smooth_closed(arch_pts(370, 384, 240, 270, 4))}" fill="#14101E"/>')
-    # the stranger on the battlements, pale and very still
-    sc.append(soft_glow(D, 376, ttop - 28, 34, "#F2E8FF", 0.35))
-    sc.append(cloaked(376, ttop - 12, 0.32, "#E8E4F0", hood=False))
-    # dark trees, the lawn, the gravel path, the governess stopped on it
-    for (x, h, sd) in ((80, 220, 3), (150, 170, 4), (560, 200, 5)):
-        sc.append(crooked_tree(x, 430, h, sd, "#1E1A2A", w=9, spread=36, depth=5))
-    sc.append(hill(D, [(-20, 420), (200, 414), (420, 418), (620, 412)], 640, ("#8A9A78", "#4E5E46", "#1E281C"), 6, inkw=0, n=40))
-    sc.append(f'<path d="M 230 600 Q 270 500 330 422 L 352 422 Q 330 500 360 600 Z" fill="#B8A898" opacity="0.6"/>')
-    sc.append(victorian_lady(280, 452, 1.12, "#141020", rim="#FFD8B8"))
-    sc.append(cast(D, 285, 454, 26, 4, "#000000", 0.4))
-    for (bx, by, bs) in ((210, 150, 0.6), (240, 136, 0.45), (480, 190, 0.5), (182, 172, 0.4)):
+        wx = 428 + k * 34
+        if k == 1:
+            sc.append(gglow(D, wx + 4, 352, 22, "#FFC870", 0.6))
+            sc.append(f'<rect x="{wx}" y="344" width="9" height="18" fill="#FFD890"/>')
+        else:
+            sc.append(f'<rect x="{wx}" y="344" width="9" height="18" fill="#1A1424"/>')
+        sc.append(f'<rect x="{wx}" y="384" width="9" height="18" fill="#1A1424"/>')
+    sc.append(bly_tower(D, 336, 404, 172, 440, 5, light))
+    # the man on the battlements, hatless, very still, looking down at her
+    sc.append(gglow(D, 368, 150, 30, "#FFE8E0", 0.3))
+    q = []
+    qd = [smooth_closed(tube_pts([(368, 172), (368.4, 158), (368, 150)], 9.6, 8)), smooth_closed(blob_pts(368.2, 145, 3.4, 4.2, 3, 0.04, 12)),
+          smooth_closed(tube_pts([(363.6, 158), (362.8, 165), (363.4, 171)], 3, 2.4)), smooth_closed(tube_pts([(372.6, 158), (373.4, 165), (372.8, 171)], 3, 2.4))]
+    behind, front = union_rim(D, qd, "#FFD8C0", -0.8, 0.3, op=0.9, blur=0.2)
+    sc.append(behind + '<g fill="#100C16">' + "".join(f'<path d="{d}"/>' for d in qd) + "</g>" + front)
+    # dark cedars framing the lawn
+    for (x, b_, h_, sd_) in ((70, 452, 230, 3), (150, 446, 160, 4), (568, 450, 210, 5)):
+        sc.append(taper([(x, b_), (x + 3, b_ - h_ * 0.5), (x - 2, b_ - h_ * 0.85)], 9, 3, "#14101C"))
+        for k in range(5):
+            ty = b_ - h_ * (0.3 + 0.62 * k / 4)
+            sc.append(crown(D, x + (k % 2) * 8 - 4, ty, h_ * (0.36 - 0.05 * k), h_ * 0.07, sd_ * 10 + k, ["#5A4A64", "#2A2236", "#14101C"], light, n=34, dab=(0.16, 0.3),
+                            rim="#E8A8A0"))
+    # the lawn, the gravel walk, and the governess stopped on it
+    lawn = [(-20, 432), (200, 426), (420, 430), (620, 424), (620, 640), (-20, 640)]
+    sc.append(gform(D, lawn, ("#9AA088", "#4E5A46", "#18201A"), 6, light, angle=-4, n=60, core=0.2))
+    sc.append(f'<path d="M 230 640 Q 270 520 330 436 L 350 436 Q 330 520 362 640 Z" fill="#C8B4A8" opacity="0.55" {gb(D, 1)}/>')
+    sc.append(soft(D, f'<ellipse cx="300" cy="468" rx="24" ry="4" fill="#000000" opacity="0.35"/>', 2))
+    sc.append(governess(D, 300, 468, 0.78, 7))
+    for (bx, by, bs) in ((210, 150, 0.6), (240, 136, 0.45), (480, 190, 0.5), (182, 172, 0.4), (500, 214, 0.35)):
         sc.append(bird_v(bx, by, bs * 10, "#1A1428"))
-    sc.append(f'<path d="{smooth_closed(oval)}" fill="{D.rad([(0, "#000000", 0), (0.7, "#000000", 0), (1, "#000000", 0.45)])}"/>')
+    sc.append(f'<path d="{smooth_closed(oval)}" fill="{D.rad([(0, "#000000", 0), (0.7, "#000000", 0), (1, "#000000", 0.5)])}"/>')
     out.append(f'<g {cid}>{"".join(sc)}</g>')
-    # the frame: a gilt double ring with tiny beads, fleurons at the corners of the plate
     out.append(ink(smooth_closed(oval), "#D8B060", 3, 2, 1, 0.95))
     out.append(ink(smooth_closed(ell_pts(cx, cy, rx + 11, ry + 11, 0, 360, 72)), "#D8B060", 1.4, 3, 1, 0.8))
     for k in range(52):
@@ -1757,10 +2540,10 @@ def the_turn_of_the_screw():
         out.append(f'<circle cx="{cx + math.cos(a) * (rx + 5.5):.1f}" cy="{cy + math.sin(a) * (ry + 5.5):.1f}" r="1.7" fill="#E8C878"/>')
     for (x, y, r_) in ((92, 92, 135), (508, 92, 225), (92, 508, 45), (508, 508, -45)):
         out.append(fleuron(x, y, 18, "#D8B060", r_, 0.9))
-    # lettering
     out.append(tx(300, 540, "The Turn of the Screw", SERIF_IT, 40, "#F2E2F2", max_w=420))
     out.append(tx(300, 70, "HENRY JAMES · 1898", CINZEL, 17, "#D8B8E0", ls=5, max_w=300))
-    return fin(D, out, 27, "#2A1E36", 0.6)
+    return gfin(D, out, 27, 109, edge=2.2, bristle=0.4, grain=0.18, bg="#2A2030", gcol="#2A1E36", gop=0.5)
+# --- end repaint:the-turn-of-the-screw
 
 
 def bird_v(x, y, s, col):
@@ -1785,53 +2568,126 @@ def pawprint(cx, cy, s, ang, col, op=0.85):
     return "".join(out)
 
 
+# --- repaint:the-werewolf
+def howling_wolf(D, x, base, s, seed, col="#05070E", rim="#E8F0FF"):
+    """A wolf in profile on the rocks, head flung up to howl: deep chest, long legs with proper joints, bushy tail
+    hanging, a ruff on the throat. Built from overlapping anatomical masses into one silhouette. Facing left."""
+    def L(p):
+        return T(p, x, base, s)
+    light = (-0.5, -1)
+    far_c = "#02030A"
+    out = []
+    # far legs, a shade darker
+    for pts, w0, w1 in (([(-16, -50), (-14, -32), (-17, -9), (-22, 0)], 11, 6), ([(30, -56), (24, -36), (36, -18), (32, 0)], 15, 6)):
+        out.append(rimlit(D, tube_pts(L(pts), w0 * s, w1 * s), far_c, rim, light, w=1.1, op=0.45))
+    parts = []
+    parts.append(blob_pts(*L([(12, -57)])[0], 40 * s, 15.5 * s, seed, 0.04, 18, -3))                 # barrel and loin
+    parts.append(blob_pts(*L([(-22, -57)])[0], 17 * s, 19 * s, seed + 1, 0.05, 16))                 # deep chest
+    parts.append(blob_pts(*L([(44, -58)])[0], 15 * s, 13 * s, seed + 2, 0.05, 14))                  # haunch
+    parts.append(tube_pts(L([(-22, -64), (-30, -84), (-40, -100)]), 30 * s, 19 * s))               # neck
+    parts.append(blob_pts(*L([(-42, -107)])[0], 11 * s, 9 * s, seed + 3, 0.05, 14, -40))            # skull
+    parts.append(tube_pts(L([(-46, -110), (-58, -119), (-69, -128)]), 11 * s, 5 * s))              # upper jaw
+    parts.append(tube_pts(L([(-48, -104), (-56, -110), (-63, -116)]), 7 * s, 3 * s))               # lower jaw, open
+    parts.append(L([(-41, -113), (-35, -128), (-30, -111)]))                                         # ear
+    parts.append(tube_pts(L([(-24, -50), (-26, -33), (-28, -9), (-35, 0)]), 13 * s, 6.5 * s))      # near foreleg
+    parts.append(tube_pts(L([(44, -58), (36, -36), (50, -18), (46, 0)]), 20 * s, 6.5 * s,
+                          wfn=lambda t: (22 - 15 * t + (4 if t < 0.45 else 0)) * s))               # near hind leg
+    parts.append(tube_pts(L([(54, -64), (64, -50), (68, -30), (64, -14)]), 13 * s, 7 * s))          # tail
+    ds = [smooth_closed(p) for p in parts]
+    paws = [L([(-40, 0), (-28, 0), (-29, -5), (-37, -5)]), L([(39, 0), (52, 0), (51, -5), (42, -5)])]
+    ds += [smooth_closed(p) for p in paws]
+    behind, front = union_rim(D, ds, rim, 0.5 * s, 1.7 * s, op=0.8, blur=0.5, glow="#C8D8FF", glow_op=0.3, glow_w=5)
+    out.append(behind)
+    out.append(f'<g fill="{col}">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>")
+    out.append(front)
+    # the ruff and a little rough fur along the throat and tail
+    rnd = random.Random(seed)
+    tufts = []
+    for k in range(20):
+        t = k / 19
+        px_, py_ = L([(-48 + t * 26, -100 + t * 36)])[0]
+        tufts.append(taper([(px_ + 2 * s, py_ - 1 * s), (px_ - rnd.uniform(3, 7) * s, py_ + rnd.uniform(1, 4) * s)], 2.6 * s, 0.4, col))
+    for k in range(10):
+        t = k / 9
+        px_, py_ = L([(62 + t * 6, -52 + t * 36)])[0]
+        tufts.append(taper([(px_, py_), (px_ + rnd.uniform(2, 5) * s, py_ + rnd.uniform(-1, 3) * s)], 2.4 * s, 0.4, col))
+    out.append("".join(tufts))
+    ex_, ey_ = L([(-46, -110)])[0]
+    out.append(f'<circle cx="{ex_:.1f}" cy="{ey_:.1f}" r="{1.0 * s:.1f}" fill="#C8D8FF" opacity="0.7"/>')
+    return "".join(out)
+
+
+def snow_pine(D, x, base, h, seed, dark="#0A1022", snow=("#FFFFFF", "#C8D4F0", "#6A7AA8"), light=(-0.5, -1)):
+    """A spruce bowed under snow: dark drooping tiers, each tier capped with a painted pad of snow lit from the moon."""
+    rnd = random.Random(seed)
+    out = [taper([(x, base), (x, base - h * 0.95)], h * 0.05, h * 0.01, "#0A0A14")]
+    tiers = int(8 + h / 30)
+    pads = []
+    for i in range(tiers):
+        t = i / tiers
+        y = base - h * 0.08 - t * h * 0.88
+        w = h * 0.3 * (1 - t) ** 0.9 + 4
+        sag = w * 0.35
+        for sg in (-1, 1):
+            tip = (x + sg * w * rnd.uniform(0.85, 1.1), y + sag * rnd.uniform(0.6, 1.0))
+            out.append(taper([(x, y - 4), (x + sg * w * 0.5, y + sag * 0.15), tip], w * 0.28, 1.5, dark))
+            pads.append(taper([(x, y - 6), (x + sg * w * 0.45, y - 1 + sag * 0.1), (tip[0] - sg * w * 0.12, tip[1] - 4)], w * 0.14, 1.2,
+                              snow[0] if sg < 0 else snow[1], 0.95))
+    return "".join(out) + "".join(pads)
+
+
 @design("the-werewolf")
 def the_werewolf():
     D = Doc2("hr-ww")
-    out = [night(D, [(0, "#04060E"), (0.5, "#142040"), (1, "#2A3A5A")], 1)]
-    out.append(stars_field(4, (0, 0, 600, 300), 110))
-    out.append(moon(D, 300, 262, 84, 5, pal=("#FFFFFF", "#EEF0F6", "#B8C0D0"), glow="#DCE8FF", gs=0.6, glow_r=2.6))
-    # the forest: rows of snow-laden pines, darker nearer
-    from paint import conifer
-    rnd = random.Random(6)
-    for row, (base, hmin, hmax, col) in enumerate(((330, 50, 90, "#3A4A6A"), (360, 80, 140, "#1E2A44"), (400, 140, 230, "#0A1022"))):
-        xs = sorted(rnd.uniform(-30, 630) for _ in range(16 - row * 3))
-        for x in xs:
-            if abs(x - 300) < 60 + row * 20 and row == 2:
-                continue
-            h = rnd.uniform(hmin, hmax)
-            out.append(conifer(x, base + rnd.uniform(-6, 6), h, col, rnd.random(), light=lt(col, 0.5)))
-    out.append(fog(D, 340, 50, 7, "#C8D8F0", 0.4))
-    # the snow, the path receding into the trees
-    out.append(hill(D, [(-20, 400), (200, 394), (420, 398), (620, 392)], 640, ("#F2F6FF", "#B8C8E0", "#5A6A8A"), 8, inkw=0, n=60, lit="#FFFFFF"))
-    out.append(f'<path d="M 120 610 Q 240 470 290 398 L 312 398 Q 380 470 500 610 Z" fill="#9AAAC8" opacity="0.45"/>')
-    out.append(f'<path d="M 120 610 Q 240 470 290 398 L 300 398 Q 270 480 230 610 Z" fill="#7A8AA8" opacity="0.25"/>')
+    out = [gsky(D, [(0, "#03050E"), (0.45, "#101C3C"), (0.8, "#24345A"), (1, "#34466C")], 1, ["#1A2A54", "#060A1A", "#3A4A72"], 50,
+                blooms=((300, 270, 260, 200, "#4A5E92", 0.5),))]
+    out.append(stars_field(4, (0, 0, 600, 280), 90))
+    out.append(gmoon(D, 300, 262, 84, 5, pal=("#FFFFFF", "#ECF0F8", "#AEB8CC"), halo="#C8D8FF", halo_r=2.9, halo_op=0.55, maria="#98A2B6"))
+    out.append(gcloud(D, 150, 330, 260, 20, 6, ("#C8D4F4", "#2E3A60", "#141C36"), light=(0.6, -1), op=0.7, n=12, lit_n=6))
+    out.append(gcloud(D, 470, 300, 220, 18, 7, ("#C8D4F4", "#2E3A60", "#141C36"), light=(-0.6, -1), op=0.6, n=10, lit_n=5))
+    # far forest in blue haze, the rocky knoll against the moon with the wolf howling on it
+    out.append(forest_band(D, 352, 420, 3, ["#2A3A60", "#34466E", "#22305A"], -20, 620, tip=(14, 34), light="#6A80B8"))
+    out.append(gfog(D, 360, 40, 4, "#8A9CC8", 0.55, sd=8))
+    knoll = [(170, 400), (210, 372), (248, 352), (290, 342), (330, 346), (370, 360), (420, 392), (440, 410), (160, 410)]
+    out.append(gform(D, knoll, ("#C8D4F0", "#3A4870", "#0A1022"), 8, (0, -1), angle=-10, n=30, core=0.4, rim="#FFFFFF", rim_w=2))
+    out.append(howling_wolf(D, 290, 344, 0.92, 9))
+    # snow pines close on both sides, the clearing between them
+    for (xx, b_, h_, sd_) in ((40, 470, 240, 1), (110, 450, 190, 2), (-10, 520, 300, 3), (520, 460, 220, 4), (580, 500, 280, 5), (470, 440, 150, 6)):
+        out.append(snow_pine(D, xx, b_, h_, sd_))
+    snow = [(-20, 420), (160, 412), (300, 418), (460, 410), (620, 420), (620, 620), (-20, 620)]
+    out.append(gform(D, snow, ("#FFFFFF", "#B8C6E6", "#4A5A88"), 10, (0, -1), angle=0, n=50, core=0.25, hi_op=0.3))
+    out.append(soft(D, "".join(f'<ellipse cx="{x_}" cy="{y_}" rx="{rx_}" ry="{ry_}" fill="#5A6A98" opacity="0.35"/>' for x_, y_, rx_, ry_ in
+                               ((90, 470, 120, 20), (520, 480, 130, 22), (300, 560, 220, 30))), 10))
+    out.append(f'<path d="M 140 620 Q 250 480 296 420 L 312 420 Q 370 480 480 620 Z" fill="#7A8AB8" opacity="0.3" {gb(D, 4)}/>')
     # the tracks: boots at first, then something else
-    steps = [(330, 580, 1.5, 0), (276, 548, 1.4, 1), (318, 514, 1.25, 0), (282, 488, 1.12, 1), (312, 466, 1.0, 0), (288, 448, 0.9, 1),
-             (306, 432, 0.8, 0), (292, 420, 0.7, 1), (302, 410, 0.6, 0)]
+    steps = [(330, 590, 1.5, 0), (276, 556, 1.4, 1), (318, 520, 1.25, 0), (282, 492, 1.12, 1), (312, 468, 1.0, 0), (290, 450, 0.9, 1),
+             (306, 436, 0.8, 0), (294, 426, 0.7, 1)]
     for k, (x, y, sc_, side) in enumerate(steps):
         ang = -8 if side else 8
+        sh = "#3A4A78"
+        g_ = f'<g {gb(D, 0.6)}>'
         if k < 3:
-            out.append(bootprint(x, y, sc_, ang, "#4A5A7A"))
+            out.append(g_ + bootprint(x, y, sc_, ang, sh) + "</g>")
         elif k == 3:
-            out.append(bootprint(x, y, sc_, ang, "#4A5A7A", 0.45))
-            out.append(pawprint(x + 2, y - 4, sc_ * 0.9, ang, "#3A4A6A", 0.6))
+            out.append(g_ + bootprint(x, y, sc_, ang, sh, 0.4) + pawprint(x + 2, y - 4, sc_ * 0.95, ang, "#2A3866", 0.65) + "</g>")
         else:
-            out.append(pawprint(x, y, sc_ * 1.1, ang, "#2A3A5A"))
-    # a torn red scarf caught on a thorn branch
-    out.append(crooked_tree(78, 560, 240, 9, "#0A0E1A", w=12, lean=14, spread=34, depth=4))
-    sc_pts = [(150, 420), (166, 432), (176, 452), (170, 470), (178, 488)]
-    out.append(taper(catmull(sc_pts, 6), 12, 6, "#B8201A"))
-    out.append(taper(catmull([(150, 420), (138, 438), (142, 462)], 6), 10, 5, "#8A1414"))
+            out.append(g_ + pawprint(x, y, sc_ * 1.15, ang, "#2A3866") + "</g>")
+        out.append(f'<path d="{blob(x - 2, y - 14 * sc_, 9 * sc_, 2 * sc_, k, 0.2, 8)}" fill="#FFFFFF" opacity="0.5" {gb(D, 0.8)}/>')
+    # the torn red scarf caught on a thorn branch
+    br = crooked_tree(78, 600, 250, 9, "#05070E", w=12, lean=14, spread=34, depth=4)
+    out.append(br)
+    scarf = tube_pts([(150, 424), (164, 436), (174, 456), (168, 474), (176, 494)], 13, 7)
+    out.append(gform(D, scarf, ("#FF5A4A", "#B01A16", "#3A0404"), 11, (-0.6, -1), n=10, core=0.4, rim="#FFC8C0", rim_w=1.2))
+    out.append(gform(D, tube_pts([(150, 424), (138, 440), (142, 466)], 11, 5), ("#E83A30", "#8A1010", "#2A0202"), 12, (-0.6, -1), n=6))
     for k in range(4):
-        out.append(f'<path d="M {170 + k * 3} {482 + k * 3} l {k - 2} 10" stroke="#B8201A" stroke-width="1.6"/>')
-    # snow on the branches, drifting flakes
+        out.append(f'<path d="M {170 + k * 3} {488 + k * 3} l {k - 2} 10" stroke="#B8201A" stroke-width="1.6"/>')
     out.append(snowfall(10, (0, 0, 600, 600), 90, (0.6, 2.2), "#FFFFFF", (0.4, 0.9)))
-    out.append(band(D, 0, 180, "#000000", 0.45, 0))
+    out.append(band(D, 0, 180, "#000000", 0.5, 0))
     # lettering
     out.append(glow_text(D, 300, 118, "THE WEREWOLF", BEBAS, 92, "#F2F6FF", "#9AB8FF", ls=8, max_w=450, shadow="#000000"))
     out.append(tx(300, 158, "Don’t follow the tracks.", SERIF_IT, 28, "#DCE8FF", max_w=400))
-    return fin(D, out, 28)
+    return gfin(D, out, 28, 107, edge=2.4, bristle=0.4, grain=0.18, bg="#0A1022")
+# --- end repaint:the-werewolf
 
 
 # ================================================================ 18. the cursed tomb — the lid slid aside
@@ -2228,64 +3084,117 @@ def the_jersey_devil():
 
 
 # ================================================================ 23. la llorona — by the river at night
+# --- repaint:la-llorona
+def weeping_woman(D, x, base, s, seed, glow="#DFF6F4"):
+    """The woman in white seen from behind, eight heads tall: head bowed into her hands (elbows lifted), long black hair
+    under a wind-lifted veil, a high-waisted gown falling in long folds to the water. Backlit: luminous edges."""
+    def L(p):
+        return T(p, x, base, s)
+    out = []
+    body = [(-20, 0), (-17.5, -14), (-14.5, -30), (-12.6, -44), (-12.2, -51), (-11.4, -58), (-11.6, -66), (-11.4, -74), (-10.4, -79.5), (-8.4, -83.6),
+            (-4, -86.5), (-4.5, -91), (-2.5, -97), (1.5, -99.5), (5, -97), (6, -92), (4, -86.5), (8.4, -84), (10.5, -80), (11.4, -74), (11.6, -66),
+            (11.4, -58), (12.4, -51), (13.4, -42), (15, -27), (18.5, -12), (23, 0), (16, 2), (8, 0.6), (0, 1.8), (-9, 0.6)]
+    bp = L(body)
+    out.append(f'<path d="{smooth_closed(bp)}" fill="none" stroke="{glow}" stroke-width="{6 * s:.1f}" opacity="0.35" {gb(D, 4 * s)}/>')
+    out.append(gform(D, bp, ("#F4FCFC", "#A8C4C8", "#3E5A64"), seed, (0.2, -1), angle=-92, n=60, core=0.32, core_op=0.6, refl="#E8FAFA", refl_op=0.5,
+                     slen=(18 * s, 40 * s), sw=(0.8, 2.2), sop=(0.08, 0.22), cols=["#FFFFFF", "#7A9AA2", "#C8E0E2"]))
+    # backlit: both edges glow
+    for lgt in ((-1, -0.3), (1, -0.3)):
+        out.append(f'<g {D.clip(f"<path d=\"{smooth_closed(bp)}\"/>")}><path d="{smooth_closed(bp)} {smooth_closed(shift(bp, -lgt[0] * 2.6 * s / 2.6, -lgt[1] * 1.6))}" '
+                   f'fill-rule="evenodd" fill="#FFFFFF" opacity="0.85" {gb(D, 0.8)}/></g>')
+    fl = [L([(-6, -60), (-9, -40), (-13, -20), (-16, -2)]), L([(-1, -59), (-3, -38), (-5, -18), (-6, 0)]), L([(3, -60), (4, -40), (6, -20), (8, 1)]),
+          L([(6, -58), (9, -38), (13, -18), (17, 0)]), L([(-9, -46), (-11, -26), (-14, -8)]), L([(9, -44), (12, -24), (15, -6)]),
+          L([(-8.2, -82), (-8.6, -70), (-8.4, -56)]), L([(8.2, -82), (8.6, -70), (8.6, -56)])]
+    out.append(folds(D, smooth_closed(bp), fl, "#2A4650", "#FFFFFF", seed, w=(2.4 * s, 0.6 * s), op=0.55, sd=1.6, lw=(1.4, 0.3), lop=0.6, loff=(1.6, 0)))
+    # the sash under the bust, a shadow under the shoulder blades
+    out.append(soft(D, f'<path d="{smooth_closed(L([(-7.5, -62.5), (0, -61.5), (7, -62.5), (7, -60.5), (0, -59.5), (-7.5, -60.5)]))}" fill="#4A6670" opacity="0.6"/>', 0.8))
+    # long black hair down the back, under the veil
+    rnd = random.Random(seed)
+    hl = []
+    for k in range(22):
+        t = k / 21
+        x0 = -4 + 8 * t
+        end = (-5.5 + 11 * t + rnd.uniform(-1.2, 1.2), -60 - rnd.uniform(0, 8) + 4 * abs(t - 0.5))
+        hl.append(taper(L([(x0 * 0.6, -98.5), (x0 * 1.25, -88), (end[0] * 1.05 + rnd.uniform(-0.6, 0.6), -76), end]), rnd.uniform(1.6, 2.8) * s, 0.25 * s,
+                        rnd.choice(["#0A0E12", "#141A20", "#05080A"]), rnd.uniform(0.85, 1)))
+    out.append(f'<path d="{blob(*L([(0.6, -93)])[0], 5.4 * s, 6.6 * s, seed, 0.05, 12)}" fill="#0C1014"/>')
+    out.append("".join(hl))
+    out.append("".join(taper(L([(rnd.uniform(-3, 4), -97), (rnd.uniform(-4, 5), -84), (rnd.uniform(-4, 4), -70)]), 0.5 * s, 0.2, "#8AA6AE", rnd.uniform(0.25, 0.5))
+                       for _ in range(9)))
+    # the veil: translucent, lifting to the right in the river wind
+    veil = L([(-3, -101), (3.5, -100.5), (8, -94), (12, -84), (17, -70), (23, -54), (28, -40), (20, -42), (14, -47), (6, -50), (-3, -49), (-10, -46),
+              (-12, -54), (-10.5, -68), (-8, -82), (-6, -93)])
+    out.append(f'<path d="{smooth_closed(veil)}" fill="{D.lin([(0, "#FFFFFF", 0.55), (0.6, "#E8F8F8", 0.35), (1, "#E8F8F8", 0.08)], 0, 0, 0.3, 1)}"/>')
+    out.append(folds(D, smooth_closed(veil), [L([(0, -98), (6, -76), (16, -50)]), L([(-3, -96), (-2, -74), (2, -52)]), L([(3, -98), (11, -78), (24, -46)])],
+                     "#7A9AA0", "#FFFFFF", seed + 2, w=(1.6 * s, 0.4), op=0.4, sd=1, lw=(1.2, 0.3), lop=0.7, loff=(1.2, 0)))
+    out.append(ink(smooth_open(veil[1:7]), "#FFFFFF", 1.4, seed, 1, 0.6))
+    return "".join(out)
+
+
 @design("la-llorona")
 def la_llorona():
     D = Doc2("hr-ll")
-    out = [night(D, [(0, "#020A10"), (0.45, "#0E2A36"), (0.7, "#1E4A52"), (1, "#0A1A20")], 1)]
-    out.append(stars_field(7, (0, 0, 600, 300), 100))
-    out.append(moon(D, 300, 252, 62, 7, pal=("#FFFFFF", "#EEF4F2", "#B8C8C4"), glow="#DCF2F0", gs=0.5, glow_r=2.4))
-    # far bank with willows and agaves
-    out.append(hill(D, ridge([(-20, 340), (120, 326), (260, 334), (420, 322), (620, 336)], 3, 5, 3), 360, ("#1E3A3E", "#0E2226", "#040C0E"), 2, inkw=0, n=20))
-    for (x, h) in ((70, 120), (520, 140)):
-        out.append(crooked_tree(x, 340, h, int(x), "#04100E", w=10, spread=30, depth=4))
-        for k in range(16):
-            rnd = random.Random(x + k)
-            bx = x + rnd.uniform(-50, 50)
-            by = 340 - h * rnd.uniform(0.4, 0.9)
-            out.append(taper([(bx, by), (bx + rnd.uniform(-4, 4), by + rnd.uniform(40, 80))], 2, 0.6, "#04100E", 0.9))
-    # the river: moonpath, ripples, marigold petals drifting
-    out.append(sea(D, 340, 640, [(0, "#1A3A40"), (0.5, "#0A1E24"), (1, "#020A0C")], 3, ["#4A7A7A", "#020A0C", "#9AC8C0"], 60))
+    out = [gsky(D, [(0, "#01060C"), (0.4, "#0A2230"), (0.66, "#1E4650"), (0.78, "#2E5A60"), (1, "#0A1A20")], 1, ["#1A3A44", "#04121A", "#3A6A70"], 40,
+                blooms=((420, 250, 260, 160, "#4A8A8C", 0.45), (140, 180, 200, 140, "#0E2A36", 0.6)))]
+    out.append(stars_field(7, (0, 0, 600, 280), 80))
+    out.append(gmoon(D, 424, 236, 50, 7, pal=("#FFFFFF", "#E8F2F0", "#A8BCB8"), halo="#C8F2EE", halo_r=4.2, halo_op=0.55, maria="#8AA4A0"))
+    out.append(gcloud(D, 520, 284, 220, 22, 3, ("#B8E0DC", "#2A4E56", "#0E2228"), light=(-0.4, -1), op=0.8, n=14, lit_n=8))
+    out.append(gcloud(D, 120, 226, 320, 20, 4, ("#5A8A8C", "#183640", "#06141A"), light=(1, -0.3), op=0.7, n=14, lit_n=5, sd=(9, 4)))
+    # far bank: low hills, a village church with one lit window, willows and huizache, all dissolving in mist
+    out.append(soft(D, hill(D, ridge([(-20, 338), (90, 318), (200, 330), (330, 312), (470, 326), (620, 314)], 3, 5, 3), 380,
+                            ("#3A6266", "#22444A", "#0E2428"), 2, inkw=0, n=20), 1.2))
+    out.append(soft(D, poly([(132, 322), (132, 300), (150, 300), (150, 322)], "#123034") + poly([(136, 300), (136, 284), (146, 284), (146, 300)], "#123034")
+                    + sharp([(134, 286), (141, 272), (148, 286)], "#123034"), 0.6))
+    out.append(gglow(D, 141, 309, 16, "#FFC870", 0.6))
+    out.append(f'<rect x="139.5" y="305" width="3" height="6" fill="#FFD890"/>')
+    wl = "".join(willow(D, xw, 344, hw, sw_, "#0A2226", 1.0, 40, ln) for xw, hw, sw_, ln in ((40, 120, 3, 10), (88, 90, 4, -6), (548, 130, 5, -12), (500, 86, 6, 8)))
+    out.append(soft(D, wl, 1.2))
+    out.append(gfog(D, 344, 30, 5, "#9AC8C8", 0.55, sd=7))
+    out.append(gfog(D, 352, 26, 15, "#7AAAAC", 0.6, sd=6, rx=(80, 200)))
+    # the river, a long moon-path, ripples and drifting marigold petals
+    river = "M -20 342 L 620 342 L 620 620 L -20 620 Z"
+    out.append(f'<path d="{river}" fill="{D.lin([(0, "#2A5A60"), (0.25, "#123038"), (1, "#020A0E")])}"/>')
     rnd = random.Random(8)
-    for k in range(26):
-        y = 350 + k * 9
-        w = 14 + k * 3
-        out.append(taper([(300 - w / 2 + rnd.uniform(-10, 10), y), (300 + w / 2 + rnd.uniform(-10, 10), y)], 1, 3 + k * 0.1, "#E8F6F2", 0.6 - k * 0.015))
-    out.append(wave_lines(9, (0, 350, 600, 600), ["#6A9A98", "#C8E8E0", "#0A1E24"], 60, (12, 36), 1.6, 1.4, (0.3, 0.6)))
-    for k in range(12):
-        x, y = rnd.uniform(120, 520), rnd.uniform(400, 560)
-        out.append(f'<path d="{blob(x, y, rnd.uniform(3, 5), rnd.uniform(2, 3), k, 0.3, 8, rnd.uniform(0, 180))}" fill="{rnd.choice(["#FFA020", "#F28A10", "#FFC040"])}"/>')
-    # reeds on the near bank, left and right
+    mp = []
+    for k in range(70):
+        y = 346 + (k / 70) ** 1.4 * 250
+        w = 12 + (y - 346) * 0.55 * rnd.uniform(0.5, 1.3)
+        cx_ = 424 + rnd.uniform(-8, 8) * (1 + (y - 346) / 120)
+        mp.append(taper([(cx_ - w / 2, y), (cx_ + w / 2, y + rnd.uniform(-1, 1))], rnd.uniform(1, 2.5) + (y - 346) * 0.012, 0.6, rnd.choice(["#F2FFFC", "#C8EEEA", "#FFFFFF"]),
+                        rnd.uniform(0.35, 0.8) * (1 - (y - 346) / 400)))
+    out.append(soft(D, "".join(mp), 0.6))
+    out.append(soft(D, wave_lines(9, (0, 350, 600, 600), ["#5A8A8A", "#9AC8C0", "#020A0C"], 70, (14, 44), 1.6, 1.4, (0.2, 0.5)), 0.5))
+    # her reflection, broken by the ripples
+    out.append(f'<g opacity="0.32" {gb(D, 2.5)}><g transform="translate(266 496) scale(2.5 -2.2) translate(0 0)">{weeping_woman(D, 0, 0, 1, 12)}</g></g>')
+    for k in range(10):
+        y = 504 + k * 9
+        out.append(taper([(200 + rnd.uniform(-10, 10), y), (330 + rnd.uniform(-10, 10), y)], 2, 2, "#081A20", 0.5))
+    # the woman, wading into the river
+    out.append(gglow(D, 268, 380, 170, "#C8F2EE", 0.22))
+    out.append(weeping_woman(D, 266, 496, 2.5, 11))
+    out.append(gfog(D, 496, 26, 9, "#C8ECEA", 0.75, 150, 390, sd=5, rx=(30, 70)))
+    for k in range(5):
+        y = 498 + k * 5
+        out.append(f'<path d="{blob(268, y, 60 + k * 18, 3 + k, 30 + k, 0.1, 16)}" fill="none" stroke="#C8ECEA" stroke-width="1.4" opacity="{0.45 - k * 0.07:.2f}"/>')
+    for k in range(16):
+        x, y = rnd.uniform(110, 540), rnd.uniform(420, 580)
+        sz = 0.6 + (y - 420) / 160
+        out.append(f'<path d="{blob(x, y, 3.4 * sz, 2 * sz, k, 0.3, 8, rnd.uniform(-20, 20))}" fill="{rnd.choice(["#FFA020", "#F28A10", "#FFC040"])}" opacity="0.9"/>')
+    # reeds on the near banks, black against the water
     for side, x0 in ((-1, 0), (1, 600)):
-        for k in range(22):
-            x = x0 - side * rnd.uniform(0, 140)
-            h = rnd.uniform(60, 170)
-            base = 600
-            out.append(taper([(x, base), (x + side * rnd.uniform(4, 20), base - h * 0.6), (x + side * rnd.uniform(10, 30), base - h)], 4, 1, "#021010"))
-    # the weeping woman at the water's edge: white gown and veil, long black hair, her reflection
-    def woman(x, base, s, flip_y=False):
-        def L(pts):
-            return [(px, base + (base - py) * 0.9 if flip_y else py) for px, py in T(pts, x, base, s)]
-        o = []
-        gown = L([(-30, 0), (-24, -40), (-16, -80), (-12, -100), (-14, -118), (-8, -126), (8, -126), (14, -118), (12, -100), (16, -80), (26, -40), (34, 0),
-                  (20, -4), (6, 2), (-8, -4), (-20, 2)])
-        o.append(painted(D, gown, ("#FFFFFF", "#DCE8E8", "#7A9A9C"), 11, sdir=(0.5, 0.3), sk=0.2, angle=-90, n=20, inkw=0, hi=0.5))
-        o.append(f'<path d="{smooth_closed(L([(-12, -146), (-16, -128), (-14, -100), (-20, -64), (-6, -70), (4, -100), (8, -130), (2, -150)]))}" fill="#06080A"/>')
-        o.append(f'<path d="{blob(*L([(-3, -146)])[0], 9 * s, 11 * s, 4, 0.06, 10)}" fill="#06080A"/>')
-        o.append(f'<path d="{smooth_closed(L([(-4, -158), (-16, -150), (-26, -100), (-34, -40), (-20, -60), (-12, -100), (6, -130), (10, -150)]))}" fill="#F2F8F8" opacity="0.45"/>')
-        o.append(taper(L([(10, -112), (2, -128), (-4, -142)]), 6 * s, 4 * s, "#DCE8E8"))
-        return "".join(o)
-    out.append(soft_glow(D, 300, 420, 120, "#E8FFFF", 0.3))
-    cid = D.clip('<rect x="0" y="470" width="600" height="140"/>')
-    out.append(f'<g {cid} opacity="0.35">{woman(300, 470, 1.15, True)}</g>')
-    out.append(woman(300, 470, 1.15))
-    out.append(fog(D, 470, 40, 10, "#C8E8E8", 0.45))
-    out.append(band(D, 0, 170, "#000000", 0.5, 0))
+        for k in range(26):
+            x = x0 - side * rnd.uniform(-10, 120) ** 1 * 1
+            h = rnd.uniform(60, 190) * (1 - abs(x - x0) / 260)
+            out.append(taper([(x, 610), (x + side * rnd.uniform(4, 16), 610 - h * 0.6), (x + side * rnd.uniform(8, 30), 610 - h)], 4, 0.8, "#010808"))
+    out.append(band(D, 0, 190, "#000000", 0.55, 0))
+    out.append(band(D, 500, 600, "#000000", 0, 0.65))
     # lettering
     out.append(letters(D, 300, 120, "La Llorona", SERIF_IT, 76, "#F2FAFA", ["#FFFFFF", "#DCF2F0", "#C8E8E8"], 34, max_w=420,
                        shadow="#000000", soff=(0.02, 0.05), angle=-40, wob=0.3))
     out.append(spaced(300, 156, "THE WEEPING WOMAN · MEXICAN FOLKLORE", CINZEL, 16, "#C8E8E4", ls=1.5, max_w=470, shadow="#000000"))
     out.append(tx(300, 548, "No te acerques al río de noche", SERIF_IT, 24, "#E8F6F2", max_w=430))
-    return fin(D, out, 34)
+    return gfin(D, out, 34, 102, edge=2.4, bristle=0.4, grain=0.18, bg="#06161C")
+# --- end repaint:la-llorona
 
 
 # ================================================================ 24. spring-heeled jack — a penny dreadful, hand-coloured
@@ -2316,6 +3225,63 @@ def leaping_jack(x, y, s, col):
     return "".join(out)
 
 
+# --- repaint:spring-heeled-jack
+def jack_leaping(D, x, y, s, seed, col="#0E0A10", rim="#F2E4A8"):
+    """Spring-heeled Jack in mid-leap over the chimneys, as the 1838 broadsides told it: a tall, lean figure in a tight
+    suit and a helmet with pointed ears, a long cloak cracking out behind, clawed hands reaching, one knee drawn up and
+    the other leg trailing with its spring-heeled boot. Facing right. (x, y) = the hips."""
+    def L(p):
+        return T(p, x, y, s)
+    light = (0.7, -0.7)
+    parts = []
+    cloak = [(30, -50), (14, -58), (-20, -66), (-62, -76), (-112, -84), (-92, -66), (-136, -56), (-100, -42), (-120, -22), (-80, -22), (-46, -18),
+             (-16, -16), (6, -30), (22, -40)]
+    parts.append(tube_pts(L([(0, 0), (16, -22), (34, -44)]), 20 * s, 24 * s, wfn=lambda t: (20 - 5 * math.sin(math.pi * min(1, t * 1.4)) + 9 * max(0, t - 0.55)) * s))
+    parts.append(blob_pts(*L([(30, -42)])[0], 15 * s, 11 * s, seed + 1, 0.05, 14, -40))           # chest and shoulders
+    parts.append(tube_pts(L([(36, -50), (44, -58)]), 10 * s, 8.5 * s))                               # neck
+    head = blob_pts(*L([(50, -64)])[0], 8.6 * s, 10 * s, seed, 0.04, 14, 30)
+    parts.append(head)
+    parts.append(L([(45, -70), (44, -88), (51, -73)]))                                               # pointed ears of the helmet
+    parts.append(L([(52, -73), (58, -89), (58, -70)]))
+    parts.append(tube_pts(L([(6, 2), (40, -6), (32, 34), (36, 44)]), 18 * s, 8 * s, wfn=lambda t: limb_w(18, 10, 11.5, 7, 0.5)(t) * s))     # near leg: knee drawn up
+    parts.append(L([(30, 40), (46, 40), (48, 46), (30, 47)]))                                         # near boot
+    parts.append(tube_pts(L([(-4, 4), (-34, 18), (-66, 26), (-74, 34)]), 18 * s, 8 * s, wfn=lambda t: limb_w(18, 10, 11.5, 7, 0.46)(t) * s))  # far leg trailing
+    parts.append(L([(-80, 30), (-66, 30), (-66, 38), (-82, 38)]))
+    parts.append(tube_pts(L([(32, -44), (56, -38), (80, -52)]), 10 * s, 6 * s, wfn=lambda t: limb_w(11, 7.5, 8.5, 6, 0.5)(t) * s))          # near arm reaching
+    parts.append(tube_pts(L([(24, -48), (8, -74), (-2, -96)]), 10 * s, 6 * s, wfn=lambda t: limb_w(11, 7.5, 8.5, 6, 0.5)(t) * s))           # far arm flung up
+    ds = [smooth_closed(p) for p in parts]
+    cd = smooth_closed(L(cloak))
+    behind, front = union_rim(D, ds + [cd], rim, -1.3 * s, 1.3 * s, op=0.9, blur=0.5, glow="#FFF2C0", glow_op=0.35, glow_w=8)
+    out = [behind]
+    out.append(gform(D, L(cloak), ("#3A2A44", "#140C1C", "#020104"), seed, light, angle=180, n=40, core=0.35, slen=(20, 50), sw=(1, 2.6)))
+    out.append(folds(D, cd, [L([(-10, -60), (-60, -76), (-130, -86)]), L([(-12, -40), (-70, -48), (-130, -54)]), L([(-14, -28), (-60, -30), (-110, -34)])],
+                     "#000000", "#7A6A9A", seed, w=(6 * s, 1), op=0.7, sd=1.8))
+    out.append(f'<g fill="{col}">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>")
+    out.append(front)
+    # claws on both hands
+    for hand, base_a in (((82, -53), -30), ((-3, -98), -120)):
+        hx, hy = L([hand])[0]
+        for f in range(4):
+            a = math.radians(base_a + (f - 1.5) * 18)
+            out.append(taper([(hx, hy), (hx + math.cos(a) * 9 * s, hy + math.sin(a) * 9 * s), (hx + math.cos(a + 0.5) * 15 * s, hy + math.sin(a + 0.5) * 15 * s)],
+                             2.6 * s, 0.4, col))
+    # the springs under his heels
+    for (fx, fy, ang_) in ((34, 47, 6), (-76, 38, 30)):
+        px_, py_ = L([(fx, fy)])[0]
+        for k in range(5):
+            cx_ = px_ + math.sin(math.radians(ang_)) * k * 4 * s
+            cy_ = py_ + math.cos(math.radians(ang_)) * k * 4 * s + 4 * s
+            out.append(f'<ellipse cx="{cx_:.1f}" cy="{cy_:.1f}" rx="{6 * s:.1f}" ry="{2 * s:.1f}" fill="none" stroke="#2A2430" stroke-width="{1.8 * s:.1f}" '
+                       f'transform="rotate({-ang_} {cx_:.1f} {cy_:.1f})"/>')
+            out.append(f'<ellipse cx="{cx_:.1f}" cy="{cy_ - 0.8:.1f}" rx="{6 * s:.1f}" ry="{2 * s:.1f}" fill="none" stroke="{rim}" stroke-width="{0.7 * s:.1f}" opacity="0.6" '
+                       f'transform="rotate({-ang_} {cx_:.1f} {cy_:.1f})"/>')
+    # the red eyes "like balls of fire"
+    ex_, ey_ = L([(55, -66)])[0]
+    out.append(gglow(D, ex_, ey_, 9 * s, "#FF5A2A", 0.9))
+    out.append(f'<circle cx="{ex_:.1f}" cy="{ey_:.1f}" r="{1.8 * s:.1f}" fill="#FFD0A0"/>')
+    return "".join(out)
+
+
 @design("spring-heeled-jack")
 def spring_heeled_jack():
     D = Doc2("hr-sj")
@@ -2324,175 +3290,351 @@ def spring_heeled_jack():
     out = [paper(D.nid(), "#E8D8B4", "#6A4A2A", 11)]
     # masthead of the penny dreadful
     out.append(f'<rect x="40" y="40" width="520" height="96" fill="none" stroke="{INKC}" stroke-width="3"/>')
+    out.append(f'<rect x="46" y="46" width="508" height="84" fill="none" stroke="{INKC}" stroke-width="1"/>')
     out.append(tx(62, 74, "No. 1", DMS, 20, INKC, max_w=90, anchor="start"))
     out.append(tx(538, 74, "ONE PENNY", BEBAS, 23, "#A8201A", ls=1, max_w=110, anchor="end"))
     out.append(tx(300, 72, "THE TERROR OF LONDON", CINZEL, 16, INKC, ls=1, max_w=262))
     out.append(tx(300, 126, "Spring-Heeled Jack", DMS, 50, INKC, max_w=460))
-    # the picture: rooftops and chimney pots of Victorian London, hand-coloured over black line
-    px0, py0, px1, py1 = 56, 150, 544, 544
-    cid = D.clip(f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}"/>')
-    sc = [f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}" fill="{D.lin([(0, "#3A4A7A"), (0.7, "#8A9AB8"), (1, "#C8B890")])}"/>']
-    sc.append(hatch_in(D, f"M {px0} {py0} L {px1} {py0} L {px1} {py0 + 160} L {px0} {py0 + 160} Z", (px0, py0, px1, py0 + 160), "#1E2A4A", 5, 0, 1.2, 0.5))
-    sc.append(f'<circle cx="420" cy="230" r="44" fill="#F2E4A8" stroke="{INKC}" stroke-width="2.4"/>')
-    sc.append(soft_glow(D, 420, 230, 120, "#F2E4A8", 0.4))
+    # the picture: London roofs and chimney pots in fog under a yellow moon, painted over an engraved line
+    px0, py0, px1, py1 = 52, 148, 548, 548
+    pic = f"M {px0} {py0} L {px1} {py0} L {px1} {py1} L {px0} {py1} Z"
+    cid = D.clip(f'<path d="{pic}"/>')
+    sc = [gsky(D, [(0, "#1E2440"), (0.45, "#4A4A66"), (0.75, "#9A8A78"), (1, "#C8A878")], 3, ["#2A3050", "#5A5470", "#B89878"], 50,
+               blooms=((410, 250, 200, 160, "#E8D8A0", 0.5),))]
+    sc.append(hatch(D, pic, (px0, py0, px1, py0 + 220), 3, "#141830", ang=-8, step=4.2, w=1.0, light=(0.4, 1), op=0.5))
+    sc.append(gmoon(D, 412, 246, 50, 4, pal=("#FFF8D8", "#F2E2A8", "#C8A868"), halo="#FFE8A8", halo_r=3.6, halo_op=0.6, maria="#B8A070"))
+    sc.append(gcloud(D, 250, 300, 300, 22, 5, ("#E8D8B0", "#5A5468", "#2A2A40"), light=(1, -0.4), op=0.85, n=14, lit_n=8))
+    # rooftops: far, middle and near rows, chimney stacks with clay pots and smoke, a few lit garret windows
     rnd = random.Random(5)
-    # roof ridges and chimney stacks
-    x = px0 - 20
-    roofs = []
-    while x < px1 + 20:
-        w = rnd.uniform(60, 110)
-        top = rnd.uniform(400, 440)
-        roofs.append((x, w, top))
-        x += w - 6
-    for (x, w, top) in roofs:
-        sc.append(f'<path d="M {x:.1f} 560 L {x:.1f} {top + 24:.1f} L {x + w / 2:.1f} {top:.1f} L {x + w:.1f} {top + 24:.1f} L {x + w:.1f} 560 Z" fill="#4A3A3A" stroke="{INKC}" stroke-width="2"/>')
-        sc.append(hatch_in(D, f"M {x:.1f} 560 L {x:.1f} {top + 24:.1f} L {x + w / 2:.1f} {top:.1f} L {x + w:.1f} {top + 24:.1f} L {x + w:.1f} 560 Z", (x, top, x + w, 560), INKC, 5, -30, 1, 0.6))
-        if rnd.random() < 0.7:
-            cx = x + w * rnd.uniform(0.2, 0.7)
-            ch = rnd.uniform(30, 50)
-            sc.append(f'<rect x="{cx - 9:.1f}" y="{top + 6 - ch:.1f}" width="18" height="{ch:.1f}" fill="#8A3A2A" stroke="{INKC}" stroke-width="2"/>')
-            for j in range(2):
-                sc.append(f'<rect x="{cx - 7 + j * 8:.1f}" y="{top - ch - 4:.1f}" width="6" height="12" fill="#A85A3A" stroke="{INKC}" stroke-width="1.6"/>')
-            sc.append(smoke(D, [(cx, top - ch - 6), (cx - 10, top - ch - 26), (cx - 30, top - ch - 40)], 2, 8, int(cx), "#C8C8D8", 0.45))
-        for j in range(rnd.randint(0, 2)):
-            wx = x + w * rnd.uniform(0.2, 0.8)
-            sc.append(f'<rect x="{wx - 5:.1f}" y="{top + 40:.1f}" width="10" height="14" fill="#F2C860" stroke="{INKC}" stroke-width="1.4"/>')
-    # a gas lamp
-    sc.append(f'<path d="M 120 560 L 120 470" stroke="{INKC}" stroke-width="5"/>')
-    sc.append(f'<path d="M 108 470 L 132 470 L 128 448 L 112 448 Z" fill="#F2C860" stroke="{INKC}" stroke-width="2"/>')
-    sc.append(soft_glow(D, 120, 460, 40, "#FFE8A0", 0.6))
-    # Jack, leaping across the moon, breathing blue flame
-    sc.append(leaping_jack(320, 300, 1.2, INKC))
-    fx, fy = 334, 218
-    sc.append(soft_glow(D, fx + 40, fy, 60, "#9AD8FF", 0.6))
-    sc.append(f'<g transform="rotate(80 {fx} {fy})">{flame_lick(fx, fy, 76, 26, 5, cols=("#4A9AE8", "#9AD8FF", "#FFFFFF"))}</g>')
-    sc.append(f'<g transform="rotate(80 {fx} {fy})"><path d="{flame_lick(fx, fy, 76, 26, 5).split(chr(34))[1]}" fill="none" stroke="{INKC}" stroke-width="1.4"/></g>')
-    sc.append(f'<ellipse cx="{fx - 6}" cy="{fy - 6}" rx="3.4" ry="2.4" fill="#E8402A"/>')
+    for row, (top, col_, hat_op, pot) in enumerate(((396, "#4A4458", 0.3, 0.8), (436, "#2A2232", 0.45, 1.0), (486, "#141018", 0.6, 1.3))):
+        x = px0 - 30
+        roofs = []
+        while x < px1 + 20:
+            w = rnd.uniform(60, 120) * (0.8 + row * 0.15)
+            t_ = top + rnd.uniform(-14, 10)
+            roofs.append((x, w, t_))
+            x += w - 4
+        for (x, w, t_) in roofs:
+            rp = [(x, 620), (x, t_ + 24), (x + w * 0.5, t_), (x + w, t_ + 24), (x + w, 620)]
+            sc.append(gform(D, rp, (lt(col_, 0.35), col_, dk(col_, 0.5)), int(x) + row, (1, -0.6), angle=-30, n=14, core=0.3, hi_op=0.3, sharp=True))
+            sc.append(hatch(D, pd(rp), (x, t_, x + w, 620), int(x) + 7, "#0E0A10", ang=-30, step=4.6, w=0.9, light=(1, -0.6), op=hat_op))
+            if row < 2 and rnd.random() < 0.6:
+                wx = x + w * rnd.uniform(0.25, 0.75)
+                sc.append(gglow(D, wx, t_ + 44, 20, "#FFC860", 0.4))
+                sc.append(f'<rect x="{wx - 4:.1f}" y="{t_ + 38:.1f}" width="8" height="11" fill="#FFD27A"/>')
+            if rnd.random() < 0.65:
+                cx_ = x + w * rnd.uniform(0.2, 0.7)
+                ch = rnd.uniform(26, 46) * pot
+                cw = 18 * pot
+                stack = [(cx_ - cw / 2, t_ + 12), (cx_ - cw / 2, t_ + 12 - ch), (cx_ + cw / 2, t_ + 12 - ch), (cx_ + cw / 2, t_ + 12)]
+                sc.append(gform(D, stack, ("#C87A5A", "#7A3A2A", "#2A100A"), int(cx_), (1, -0.6), angle=-90, n=6, rim="#F2D8A0", rim_w=1.4, sharp=True))
+                for j in range(int(ch / 7)):
+                    sc.append(f'<path d="M {cx_ - cw / 2:.1f} {t_ + 12 - j * 7:.1f} L {cx_ + cw / 2:.1f} {t_ + 12 - j * 7:.1f}" stroke="#2A100A" stroke-width="1" opacity="0.5"/>')
+                for j in range(2):
+                    potx = cx_ - cw * 0.25 + j * cw * 0.5
+                    sc.append(gform(D, [(potx - 3.4 * pot, t_ + 12 - ch), (potx - 2.6 * pot, t_ + 12 - ch - 12 * pot), (potx + 2.6 * pot, t_ + 12 - ch - 12 * pot),
+                                        (potx + 3.4 * pot, t_ + 12 - ch)], ("#E8A07A", "#A8583A", "#3A180A"), int(potx), (1, -0.6), n=0, sharp=True))
+                sc.append(soft(D, smoke(D, [(cx_, t_ - ch), (cx_ - 12, t_ - ch - 24), (cx_ - 36, t_ - ch - 40), (cx_ - 70, t_ - ch - 50)], 3, 14, int(cx_),
+                                        "#B8B0B8", 0.4), 2))
+        sc.append(gfog(D, top + 30, 50, 10 + row, "#B8A898", 0.45 - row * 0.1, sd=10))
+    # a gas lamp below in the street
+    sc.append(gglow(D, 120, 470, 70, "#FFE0A0", 0.6))
+    sc.append(f'<path d="M 120 560 L 120 476" stroke="{INKC}" stroke-width="5"/>')
+    sc.append(gform(D, [(108, 476), (132, 476), (128, 452), (112, 452)], ("#FFF4C8", "#F2C860", "#A87A2A"), 3, (0, 1), n=0, sharp=True))
+    # Jack, across the moon
+    sc.append(jack_leaping(D, 318, 292, 1.4, 7))
+    fx, fy = 402, 200
+    sc.append(gglow(D, fx + 36, fy - 8, 50, "#9AD8FF", 0.6))
+    sc.append(f'<g transform="rotate(66 {fx} {fy})">{soft(D, flame_lick(fx, fy, 70, 24, 5, cols=("#4A9AE8", "#9AD8FF", "#FFFFFF")), 1.2)}</g>')
+    sc.append(vignette(D, "#1A0E06", 0.45))
     out.append(f'<g {cid}>{"".join(sc)}</g>')
-    out.append(f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}" fill="none" stroke="{INKC}" stroke-width="3"/>')
-    out.append(f'<rect x="{px0 + 120}" y="{py1 - 34}" width="248" height="26" fill="#E8D8B4" stroke="{INKC}" stroke-width="2"/>')
+    out.append(f'<path d="{pic}" fill="none" stroke="{INKC}" stroke-width="3"/>')
+    out.append(f'<rect x="{px0 + 124}" y="{py1 - 34}" width="248" height="26" fill="#E8D8B4" stroke="{INKC}" stroke-width="2"/>')
     out.append(tx(300, py1 - 14, "A PENNY DREADFUL · 1838", CINZEL, 16, INKC, ls=1, max_w=236))
-    return fin(D, out, 35, "#3A2A1A", 0.6)
+    return gfin(D, out, 35, 108, edge=2.2, bristle=0.35, grain=0.18, bg="#E8D8B4", gcol="#3A2A1A", gop=0.5)
+# --- end repaint:spring-heeled-jack
 
 
 # ================================================================ 25. bloody mary — the mirror at midnight
+# --- repaint:bloody-mary
+def gcandle(D, x, base, h, w, seed, wax=("#FFF6E4", "#E2CFAE", "#8A6E50"), lit=True, glow_r=110, light=(-0.4, -1), flame_h=None):
+    """A painted candle: a wax column modelled by its own flame (top lit, sides falling into shadow), a rim of
+    translucent wax round the cup, runs of wax down the side, a blue-rooted flame with a hot core and a wide glow."""
+    rnd = random.Random(seed)
+    out = []
+    if lit and glow_r:
+        out.append(gglow(D, x, base - h - 10, glow_r, "#FFB050", 0.55))
+        out.append(gglow(D, x, base - h - 10, glow_r * 0.35, "#FFE2A0", 0.6))
+    col = poly_pts([(x - w / 2, base), (x - w / 2, base - h + 3), (x - w * 0.2, base - h - 1), (x + w * 0.25, base - h + 1), (x + w / 2, base - h + 4), (x + w / 2, base)], 8, seed, 0.4)
+    out.append(gform(D, col, wax, seed, (0.0, -1), angle=-90, n=14, core=0.0, hi_op=0.0))
+    cid = D.clip(f'<path d="{smooth_closed(col)}"/>')
+    out.append(f'<g {cid}><rect x="{x - w / 2 - 2:.1f}" y="{base - h - 4:.1f}" width="{w + 4:.1f}" height="{h + 8:.1f}" '
+               f'fill="{D.lin([(0, wax[2], 0.7), (0.3, wax[1], 0), (0.62, wax[1], 0), (1, wax[2], 0.85)], 0, 0, 1, 0)}"/>'
+               f'<rect x="{x - w / 2 - 2:.1f}" y="{base - h - 4:.1f}" width="{w + 4:.1f}" height="{h + 8:.1f}" '
+               f'fill="{D.lin([(0, "#FFF4D8", 0.75), (0.25, "#FFE8B8", 0), (1, "#000000", 0.35)], 0, 0, 0, 1)}"/></g>')
+    for k in range(rnd.randint(2, 3)):
+        dx = rnd.uniform(-w * 0.4, w * 0.35)
+        L_ = rnd.uniform(h * 0.15, h * 0.55)
+        out.append(taper([(x + dx, base - h + 2), (x + dx + rnd.uniform(-1, 1), base - h + L_ * 0.6), (x + dx, base - h + L_)], w * 0.22, w * 0.18, wax[0], 0.85))
+        out.append(f'<circle cx="{x + dx:.1f}" cy="{base - h + L_:.1f}" r="{w * 0.11:.1f}" fill="{wax[0]}"/>')
+    out.append(f'<path d="{blob(x, base - h + 1, w * 0.44, w * 0.12, seed, 0.1, 10)}" fill="#FFF8E0" opacity="0.9"/>')
+    out.append(f'<path d="M {x:.1f} {base - h + 1:.1f} L {x + 0.6:.1f} {base - h - 5:.1f}" stroke="#1A0E06" stroke-width="1.6" stroke-linecap="round"/>')
+    if lit:
+        fh = flame_h or max(14, w * 1.4)
+        out.append(soft(D, flame_lick(x, base - h - 3, fh * 1.2, w * 0.7, seed, cols=("#FF8A2A", "#FFC860", "#FFF2C0")), 1.6))
+        out.append(flame_lick(x, base - h - 3, fh, w * 0.5, seed, cols=("#FFB040", "#FFE6A0", "#FFFFFF")))
+        out.append(f'<path d="{blob(x, base - h - 4, w * 0.16, w * 0.22, seed, 0.1, 8)}" fill="#3A60C8" opacity="0.55" {gb(D, 0.8)}/>')
+    return "".join(out)
+
+
+def mary_in_glass(D, x, base, s, seed):
+    """The woman behind you in the glass, waist up, face hidden behind long black hair; a white nightgown, arms hanging,
+    the lower body lost in the dark. Front view; (x, base) = her waist."""
+    def L(p):
+        return T(p, x, base, s)
+    rnd = random.Random(seed)
+    out = []
+    gown = [(-6.4, 0), (-6, -6), (-6.6, -12), (-8.4, -18), (-9.8, -21), (-10.6, -24), (-11.2, -29), (-11, -35), (-10.6, -38.4), (-8.6, -40),
+            (-4, -42.2), (0, -42), (4, -42.2), (8.6, -40), (10.6, -38.4), (11, -35), (11.2, -29), (10.6, -24), (10, -19), (10.4, -12), (11, -4),
+            (12.6, 6), (14, 20), (15, 36), (-15, 36), (-14, 20), (-12.4, 6), (-11, -4)]
+    gp = L(gown)
+    out.append(gform(D, gp, ("#F2F0EA", "#9A9C9E", "#262628"), seed, (-0.3, -1), angle=-90, n=40, core=0.4, core_op=0.75, refl="#C8B8A8", slen=(6 * s, 16 * s),
+                     sw=(0.5, 1.4), sop=(0.08, 0.22)))
+    out.append(folds(D, smooth_closed(gp), [L([(-8.6, -38), (-9, -26), (-8.2, -14)]), L([(8.6, -38), (9, -26), (8.4, -14)]), L([(-3, -36), (-2, -20), (-3, -4)]),
+                                              L([(4, -34), (3, -16), (4, 4)]), L([(-6, -30), (-7, -20)])], "#1A1A1C", "#FFFFFF", seed, w=(1.6 * s, 0.4 * s), op=0.5, sd=1.2,
+                     lw=(1, 0.3), lop=0.45, loff=(-0.8, 0)))
+    out.append(soft(D, f'<path d="{smooth_closed(L([(-3.6, -41.8), (0, -40.6), (3.6, -41.8), (3, -39.4), (0, -38.6), (-3, -39.4)]))}" fill="#3A3634" opacity="0.6"/>', 0.6))
+    # pale hands at her sides
+    for sg in (-1, 1):
+        hx, hy = L([(sg * 10.4, -16.4)])[0]
+        out.append(gform(D, blob_pts(hx, hy, 1.6 * s, 2.6 * s, seed + sg, 0.1, 10), ("#E8E4DC", "#A8A29A", "#3A3836"), seed + 3, (-0.3, -1), n=0))
+        for f in range(3):
+            out.append(taper(L([(sg * (9.8 + f * 0.5), -14.6), (sg * (9.6 + f * 0.6), -12)]), 0.8 * s, 0.5 * s, "#D8D4CC", 0.9))
+    # the head bowed a little, the face behind a curtain of black hair to the breast
+    hx, hy = L([(0.4, -48.6)])[0]
+    out.append(gform(D, blob_pts(hx, hy, 4.4 * s, 5.8 * s, seed + 4, 0.04, 14, 4), ("#3A3838", "#141414", "#030303"), seed + 5, (-0.3, -1), n=0))
+    hl = []
+    for k in range(40):
+        t = k / 39
+        xa = -4.6 + 9.4 * t
+        top = (0.4 + (xa - 0.4) * 0.3, -54.2 + abs(xa - 0.4) * 0.25)
+        end = (xa * 1.25 + rnd.uniform(-0.8, 0.8), -32 - rnd.uniform(0, 7) + abs(t - 0.5) * 6)
+        mid = (xa * 1.12 + rnd.uniform(-0.4, 0.4), -44)
+        hl.append(taper(L([top, (xa * 1.05, -50), mid, end]), rnd.uniform(0.8, 1.5) * s, 0.15 * s, rnd.choice(["#050505", "#0E0E0E", "#1A1818", "#080808"]), rnd.uniform(0.8, 1)))
+    out.append("".join(hl))
+    for k in range(7):
+        xa = rnd.uniform(-4, 4)
+        out.append(taper(L([(xa * 0.4, -53.6), (xa, -48), (xa * 1.2, -40)]), 0.4 * s, 0.1, "#8A8A90", rnd.uniform(0.3, 0.6)))
+    # a sliver of pale cheek and chin between the strands
+    cx_, cy_ = L([(1.2, -45.4)])[0]
+    out.append(soft(D, f'<path d="{blob(cx_, cy_, 0.8 * s, 2.0 * s, seed + 9, 0.1, 8)}" fill="#C8C4C0" opacity="0.75"/>', 0.6))
+    return "".join(out)
+
+
 @design("bloody-mary")
 def bloody_mary():
     D = Doc2("hr-bm")
-    out = [f'<rect width="600" height="600" fill="#0A0608"/>']
-    # damask wallpaper in the dark
-    out.append(f'<rect width="600" height="600" fill="{D.rad([(0, "#3A1A22"), (0.6, "#1A0A0E"), (1, "#050204")], 0.5, 0.55, 0.7)}"/>')
-    for r_ in range(8):
-        for c in range(7):
-            x, y = c * 96 + (r_ % 2) * 48, r_ * 84
-            out.append(f'<path d="M {x} {y - 22} Q {x + 18} {y} {x} {y + 22} Q {x - 18} {y} {x} {y - 22} Z M {x - 14} {y + 28} Q {x} {y + 18} {x + 14} {y + 28}" fill="#4A1E28" opacity="0.4"/>')
-    # the mirror in its baroque gilt frame
-    cx, cy, rx, ry = 300, 290, 130, 176
-    out.append(cast(D, cx + 8, cy + 10, rx + 30, ry + 30, "#000000", 0.6))
-    frame = ell_pts(cx, cy, rx + 26, ry + 26, 0, 360, 60)
-    out.append(f'<path d="{smooth_closed(frame)}" fill="{gilt_fill(D, cy - ry - 26, cy + ry + 26)}"/>')
-    for k in range(24):
-        a = 2 * math.pi * k / 24
-        out.append(f'<path d="{blob(cx + math.cos(a) * (rx + 22), cy + math.sin(a) * (ry + 22), 10, 7, k, 0.3, 10, math.degrees(a) + 90)}" fill="#F6DC8A" opacity="0.7"/>')
-        out.append(ink(blob(cx + math.cos(a) * (rx + 22), cy + math.sin(a) * (ry + 22), 10, 7, k, 0.3, 10, math.degrees(a) + 90), "#6A4A14", 1, k, 1, 0.6))
-    glass = ell_pts(cx, cy, rx, ry, 0, 360, 60)
-    out.append(f'<path d="{smooth_closed(glass)}" fill="{D.lin([(0, "#2A2A34"), (0.6, "#14141C"), (1, "#0A0A10")], 0, 0, 0.4, 1)}"/>')
-    cid = D.clip(f'<path d="{smooth_closed(glass)}"/>')
-    m = []
-    # the reflected room: the two candles, and behind them, where nobody stands, a pale woman in a veil
-    m.append(soft_glow(D, cx, cy + 40, 150, "#FFB070", 0.25))
-    m.append(soft_glow(D, cx + 20, cy - 10, 70, "#C8E0F0", 0.3))
-    fig = [(cx + 20, cy - 70), (cx + 4, cy - 62), (cx - 2, cy - 30), (cx - 14, cy + 20), (cx - 26, cy + 120), (cx + 66, cy + 120), (cx + 54, cy + 20),
-           (cx + 42, cy - 30), (cx + 36, cy - 62)]
-    m.append(f'<path d="{smooth_closed(fig)}" fill="#C8D4DC" opacity="0.5"/>')
-    m.append(f'<path d="{blob(cx + 20, cy - 52, 15, 19, 3, 0.05, 12)}" fill="#E8F0F4" opacity="0.7"/>')
-    m.append(f'<path d="{smooth_closed([(cx + 4, cy - 72), (cx + 20, cy - 80), (cx + 38, cy - 72), (cx + 48, cy - 20), (cx + 58, cy + 40), (cx + 36, cy + 10), (cx + 20, cy - 30), (cx + 4, cy + 10), (cx - 14, cy + 40), (cx - 4, cy - 20)])}" fill="#0A0A0E" opacity="0.85"/>')
-    for sg in (-1, 1):
-        m.append(f'<ellipse cx="{cx + 20 + sg * 6}" cy="{cy - 54}" rx="3" ry="2" fill="#0A0A10" opacity="0.8"/>')
-    for (x, h) in ((cx - 76, 60), (cx + 76, 60)):
-        m.append(candle(D, x, cy + 150, h, int(x), w=12, glow_r=60))
-    m.append(f'<path d="M {cx - 80} {cy - ry} L {cx - 10} {cy + ry} L {cx + 10} {cy + ry} L {cx - 60} {cy - ry} Z" fill="#FFFFFF" opacity="0.05"/>')
-    m.append(f'<path d="{smooth_closed(glass)}" fill="{D.rad([(0, "#000000", 0), (0.7, "#000000", 0), (1, "#000000", 0.6)])}"/>')
+    out = [f'<rect width="600" height="600" fill="#0A0406"/>']
+    # damask wall, warm where the candles reach it, black in the corners
+    out.append(f'<rect width="600" height="600" fill="{D.rad([(0, "#5A2A26"), (0.35, "#3A1618"), (0.75, "#16080A"), (1, "#060203")], 0.5, 0.78, 0.8)}"/>')
+    dm = []
+    for r_ in range(9):
+        for c in range(8):
+            x, y = c * 84 + (r_ % 2) * 42 - 10, r_ * 72 - 10
+            dm.append(f'<path d="M {x} {y - 24} C {x + 14} {y - 10} {x + 16} {y + 8} {x} {y + 24} C {x - 16} {y + 8} {x - 14} {y - 10} {x} {y - 24} Z '
+                      f'M {x - 18} {y + 30} Q {x} {y + 16} {x + 18} {y + 30} Q {x} {y + 22} {x - 18} {y + 30} Z" fill="#6A2A30" opacity="0.32"/>')
+    out.append(soft(D, "".join(dm), 0.8))
+    out.append(stipple(D, "M 0 0 L 600 0 L 600 600 L 0 600 Z", (0, 0, 600, 600), 3, "#000000", n=2200, light=(0, 1), gamma=1.0, op=(0.2, 0.5)))
+    # the mirror's cast shadow, then the baroque gilt frame
+    cx, cy, rx, ry = 300, 292, 128, 172
+    out.append(soft(D, f'<ellipse cx="{cx + 6}" cy="{cy - 14}" rx="{rx + 40}" ry="{ry + 40}" fill="#000000" opacity="0.6"/>', 14))
+    frame = ell_pts(cx, cy, rx + 28, ry + 28, 0, 360, 72)
+    gold = ("#FFE8A0", "#B8862E", "#3A2408")
+    out.append(gform(D, frame, gold, 4, (0, 1), angle=0, n=0, core=0.0, hi_op=0))
+    out.append(f'<path d="{smooth_closed(frame)}" fill="{D.rad([(0, "#FFE6A0", 0.0), (0.82, "#FFE6A0", 0), (0.9, "#FFF0C0", 0.45), (1, "#2A1804", 0.6)], 0.5, 0.5, 0.5)}"/>')
+    # carved acanthus scrolls packed round the frame: dark recesses, then leaves in two rows, lit from below
+    rnd = random.Random(5)
+    rec = []
+    for k in range(90):
+        a = 2 * math.pi * k / 90
+        rec.append(f'<circle cx="{cx + math.cos(a) * (rx + 17):.1f}" cy="{cy + math.sin(a) * (ry + 17):.1f}" r="{rnd.uniform(2, 4):.1f}" fill="#1A0E02" opacity="0.7"/>')
+    out.append(soft(D, "".join(rec), 1.2))
+    for row, (off, n_, sz) in enumerate(((24, 40, 10), (12, 52, 6.5))):
+        for k in range(n_):
+            a = 2 * math.pi * (k + 0.5 * row) / n_
+            px_, py_ = cx + math.cos(a) * (rx + off), cy + math.sin(a) * (ry + off)
+            ang_ = math.degrees(a) + 90 + (35 if k % 2 else -35)
+            leaf = blob_pts(px_, py_, sz * rnd.uniform(0.8, 1.2), sz * 0.48, k + row * 99, 0.3, 10, ang_)
+            out.append(gform(D, leaf, gold, 30 + k + row * 99, (0, 1), n=0, core=0.45, core_op=0.85, hi_op=0.75, hik=0.12))
+            if row == 0:
+                out.append(f'<path d="M {px_ - math.cos(math.radians(ang_)) * sz * 0.7:.1f} {py_ - math.sin(math.radians(ang_)) * sz * 0.7:.1f} L {px_ + math.cos(math.radians(ang_)) * sz * 0.7:.1f} {py_ + math.sin(math.radians(ang_)) * sz * 0.7:.1f}" stroke="#4A2E06" stroke-width="1.1" opacity="0.6"/>')
+    out.append(f'<path d="{smooth_closed(frame)}" fill="{D.lin([(0, "#000000", 0.45), (0.5, "#000000", 0.1), (1, "#FFD890", 0.12)])}"/>')
+    # crest at the top and a shell at the bottom
+    for (yy, sz) in ((cy - ry - 40, 1.0), (cy + ry + 40, 0.8)):
+        fan = [(cx + math.cos(math.radians(a_)) * 34 * sz, yy + math.sin(math.radians(a_)) * 22 * sz * (-1 if yy < cy else 1)) for a_ in range(200, 341, 20)] + [(cx, yy + 8 * sz * (1 if yy < cy else -1))]
+        out.append(gform(D, fan, gold, 9 if yy < cy else 10, (0, 1), n=0, core=0.35, hi_op=0.6))
+        for a_ in range(210, 340, 20):
+            out.append(f'<path d="M {cx:.1f} {yy + 6 * sz * (1 if yy < cy else -1):.1f} L {cx + math.cos(math.radians(a_)) * 30 * sz:.1f} {yy + math.sin(math.radians(a_)) * 19 * sz * (-1 if yy < cy else 1):.1f}" stroke="#5A3A0A" stroke-width="1.4" opacity="0.6"/>')
+    inner = ell_pts(cx, cy, rx + 6, ry + 6, 0, 360, 72)
+    out.append(gform(D, inner, ("#3A2408", "#8A6420", "#FFE6A0"), 11, (0, -1), n=0, core=0, hi_op=0))
+    # the glass: the dark room behind you, reflected
+    glass = ell_pts(cx, cy, rx, ry, 0, 360, 72)
+    gd = smooth_closed(glass)
+    cid = D.clip(f'<path d="{gd}"/>')
+    m = [f'<rect x="0" y="0" width="600" height="600" fill="{D.rad([(0, "#3A2A26"), (0.5, "#1A1214"), (1, "#060406")], 0.5, 0.75, 0.6)}"/>']
+    # a doorway far behind, a faint grey light in it
+    m.append(soft(D, f'<path d="M {cx + 14} {cy + 60} L {cx + 14} {cy - 110} L {cx + 92} {cy - 104} L {cx + 92} {cy + 60} Z" fill="#2E3034" opacity="0.8"/>', 3))
+    m.append(soft(D, f'<path d="M {cx + 22} {cy + 60} L {cx + 22} {cy - 98} L {cx + 84} {cy - 94} L {cx + 84} {cy + 60} Z" fill="#4A5058" opacity="0.6"/>', 6))
+    # her, standing behind you in the dark, fading out below the waist
+    m.append(f'<g {gb(D, 0.9)}>{mary_in_glass(D, cx + 22, cy + 80, 3.0, 7)}</g>')
+    m.append(f'<rect x="{cx - 200}" y="{cy + 20}" width="400" height="200" fill="{D.lin([(0, "#0A0608", 0), (0.45, "#0A0608", 0.85), (1, "#0A0608", 1)])}"/>')
+    # the reflected candles, smaller and further back
+    m.append(gglow(D, cx, cy + 140, 200, "#FF9A50", 0.2))
+    for xx in (cx - 70, cx + 70):
+        m.append(f'<g opacity="0.85">{gcandle(D, xx, cy + 150, 46, 10, int(xx), glow_r=70)}</g>')
+    # old silvering: a diagonal sheen, foxing and desilvered spots creeping in from the rim
+    m.append(f'<path d="M {cx - 120} {cy - 200} L {cx - 40} {cy - 200} L {cx + 60} {cy + 200} L {cx - 20} {cy + 200} Z" fill="#FFFFFF" opacity="0.05" {gb(D, 6)}/>')
+    m.append(f'<path d="M {cx - 150} {cy - 200} L {cx - 128} {cy - 200} L {cx - 30} {cy + 200} L {cx - 52} {cy + 200} Z" fill="#FFFFFF" opacity="0.04" {gb(D, 3)}/>')
+    fox = []
+    for _ in range(140):
+        a = rnd.uniform(0, 2 * math.pi)
+        rr = rnd.uniform(0.78, 1.0) ** 0.5
+        fx, fy = cx + math.cos(a) * rx * rr, cy + math.sin(a) * ry * rr
+        fox.append(f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="{rnd.uniform(0.6, 3.4):.1f}" fill="{rnd.choice(["#8A7A60", "#C8B890", "#2A2016"])}" opacity="{rnd.uniform(0.15, 0.45):.2f}"/>')
+    m.append(soft(D, "".join(fox), 0.7))
+    m.append(f'<path d="{gd}" fill="{D.rad([(0, "#000000", 0), (0.72, "#000000", 0), (1, "#000000", 0.7)])}"/>')
     out.append(f'<g {cid}>{"".join(m)}</g>')
-    out.append(ink(smooth_closed(glass), "#4A3008", 3, 2, 1, 0.9))
-    # the real candles on the sill in front of the mirror
-    out.append(painted(D, poly_pts([(110, 480), (490, 480), (500, 496), (100, 496)], 20, 3, 0.4), ("#8A6A5A", "#4A3028", "#1A0E0A"), 5, sdir=(0, 1), sk=0.2, angle=0, n=20, inkw=1.4, inkc="#050204", hi=0.4))
-    for x in (156, 444):
-        out.append(candle(D, x, 486, 70, int(x) + 1, w=16, glow_r=130))
-    out.append(band(D, 500, 600, "#000000", 0, 0.6))
+    out.append(ink(gd, "#1A1004", 3, 2, 1, 0.9))
+    # the real sill and the two candles in front of the glass
+    sill = [(80, 486), (520, 486), (540, 506), (60, 506)]
+    out.append(gform(D, sill, ("#C89A82", "#5A3428", "#140806"), 5, (0, -1), angle=0, n=30, rim="#FFC890", rim_w=1.6))
+    out.append(f'<rect x="60" y="506" width="480" height="20" fill="{D.lin([(0, "#2A1210"), (1, "#060203")])}"/>')
+    for x in (150, 450):
+        out.append(cast(D, x + (20 if x > 300 else -20), 490, 40, 5, "#000000", 0.5, 3))
+        out.append(gcandle(D, x, 490, 78, 18, int(x) + 1, glow_r=150))
+        out.append(gform(D, [(x - 22, 492), (x + 22, 492), (x + 18, 482), (x - 18, 482)], ("#FFE8A0", "#A8782A", "#2A1804"), int(x), (0, -1), n=4))
+    out.append(band(D, 510, 600, "#000000", 0, 0.65))
+    out.append(band(D, 0, 120, "#000000", 0.5, 0))
     # lettering
-    out.append(letters(D, 300, 548, "Bloody Mary", SERIF_IT, 66, "#E8343A", ["#FF5A5A", "#B8141A", "#FF8070"], 36, max_w=420,
+    out.append(letters(D, 300, 552, "Bloody Mary", SERIF_IT, 70, "#E8343A", ["#FF5A5A", "#B8141A", "#FF8070"], 36, max_w=420,
                        shadow="#000000", soff=(0.02, 0.05), angle=-40, wob=0.3))
-    out.append(tx(300, 76, "DON’T SAY IT THREE TIMES", CINZEL, 17, "#E8C8C8", ls=4, max_w=400))
-    return fin(D, out, 36)
+    out.append(tx(300, 78, "DON’T SAY IT THREE TIMES", CINZEL, 17, "#E8C8C8", ls=4, max_w=400))
+    return gfin(D, out, 36, 104, edge=2.4, bristle=0.4, grain=0.18, bg="#0A0406")
+# --- end repaint:bloody-mary
 
 
 # ================================================================ 26. the banshee — keening on the rock by the cottage
+# --- repaint:the-banshee
+def keening_woman(D, x, base, s, seed, flip=True):
+    """The bean sí in profile, eight heads tall, head thrown back in the keen, one hand at her breast; her grey gown
+    and long silver hair stream away on the sea wind and the hem frays into mist. Facing left when flip."""
+    def L(p):
+        return T(p, x, base, s, flip)
+    rnd = random.Random(seed)
+    out = []
+    light = (-1, -0.35) if flip else (1, -0.35)
+    # the hair first (behind): long silver strands lifting and streaming back off the head
+    hair = []
+    for k in range(34):
+        t = k / 33
+        y0 = -98 + t * 16
+        reach = rnd.uniform(48, 92) * (1 - 0.35 * t)
+        sag = rnd.uniform(-6, 18) + t * 24
+        pts = [(-7 + rnd.uniform(-1, 1), y0 + 4), (-18, y0 - 2 + rnd.uniform(-3, 3) + sag * 0.15), (-18 - reach * 0.4, y0 - 4 + sag * 0.45 + rnd.uniform(-4, 4)),
+               (-18 - reach * 0.75, y0 + sag * 0.75 + rnd.uniform(-6, 6)), (-18 - reach, y0 + sag + rnd.uniform(-8, 8))]
+        hair.append(taper(catmull(L(pts), 6), rnd.uniform(1.2, 2.6) * s, 0.2, rnd.choice(["#E8EEF4", "#B8C4D0", "#FFFFFF", "#8A98A8"]), rnd.uniform(0.35, 0.8)))
+    out.append(soft(D, "".join(hair[:14]), 1.6))
+    out.append("".join(hair[14:]))
+    # the cloak: hood up, pressed to her front by the wind (bust, waist, knee show through), billowing back into wisps
+    gown = [(4.6, -101.6), (6.8, -100.6), (5.2, -98.4), (3.4, -96), (2.8, -92), (3.6, -88.4), (5.2, -86.6), (7.6, -84.6), (8.8, -81), (9.4, -77),
+            (8.6, -73), (6.6, -68.5), (6.4, -63), (7.6, -56), (8.2, -46), (8.6, -36), (7.6, -28), (7.4, -16), (9.6, -3), (10.4, 0),
+            (-6, 1), (-20, 0), (-34, -3), (-50, -6), (-68, -4), (-56, -12), (-76, -18), (-54, -22), (-40, -28), (-30, -36), (-22, -46), (-15, -56),
+            (-10, -66), (-7.6, -76), (-6.6, -83), (-7.6, -90), (-9.4, -97), (-6, -102.4), (-0.6, -104)]
+    gp = L(gown)
+    out.append(f'<path d="{smooth_closed(gp)}" fill="none" stroke="#C8DCFF" stroke-width="{8 * s:.1f}" opacity="0.28" {gb(D, 5 * s)}/>')
+    out.append(gform(D, gp, ("#EEF4FC", "#8A9AB0", "#26303E"), seed, light, angle=180 if flip else 0, n=80, core=0.42, core_op=0.7, refl="#B8C8E0",
+                     slen=(14 * s, 40 * s), sw=(0.8, 2.2), sop=(0.08, 0.24), rim="#FFFFFF", rim_w=1.6, rim_op=0.95))
+    fl = [L([(2, -62), (-4, -46), (-14, -30), (-34, -14), (-56, -8)]), L([(0, -54), (-8, -38), (-22, -22), (-46, -12)]), L([(-4, -68), (-12, -52), (-26, -36)]),
+          L([(6, -42), (3, -26), (-2, -8)]), L([(-3, -100), (-6, -92), (-5, -86)]), L([(1, -84), (-2, -76), (-4, -68)]), L([(5, -66), (4, -58)])]
+    out.append(folds(D, smooth_closed(gp), fl, "#141C28", "#FFFFFF", seed, w=(2.6 * s, 0.6 * s), op=0.42, sd=2.4, lw=(1.4, 0.3), lop=0.5, loff=(1, -1.4)))
+    # the face in the hood's mouth: lit full by the moon in front of her, mouth open in the keen
+    face = [(4.4, -100.8), (6.0, -99.2), (7.0, -96.8), (7.2, -95.8), (9.4, -93.6), (8.2, -93.0), (8.5, -91.8), (7.8, -91.3), (8.1, -90.4), (7.6, -88.8),
+            (5.6, -87.8), (4.6, -86.4), (3.4, -88.4), (2.8, -92), (3.4, -96), (5.0, -98.6)]
+    out.append(gform(D, L(face), ("#FFFFFF", "#D2DAE6", "#6A7486"), seed + 6, light, n=0, core=0.45, core_op=0.75, hi_op=0.7))
+    out.append(soft(D, f'<path d="{smooth_closed(L([(3.2, -97), (2.8, -92), (3.6, -88.4), (4.6, -90), (4.2, -95)]))}" fill="#1A2232" opacity="0.7"/>', 0.8))
+    mx, my = L([(7.95, -90.9)])[0]
+    out.append(f'<path d="{blob(mx, my, 0.5 * s, 0.32 * s, seed, 0.1, 8)}" fill="#141A26" opacity="0.9"/>')
+    ex_, ey_ = L([(6.2, -95.4)])[0]
+    out.append(soft(D, f'<path d="{blob(ex_, ey_, 0.8 * s, 0.35 * s, seed + 1, 0.1, 8, -15 if flip else 15)}" fill="#3A4456" opacity="0.7"/>', 0.5))
+    for k in range(6):
+        out.append(taper(L([(4.6 + k * 0.3, -100.2 + k * 0.6), (3 - k * 0.5, -99.4 + k * 0.5), (-6 - k * 2, -99 + k * 1.2)]), 0.8 * s, 0.2, "#F2F6FA", 0.75))
+    # the near hand clutching the cloak at her breast
+    out.append(gform(D, tube_pts(L([(-2, -83), (-3, -75), (-1, -69), (5, -75.6)]), 4.6 * s, 3.2 * s), ("#E4EAF4", "#9AAABE", "#3A4658"), seed + 2, light, n=8, core=0.45, rim="#FFFFFF", rim_w=1.2))
+    hx, hy = L([(6.2, -76.6)])[0]
+    out.append(gform(D, blob_pts(hx, hy, 2.2 * s, 1.8 * s, seed, 0.1, 10, 30), ("#FFFFFF", "#D0D8E4", "#7A8698"), seed + 4, light, n=0))
+    for f in range(4):
+        out.append(taper(L([(6.6, -77.8 + f * 0.9), (8.4, -77.4 + f * 0.95), (8.0, -76.6 + f * 0.95)]), 0.9 * s, 0.6 * s, "#EEF2F8"))
+    # mist frays off the trailing hem
+    for k in range(9):
+        y0 = -4 - k * 3.6
+        wisp = L([(-30 - k * 4, y0), (-56 - k * 5, y0 - 2 + rnd.uniform(-3, 3)), (-80 - k * 6, y0 + rnd.uniform(-4, 4)), (-100 - k * 5, y0 - 4 + rnd.uniform(-4, 4))])
+        out.append(soft(D, taper(catmull(wisp, 6), rnd.uniform(4, 8) * s, 0.4, "#C8D4E4", rnd.uniform(0.25, 0.5)), 2.2))
+    return "".join(out)
+
+
 @design("the-banshee")
 def the_banshee():
     D = Doc2("hr-bs")
-    out = [night(D, [(0, "#060A12"), (0.45, "#1A2638"), (0.75, "#3A4A5A"), (1, "#1A2228")], 1)]
-    out.append(stars_field(8, (0, 0, 600, 260), 70))
-    out.append(moon(D, 120, 236, 40, 8, pal=("#FFFFFF", "#EEF2F4", "#B8C0C8"), glow="#E8F0FF", gs=0.5, glow_r=3.0))
-    out.append(puff_cloud(D, 250, 290, 200, 10, ("#3A4A5A", "#1E2836", "#0C1018"), op=0.6))
-    # sea far below the headland, the cottage with its one lit window
-    out.append(sea(D, 330, 420, [(0, "#3A4A58"), (1, "#1A2430")], 3, ["#8A9AA8", "#0E141C"], 40))
-    out.append(hill(D, ridge([(-20, 380), (140, 350), (300, 360), (460, 346), (620, 372)], 4, 6, 4), 640, ("#4A5A44", "#24301E", "#0A100A"), 5, inkw=0, n=50, lit="#B8C8D0"))
-    cx_, cb = 150, 360
-    out.append(painted(D, poly_pts([(cx_ - 50, cb), (cx_ - 50, cb - 34), (cx_ + 50, cb - 34), (cx_ + 50, cb)], 10, 3, 0.5), ("#C8C8BE", "#8A8A80", "#3A3A34"), 5, sdir=(0.6, 0.3), sk=0.2, angle=-90, n=14, inkw=1.2, inkc="#141410", hi=0.4))
-    out.append(painted(D, [(cx_ - 58, cb - 32), (cx_ - 40, cb - 62), (cx_ + 40, cb - 62), (cx_ + 58, cb - 32)], ("#A8946A", "#6A5A38", "#2A2214"), 6, sdir=(0.5, 0.6), sk=0.2, angle=-20, n=20, inkw=1.2, inkc="#141008", hi=0.4))
-    out.append(f'<rect x="{cx_ + 22}" y="{cb - 76}" width="10" height="18" fill="#3A3A34"/>')
-    out.append(smoke(D, [(cx_ + 27, cb - 78), (cx_ + 10, cb - 100), (cx_ - 20, cb - 112), (cx_ - 60, cb - 116)], 3, 12, 4, "#C8D0D8", 0.4))
-    out.append(lit_slit(D, cx_ - 20, cb - 26, 12, 16, "#FFC860"))
-    out.append(f'<rect x="{cx_ + 8}" y="{cb - 30}" width="14" height="30" fill="#2A2018"/>')
-    # dry-stone wall running across the field
-    rnd = random.Random(6)
-    for k in range(40):
-        x = 210 + k * 9 + rnd.uniform(-2, 2)
-        y = 384 - k * 0.6 + rnd.uniform(-1, 1)
-        out.append(f'<path d="{blob(x, y, 5, 3.4, k, 0.2, 8)}" fill="{rnd.choice(["#7A8278", "#5A625A", "#9AA298"])}" stroke="#1A1E18" stroke-width="0.8"/>')
-    # the near rock and the banshee upon it, her long silver hair streaming in the wind
-    out.append(painted(D, poly_pts([(340, 600), (360, 490), (400, 458), (450, 450), (510, 458), (560, 484), (600, 520), (610, 600)], 16, 4, 2), ("#6A7270", "#343A3A", "#0E1212"), 7, sdir=(-0.6, 0.6), sk=0.2, angle=-10, n=40, inkw=1.4, inkc="#060808", hi=0.4))
-    rnd = random.Random(7)
-    hx, hy = 446, 226
-    out.append(soft_glow(D, hx - 10, hy + 90, 190, "#C8DCFF", 0.4))
-    g_body = D.lin([(0, "#F6FAFF", 0.95), (0.55, "#DCE8F6", 0.7), (1, "#C8DCF0", 0)], 0, 0, 0, 1)
-    # the long hair, streaming far out on the wind (behind her)
-    for k in range(20):
-        t = k / 19
-        pts = [(hx - 4, hy - 12 + t * 26), (hx - 50, hy - 24 + t * 50 + rnd.uniform(-6, 6)), (hx - 130, hy - 14 + t * 80 + rnd.uniform(-8, 8)),
-               (hx - 220 - rnd.uniform(0, 50), hy - 30 + t * 120 + rnd.uniform(-12, 12))]
-        out.append(taper(catmull(pts, 6), rnd.uniform(3, 7), 0.6, rnd.choice(["#F2F6FA", "#C8D2DA", "#E2E8EE"]), rnd.uniform(0.55, 0.9)))
-    # the gown, floating, its hem dissolving into wisps blown to the left
-    gown = [(hx - 12, hy + 26), (hx - 22, hy + 70), (hx - 30, hy + 130), (hx - 50, hy + 190), (hx - 110, hy + 220), (hx - 70, hy + 222), (hx - 120, hy + 246),
-            (hx - 50, hy + 240), (hx - 20, hy + 260), (hx + 10, hy + 236), (hx + 40, hy + 250), (hx + 34, hy + 200), (hx + 28, hy + 130), (hx + 22, hy + 70), (hx + 14, hy + 26)]
-    out.append(f'<path d="{smooth_closed(gown)}" fill="{g_body}"/>')
-    for k in range(5):
-        out.append(pline([(hx - 6 + k * 6, hy + 40), (hx - 14 + k * 4, hy + 140), (hx - 40 + k * 10, hy + 220)], "#9AB0C8", 1.4, k, 0.5, 1))
-    # arms flung up and out, sleeves hanging like veils
-    for sg, hand in ((-1, (hx - 70, hy - 50)), (1, (hx + 64, hy - 56))):
-        sh = (hx + sg * 12, hy + 30)
-        el = ((sh[0] + hand[0]) / 2 + sg * 6, (sh[1] + hand[1]) / 2 + 6)
-        out.append(taper(catmull([sh, el, hand], 5), 8, 4, "#EEF4FA", 0.95))
-        out.append(f'<path d="{smooth_closed([sh, el, hand, (hand[0] - sg * 8, hand[1] + 40), (el[0] - sg * 20, el[1] + 70), (sh[0] - sg * 10, sh[1] + 60)])}" fill="{g_body}" opacity="0.7"/>')
-        out.append(f'<path d="{blob(hand[0], hand[1], 5, 6, sg + 4, 0.1, 8)}" fill="#F6FAFF"/>')
-    # her head thrown back, the keen pouring from her open mouth
-    face = [(hx - 12, hy + 12), (hx - 16, hy - 6), (hx - 8, hy - 18), (hx + 6, hy - 22), (hx + 16, hy - 16), (hx + 22, hy - 12), (hx + 18, hy - 6), (hx + 22, hy),
-            (hx + 16, hy + 8), (hx + 6, hy + 16), (hx - 4, hy + 18)]
-    out.append(f'<path d="{smooth_closed(face)}" fill="#F6FAFF"/>')
-    out.append(f'<path d="{blob(hx + 16, hy + 1, 3.4, 4.6, 3, 0.1, 8)}" fill="#1A2230"/>')
-    out.append(f'<path d="M {hx + 4} {hy - 12} q 5 -2 8 1" stroke="#3A4658" stroke-width="2" fill="none" stroke-linecap="round"/>')
-    out.append(f'<path d="{smooth_closed([(hx - 16, hy - 8), (hx - 10, hy - 22), (hx + 4, hy - 26), (hx - 2, hy - 18), (hx - 10, hy - 4)])}" fill="#C8D2DA"/>')
-    for k in range(3):
-        out.append(f'<path d="M {hx + 34 + k * 16} {hy - 14 - k * 6} q 14 16 0 34" fill="none" stroke="#DCE8FF" stroke-width="{2.6 - k * 0.6:.1f}" opacity="{0.75 - k * 0.2:.2f}" stroke-linecap="round"/>')
-    out.append(grass(10, (0, 420, 340, 600), ["#2A3A24", "#4A5A3A", "#0E140C"], 120, (8, 20), lean=(-0.6, -0.1)))
-    out.append(fog(D, 540, 70, 11, "#A8B8C8", 0.45))
-    out.append(band(D, 0, 180, "#000000", 0.5, 0))
+    out = [gsky(D, [(0, "#03060E"), (0.4, "#121E32"), (0.7, "#2E3E54"), (1, "#1A2430")], 1, ["#24324A", "#060A14", "#46566E"], 50,
+                blooms=((130, 250, 200, 150, "#5A6E8A", 0.45), (450, 330, 240, 120, "#2A3A50", 0.5)))]
+    out.append(stars_field(8, (0, 0, 600, 250), 60))
+    out.append(gmoon(D, 126, 238, 38, 8, pal=("#FFFFFF", "#E8EEF4", "#A8B4C0"), halo="#DCE8FF", halo_r=4.4, halo_op=0.5, maria="#8A96A4"))
+    out.append(gcloud(D, 280, 262, 300, 26, 10, ("#A8B8D0", "#2A3648", "#0C1220"), light=(-1, -0.3), op=0.85, n=16, lit_n=8))
+    out.append(gcloud(D, 520, 214, 200, 20, 11, ("#8A9AB4", "#1E2A3C", "#0A101A"), light=(-1, 0.2), op=0.7, n=12, lit_n=6))
+    # the sea far below the headland, a moon-glitter on it
+    out.append(f'<rect x="-20" y="318" width="640" height="80" fill="{D.lin([(0, "#4A5A70"), (1, "#1A2434")])}"/>')
+    rnd = random.Random(5)
+    out.append(soft(D, "".join(taper([(x := 126 + rnd.uniform(-60, 60), y := 320 + rnd.uniform(0, 44)), (x + rnd.uniform(10, 34), y)], 1.6, 0.6, "#E8EEF8", rnd.uniform(0.3, 0.7))
+                               for _ in range(30)), 0.5))
+    out.append(gfog(D, 330, 20, 4, "#8A9AB4", 0.5, sd=6))
+    # the headland pasture, the cottage with one lit window (someone in that house is dying)
+    out.append(hill(D, ridge([(-20, 380), (140, 352), (300, 364), (460, 348), (620, 372)], 4, 6, 4), 640, ("#4E5E4A", "#26321E", "#0A100A"), 5, inkw=0, n=60, lit="#9AAAB8"))
+    cx_, cb = 150, 366
+    out.append(cast(D, cx_ + 12, cb + 2, 70, 7, "#000000", 0.5, 3))
+    out.append(gform(D, poly_pts([(cx_ - 52, cb), (cx_ - 52, cb - 34), (cx_ + 50, cb - 34), (cx_ + 50, cb)], 10, 3, 0.6), ("#D8DCDA", "#8A908C", "#2A302E"), 5,
+                     (-1, -0.4), angle=-90, n=30, rim="#F2F6FF", rim_w=1.6))
+    out.append(gform(D, poly_pts([(cx_ - 60, cb - 32), (cx_ - 42, cb - 64), (cx_ + 40, cb - 64), (cx_ + 58, cb - 32)], 10, 4, 1.2), ("#A8946A", "#5A4A2E", "#1A140A"), 6,
+                     (-1, -0.6), angle=-12, n=50, slen=(10, 30), sw=(1, 2.4)))
+    out.append(gform(D, [(cx_ + 20, cb - 58), (cx_ + 20, cb - 78), (cx_ + 32, cb - 78), (cx_ + 32, cb - 58)], ("#A8ACAA", "#5A5E5C", "#1A1C1C"), 7, (-1, -0.4), n=4))
+    out.append(soft(D, smoke(D, [(cx_ + 26, cb - 80), (cx_ + 40, cb - 100), (cx_ + 70, cb - 112), (cx_ + 120, cb - 116)], 3, 14, 4, "#C8D0D8", 0.45), 1.5))
+    out.append(gglow(D, cx_ - 22, cb - 18, 34, "#FFB850", 0.55))
+    out.append(f'<path d="{smooth_closed(poly_pts([(cx_ - 30, cb - 8), (cx_ - 30, cb - 26), (cx_ - 14, cb - 26), (cx_ - 14, cb - 8)], 6, 2, 0.4))}" fill="#FFC860"/>')
+    out.append(f'<path d="M {cx_ - 22} {cb - 26} L {cx_ - 22} {cb - 8} M {cx_ - 30} {cb - 17} L {cx_ - 14} {cb - 17}" stroke="#2A1A0A" stroke-width="1.6"/>')
+    out.append(f'<path d="{blob(cx_ - 22, cb + 10, 30, 6, 4, 0.2, 10)}" fill="#FFB850" opacity="0.18" {gb(D, 3)}/>')
+    out.append(gform(D, [(cx_ + 8, cb), (cx_ + 8, cb - 26), (cx_ + 22, cb - 26), (cx_ + 22, cb)], ("#5A4630", "#2A1E14", "#0A0604"), 8, (-1, -0.4), n=4))
+    # a dry-stone wall running off across the field
+    for k in range(46):
+        x = 214 + k * 8.5 + rnd.uniform(-2, 2)
+        y = 386 - k * 0.5 + rnd.uniform(-1.5, 1.5) + (k % 2) * 2
+        out.append(gform(D, blob_pts(x, y, 5, 3.6, k, 0.2, 8), ("#B8C0C0", "#6A7270", "#1E2222"), k, (-1, -0.5), n=0, core=0.4, hi_op=0.4))
+    # the near crag she stands on, wet granite with grass in the cracks
+    rock = [(330, 640), (346, 520), (380, 490), (430, 476), (490, 480), (540, 500), (600, 528), (640, 560), (640, 640)]
+    out.append(gform(D, rock, ("#9AA4A8", "#3E4648", "#0A0E10"), 7, (-1, -0.6), angle=-20, n=80, core=0.3, rim="#D8E2F0", rim_w=2))
+    out.append(stipple(D, smooth_closed(rock), bbox(rock), 8, "#000000", n=1100, light=(-1, -0.6), gamma=1.2))
+    out.append(hatch(D, smooth_closed(rock), bbox(rock), 9, "#05080A", ang=-60, step=5, w=1.0, light=(-1, -0.6), op=0.5))
+    out.append(soft(D, grass(10, (-10, 400, 360, 610), ["#2A3A24", "#3A4A30", "#0E140C"], 160, (8, 20), lean=(0.1, 0.6), op=(0.3, 0.7)), 0.4))
+    # the banshee
+    out.append(gglow(D, 460, 380, 200, "#C8DCFF", 0.28))
+    out.append(keening_woman(D, 462, 486, 2.55, 11, flip=True))
+    out.append(gfog(D, 548, 80, 11, "#A8B8CC", 0.5, sd=12))
+    out.append(band(D, 0, 190, "#000000", 0.55, 0))
+    out.append(band(D, 510, 600, "#000000", 0, 0.6))
     # lettering
     out.append(glow_text(D, 300, 116, "THE BANSHEE", JOS, 62, "#F2F6FA", "#A8C8F0", ls=10, max_w=440, shadow="#000000"))
     out.append(tx(300, 150, "Bean Sí · Irish folklore", SERIF_IT, 24, "#C8D8E8", max_w=360))
     out.append(tx(300, 548, "IF YOU HEAR HER KEEN, GO HOME", CINZEL, 16, "#E8EEF4", ls=3, max_w=440))
-    return fin(D, out, 37)
+    return gfin(D, out, 37, 103, edge=2.6, bristle=0.45, grain=0.2, bg="#0A101A")
+# --- end repaint:the-banshee
 
 
 # ================================================================ 27. krampus — a postcard from the Alps, 5 December
@@ -2551,39 +3693,186 @@ def krampus(D, x, base, s, seed, fur=("#7A5A44", "#3A261A", "#120A06")):
     return "".join(out)
 
 
+# --- repaint:krampus
+def fur_locks(D, pts, seed, cols, n=120, length=(8, 22), width=(2.4, 5), droop=0.7, rim=None, light=(1, -0.3), rim_n=40, out_only=True):
+    """Shaggy fur: long tapered locks rooted along an outline, hanging with gravity and fanning out past the edge, so
+    the silhouette is ragged; the locks on the side facing the light are tipped with a rim colour."""
+    rnd = random.Random(seed)
+    path = catmull(pts + pts[:1], 3)
+    m = len(path)
+    cx = sum(p[0] for p in pts) / len(pts)
+    cy = sum(p[1] for p in pts) / len(pts)
+    lx, ly = _unit(light)
+    locks, lit = [], []
+    for _ in range(n):
+        i = rnd.randrange(m - 1)
+        (x0, y0), (x1, y1) = path[i], path[i + 1]
+        t = rnd.random()
+        x, y = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+        nx, ny = x - cx, y - cy
+        L_ = math.hypot(nx, ny) or 1
+        nx, ny = nx / L_, ny / L_
+        dx, dy = nx * (1 - droop) + rnd.uniform(-0.2, 0.2), ny * (1 - droop) + droop
+        dl = math.hypot(dx, dy) or 1
+        dx, dy = dx / dl, dy / dl
+        ln = rnd.uniform(*length)
+        bend = rnd.uniform(-0.35, 0.35)
+        p = [(x - dx * ln * 0.3, y - dy * ln * 0.3), (x + dx * ln * 0.5 + bend * ln * 0.3, y + dy * ln * 0.5), (x + dx * ln + bend * ln * 0.6, y + dy * ln)]
+        locks.append(taper(p, rnd.uniform(*width), 0.3, rnd.choice(cols), rnd.uniform(0.75, 1)))
+        if rim and (nx * lx + ny * ly) > 0.25 and len(lit) < rim_n:
+            lit.append(taper([(p[0][0] + lx, p[0][1] + ly), (p[1][0] + lx * 1.5, p[1][1] + ly * 1.5), (p[2][0] + lx, p[2][1] + ly)], rnd.uniform(0.8, 1.8), 0.2, rim, rnd.uniform(0.5, 0.9)))
+    return "".join(locks) + soft(D, "".join(lit), 0.4)
+
+
+def krampus_figure(D, x, base, s, seed, warm="#FFB060", cool="#A8BCF0"):
+    """Krampus of the old Alpine postcards, striding right: ibex horns sweeping back, a goat-demon head with a long red
+    tongue, a hunched shaggy body, a woven basket on his back, birch switches raised in one clawed hand, a chain with
+    bells in the other, reverse-jointed goat legs ending in cloven hooves."""
+    def L(p):
+        return T(p, x, base, s)
+    rnd = random.Random(seed)
+    out = []
+    body_c = "#120A08"
+    fur = ["#1E1410", "#2E2018", "#0A0604", "#3A2A20"]
+    # the chain from the far hand, swinging down behind the legs, with two cowbells
+    chain = catmull(L([(-6, -150), (-18, -110), (-36, -70), (-30, -40), (-12, -36)]), 6)
+    for k in range(0, len(chain) - 1, 2):
+        (ax, ay), (bx, by) = chain[k], chain[k + 1]
+        out.append(f'<ellipse cx="{(ax + bx) / 2:.1f}" cy="{(ay + by) / 2:.1f}" rx="{3.2 * s:.1f}" ry="{1.8 * s:.1f}" fill="none" stroke="#5A5A62" stroke-width="{1.4 * s:.1f}" '
+                   f'transform="rotate({math.degrees(math.atan2(by - ay, bx - ax)):.0f} {(ax + bx) / 2:.1f} {(ay + by) / 2:.1f})"/>')
+    for (bx, by) in (chain[-1], chain[len(chain) // 2]):
+        out.append(gform(D, [(bx - 6 * s, by), (bx + 6 * s, by), (bx + 8 * s, by + 14 * s), (bx - 8 * s, by + 14 * s)], ("#F2C870", "#9A6A20", "#2A1804"), seed + 50, (1, -0.4), n=0))
+    # far leg (darker), then the basket, then the body
+    def leg(pts, wfn, col):
+        return gform(D, tube_pts(L(pts), 10 * s, 6 * s, wfn=wfn), (lt(col, 0.25), col, "#000000"), seed + 3, (1, -0.3), n=6, core=0.4, rim=warm, rim_w=1.4)
+    lw = lambda t: (26 - 15 * t + 6 * math.sin(t * 6.3)) * s
+    out.append(leg([(-8, -150), (-22, -108), (-40, -64), (-42, -16), (-46, -2)], lw, "#0A0604"))
+    out.append(gform(D, L([(-56, 0), (-36, 0), (-38, -9), (-52, -11)]), ("#4A4440", "#1A1614", "#000000"), seed + 4, (1, -0.3), n=0))
+    basket = L([(-2, -246), (-52, -232), (-62, -156), (-16, -148)])
+    out.append(gform(D, basket, ("#B88A50", "#6A4A26", "#1E1208"), seed + 5, (1, -0.4), angle=-90, n=0, core=0.4))
+    bc = D.clip(f'<path d="{smooth_closed(basket)}"/>')
+    weave = "".join(f'<path d="{smooth_open(L([(-60 + j * 0.6, -236 + j * 7.6), (-30, -242 + j * 7.4), (-2 - j * 0.9, -248 + j * 7.4)]))}" fill="none" stroke="#2A1A0C" stroke-width="{2.2 * s:.1f}" opacity="0.7"/>'
+                    for j in range(13))
+    weave += "".join(f'<path d="M {L([(-50 + j * 9, -240)])[0][0]:.1f} {L([(-50 + j * 9, -240)])[0][1]:.1f} L {L([(-58 + j * 9.4, -150)])[0][0]:.1f} {L([(-58 + j * 9.4, -150)])[0][1]:.1f}" stroke="#E8C080" stroke-width="{1.2 * s:.1f}" opacity="0.35"/>' for j in range(6))
+    out.append(f'<g {bc}>{weave}</g>')
+    for k in range(5):
+        tw = L([(-30 + k * 6, -246), (-36 + k * 5, -280 - k * 6), (-44 + k * 7, -300 - k * 4)])
+        out.append(taper(tw, 2.4 * s, 0.6, "#2A1A10"))
+    # the body: hunched torso, the shaggy coat
+    torso = [(-4, -150), (-14, -184), (-8, -222), (8, -240), (30, -244), (46, -232), (52, -210), (44, -184), (30, -160), (16, -144)]
+    out.append(gform(D, L(torso), ("#4A3428", "#1A100C", "#020101"), seed + 6, (1, -0.4), angle=-90, n=30, core=0.4, rim=warm, rim_w=2))
+    out.append(fur_locks(D, L(torso), seed + 7, fur, n=140, length=(10 * s, 26 * s), width=(2.4 * s, 5 * s), rim=warm, light=(1, -0.3)))
+    # near leg: fur trousers to the knee, a bare sinewy shank, a cloven hoof
+    thigh = [(-6, -154), (30, -150), (42, -118), (30, -100), (10, -108)]
+    out.append(leg([(10, -146), (36, -114), (24, -62), (40, -14), (46, -2)], lw, "#140C08"))
+    out.append(gform(D, L(thigh), ("#4A3428", "#1A100C", "#020101"), seed + 8, (1, -0.4), n=10, rim=warm, rim_w=1.6))
+    out.append(fur_locks(D, L(thigh), seed + 9, fur, n=70, length=(10 * s, 24 * s), width=(2.2 * s, 4.4 * s), rim=warm, droop=0.85))
+    out.append(gform(D, L([(36, 0), (58, 0), (56, -9), (40, -11)]), ("#5A5450", "#1A1614", "#000000"), seed + 10, (1, -0.3), n=0, rim=warm, rim_w=1))
+    out.append(f'<path d="M {L([(51, 0)])[0][0]:.1f} {L([(47, 0)])[0][1]:.1f} L {L([(48, -8)])[0][0]:.1f} {L([(48, -8)])[0][1]:.1f}" stroke="#000000" stroke-width="{1.6 * s:.1f}"/>')
+    # far arm hanging back with the chain; near arm raising the birch switches
+    fa = tube_pts(L([(14, -226), (2, -190), (-6, -152)]), 20 * s, 12 * s)
+    out.append(gform(D, fa, ("#3A2A20", "#140C08", "#000000"), seed + 11, (1, -0.3), n=6, rim=warm, rim_w=1.2))
+    out.append(fur_locks(D, fa, seed + 30, fur, n=40, length=(6 * s, 16 * s), width=(2 * s, 3.6 * s), rim=warm, droop=0.9))
+    arm = [(34, -228), (60, -198), (84, -218), (92, -232)]
+    out.append(gform(D, tube_pts(L(arm), 17 * s, 10 * s), ("#4A3428", "#1A100C", "#020101"), seed + 12, (1, -0.4), n=10, rim=warm, rim_w=1.6))
+    out.append(fur_locks(D, tube_pts(L(arm[:3]), 17 * s, 12 * s), seed + 13, fur, n=40, length=(6 * s, 16 * s), width=(2 * s, 3.6 * s), rim=warm, droop=0.9))
+    hx, hy = L([(94, -234)])[0]
+    for f in range(4):
+        out.append(taper([(hx - 3 * s, hy + (f - 1.5) * 3 * s), (hx + 6 * s, hy + (f - 1.5) * 3.4 * s - 2 * s), (hx + 4 * s, hy + (f - 1.5) * 3.4 * s + 3 * s)], 3 * s, 0.8, "#2A1A12"))
+    for k in range(14):
+        a = math.radians(-70 + k * 3.2 + rnd.uniform(-2, 2))
+        Lr = rnd.uniform(70, 100) * s
+        tip = (hx + math.cos(a) * Lr, hy + math.sin(a) * Lr)
+        mid = (hx + math.cos(a) * Lr * 0.5 + rnd.uniform(-3, 3), hy + math.sin(a) * Lr * 0.5)
+        out.append(taper([(hx, hy), mid, tip], rnd.uniform(1.6, 2.6) * s, 0.5, rnd.choice(["#3A2414", "#5A3A20", "#2A180C"])))
+    out.append(taper([(hx - 6 * s, hy + 4 * s), (hx + 6 * s, hy - 6 * s)], 6 * s, 6 * s, "#A82020"))
+    # the head: a goat-demon in profile, ears back, beard, tongue lolling, eyes lit
+    head = L([(40, -246), (46, -262), (62, -274), (78, -270), (90, -262), (104, -252), (108, -244), (100, -238), (86, -236), (72, -228), (58, -226), (46, -232)])
+    out.append(gform(D, head, ("#5A4030", "#1E140E", "#020101"), seed + 14, (1, -0.4), angle=0, n=20, core=0.4, rim=warm, rim_w=1.8))
+    out.append(fur_locks(D, L([(46, -232), (60, -226), (74, -228), (82, -234)]), seed + 15, fur, n=30, length=(10 * s, 24 * s), width=(2 * s, 4 * s), droop=0.95,
+                         rim=warm))
+    for sg, col_ in ((1, "#120A08"), (0, "#1E140E")):
+        ear = L([(50 - sg * 4, -262), (30 - sg * 4, -268), (40 - sg * 2, -256)])
+        out.append(gform(D, ear, (lt(col_, 0.3), col_, "#000000"), seed + 16 + sg, (1, -0.4), n=0, rim=warm, rim_w=1))
+    tongue = L([(98, -240), (104, -228), (102, -212), (96, -200), (92, -204), (96, -216), (94, -232)])
+    out.append(gform(D, tongue, ("#FF6A6A", "#B01A1E", "#4A0606"), seed + 18, (1, -0.3), n=0, core=0.4, hi_op=0.7))
+    ex_, ey_ = L([(80, -258)])[0]
+    out.append(gglow(D, ex_, ey_, 9 * s, "#FFB030", 0.9))
+    out.append(f'<path d="{blob(ex_, ey_, 2.6 * s, 1.6 * s, seed, 0.1, 8, -10)}" fill="#FFE070"/>')
+    for k, (hx0, col_) in enumerate(((56, "#2A2420"), (64, "#4A3E34"))):
+        horn = [(hx0, -270), (hx0 - 10, -300), (hx0 - 30, -326), (hx0 - 58, -332), (hx0 - 72, -318), (hx0 - 68, -306)]
+        hp = tube_pts(L(horn), 13 * s, 3 * s)
+        out.append(gform(D, hp, (lt(col_, 0.5), col_, "#050302"), seed + 20 + k, (1, -0.4), angle=-60, n=0, core=0.4, rim=warm if k else cool, rim_w=1.4))
+        rg_ = catmull(L(horn), 4)
+        for j in range(2, len(rg_) - 3, 2):
+            (ax, ay), (bx, by) = rg_[j], rg_[j + 1]
+            nx, ny = -(by - ay), bx - ax
+            nl = math.hypot(nx, ny) or 1
+            w_ = (13 - 10 * j / len(rg_)) * s * 0.5
+            out.append(f'<path d="M {ax + nx / nl * w_:.1f} {ay + ny / nl * w_:.1f} L {ax - nx / nl * w_:.1f} {ay - ny / nl * w_:.1f}" stroke="#000000" stroke-width="{1 * s:.1f}" opacity="0.5"/>')
+    return "".join(out)
+
+
 @design("krampus")
 def krampus_card():
     D = Doc2("hr-kr")
     from gouache import paper
     out = [paper(D.nid(), "#F2E8D2", "#7A5A3A", 12)]
     RED = "#B01E1E"
-    # the postcard: a red ruled border with rounded corners
     out.append(f'<rect x="30" y="30" width="540" height="540" rx="16" fill="none" stroke="{RED}" stroke-width="5"/>')
     out.append(f'<rect x="42" y="42" width="516" height="516" rx="10" fill="none" stroke="{RED}" stroke-width="1.6"/>')
-    # the picture panel
-    px0, py0, px1, py1 = 70, 140, 530, 500
+    px0, py0, px1, py1 = 64, 134, 536, 512
     cid = D.clip(f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}" rx="10"/>')
-    sc = [sky(D, [(0, "#0E1A3A"), (0.6, "#2A3A6A"), (1, "#5A6A90")], 2, 600, ["#1A2A5A", "#060A1E", "#3A4A7A"], 40)]
-    sc.append(stars_field(3, (px0, py0, px1, 300), 50))
-    sc.append(hill(D, ridge([(40, 300), (140, 230), (220, 270), (310, 200), (400, 260), (480, 220), (560, 290)], 4, 8, 4), 600, ("#E8F0FF", "#9AAAD0", "#4A5A8A"), 4, inkw=0, n=30, lit="#FFFFFF"))
-    # the village: chalets with lit windows and snowy roofs
-    for k, (hx, w, h) in enumerate(((110, 80, 60), (200, 70, 74), (420, 90, 66), (510, 70, 56))):
-        b = 420
-        sc.append(painted(D, poly_pts([(hx - w / 2, b), (hx - w / 2, b - h), (hx + w / 2, b - h), (hx + w / 2, b)], 12, k, 0.4), ("#8A6A4A", "#5A3E28", "#24160C"), 10 + k, sdir=(0.6, 0.3), sk=0.2, angle=-90, n=12, inkw=1.2, inkc="#140A04", hi=0.3))
-        sc.append(painted(D, [(hx - w / 2 - 12, b - h + 4), (hx, b - h - 40), (hx + w / 2 + 12, b - h + 4)], ("#FFFFFF", "#DCE6F6", "#8A9AC0"), 20 + k, sdir=(0.5, 0.6), sk=0.2, angle=-30, n=8, inkw=1.2, inkc="#2A3450", hi=0.5))
+    sc = [gsky(D, [(0, "#0A1230"), (0.55, "#22305C"), (0.8, "#4A5280"), (1, "#7A6A80")], 2, ["#1A2A5A", "#060A1E", "#3A4A7A"], 40,
+               blooms=((180, 220, 200, 120, "#5A6AA0", 0.4),))]
+    sc.append(stars_field(3, (px0, py0, px1, 280), 40))
+    sc.append(gmoon(D, 160, 196, 26, 3, pal=("#FFFFFF", "#EEF0F8", "#B8C0D4"), halo="#C8D4FF", halo_r=4.0, halo_op=0.5))
+    # the Alps: snowfields lit by the moon, rock in shadow, paler with distance
+    sc.append(soft(D, hill(D, ridge([(40, 300), (120, 240), (190, 270), (260, 214), (340, 262), (420, 226), (500, 268), (570, 240)], 4, 8, 4), 600,
+                           ("#EEF2FF", "#A8B4D8", "#5A6694"), 4, inkw=0, n=40, lit="#FFFFFF"), 0.8))
+    sc.append(stipple(D, smooth_closed(ridge([(40, 300), (120, 240), (190, 270), (260, 214), (340, 262), (420, 226), (500, 268), (570, 240)], 4, 8, 4) + [(570, 400), (40, 400)]),
+                      (40, 210, 570, 400), 5, "#3A4670", n=900, light=(-1, -0.6), gamma=1.6))
+    sc.append(gfog(D, 300, 40, 6, "#C8D0F0", 0.5, sd=8))
+    from paint import conifer
+    rnd = random.Random(7)
+    pines = "".join(conifer(rnd.uniform(60, 540), 330 + rnd.uniform(0, 30), rnd.uniform(26, 50), rnd.choice(["#141E36", "#1E2A44"]), rnd.random(), light="#6A7AA8")
+                    for _ in range(26))
+    sc.append(soft(D, pines, 0.6))
+    # the village: chalets with deep snowy eaves and warm windows, smoke going straight up in the frost
+    for k, (hx, w, h, b) in enumerate(((120, 96, 70, 400), (230, 80, 84, 392), (440, 100, 74, 398), (532, 80, 60, 404))):
+        sc.append(cast(D, hx + 10, b + 3, w * 0.7, 6, "#1A2440", 0.5, k))
+        wall = poly_pts([(hx - w / 2, b), (hx - w / 2, b - h), (hx + w / 2, b - h), (hx + w / 2, b)], 12, k, 0.6)
+        sc.append(gform(D, wall, ("#B08058", "#5A3A24", "#1A0E06"), 10 + k, (-1, -0.5), angle=-90, n=30, core=0.35, slen=(10, 30)))
+        for j in range(5):
+            sc.append(f'<path d="M {hx - w / 2 + 2:.1f} {b - h + 8 + j * h / 5:.1f} L {hx + w / 2 - 2:.1f} {b - h + 8 + j * h / 5:.1f}" stroke="#1A0E06" stroke-width="1.2" opacity="0.5"/>')
+        roof = poly_pts([(hx - w / 2 - 16, b - h + 6), (hx, b - h - 44), (hx + w / 2 + 16, b - h + 6), (hx + w / 2 + 12, b - h + 14), (hx, b - h - 32), (hx - w / 2 - 12, b - h + 14)], 10, k, 0.8)
+        sc.append(gform(D, roof, ("#FFFFFF", "#C8D4EE", "#6A78A4"), 20 + k, (-1, -0.6), angle=-30, n=16, core=0.3, rim="#FFFFFF"))
         for j in range(2):
             wx = hx - w * 0.22 + j * w * 0.44
-            sc.append(soft_glow(D, wx, b - h * 0.5, 22, "#FFC860", 0.5))
-            sc.append(f'<rect x="{wx - 6:.1f}" y="{b - h * 0.6:.1f}" width="12" height="14" fill="#FFD27A" stroke="#140A04" stroke-width="1.6"/>')
-    sc.append(hill(D, [(40, 430), (300, 424), (560, 432)], 600, ("#FFFFFF", "#DCE6F6", "#9AAAC8"), 30, inkw=0, n=30))
-    sc.append(f'<path d="M 200 520 Q 280 470 300 430 L 330 430 Q 340 470 420 520 Z" fill="#B8C8E0" opacity="0.5"/>')
-    sc.append(krampus(D, 300, 470, 1.18, 14))
-    sc.append(snowfall(15, (px0, py0, px1, py1), 90, (0.8, 2.6), "#FFFFFF", (0.5, 1)))
+            sc.append(gglow(D, wx, b - h * 0.48, 34, "#FFB850", 0.55))
+            wp = poly_pts([(wx - 8, b - h * 0.62), (wx + 8, b - h * 0.62), (wx + 8, b - h * 0.34), (wx - 8, b - h * 0.34)], 6, j + k, 0.4)
+            sc.append(gform(D, wp, ("#FFF2C0", "#FFC860", "#C87A2A"), 30 + k + j, (0, 1), n=0, core=0.3))
+            sc.append(f'<path d="M {wx} {b - h * 0.62:.1f} L {wx} {b - h * 0.34:.1f} M {wx - 8} {b - h * 0.48:.1f} L {wx + 8} {b - h * 0.48:.1f}" stroke="#2A1608" stroke-width="2"/>')
+            sc.append(f'<path d="M {wx - 10} {b - h * 0.62 - 3:.1f} L {wx + 10} {b - h * 0.62 - 3:.1f}" stroke="#FFFFFF" stroke-width="3" opacity="0.85"/>')
+        sc.append(soft(D, smoke(D, [(hx + w * 0.2, b - h - 30), (hx + w * 0.2 + 2, b - h - 70), (hx + w * 0.2 - 4, b - h - 110)], 3, 12, k, "#C8D0E8", 0.45), 1.5))
+    # the snow street, trodden, with his hoofprints coming up it
+    snow = [(40, 412), (200, 404), (380, 408), (600, 400), (600, 600), (40, 600)]
+    sc.append(gform(D, snow, ("#FFFFFF", "#C8D2EC", "#6A76A0"), 30, (-0.4, -1), angle=0, n=60, core=0.2, hi_op=0.4))
+    sc.append(f'<path d="M 230 600 Q 300 470 316 412 L 346 412 Q 376 470 470 600 Z" fill="#8A98C0" opacity="0.35" {gb(D, 3)}/>')
+    for k in range(7):
+        py_ = 590 - k * 26 + k * k * 1.6
+        px_ = 320 + (k % 2) * 26 - k * 2
+        sc.append(f'<path d="{blob(px_, py_, 6 - k * 0.5, 3.4 - k * 0.3, k, 0.2, 8)}" fill="#4A5680" opacity="0.6"/>')
+    # Krampus himself, lit warm from the windows on the right and cold from the moon
+    sc.append(soft(D, f'<ellipse cx="270" cy="500" rx="90" ry="12" fill="#2A3460" opacity="0.6"/>', 5))
+    sc.append(krampus_figure(D, 246, 498, 1.04, 14))
+    sc.append(snowfall(15, (px0, py0, px1, py1), 110, (0.8, 2.6), "#FFFFFF", (0.5, 1)))
+    sc.append(f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}" fill="{D.rad([(0, "#000000", 0), (0.7, "#000000", 0), (1, "#000000", 0.45)])}"/>')
     out.append(f'<g {cid}>{"".join(sc)}</g>')
     out.append(f'<rect x="{px0}" y="{py0}" width="{px1 - px0}" height="{py1 - py0}" rx="10" fill="none" stroke="#2A1A0E" stroke-width="2.4"/>')
     # the greeting, the stamp and its postmark
-    out.append(letters(D, 244, 112, "Gruß vom Krampus!", SERIF_IT, 50, RED, ["#D02A2A", "#8A1010"], 38, max_w=340, wob=0.3))
-    sx, sy = 494, 92
+    out.append(letters(D, 244, 110, "Gruß vom Krampus!", SERIF_IT, 50, RED, ["#D02A2A", "#8A1010"], 38, max_w=340, wob=0.3))
+    sx, sy = 494, 90
     out.append(f'<rect x="{sx - 26}" y="{sy - 32}" width="52" height="62" fill="#FFF8E8" stroke="#2A1A0E" stroke-width="1.4" stroke-dasharray="3 2"/>')
     out.append(f'<rect x="{sx - 20}" y="{sy - 26}" width="40" height="50" fill="#2E6A48"/>')
     out.append(tx(sx, sy + 4, "5", DMS, 26, "#F2E8D2", max_w=30))
@@ -2591,8 +3880,9 @@ def krampus_card():
     out.append(f'<circle cx="{sx - 14}" cy="{sy + 20}" r="22" fill="none" stroke="#3A2A4A" stroke-width="2" opacity="0.55"/>')
     for k in range(3):
         out.append(f'<path d="M {sx - 6} {sy + 12 + k * 7} q 8 -4 16 0 t 16 0" fill="none" stroke="#3A2A4A" stroke-width="1.6" opacity="0.5"/>')
-    out.append(tx(300, 538, "ALPINE FOLKLORE · THE NIGHT OF 5 DECEMBER", CINZEL, 16, "#2A1A0E", ls=1, max_w=456))
-    return fin(D, out, 39, "#3A2A1A", 0.55)
+    out.append(tx(300, 540, "ALPINE FOLKLORE · THE NIGHT OF 5 DECEMBER", CINZEL, 16, "#2A1A0E", ls=1, max_w=456))
+    return gfin(D, out, 39, 106, edge=2.2, bristle=0.35, grain=0.16, bg="#F2E8D2", gcol="#3A2A1A", gop=0.45)
+# --- end repaint:krampus
 
 
 # ================================================================ 28. will-o'-the-wisp — never follow the lights

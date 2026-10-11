@@ -490,10 +490,10 @@ def starry_night():
     cp = clip_box(D, box)
     B = Brush()
     paint = []
-    moon = (X(0.885), Y(0.15), 19)
+    moon = (X(0.885), Y(0.15), 21)
     stars = [(X(0.04), Y(0.24), 11), (X(0.16), Y(0.1), 13), (X(0.33), Y(0.07), 10), (X(0.47), Y(0.2), 12),
              (X(0.56), Y(0.05), 9), (X(0.66), Y(0.3), 15), (X(0.76), Y(0.07), 9), (X(0.79), Y(0.27), 12),
-             (X(0.43), Y(0.42), 8), (X(0.95), Y(0.4), 9)]
+             (X(0.43), Y(0.42), 8), (X(0.95), Y(0.4), 9), (X(0.28), Y(0.47), 8)]
     hills_top = rough([(x0 - 10, Y(0.64)), (X(0.12), Y(0.6)), (X(0.3), Y(0.63)), (X(0.46), Y(0.67)), (X(0.6), Y(0.62)),
                        (X(0.76), Y(0.55)), (X(0.9), Y(0.5)), (x1 + 10, Y(0.53))], 7, 5, 3)
 
@@ -505,7 +505,7 @@ def starry_night():
 
     # the great current: an S wave through the middle of the sky that curls into two eddies
     wave_y = lambda x: Y(0.33) + H * 0.07 * math.sin((x - x0) / W * 2 * math.pi * 1.1 + 0.6)
-    vort = [(X(0.36), Y(0.33), 30, 1), (X(0.53), Y(0.37), 34, -1)]
+    vort = [(X(0.315), Y(0.335), 40, 1), (X(0.525), Y(0.39), 52, -1)]
 
     def field(x, y):
         # base current: follows the S wave near it, relaxes to gentle horizontal drift elsewhere
@@ -555,6 +555,15 @@ def starry_night():
     sky_region = lambda x, y: y < hill_y(x) + 8
     impasto(B, field, sky_region, 4200, sky_col, 11, L=(10, 17), W=(3.0, 4.4), ridge=0.4, steps=3, jit=0.07)
     paint.append(B.render())
+    # the great double swirl: a pale current rolling in from the left that winds into two interlocking eddies
+    cur = [(X(0.02), Y(0.37)), (X(0.1), Y(0.32)), (X(0.19), Y(0.285)), (X(0.27), Y(0.29))]
+    lane_strokes(B, catmull_pts(cur, 6), 20, 5, ["#B6D0E6", "#C8DCE4", "#9DBEE0", "#E8EEC8"], 501, L=(9, 15), W=(2.6, 3.6))
+    for (cx, cy, r, sg), sd, a0 in zip(vort, (502, 503), (math.pi * 1.05, -math.pi * 0.1)):
+        sp = spiral_pts(cx, cy, r * 1.05, 1.25, a0, sg, 80, 0.12)
+        lane_strokes(B, sp, r * 0.52, 5, ["#DCE6BC", "#F2F0CE", "#C8DCE4", "#B6D0E6", "#E8EEC8", "#FFF8DC"], sd, L=(8, 13), W=(2.8, 3.6))
+        sp2 = spiral_pts(cx, cy, r * 0.72, 1.0, a0 + 1.2 * sg, sg, 60, 0.1)
+        lane_strokes(B, sp2, r * 0.22, 2, ["#6E9AD0", "#86A8CC", "#9DBEE0"], sd + 10, L=(7, 11), W=(2.4, 3.2))
+    paint.append(B.render())
     # stars: concentric halos of ringed dashes around a white-hot core
     for i, (sx, sy, r) in enumerate(stars):
         halo(B, sx, sy, [(r * 1.55, r * 2.15, ["#1E4A9A", "#2A5AAA", "#3A6AB4"], 2.8),
@@ -568,8 +577,9 @@ def starry_night():
                      (0, mr, ["#F6A818", "#F8B828", "#FFC838", "#E89010"], 3.4)], 300, L=(6, 10))
     paint.append(B.render())
     # the crescent: the shadowed disc of the moon painted over, leaving a fat orange crescent
-    paint.append(f'<path d="{blob(mx + mr * 0.42, my - mr * 0.18, mr * 0.72, mr * 0.76, 5, 0.04, 14)}" fill="#E8B030"/>')
-    halo(B, mx + mr * 0.42, my - mr * 0.18, [(0, mr * 0.7, ["#F2C440", "#FFD860", "#E8B838"], 3.0)], 301, L=(5, 8))
+    paint.append(f'<path d="{blob(mx - mr * 0.38, my - mr * 0.3, mr * 0.78, mr * 0.8, 5, 0.04, 14)}" fill="#F2D060"/>')
+    halo(B, mx - mr * 0.38, my - mr * 0.3, [(0, mr * 0.76, ["#FFE88A", "#FFF0B0", "#F2D868", "#FFF6C8"], 3.0)], 301, L=(5, 8))
+    lane_strokes(B, ell_pts(mx, my, mr * 0.78, mr * 0.78, -10, 160, 20), mr * 0.45, 2, ["#E8901A", "#F0A020", "#D88010"], 302, L=(6, 9), W=(2.8, 3.6))
     paint.append(B.render())
     # ---- hills: a pale far range then the main blue range, strokes running along the slopes
     hill_poly = hills_top + [(x1 + 10, y1 + 10), (x0 - 10, y1 + 10)]
@@ -644,7 +654,7 @@ def starry_night():
         ([(X(0.2), base_y), (X(0.21), Y(0.85)), (X(0.195), Y(0.68)), (X(0.205), Y(0.55))], [40, 34, 22, 3]),
         ([(X(0.11), base_y), (X(0.115), Y(0.88)), (X(0.13), Y(0.75)), (X(0.12), Y(0.66))], [34, 30, 18, 3]),
     ]
-    CY = ["#121C0C", "#1C2A14", "#26381A", "#33281A", "#16220E", "#0A1206", "#2C3E1C", "#222E16"]
+    CY = ["#0E160A", "#16220E", "#1E2E14", "#2A2014", "#121A0A", "#080E04", "#22321A", "#1A2412"]
     for k, (cl, ws) in enumerate(tongues):
         cl = [(x + random.Random(k).uniform(-2, 2), y) for x, y in cl]
         pts = tongue_pts(cl, ws)
@@ -658,75 +668,107 @@ def starry_night():
                 fine.append((a[0] + (b[0] - a[0]) * t / 5, a[1] + (b[1] - a[1]) * t / 5))
         fld = along(cl[::-1])
         impasto(B, lambda x, y, f=fld, kk=k: f(x, y) + 0.35 * math.sin(y / 14 + kk), fine, int(sum(ws) * 4.2),
-                lambda x, y, r, kk=k: r.choice(CY) if (x - (cl[0][0])) < -4 or r.random() < 0.72 else r.choice(["#46502A", "#584628", "#3A5028", "#62582C"]),
+                lambda x, y, r, kk=k: r.choice(CY) if (x - (cl[0][0])) < -4 or r.random() < 0.87 else r.choice(["#2E4A22", "#3E3A1E", "#2A4A2E", "#4A5A26"]),
                 61 + k, L=(12, 22), W=(2.6, 4.0), ridge=0.25, steps=3, jit=0.25)
         paint.append(f'<g {D.clip(f"<path d=\"{d}\"/>")}>{B.render()}</g>')
         paint.append(ink(d, "#050A02", 1.8, 6 + k, 1, 0.6))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.07)}{varnish(D, box, 0.12, 0.22)}</g>')
     out.append(museum_label(D, 494, "The Starry Night", "VINCENT VAN GOGH · 1889", "#F4E8CA", "#D8C49A", ts=30, bs=18, gap=28))
-    return finish(D, out, 7)
+    return gm_finish(D, out, 7, "#26323F", edge=2.6, bristle=0.5, grain_=0.18)
 
 
 # ================================================================ 2. Sunflowers — Van Gogh, 1888
 def sunflower_head(D, cx, cy, r, kind, seed, rot=0, squash=1.0, petal_cols=None, disk_cols=None):
-    """One impasto sunflower drawn around the origin then placed: kind full / seed / back / droop."""
+    """One impasto sunflower, drawn around the origin then placed. kind: full (open face), seed (gone to seed: a big
+    domed disk ringed by short twisting flame petals), droop (seen from the side, petals hanging), back (the green
+    star of sepals with petals peeking behind). Petals are tapered loaded-brush tongues in 2-3 tints, each with a
+    darker root and a lighter ridge; disks are built from tangential dabs and a ring of pollen."""
     rnd = random.Random(seed)
     B = Brush()
     out = []
-    pc = petal_cols or ["#F6C21C", "#F2A814", "#FFD84A", "#E88A10", "#F8CC30", "#D87A0E"]
-    dc = disk_cols or ["#7A4A14", "#5A3410", "#9A6A1E", "#3E260C", "#B8862A", "#6E7A28"]
-    if kind == "back":
-        # petals peeking out behind a green calyx
-        for i in range(18):
-            a = 2 * math.pi * i / 18 + rnd.uniform(-0.1, 0.1)
-            L = r * rnd.uniform(0.95, 1.2)
-            B.dash([(0.45 * r * math.cos(a), 0.45 * r * math.sin(a)), (L * 0.75 * math.cos(a + 0.05), L * 0.75 * math.sin(a + 0.05)), (L * math.cos(a + 0.1), L * math.sin(a + 0.1))],
-                   rnd.choice(pc), r * 0.16)
-        out_b = B.render()
-        cal = blob(0, 0, r * 0.62, r * 0.62, seed, 0.12, 16)
-        out.append(out_b + f'<path d="{cal}" fill="#6A8A2A"/>')
-        for i in range(14):
-            a = 2 * math.pi * i / 14 + rnd.uniform(-0.12, 0.12)
-            B.dash([(0.1 * r * math.cos(a), 0.1 * r * math.sin(a)), (0.68 * r * math.cos(a), 0.68 * r * math.sin(a))],
-                   rnd.choice(["#4A6A1A", "#8AA03A", "#5A7A22", "#A8B848"]), r * 0.13)
-        out.append(B.render())
-        out.append(f'<path d="{cal}" fill="none" stroke="#2A3A0A" stroke-width="1.6" opacity="0.7"/>')
-    else:
-        disk_r = r * (0.62 if kind == "seed" else 0.5)
-        n_p = {"full": 26, "droop": 18, "seed": 9}[kind]
-        for layer in range(2 if kind == "full" else 1):
-            for i in range(n_p):
-                a = 2 * math.pi * (i + layer * 0.5) / n_p + rnd.uniform(-0.08, 0.08)
-                L = r * rnd.uniform(0.9, 1.15) * (0.9 if layer else 1)
-                bend = rnd.uniform(-0.25, 0.25) + (0.5 if kind == "droop" and math.sin(a) > -0.2 else 0)
-                p0 = ((disk_r * 0.85) * math.cos(a), (disk_r * 0.85) * math.sin(a))
-                p1 = (L * 0.72 * math.cos(a + bend * 0.3), L * 0.72 * math.sin(a + bend * 0.3) + (r * 0.15 if kind == "droop" else 0))
-                p2 = (L * math.cos(a + bend * 0.6), L * math.sin(a + bend * 0.6) + (r * 0.4 if kind == "droop" else 0))
-                c = rnd.choice(pc) if kind != "seed" else rnd.choice(["#C88A20", "#A86A18", "#E0A030", "#8A5A1A"])
-                w = r * rnd.uniform(0.13, 0.19)
-                B.dash([p0, p1, p2], dk(c, 0.18), w * 1.15)
-                B.dash([p0, p1, p2], c, w)
-                if rnd.random() < 0.6:
-                    B.dash([(p0[0] - 0.6, p0[1] - 0.8), (p1[0] - 0.6, p1[1] - 0.8)], lt(c, 0.5), w * 0.3, 0.7)
-        out.append(B.render())
-        disk = blob(0, 0, disk_r, disk_r, seed + 1, 0.06, 16)
-        out.append(f'<path d="{disk}" fill="{dc[1]}"/>')
-        # disk: concentric dabs + a thick ring of seeds
-        for i in range(int(disk_r * 3.2)):
+    pc = petal_cols or ["#F6C21C", "#F2A814", "#FFD84A", "#E88A10", "#F8CC30", "#ECA020"]
+    dc = disk_cols or ["#7A4A14", "#5A3410", "#9A6A1E", "#3E260C", "#B8862A", "#6E5A20"]
+    INKP = "#8A4A08"
+
+    def petal(a, r0, L, w, bend, col, droop=0.0):
+        pts = []
+        for k in range(5):
+            t = k / 4
+            aa = a + bend * t * t
+            rr = r0 + L * t
+            pts.append((rr * math.cos(aa), rr * math.sin(aa) + droop * L * t * t))
+        ws = [w * 0.55, w, w * 0.95, w * 0.6, w * 0.12]
+        poly = tongue_pts(pts, ws)
+        d = smooth_closed(poly)
+        o = [f'<path d="{d}" fill="{col}" stroke="{INKP}" stroke-width="0.8" stroke-opacity="0.55"/>']
+        o.append(f'<path d="{smooth_open(pts[:4])}" fill="none" stroke="{dk(col, 0.22)}" stroke-width="{w * 0.22:.1f}" stroke-linecap="round" opacity="0.6"/>')
+        if rnd.random() < 0.7:
+            sh = [(x - w * 0.18, y - w * 0.2) for x, y in pts[1:4]]
+            o.append(f'<path d="{smooth_open(sh)}" fill="none" stroke="{lt(col, 0.45)}" stroke-width="{w * 0.18:.1f}" stroke-linecap="round" opacity="0.75"/>')
+        return "".join(o)
+
+    def disk(rx, ry, cols, young=False, dome=False):
+        d = blob(0, 0, rx, ry, seed + 1, 0.05, 16)
+        o = [f'<path d="{d}" fill="{D.rad([(0, cols[3]), (0.7, cols[1]), (1, cols[0])], 0.42, 0.4, 0.7)}"/>']
+        for i in range(int(rx * 3.6)):
             a = rnd.uniform(0, 2 * math.pi)
-            rr = disk_r * math.sqrt(rnd.random()) * 0.95
-            x, y = rr * math.cos(a), rr * math.sin(a)
+            q = math.sqrt(rnd.random()) * 0.94
+            x, y = q * rx * math.cos(a), q * ry * math.sin(a)
             ta = a + math.pi / 2
-            L = rnd.uniform(3, 6)
-            col = rnd.choice(dc) if rr > disk_r * 0.4 or kind == "seed" else rnd.choice(["#8A9A2A", "#6E7A1E", "#B0A030", "#5A6A1A"])
+            L = rnd.uniform(2.5, 5.5)
+            if young and q < 0.42:
+                col = rnd.choice(["#8A9A2A", "#6E7A1E", "#B0A030", "#5A6A1A"])
+            elif dome and q < 0.5:
+                col = rnd.choice(["#6A3A12", "#8A4A18", "#4A2A0C", "#A85A1C"])
+            else:
+                col = rnd.choice(cols)
             B.dash([(x - L / 2 * math.cos(ta), y - L / 2 * math.sin(ta)), (x + L / 2 * math.cos(ta), y + L / 2 * math.sin(ta))], col, rnd.uniform(1.8, 3.0))
-        for i in range(int(disk_r * 1.6)):
+        for i in range(int(rx * 1.4)):
             a = rnd.uniform(0, 2 * math.pi)
-            rr = disk_r * rnd.uniform(0.55, 0.95)
-            B.dot(rr * math.cos(a), rr * math.sin(a), rnd.uniform(0.9, 1.6), rnd.choice(["#E89A20", "#2A1806", "#F2B840", "#3A2008"]))
-        out.append(B.render())
-        out.append(f'<path d="{disk}" fill="none" stroke="#2A1606" stroke-width="2" opacity="0.7"/>')
-        out.append(f'<path d="{blob(-disk_r * 0.25, -disk_r * 0.3, disk_r * 0.35, disk_r * 0.22, seed, 0.2, 10)}" fill="#F2C840" opacity="0.25"/>')
+            q = rnd.uniform(0.62, 0.98)
+            B.dot(q * rx * math.cos(a), q * ry * math.sin(a), rnd.uniform(0.9, 1.7), rnd.choice(["#E89A20", "#2A1806", "#F2B840", "#3A2008", "#C86A10"]))
+        o.append(B.render())
+        o.append(f'<path d="{blob(-rx * 0.28, -ry * 0.32, rx * 0.34, ry * 0.22, seed, 0.2, 10)}" fill="#F6D060" opacity="0.28"/>')
+        o.append(f'<path d="{d}" fill="none" stroke="#2A1606" stroke-width="1.8" opacity="0.75"/>')
+        return "".join(o)
+
+    if kind == "back":
+        for i in range(16):
+            a = 2 * math.pi * i / 16 + rnd.uniform(-0.1, 0.1)
+            out.append(petal(a, r * 0.3, r * rnd.uniform(0.75, 0.95), r * 0.2, rnd.uniform(-0.3, 0.3), rnd.choice(pc)))
+        out.append(f'<path d="{blob(0, 0, r * 0.42, r * 0.42, seed, 0.1, 14)}" fill="#5A7A22"/>')
+        for i in range(11):
+            a = 2 * math.pi * i / 11 + rnd.uniform(-0.12, 0.12)
+            pts = [(r * 0.08 * math.cos(a), r * 0.08 * math.sin(a)), (r * 0.36 * math.cos(a + 0.08), r * 0.36 * math.sin(a + 0.08)),
+                   (r * 0.62 * math.cos(a + 0.2), r * 0.62 * math.sin(a + 0.2))]
+            col = rnd.choice(["#6A8A2A", "#7E9A34", "#58761E", "#94AC44"])
+            out.append(f'<path d="{smooth_closed(tongue_pts(pts, [r * 0.2, r * 0.16, 0.8]))}" fill="{col}" stroke="#2A3A0A" stroke-width="1" stroke-opacity="0.7"/>')
+            out.append(f'<path d="{smooth_open(pts[:2])}" stroke="#B8C860" stroke-width="1.1" opacity="0.6" fill="none"/>')
+        out.append(f'<circle r="{r * 0.12:.1f}" fill="#4A6418"/>')
+    elif kind == "seed":
+        dr = r * 0.6
+        n_p = 15
+        for i in range(n_p):
+            if rnd.random() < 0.18:
+                continue
+            a = 2 * math.pi * i / n_p + rnd.uniform(-0.12, 0.12)
+            col = rnd.choice(["#D88A20", "#B8661A", "#E8A030", "#C87418", "#F0B848"])
+            out.append(petal(a, dr * 0.88, r * rnd.uniform(0.32, 0.55), r * rnd.uniform(0.17, 0.24), rnd.choice((-1, 1)) * rnd.uniform(0.5, 1.1), col))
+        out.append(disk(dr, dr, ["#5A3410", "#7A4A14", "#9A5A1E", "#3A200A", "#8A6A1E", "#6A3A10"], dome=True))
+    else:
+        dr = r * 0.44
+        droop = 0.55 if kind == "droop" else 0.0
+        n_p = 24 if kind == "full" else 18
+        layers = 2 if kind == "full" else 1
+        for layer in range(layers):
+            for i in range(n_p):
+                a = 2 * math.pi * (i + layer * 0.5) / n_p + rnd.uniform(-0.1, 0.1)
+                L = r * rnd.uniform(0.52, 0.72) * (0.85 if layer else 1)
+                bend = rnd.uniform(-0.35, 0.35)
+                dro = droop if math.sin(a) > -0.3 else droop * 0.3
+                col = rnd.choice(pc) if layer else rnd.choice(pc[:2] + pc[3:4] + ["#E07E10", "#D8820E"])
+                out.append(petal(a, dr * 0.85, L, r * rnd.uniform(0.17, 0.23), bend, col, dro))
+        out.append(disk(dr, dr * (0.8 if kind == "droop" else 1.0), dc, young=(kind == "full" and seed % 3 == 0)))
     return f'<g transform="translate({cx:.1f} {cy:.1f}) rotate({rot}) scale(1 {squash})">{"".join(out)}</g>'
 
 
@@ -773,12 +815,14 @@ def sunflowers():
     paint.append(ink(vd, "#7A4A10", 2.0, 12, 2, 0.7))
     # stems and leaves rising from the jug
     rnd = random.Random(13)
+    # the London version's bouquet: fifteen heads packed densely, overlapping, a few drooping out over the sides,
+    # the big seed-heads in the centre-right, a young flower and a back view among them
     heads = [  # (u, v, r, kind, rot, squash)
-        (0.42, 0.11, 30, "full", -8, 0.92), (0.68, 0.1, 25, "seed", 15, 0.9), (0.18, 0.2, 27, "droop", -35, 0.85),
-        (0.86, 0.22, 26, "full", 20, 0.88), (0.3, 0.32, 36, "full", -10, 0.95), (0.6, 0.28, 41, "full", 5, 1.0),
-        (0.84, 0.42, 30, "seed", 25, 0.9), (0.1, 0.44, 25, "droop", -50, 0.8), (0.46, 0.47, 33, "full", 0, 0.9),
-        (0.7, 0.53, 28, "back", 35, 0.85), (0.22, 0.54, 29, "full", -20, 0.85), (0.92, 0.63, 22, "droop", 60, 0.8),
-        (0.07, 0.66, 21, "droop", -70, 0.75), (0.36, 0.64, 24, "seed", -15, 0.8), (0.58, 0.67, 22, "full", 10, 0.8),
+        (0.45, 0.1, 34, "full", -8, 0.92), (0.2, 0.17, 30, "full", -25, 0.86), (0.7, 0.12, 29, "seed", 15, 0.9),
+        (0.88, 0.28, 31, "full", 30, 0.84), (0.1, 0.34, 27, "droop", -55, 0.8), (0.36, 0.3, 39, "full", -10, 0.95),
+        (0.62, 0.31, 42, "seed", 5, 1.0), (0.84, 0.47, 32, "full", 20, 0.88), (0.22, 0.47, 33, "full", -20, 0.88),
+        (0.48, 0.5, 30, "back", 35, 0.85), (0.68, 0.55, 29, "full", 10, 0.85), (0.08, 0.6, 24, "droop", -75, 0.75),
+        (0.92, 0.64, 23, "droop", 70, 0.78), (0.33, 0.63, 25, "seed", -15, 0.82), (0.58, 0.67, 22, "full", 10, 0.8),
     ]
     stem_out = []
     for u, v, r, kind, rot, sq in heads:
@@ -786,25 +830,25 @@ def sunflowers():
         sx = vx + (u - 0.5) * 60
         sy = vb - 104
         mid = ((hx + sx) / 2 + rnd.uniform(-10, 10), (hy + sy) / 2 + 14)
-        stem_out.append(taper([(sx, sy), mid, (hx, hy)], 7, 4, "#5A7A22"))
+        stem_out.append(taper([(sx, sy), mid, (hx, hy)], 4.6, 2.6, "#6A8A2A"))
         stem_out.append(pline([(sx - 1, sy), (mid[0] - 2, mid[1]), (hx - 2, hy)], "#A8B840", 1.6, int(hx), 0.6, 1))
         stem_out.append(pline([(sx + 2, sy), (mid[0] + 2, mid[1]), (hx + 2, hy)], "#2A3A0A", 1.4, int(hy), 0.6, 1))
     paint.append("".join(stem_out))
-    for k in range(5):
-        lx, ly = vx + rnd.uniform(-70, 70), vb - rnd.uniform(110, 170)
-        ang = rnd.uniform(-160, -20)
-        L = rnd.uniform(34, 48)
+    for k, side in enumerate((-1, 1, -1)):
+        lx, ly = vx + side * rnd.uniform(20, 45), vb - 104 - rnd.uniform(0, 14)
+        ang = (180 if side < 0 else 0) + side * rnd.uniform(-25, 5)
+        L = rnd.uniform(30, 40)
         tip = (lx + L * math.cos(math.radians(ang)), ly + L * math.sin(math.radians(ang)) + 12)
         lf = [(lx, ly), ((lx + tip[0]) / 2 - 8, (ly + tip[1]) / 2 - 10), tip, ((lx + tip[0]) / 2 + 8, (ly + tip[1]) / 2 + 8)]
         paint.append(painted(D, lf, ("#A8C04A", "#6A8A2A", "#34500E"), 20 + k, sk=0.12, angle=ang, inkw=1.4, inkc="#2A3A0A", hi=0.4))
     # heads, back to front by size
     for i, (u, v, r, kind, rot, sq) in enumerate(sorted(heads, key=lambda h: h[2])):
-        paint.append(sunflower_head(D, x0 + u * W, y0 + v * H, r * 1.18, kind, 100 + i, rot, sq))
+        paint.append(sunflower_head(D, x0 + u * W, y0 + v * H, r * 1.3, kind, 100 + i, rot, sq))
     # a fallen petal on the table
     paint.append(taper([(x0 + W * 0.84, table_y + 30), (x0 + W * 0.88, table_y + 26), (x0 + W * 0.92, table_y + 32)], 6, 2, "#E88A10"))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.07)}{varnish(D, box, 0.14, 0.2, 7, 0.35)}</g>')
     out.append(museum_label(D, 488, "Sunflowers", "VINCENT VAN GOGH · 1888", "#FBF2DC", "#E8D6A6", ts=30, bs=18, gap=28))
-    return finish(D, out, 9)
+    return gm_finish(D, out, 9, "#2E5A5C", edge=2.4, bristle=0.45, grain_=0.16)
 
 
 # ================================================================ 3. Café Terrace at Night — Van Gogh, 1888
@@ -984,7 +1028,7 @@ def cafe_terrace():
     out.append(f'<rect x="176" y="458" width="248" height="74" rx="2" fill="#000" opacity="0.25" transform="translate(2 3)"/>')
     out.append(f'<rect x="176" y="458" width="248" height="74" rx="2" fill="#F6EEDC"/>')
     out.append(museum_label(D, 490, "Café Terrace at Night", "VAN GOGH · 1888", "#2A1A10", "#6A4A2A", ts=24, bs=17, gap=26, max_w=226))
-    return finish(D, out, 13)
+    return gm_finish(D, out, 13, "#5A3A2E", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 4. Almond Blossoms — Van Gogh, 1890
@@ -1025,7 +1069,7 @@ def blossom(B, D, cx, cy, r, seed, rot=0, open_=1.0, pink=0.0):
             B.dash([(cx + r * 0.25 * math.cos(aa), cy + r * 0.25 * math.sin(aa)), (cx + r * 0.85 * math.cos(aa) * open_, cy + r * 0.85 * math.sin(aa) * open_)],
                    rnd.choice(["#FFFFFF", "#F4F2EC", "#E4ECEC", "#F8E8EA"]), r * 0.16, 0.8)
         out.append(B.render())
-        out.append(f'<path d="{pet}" fill="none" stroke="#5A6A6A" stroke-width="1.1" opacity="0.55"/>')
+        out.append(f'<path d="{pet}" fill="none" stroke="#4A6A72" stroke-width="0.9" opacity="0.32"/>')
     out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r * 0.26:.1f}" fill="#B8C870"/>')
     out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r * 0.14:.1f}" fill="#8A3A2A"/>')
     for i in range(7):
@@ -1067,11 +1111,11 @@ def almond_blossoms():
     # branches: limbs entering from the edges and forking into a lacework of twigs
     rnd = random.Random(8)
     segs = []
-    branch_tree(random.Random(8), x0 - 10, y0 + H * 0.86, math.radians(-30), 230, 24, 4, segs, 20)
-    branch_tree(random.Random(12), x0 - 10, y0 + H * 0.3, math.radians(-8), 200, 15, 3, segs, 22)
-    branch_tree(random.Random(15), x1 + 10, y0 + H * 0.16, math.radians(165), 190, 15, 3, segs, 20)
-    branch_tree(random.Random(19), x1 + 10, y0 + H * 0.7, math.radians(-150), 150, 12, 3, segs, 20)
-    branch_tree(random.Random(23), x0 + W * 0.3, y1 + 10, math.radians(-80), 140, 11, 3, segs, 22)
+    # as in the canvas, every limb grows in from the left and the bottom left and reaches up and across to the right
+    branch_tree2(random.Random(8), x0 - 12, y0 + H * 0.95, math.radians(-30), 210, 28, 3, segs, 16)
+    branch_tree2(random.Random(12), x0 - 12, y0 + H * 0.5, math.radians(-14), 180, 17, 3, segs, 18)
+    branch_tree2(random.Random(15), x0 + W * 0.1, y0 - 12, math.radians(30), 150, 13, 2, segs, 18)
+    branch_tree2(random.Random(23), x0 + W * 0.42, y1 + 12, math.radians(-66), 130, 13, 2, segs, 20)
     bark = []
     segs.sort(key=lambda q: -q[1])
     for pts, w0, w1 in segs:
@@ -1096,7 +1140,7 @@ def almond_blossoms():
     for pts, w0, w1 in segs:
         if w0 > 20:
             continue
-        for k in range(1 + int(len(pts) * (18 - w0) / 12)):
+        for k in range(2 + int(len(pts) * (22 - w0) / 9)):
             i = rnd.randrange(1, len(pts))
             px, py = pts[i]
             side = rnd.choice([-1, 1])
@@ -1104,9 +1148,9 @@ def almond_blossoms():
             if not (x0 + 8 < fx < x1 - 8 and y0 + 8 < fy < y1 - 8):
                 continue
             kind = rnd.random()
-            if any(abs(fx - ox) < 21 and abs(fy - oy) < 21 for oy, ox, *_ in flowers):
+            if any(abs(fx - ox) < 19 and abs(fy - oy) < 19 for oy, ox, *_ in flowers):
                 continue
-            flowers.append((fy, fx, kind, rnd.uniform(13, 19), rnd.uniform(0, 72), rnd.randint(0, 9999)))
+            flowers.append((fy, fx, kind, rnd.uniform(14, 21), rnd.uniform(0, 72), rnd.randint(0, 9999)))
     flowers.sort()
     for fy, fx, kind, r, rot, sd in flowers:
         if kind < 0.18:
@@ -1117,7 +1161,7 @@ def almond_blossoms():
             paint.append(blossom(B, D, fx, fy, r, sd, rot, 1.0, 0.25 if kind < 0.5 else 0.0))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.12, 0.16, 6, 0.3)}</g>')
     out.append(museum_label(D, 480, "Almond Blossoms", "VINCENT VAN GOGH · 1890", "#3A2E22", "#6A5A44", ts=30, bs=18, gap=30))
-    return finish(D, out, 17)
+    return gm_finish(D, out, 17, "#EFE6D2", edge=2.8, bristle=0.5, grain_=0.12)
 
 
 # ================================================================ 5. Wheatfield with Cypresses — Van Gogh, 1889
@@ -1219,7 +1263,7 @@ def wheatfield():
         paint.append(ink(d, "#06100A", 1.8, 9 + k, 1, 0.7))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.07)}{varnish(D, box, 0.12, 0.2)}</g>')
     out.append(plaque(D, 300, 500, 340, 60, "Wheat Field with Cypresses", "VAN GOGH · 1889", 3, ts=23, bs=17))
-    return finish(D, out, 19)
+    return gm_finish(D, out, 19, "#E8E0D0", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 6. Irises — Van Gogh, 1889
@@ -1340,7 +1384,7 @@ def irises():
         paint.append(svg)
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.07)}{varnish(D, box, 0.12, 0.2)}</g>')
     out.append(museum_label(D, 480, "Irises", "VINCENT VAN GOGH · 1889", "#F4EEDC", "#D8CCA8", ts=32, bs=18, gap=30))
-    return finish(D, out, 23)
+    return gm_finish(D, out, 23, "#3E4A3A", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 7. Water Lilies — Monet, 1906
@@ -1424,7 +1468,7 @@ def water_lilies():
     paint.append(B.render())
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.1, 0.15, 6, 0.3)}</g>')
     out.append(museum_label(D, 498, "Water Lilies", "CLAUDE MONET · 1906", "#2E2840", "#5A5070", ts=30, bs=18, gap=28))
-    return finish(D, out, 29)
+    return gm_finish(D, out, 29, "#B8B0C4", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 8. Impression, Sunrise — Monet, 1872
@@ -1502,7 +1546,7 @@ def impression_sunrise():
     paint.append(B.render())
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.07)}{varnish(D, box, 0.12, 0.25)}</g>')
     out.append(museum_label(D, 494, "Impression, Sunrise", "CLAUDE MONET · 1872", "#F2E6CC", "#C8B898", ts=29, bs=18, gap=28))
-    return finish(D, out, 31)
+    return gm_finish(D, out, 31, "#2E3436", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 9. Poppy Field — Monet, 1873
@@ -1593,7 +1637,7 @@ def poppy_field():
     paint.append(monet_figure(B, X(0.27), Y(0.61), 22, 14, "#3A4A5A", None, True, "#E8D8B0"))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.1, 0.15, 6, 0.3)}</g>')
     out.append(museum_label(D, 474, "Poppy Field", "CLAUDE MONET · 1873", "#3A2E22", "#6A5A44", ts=30, bs=18, gap=30))
-    return finish(D, out, 37)
+    return gm_finish(D, out, 37, "#E8E4D8", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 10. The Japanese Footbridge — Monet, 1899
@@ -1685,7 +1729,7 @@ def japanese_footbridge():
     paint.append(B.render())
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.1, 0.18, 6, 0.3)}</g>')
     out.append(plaque(D, 300, 503, 330, 54, "The Japanese Footbridge", "CLAUDE MONET · 1899", 4, ts=22, bs=16))
-    return finish(D, out, 41)
+    return gm_finish(D, out, 41, "#2A3A2A", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 11. The Great Wave off Kanagawa — Hokusai, c. 1831
@@ -1755,52 +1799,31 @@ def catmull_pts(pts, n=8):
     return out
 
 
-def claw(x, y, ang, s, seed, depth=2, curl=110):
-    """Hokusai's foam fingers: a tapering white talon that curls over at the tip and sprouts smaller talons."""
-    rnd = random.Random(seed)
-    n = 9
-    a = math.radians(ang)
-    turn = math.radians(curl * rnd.uniform(0.8, 1.2)) / n
-    pts = [(x, y)]
-    step = s / n
+def gw_normals(C):
+    """Unit tangents and left-hand normals along a polyline."""
+    T, Nn = [], []
+    n = len(C)
     for i in range(n):
-        a += turn * (0.4 + 1.4 * i / n)
-        pts.append((pts[-1][0] + step * math.cos(a), pts[-1][1] + step * math.sin(a)))
-    ws = [s * 0.34 * (1 - i / n) ** 0.9 + 0.6 for i in range(n + 1)]
-    poly = tongue_pts(pts, ws)
-    out = [f'<path d="{smooth_closed(poly)}" fill="#FBF6E8" stroke="{KEY}" stroke-width="{max(0.9, s * 0.05):.1f}" stroke-linejoin="round"/>']
-    if depth > 0:
-        for k, t in enumerate((0.3, 0.55) if depth > 1 else (0.45,)):
-            i = int(t * n)
-            (ax, ay), (bx, by) = pts[i], pts[i + 1]
-            h = math.degrees(math.atan2(by - ay, bx - ax))
-            out.append(claw(ax, ay, h - rnd.uniform(35, 55), s * rnd.uniform(0.42, 0.55), seed * 3 + k, depth - 1, curl))
-    return "".join(out)
-
-
-def oshiokuri(x, y, L, tilt, rowers, seed):
-    """A long fast boat with crouching rowers in indigo."""
-    rnd = random.Random(seed)
-    a = math.radians(tilt)
-    c, s_ = math.cos(a), math.sin(a)
-
-    def T(u, v):
-        return (x + u * c - v * s_, y + u * s_ + v * c)
-    hull = [T(-L / 2, -2), T(L / 2, -5), T(L / 2 + 6, -8), T(L / 2 - 4, 4), T(-L / 2 + 6, 5)]
-    out = [f'<path d="{pd(hull)}" fill="#E8D8A8" stroke="{KEY}" stroke-width="1.4" stroke-linejoin="round"/>',
-           f'<path d="{pd([T(-L / 2 + 6, 1), T(L / 2 - 4, 0)], False)}" stroke="#B89A60" stroke-width="1.2"/>']
-    for i in range(rowers):
-        u = -L / 2 + 12 + i * (L - 22) / max(1, rowers - 1)
-        bx, by = T(u, -4)
-        out.append(f'<path d="{blob(bx, by - 4, 4.2, 3.4, seed + i, 0.08, 8)}" fill="#2E4A7A" stroke="{KEY}" stroke-width="1"/>')
-        out.append(f'<circle cx="{bx + 2:.1f}" cy="{by - 7.5:.1f}" r="2.2" fill="#E8D8B8" stroke="{KEY}" stroke-width="0.8"/>')
-    return "".join(out)
+        (ax, ay), (bx, by) = C[max(0, i - 1)], C[min(n - 1, i + 1)]
+        L = math.hypot(bx - ax, by - ay) or 1
+        T.append(((bx - ax) / L, (by - ay) / L))
+        Nn.append((-(by - ay) / L, (bx - ax) / L))
+    return T, Nn
 
 
 @design("the-great-wave")
 def great_wave():
+    """Under the Wave off Kanagawa, Hokusai c. 1831. Checklist of the original, followed here:
+    horizontal print; the great wave's back rises from the lower LEFT edge to a crest high in the upper left-centre,
+    then the crest runs RIGHT and hooks over like the top of a question mark, its lip curling DOWN and back to the LEFT;
+    the white foam breaks into claw-like fingers that hang down over the boats, spray falling like snow towards Fuji;
+    the inner face under the lip is paler blue netted with white; Mount Fuji tiny, snow-capped, low in the trough at
+    centre-right on a pale horizon; a small foreground wave peaks like a second Fuji; three long oshiokuri boats with
+    crouching rowers (upper right on a rising swell, centre climbing the face, lower left nearly swallowed);
+    Prussian blue + indigo on cream paper, a dark grey bokashi band at the top of the sky; title cartouche top left.
+    Our touch: the linen museum mat, label and red seal."""
     D = Doc("gmgw")
-    box = (66, 78, 534, 396)   # 468 x 318 (25.7 x 37.9 cm)
+    box = (62, 74, 538, 398)
     x0, y0, x1, y1 = box
     W, H = x1 - x0, y1 - y0
 
@@ -1812,98 +1835,190 @@ def great_wave():
 
     def UV(pts):
         return [(X(u), Y(v)) for u, v in pts]
-    out = [mat_board(D, (x0 - 4, y0 - 4, x1 + 4, y1 + 4), 5, "#F2EADA", 91)]
-    out.append(simple_frame(D, (x0 - 18, y0 - 18, x1 + 18, y1 + 18), 0.01, ("#000", "#000", "#000"), 1) if False else "")
+    rnd = random.Random(11)
+    PB = ("#0E2246", "#1B3A6C", "#2D5A93", "#5683B8", "#8FB3D6", "#CFE0EC")   # Prussian blue, deep to pale
+    FOAM = "#F8F2E2"
+    KL = "#17203A"
+    out = [mat_board(D, (x0 - 4, y0 - 4, x1 + 4, y1 + 4), 5, "#F1E9D8", 91)]
     cp = clip_box(D, box)
-    paint = [washi(D, box, "#EADCB8", 5)]
-    # sky: pale with the dark bokashi band across the top
-    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H * 0.4}" fill="{D.lin([(0, "#6A6A66", 0.85), (0.35, "#A8A496", 0.35), (1, "#EADCB8", 0)])}"/>')
-    paint.append(woodgrain(D, (x0, y0, x1, Y(0.7)), 0.07, 5))
-    for k, (u, v, w_) in enumerate([(0.72, 0.18, 0.2), (0.85, 0.3, 0.14), (0.6, 0.36, 0.1)]):
-        paint.append(f'<path d="{smooth_closed(UV([(u - w_, v), (u - w_ * 0.4, v - 0.035), (u + w_ * 0.3, v - 0.02), (u + w_, v + 0.005), (u, v + 0.02)]))}" fill="#D8CCAA" opacity="0.8"/>')
-    # Fuji, far away, small and calm
-    fuji = UV([(0.53, 0.84), (0.65, 0.67), (0.68, 0.62), (0.705, 0.615), (0.73, 0.628), (0.82, 0.72), (0.9, 0.84)])
-    paint.append(f'<path d="{pd(fuji)}" fill="#3A4E6E" stroke="{KEY}" stroke-width="1.6" stroke-linejoin="round"/>')
-    cap = UV([(0.633, 0.695), (0.65, 0.67), (0.68, 0.62), (0.705, 0.615), (0.73, 0.628), (0.775, 0.68), (0.758, 0.695), (0.742, 0.678),
-              (0.725, 0.712), (0.71, 0.684), (0.695, 0.72), (0.68, 0.69), (0.655, 0.712)])
-    paint.append(f'<path d="{pd(cap)}" fill="#FBF6E8" stroke="{KEY}" stroke-width="1.2" stroke-linejoin="round"/>')
-    rnd = random.Random(7)
-    # the sea: swells rising behind the boats, a trough where Fuji shows through
-    surf = catmull_pts(UV([(0.3, 0.8), (0.42, 0.66), (0.5, 0.62), (0.57, 0.67), (0.65, 0.76), (0.72, 0.72), (0.8, 0.62), (0.86, 0.58),
-                           (0.93, 0.62), (1.04, 0.72)]), 8)
-    sea = surf + [(X(1.04), Y(1.04)), (X(0.3), Y(1.04))]
-    paint.append(f'<path d="{pd(sea)}" fill="{PRUSSIAN[1]}"/>')
+    p = [washi(D, box, "#EADAB2", 5, 140)]
+    # sky: dark grey bokashi along the top edge, warm cream, a soft grey cloud bank low on the right
+    p.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H * 0.36}" fill="{D.lin([(0, "#4A4844", 0.95), (0.35, "#7A766C", 0.5), (1, "#EADAB2", 0)])}"/>')
+    p.append(f'<rect x="{x0}" y="{Y(0.44)}" width="{W}" height="{H * 0.3}" fill="{D.lin([(0, "#B4A98E", 0), (0.75, "#A39A84", 0.5), (1, "#8E8674", 0.65)])}"/>')
+    for k, (u, v, w_, h_) in enumerate([(0.86, 0.5, 0.2, 0.05), (0.97, 0.56, 0.12, 0.04), (0.74, 0.6, 0.1, 0.025)]):
+        p.append(f'<path d="{blob(X(u), Y(v), W * w_, H * h_, 40 + k, 0.12, 16)}" fill="#E2D6B8" stroke="#8E8674" stroke-width="0.8" opacity="0.8"/>')
+    p.append(woodgrain(D, (x0, y0, x1, Y(0.72)), 0.07, 5))
+    # title cartouche and signature, abstract brush marks only (no lettering)
+    cx0, cy0, cw, ch = X(0.018), Y(0.03), W * 0.115, H * 0.2
+    p.append(f'<rect x="{cx0:.1f}" y="{cy0:.1f}" width="{cw:.1f}" height="{ch:.1f}" fill="#EFE3C2" stroke="#2A2A2E" stroke-width="1.6"/>')
+    p.append(f'<rect x="{cx0 + 3:.1f}" y="{cy0 + 3:.1f}" width="{cw - 6:.1f}" height="{ch - 6:.1f}" fill="none" stroke="#2A2A2E" stroke-width="0.8"/>')
+    for col in range(3):
+        cxx = cx0 + cw * (0.78 - col * 0.28)
+        yy = cy0 + 9
+        while yy < cy0 + ch - 9 - (14 if col == 2 else 0):
+            l = rnd.uniform(3, 6)
+            p.append(f'<path d="M{cxx + rnd.uniform(-3, 3):.1f} {yy:.1f}l{rnd.uniform(-2.5, 2.5):.1f} {l:.1f}" stroke="#2A2A2E" stroke-width="1.6" stroke-linecap="round"/>')
+            yy += l + rnd.uniform(1.5, 4)
+    for col in range(2):
+        cxx = cx0 + cw + 9 + col * 8
+        yy = cy0 + 4
+        while yy < cy0 + ch * (0.8 - col * 0.3):
+            l = rnd.uniform(3, 6)
+            p.append(f'<path d="M{cxx + rnd.uniform(-2, 2):.1f} {yy:.1f}l{rnd.uniform(-2, 2):.1f} {l:.1f}" stroke="#2A2A2E" stroke-width="1.3" stroke-linecap="round" opacity="0.85"/>')
+            yy += l + rnd.uniform(2, 4)
+
+    # ---- far sea on the horizon, and Mount Fuji small and calm in the trough (centre-right)
+    hz = 0.715
+    p.append(f'<rect x="{X(0.42):.1f}" y="{Y(hz):.1f}" width="{W * 0.6:.1f}" height="{H * 0.33:.1f}" fill="{D.lin([(0, PB[4]), (0.4, PB[3]), (1, PB[2])])}"/>')
+    for k in range(8):
+        yy = Y(hz + 0.014 + k * 0.022)
+        p.append(f'<path d="{smooth_open([(X(0.44 + rnd.uniform(0, 0.06)), yy), (X(0.7), yy + rnd.uniform(-1.2, 1.2)), (X(1.02), yy + rnd.uniform(-1, 1))])}" '
+                 f'fill="none" stroke="{PB[5] if k % 2 else PB[1]}" stroke-width="{0.9 + k * 0.12:.1f}" opacity="0.6"/>')
+    fuji = UV([(0.585, hz + 0.004), (0.625, 0.678), (0.655, 0.645), (0.68, 0.617), (0.692, 0.611), (0.708, 0.612), (0.72, 0.62),
+               (0.745, 0.648), (0.778, 0.682), (0.815, hz + 0.004)])
+    p.append(f'<path d="{smooth_open(fuji)} Z" fill="{D.lin([(0, "#6A7A94"), (0.5, "#43577A"), (1, "#2A3A5C")])}"/>')
+    cap = UV([(0.647, 0.654), (0.68, 0.617), (0.692, 0.611), (0.708, 0.612), (0.72, 0.62), (0.756, 0.659), (0.743, 0.664), (0.733, 0.649),
+              (0.724, 0.672), (0.713, 0.648), (0.703, 0.678), (0.692, 0.65), (0.68, 0.673), (0.669, 0.648), (0.657, 0.664)])
+    p.append(f'<path d="{pd(cap)}" fill="#F6F0E0" stroke="{KL}" stroke-width="1.0" stroke-linejoin="round"/>')
+    p.append(f'<path d="{smooth_open(fuji)}" fill="none" stroke="{KL}" stroke-width="1.6"/>')
+
+    # ---- right-hand swell rising to the right edge, carrying the first boat
+    rs_top = catmull_pts(UV([(0.7, 0.86), (0.77, 0.77), (0.84, 0.67), (0.91, 0.59), (0.97, 0.545), (1.04, 0.53)]), 8)
+    rs = rs_top + [(X(1.04), Y(1.05)), (X(0.7), Y(1.05))]
+    p.append(f'<path d="{pd(rs)}" fill="{D.lin([(0, PB[3]), (0.35, PB[2]), (1, PB[0])])}"/>')
     for k in range(1, 7):
-        line = [(x, y + k * 9) for x, y in surf][4:-2]
-        paint.append(f'<path d="{smooth_open(line)}" fill="none" stroke="{"#7AA2C8" if k % 2 else PRUSSIAN[2]}" stroke-width="{2.2 if k % 2 else 3}" opacity="0.85"/>')
-    paint.append(f'<path d="{smooth_open(surf)}" fill="none" stroke="{KEY}" stroke-width="2"/>')
-    # lacy foam on the far swell
-    for i in range(30, len(surf) - 10, 3):
-        x, y = surf[i]
-        if x > X(0.74):
-            paint.append(claw(x, y, -80 + rnd.uniform(-20, 20) + (x - X(0.86)) * 0.5, 11, 500 + i, 1))
-    # boats riding the swells
-    paint.append(oshiokuri(X(0.49), Y(0.67), 120, 24, 7, 3))
-    paint.append(oshiokuri(X(0.87), Y(0.62), 100, -18, 6, 4))
-    # ---- the great wave as a ribbon between its outer skin and the inner curl
-    c_out = catmull_pts(UV([(-0.06, 1.04), (-0.01, 0.66), (0.07, 0.42), (0.17, 0.23), (0.28, 0.11), (0.39, 0.065), (0.49, 0.075), (0.57, 0.13),
-                            (0.62, 0.21), (0.625, 0.3), (0.6, 0.36)]), 8)
-    c_in = catmull_pts(UV([(0.38, 1.04), (0.36, 0.82), (0.345, 0.62), (0.355, 0.45), (0.38, 0.32), (0.42, 0.245), (0.47, 0.21), (0.52, 0.215),
-                           (0.565, 0.245), (0.59, 0.3), (0.6, 0.36)]), 8)
-    N = 90
-    A, Bc = resample(c_out, N), resample(c_in, N)
-    body = A + Bc[::-1]
-    paint.append(f'<path d="{pd(body)}" fill="{PRUSSIAN[2]}"/>')
-    for f, col, w_ in ((0.12, PRUSSIAN[1], 9), (0.3, "#3E6A9E", 5), (0.45, PRUSSIAN[1], 4), (0.62, "#4A78AA", 3), (0.8, PRUSSIAN[1], 3)):
-        line = [lerp(a, b, f) for a, b in zip(A, Bc)][2:-6]
-        paint.append(f'<path d="{smooth_open(line)}" fill="none" stroke="{col}" stroke-width="{w_}" stroke-linecap="round"/>')
-    for f in (0.22, 0.38, 0.54, 0.7):
-        line = [lerp(a, b, f) for a, b in zip(A, Bc)][4:-10]
-        paint.append(f'<path d="{smooth_open(line)}" fill="none" stroke="#C8D8E8" stroke-width="1.3" opacity="0.8"/>')
-    paint.append(f'<path d="{pd(body)}" fill="none" stroke="{KEY}" stroke-width="2.2" stroke-linejoin="round"/>')
-    # foam: a thin white lip, then claws reaching forward and down from the crest, big at the crown
-    lip = A[30:]
-    lip_in = [lerp(a, b, 0.07) for a, b in zip(A, Bc)][30:]
-    paint.append(f'<path d="{pd(lip + lip_in[::-1])}" fill="#FBF6E8" stroke="{KEY}" stroke-width="1.3"/>')
-    claws = []
-    for i in range(30, N - 3, 3):
-        (ax, ay), (bx, by) = A[i - 1], A[i + 1]
-        tx, ty = bx - ax, by - ay
-        tl = math.hypot(tx, ty) or 1
-        nx, ny = A[i][0] - Bc[i][0], A[i][1] - Bc[i][1]
-        nl = math.hypot(nx, ny) or 1
-        dx, dy = tx / tl * 1.0 + nx / nl * 0.4, ty / tl * 1.0 + ny / nl * 0.4
-        ang = math.degrees(math.atan2(dy, dx)) + rnd.uniform(-10, 10)
-        t = (i - 30) / (N - 33)
-        s_ = 16 + 30 * math.sin(math.pi * min(1, t * 1.15)) ** 0.7
-        claws.append((t, claw(A[i][0], A[i][1], ang, s_, 100 + i, 2)))
-    claws = [c for _, c in sorted(claws, key=lambda q: -q[0])]
-    paint.append("".join(claws))
-    # spray falling from the crest like snow
-    for k in range(140):
-        t = rnd.uniform(0.45, 1.0)
-        i = int(t * (N - 1))
-        px, py = A[i]
-        dx, dy = rnd.uniform(-5, 70), rnd.gauss(30, 40) + 10
-        r = rnd.uniform(1.0, 2.8)
-        paint.append(f'<circle cx="{px + dx:.1f}" cy="{py + dy:.1f}" r="{r:.1f}" fill="#FBF6E8" stroke="{KEY}" stroke-width="0.5" opacity="0.95"/>')
-    # foreground wave, a small Fuji of water with its own crest
-    fw_out = catmull_pts(UV([(0.04, 1.04), (0.1, 0.88), (0.17, 0.79), (0.23, 0.76), (0.28, 0.78), (0.31, 0.84)]), 8)
-    fw_in = catmull_pts(UV([(0.36, 1.04), (0.33, 0.94), (0.32, 0.88), (0.31, 0.84)]), 8)
-    fw = fw_out + fw_in[::-1]
-    paint.append(f'<path d="{pd(fw)}" fill="{PRUSSIAN[1]}" stroke="{KEY}" stroke-width="1.8" stroke-linejoin="round"/>')
-    fA = resample(fw_out, 30)
-    fB = resample(fw_in[::-1] + [fw_in[0]], 30)
-    for i in range(12, 29, 2):
-        (ax, ay), (bx, by) = fA[i - 1], fA[min(29, i + 1)]
+        line = [(x + k * 3, y + k * 9) for x, y in rs_top][2:]
+        p.append(key_line(line, 0.4, 1.8, PB[5] if k % 2 else PB[1], 0.75))
+    p.append(f'<path d="{smooth_open(rs_top)}" fill="none" stroke="{KL}" stroke-width="1.8"/>')
+    cl = []
+    for i in range(5, len(rs_top) - 1, 3):
+        (ax, ay), (bx, by) = rs_top[i - 1], rs_top[i + 1]
         tang = math.degrees(math.atan2(by - ay, bx - ax))
-        paint.append(claw(fA[i][0], fA[i][1], tang - 70, 12, 300 + i, 1))
-    paint.append(woodgrain(D, box, 0.05, 9, "#1A1A2A"))
-    out.append(f'<g {cp}>{"".join(paint)}</g>')
-    out.append(f'<rect x="{x0 - 1}" y="{y0 - 1}" width="{W + 2}" height="{H + 2}" fill="none" stroke="{KEY}" stroke-width="2.4"/>')
+        cl.append(gw_claw_d(rs_top[i][0], rs_top[i][1] + 1, tang - 120 + rnd.uniform(-12, 12), rnd.uniform(10, 15), 600 + i, 1, 120))
+    p.append(foam_mass(cl, FOAM, KL, 0.9, 0.6))
+    p.append(gw_boat(D, X(0.745), Y(0.84), X(1.05), Y(0.62), 7, 21, w=10.5))
+
+    # ---- THE GREAT WAVE --------------------------------------------------------------------------------
+    # O: the back and crest, from the lower left edge up to the summit, right along the crest, round the hook and
+    # down to the end of the lip.  I: the inner face, from the trough up under the overhang to the same lip end.
+    O = catmull_pts(UV([(-0.05, 0.84), (-0.005, 0.64), (0.045, 0.49), (0.105, 0.35), (0.175, 0.225), (0.255, 0.13), (0.345, 0.075),
+                        (0.435, 0.062), (0.515, 0.083), (0.575, 0.125), (0.612, 0.18), (0.625, 0.24), (0.612, 0.292), (0.583, 0.326),
+                        (0.548, 0.338)]), 10)
+    I = catmull_pts(UV([(0.76, 0.8), (0.66, 0.785), (0.57, 0.755), (0.49, 0.7), (0.43, 0.625), (0.395, 0.535), (0.383, 0.445),
+                        (0.392, 0.365), (0.418, 0.305), (0.455, 0.27), (0.495, 0.258), (0.527, 0.266), (0.546, 0.287), (0.553, 0.312),
+                        (0.548, 0.338)]), 10)
+    N = 150
+    A = resample(O, N)
+    Bi = resample(I, N)
+    body = A + Bi[::-1][1:] + [(X(0.76), Y(1.06)), (X(-0.05), Y(1.06))]
+    p.append(f'<path d="{pd(body)}" fill="{PB[1]}"/>')
+    # colour bands nested inside the hook: deep indigo on the back, lightening towards the inner face
+    bands = [(0.0, 0.2, PB[0]), (0.2, 0.42, PB[1]), (0.42, 0.6, PB[2]), (0.6, 0.76, "#4072AC"), (0.76, 0.9, PB[3]), (0.9, 1.0, "#7EA6CE")]
+    for f0, f1, col in bands:
+        p.append(f'<path d="{pd(ribbon_band(A, Bi, f0, f1))}" fill="{col}"/>')
+    # the woodblock's flowing lines: pale and dark veins that follow the hook, fading out before the foam
+    for k in range(19):
+        f = 0.05 + k * 0.05 + rnd.uniform(-0.01, 0.01)
+        line = [lerp(a, b, f) for a, b in zip(A, Bi)][int(N * 0.06):int(N * (0.86 - 0.18 * f))]
+        if len(line) < 6:
+            continue
+        light = k % 2 == 1
+        p.append(key_line(line, 0.4, 2.3 if light else 2.9, PB[5] if light else PB[0], 0.85 if light else 0.55))
+    # the white net on the paler inner face
+    for _ in range(170):
+        f = rnd.uniform(0.62, 0.98)
+        i = rnd.randint(int(N * 0.12), int(N * 0.78))
+        (ax, ay), (bx, by) = lerp(A[i], Bi[i], f), lerp(A[i + 2], Bi[i + 2], f)
+        p.append(f'<path d="M{ax:.1f} {ay:.1f}L{bx:.1f} {by:.1f}" stroke="{FOAM}" stroke-width="{rnd.uniform(0.8, 1.6):.1f}" stroke-linecap="round" opacity="0.8"/>')
+    p.append(key_line(A, 1.4, 3.0, "#101830"))
+    p.append(key_line(Bi, 1.2, 2.6, "#101830"))
+    # the trough in front of the face: swell lines echoing the face, so the foreground sea is never a flat block
+    cpb = D.clip(f'<path d="{pd(body)}"/>')
+    lower = Bi[:int(N * 0.34)]
+    rip = []
+    for k in range(1, 12):
+        line = [(x - k * 2.5, y + k * 9.5) for x, y in lower]
+        rip.append(key_line(line, 0.4, 2.2 if k % 2 else 2.6, PB[4] if k % 2 else PB[0], 0.75 if k % 2 else 0.5))
+    p.append(f'<g {cpb}>{"".join(rip)}</g>')
+
+    # foam: a white rim thickening along the crest and over the hook, then the claws
+    TA, NA = gw_normals(A)
+    TB, NB = gw_normals(Bi)
+    i0 = int(N * 0.26)
+    rim_o = A[i0:]
+    rim_i = [lerp(a, b, 0.085 + 0.2 * ((j / (N - i0)) ** 1.5)) for j, (a, b) in enumerate(zip(A[i0:], Bi[i0:]))]
+    p.append(f'<path d="{smooth_closed(rim_o + rim_i[::-1])}" fill="{FOAM}" stroke="{KL}" stroke-width="1.2"/>')
+    # blue spines inside the rim, the start of each finger
+    for j in range(0, len(rim_o) - 4, 5):
+        a_, b_ = rim_o[j], rim_i[j]
+        p.append(f'<path d="M{lerp(a_, b_, 0.25)[0]:.1f} {lerp(a_, b_, 0.25)[1]:.1f}L{lerp(a_, b_, 0.85)[0]:.1f} {lerp(a_, b_, 0.85)[1]:.1f}" stroke="#8FB0D2" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>')
+    claws = []
+    for i in range(i0 + 3, N - 1, 4):
+        t = (i - i0) / (N - 1 - i0)            # 0 at the start of the crest, 1 at the end of the lip
+        tx, ty = TA[i]
+        nx, ny = -NA[i][0], -NA[i][1]           # outward normal (away from the body) along O
+        if t < 0.55:
+            # along the top of the crest the fingers reach forward and out, curling over clockwise
+            dx, dy = tx * 0.8 + nx * 0.6, ty * 0.8 + ny * 0.6
+            s_ = 18 + 30 * (t / 0.55) + rnd.uniform(-3, 3)
+            curl = 120
+        else:
+            # over the hook and along the lip: big talons hanging DOWN, hooking back to the LEFT like a grasping hand
+            dx, dy = tx * 0.15 + nx * 0.35 - 0.25, ty * 0.15 + ny * 0.35 + 0.95
+            s_ = 48 + 28 * math.sin(math.pi * min(1.0, (t - 0.55) / 0.4)) + rnd.uniform(-4, 4)
+            curl = 150
+        ang = math.degrees(math.atan2(dy, dx)) + rnd.uniform(-7, 7)
+        claws.append(gw_claw_d(A[i][0], A[i][1], ang, s_, 100 + i, 2, curl, fat=0.3))
+    # the end of the lip: the largest talons, dropping almost straight down and curling in under the overhang
+    for k, (u, v, a, s_) in enumerate([(0.6, 0.3, 95, 62), (0.565, 0.33, 104, 66), (0.54, 0.325, 112, 56), (0.515, 0.29, 120, 44), (0.49, 0.272, 126, 34)]):
+        claws.append(gw_claw_d(X(u), Y(v), a, s_, 300 + k, 2, 160, fat=0.3))
+    p.append(foam_mass(claws, FOAM, KL, 1.3, 0.75))
+    # spray thrown off the talons, falling like snow towards Fuji
+    for _ in range(190):
+        i = rnd.randint(int(N * 0.55), N - 1)
+        sx, sy = A[i]
+        d = rnd.uniform(20, 170)
+        x, y = sx + d * 0.42 + rnd.gauss(0, 12), sy + 30 + d * 0.8 + rnd.gauss(0, 12)
+        if inside((x, y), body) or y > Y(0.66) or x > X(0.88) or x < X(0.45):
+            continue
+        r = rnd.uniform(0.9, 2.4) * (1.2 - d / 240)
+        p.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{FOAM}" stroke="{KL}" stroke-width="{0.45 if r > 1.3 else 0}"/>')
+
+    # ---- the second boat climbing the face beneath the claws
+    p.append(gw_boat(D, X(0.37), Y(0.655), X(0.68), Y(0.785), 8, 22, w=11))
+    # ---- lower left: the third boat diving, nearly swallowed by a foaming swell at the wave's foot
+    p.append(gw_boat(D, X(-0.02), Y(0.83), X(0.24), Y(0.94), 6, 23, w=10))
+    ll_top = catmull_pts(UV([(-0.05, 0.92), (0.03, 0.885), (0.1, 0.9), (0.16, 0.95), (0.21, 1.06)]), 8)
+    p.append(f'<path d="{pd(ll_top)} L{X(-0.05):.1f} {Y(1.06):.1f} Z" fill="{D.lin([(0, PB[2]), (1, PB[0])], 0, 0, 0, 1)}"/>')
+    p.append(f'<path d="{smooth_open(ll_top)}" fill="none" stroke="{KL}" stroke-width="1.6"/>')
+    cl = []
+    for i in range(3, len(ll_top) - 6, 3):
+        (ax, ay), (bx, by) = ll_top[i - 1], ll_top[i + 1]
+        tang = math.degrees(math.atan2(by - ay, bx - ax))
+        cl.append(gw_claw_d(ll_top[i][0], ll_top[i][1], tang - 50, rnd.uniform(11, 15), 800 + i, 1, 125))
+    p.append(foam_mass(cl, FOAM, KL, 0.9, 0.6))
+    # ---- the small foreground wave, a little Fuji of water with a foaming cap
+    sw_top = catmull_pts(UV([(0.13, 1.06), (0.19, 0.93), (0.245, 0.8), (0.285, 0.715), (0.31, 0.69), (0.335, 0.705), (0.375, 0.79),
+                             (0.43, 0.93), (0.47, 1.06)]), 8)
+    p.append(f'<path d="{pd(sw_top)} Z" fill="{D.lin([(0, PB[3]), (0.35, PB[2]), (1, PB[0])], 0, 0, 0, 1)}"/>')
+    for k in range(1, 7):
+        line = [(x, y + k * 7) for x, y in sw_top][5:-5]
+        p.append(key_line(line, 0.4, 1.7, PB[5] if k % 2 else PB[0], 0.7))
+    p.append(f'<path d="{smooth_open(sw_top)}" fill="none" stroke="{KL}" stroke-width="1.8"/>')
+    cl = []
+    for i in range(18, 50, 3):
+        (ax, ay), (bx, by) = sw_top[i - 1], sw_top[i + 1]
+        tang = math.degrees(math.atan2(by - ay, bx - ax))
+        side = -1 if sw_top[i][0] < X(0.31) else 1
+        cl.append(gw_claw_d(sw_top[i][0], sw_top[i][1] + 1, tang - 70 + rnd.uniform(-10, 10), rnd.uniform(12, 17), 700 + i, 2, 120 * side))
+    p.append(foam_mass(cl, FOAM, KL, 1.0, 0.6))
+    # printing texture over everything: block grain, uneven ink
+    p.append(woodgrain(D, box, 0.06, 9, "#0A1020"))
+    out.append(f'<g {cp}>{"".join(p)}</g>')
+    out.append(f'<rect x="{x0 - 1}" y="{y0 - 1}" width="{W + 2}" height="{H + 2}" fill="none" stroke="{KL}" stroke-width="2.4"/>')
     out.append(museum_label(D, 470, "The Great Wave", "KATSUSHIKA HOKUSAI · c. 1831", "#1E2A44", "#5A6478", ts=34, bs=18, gap=32))
-    out.append(hanko(466, 432, 24, seed=3))
-    return finish(D, out, 43)
+    out.append(hanko(470, 433, 24, seed=3))
+    return gm_finish(D, out, 43, "#F1E9D8", edge=2.2, bristle=0.3, grain_=0.12)
 
 
 # ================================================================ 12. Red Fuji (Fine Wind, Clear Morning) — Hokusai, c. 1831
@@ -1932,8 +2047,13 @@ def scroll_mount(D, box, seed, silk="#2E3A4A", brocade="#B89A5A", paper_c="#E8DC
 
 @design("red-fuji")
 def red_fuji():
+    """Fine Wind, Clear Morning (Red Fuji), Hokusai c. 1831 — checklist of the original:
+    horizontal; the cone fills the picture, summit a little right of centre, long left slope running out of the lower
+    left, steeper right slope; red-brown that deepens to maroon at the summit, white snow in rivulets down from the
+    top; the lower slopes melting through a pale green bokashi into a dark green forest of tiny trees; Prussian blue
+    sky paling to the horizon, crossed by ranks of small white mackerel clouds; cartouche top left."""
     D = Doc("gmrf")
-    box = (70, 70, 530, 382)   # 460 x 312 (25.5 x 37.5 cm)
+    box = (66, 66, 534, 384)
     x0, y0, x1, y1 = box
     W, H = x1 - x0, y1 - y0
 
@@ -1945,68 +2065,87 @@ def red_fuji():
 
     def UV(pts):
         return [(X(u), Y(v)) for u, v in pts]
+    rnd = random.Random(5)
     out = [scroll_mount(D, box, 3, "#24303E", "#A8884A")]
     cp = clip_box(D, box)
-    paint = [washi(D, box, "#F0E4C6", 7)]
-    # sky: Prussian blue at the top fading to pale, with rows of mackerel clouds
-    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#1E3A78"), (0.35, "#3E6AAE"), (0.7, "#9ABCD8"), (1, "#E8E4D0")])}"/>')
-    paint.append(woodgrain(D, box, 0.06, 3, "#0A1A3A"))
-    rnd = random.Random(5)
-    for row in range(7):
-        v = 0.12 + row * 0.075
-        u = rnd.uniform(-0.05, 0.05)
-        while u < 1.05:
-            w = rnd.uniform(0.025, 0.05) * (1 + row * 0.08)
-            cx, cy = X(u), Y(v + 0.015 * math.sin(u * 9 + row))
-            d = smooth_closed([(cx - w * W, cy), (cx - w * W * 0.4, cy - 4 - row * 0.4), (cx + w * W * 0.3, cy - 3 - row * 0.3), (cx + w * W, cy + 1), (cx, cy + 3)])
-            paint.append(f'<path d="{d}" fill="#FBF8EE" opacity="{0.95 - row * 0.05:.2f}"/>')
-            u += w * 2 + rnd.uniform(0.015, 0.04)
-    # the mountain: a great red-brown cone, darker toward the summit, snow running down in streaks
-    fuji = UV([(-0.12, 1.02), (0.12, 0.8), (0.3, 0.6), (0.42, 0.42), (0.5, 0.24), (0.54, 0.165), (0.57, 0.155), (0.6, 0.16), (0.625, 0.17),
-               (0.66, 0.24), (0.76, 0.4), (0.88, 0.56), (1.02, 0.72), (1.02, 1.02)])
+    p = [washi(D, box, "#F0E4C6", 7)]
+    p.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#173068"), (0.3, "#2E5A9E"), (0.62, "#86AACC"), (0.85, "#D4DCD2"), (1, "#EFE6CC")])}"/>')
+    p.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#0E1E48", 0.35), (0.5, "#0E1E48", 0), (1, "#0E1E48", 0.2)], 0, 0, 1, 0)}"/>')
+    p.append(woodgrain(D, box, 0.07, 3, "#0A1A3A"))
+    fuji = UV([(-0.1, 0.98), (0.08, 0.82), (0.22, 0.67), (0.33, 0.52), (0.42, 0.37), (0.49, 0.24), (0.53, 0.175), (0.555, 0.158),
+               (0.585, 0.152), (0.61, 0.158), (0.635, 0.175), (0.68, 0.25), (0.77, 0.4), (0.87, 0.54), (0.97, 0.66), (1.06, 0.74), (1.06, 1.05), (-0.1, 1.05)])
     fd = smooth_closed(fuji)
-    paint.append(f'<path d="{fd}" fill="{D.lin([(0, "#5A2414"), (0.25, "#9A3A1E"), (0.55, "#C0502A"), (1, "#C8683A")])}"/>')
-    paint.append(woodgrain(D, (x0, Y(0.15), x1, y1), 0.1, 7, "#3A1408"))
-    # snow tongues from the summit
-    snow = []
-    sx = X(0.57)
-    for k in range(13):
-        base_x = X(0.505 + (k / 12) * 0.15) + rnd.uniform(-2, 2)
-        top_y = Y(0.16 + abs(k - 6) * 0.006)
-        L = rnd.uniform(0.07, 0.22) * (1 - abs(k - 6) / 14)
-        tip = (base_x + (base_x - sx) * 0.55, top_y + H * L)
-        mid = lerp((base_x, top_y), tip, 0.55)
-        w = rnd.uniform(3, 5)
-        snow.append(f'<path d="M{base_x - w:.1f} {top_y:.1f}Q{mid[0] - w * 0.8:.1f} {mid[1]:.1f} {tip[0]:.1f} {tip[1]:.1f}Q{mid[0] + w * 0.6:.1f} {mid[1]:.1f} {base_x + w:.1f} {top_y:.1f}Z" fill="#F6F2E8"/>')
-    # darker, cooler streaks high on the cone where the rock is bare
-    for k in range(26):
-        u = rnd.uniform(0.44, 0.72)
-        v0 = rnd.uniform(0.2, 0.45)
-        snow.append(f'<path d="M{X(u):.1f} {Y(v0):.1f}l{(X(u) - sx) * 0.25:.1f} {rnd.uniform(18, 50):.1f}" stroke="{rnd.choice(["#3A1A1A", "#5A2A20", "#2A1A2A"])}" stroke-width="{rnd.uniform(1.5, 3.2):.1f}" opacity="0.35" stroke-linecap="round"/>')
-    cap = UV([(0.5, 0.24), (0.54, 0.165), (0.57, 0.155), (0.6, 0.16), (0.625, 0.17), (0.66, 0.24), (0.6, 0.22), (0.57, 0.25), (0.54, 0.22)])
-    paint.append(f'<g {D.clip(f"<path d=\"{fd}\"/>")}>{"".join(snow)}<path d="{smooth_closed(cap)}" fill="#F6F2E8"/></g>')
-    # dark green forest at the foot, a field of tiny tree dabs
-    forest = UV([(-0.02, 0.86), (0.1, 0.8), (0.2, 0.78), (0.3, 0.82), (0.45, 0.84), (0.6, 0.86), (0.75, 0.84), (0.9, 0.86), (1.02, 0.84), (1.02, 1.02), (-0.02, 1.02)])
-    paint.append(f'<path d="{smooth_closed(forest)}" fill="#1E3A2A"/>')
-    for k in range(320):
-        x, y = rnd.uniform(x0, x1), rnd.uniform(Y(0.78), y1)
-        if not inside((x, y), forest):
+    in_fuji = lambda x, y: inside((x, y), fuji)
+    # clouds: ranks of small puffs across the sky, thinning towards the mountain
+    rows = [(0.05 + k * 0.042, -0.04, 1.04, 0.022 + k * 0.0022, 1.0 - k * 0.03) for k in range(14)]
+    mackerel(p, D, X, Y, W, H, rows, 21, lambda x, y: not inside((x, y + 6), fuji) and not (x < X(0.2) and y < Y(0.26)))
+    # the cone: maroon at the summit warming to vermilion, then pale green bokashi at the foot
+    p.append(f'<path d="{fd}" fill="{D.lin([(0, "#3E140C"), (0.12, "#5A1C10"), (0.3, "#8A2C16"), (0.5, "#B23E20"), (0.68, "#C4552C"), (0.8, "#C8683A"), (1, "#B88A50")], 0, 0, 0, 1)}"/>')
+    p.append(f'<g {D.clip(f"<path d=\"{fd}\"/>")}><ellipse cx="{X(0.12):.1f}" cy="{Y(1.0):.1f}" rx="{W * 0.5:.1f}" ry="{H * 0.42:.1f}" fill="{D.rad([(0, "#A6BC94", 0.95), (0.45, "#B0B88C", 0.6), (1, "#C0A070", 0)])}"/></g>')
+    # brushed grain running down the slopes from the summit
+    sx, sy = X(0.57), Y(0.15)
+    marks = []
+    for _ in range(520):
+        x, y = rnd.uniform(x0, x1), rnd.uniform(Y(0.18), y1)
+        if not in_fuji(x, y):
             continue
-        r = 1.6 + 1.8 * (y - Y(0.78)) / (H * 0.22)
-        paint.append(f'<path d="M{x - r:.1f} {y + r:.1f}L{x:.1f} {y - r * 1.3:.1f}L{x + r:.1f} {y + r:.1f}Z" fill="{rnd.choice(["#2E5A3A", "#3A6A44", "#14301E", "#4A7A4A"])}"/>')
-    paint.append(f'<path d="{fd}" fill="none" stroke="#2A0E06" stroke-width="2" stroke-linejoin="round"/>')
-    out.append(f'<g {cp}>{"".join(paint)}</g>')
+        dx, dy = x - sx, y - sy
+        L = math.hypot(dx, dy) or 1
+        l = rnd.uniform(10, 34)
+        v = (y - y0) / H
+        c = rnd.choice(["#4A1A10", "#6A2414", "#9A3A1E", "#C25A30"] if v < 0.55 else ["#B04A26", "#C8683A", "#D07A44", "#9A4024", "#A8A070"])
+        marks.append(f'<path d="M{x:.1f} {y:.1f}l{dx / L * l:.1f} {dy / L * l:.1f}" stroke="{c}" stroke-width="{rnd.uniform(1.2, 3.2):.1f}" opacity="{rnd.uniform(0.15, 0.4):.2f}" stroke-linecap="round"/>')
+    p.append(f'<g {D.clip(f"<path d=\"{fd}\"/>")}>{"".join(marks)}{woodgrain(D, (x0, Y(0.15), x1, y1), 0.09, 7, "#2A0C04")}</g>')
+    # snow: rivulets running down from the dark summit, longest in the gullies
+    snow = []
+    for k in range(15):
+        t = k / 14
+        bx = X(0.512 + t * 0.118) + rnd.uniform(-1.5, 1.5)
+        by = Y(0.205 - 0.04 * math.sin(math.pi * t)) + 5
+        L = H * rnd.uniform(0.07, 0.24) * (1 - abs(t - 0.5) * 0.9)
+        dx, dy = bx - sx, by - sy + 60
+        dl = math.hypot(dx, dy)
+        tip = (bx + dx / dl * L, by + dy / dl * L)
+        w = rnd.uniform(1.4, 2.8)
+        mid = lerp((bx, by), tip, 0.5)
+        snow.append(f'<path d="M{bx - w:.1f} {by - 6:.1f}Q{mid[0] - w * 0.7:.1f} {mid[1]:.1f} {tip[0]:.1f} {tip[1]:.1f}Q{mid[0] + w * 0.6:.1f} {mid[1]:.1f} {bx + w:.1f} {by - 6:.1f}Z" fill="#F6F2E6"/>')
+    p.append(f'<g {D.clip(f"<path d=\"{fd}\"/>")}>{"".join(snow)}</g>')
+    crown = UV([(0.49, 0.24), (0.53, 0.175), (0.555, 0.158), (0.585, 0.152), (0.61, 0.158), (0.635, 0.175), (0.68, 0.25)])
+    p.append(key_line(catmull_pts(crown, 6), 1.2, 3.4, "#24100A"))
+    p.append(f'<path d="{fd}" fill="none" stroke="#2A0E06" stroke-width="1.6" stroke-linejoin="round"/>')
+    # the forest: rank on rank of tiny round-topped trees in dark greens
+    ftop = lambda x: Y(0.875 + 0.022 * math.sin((x - x0) / 38) + 0.012 * math.sin((x - x0) / 13) - 0.02 * (x - x0) / W)
+    forest = [(x, ftop(x)) for x in range(x0 - 4, x1 + 8, 4)] + [(x1 + 6, y1 + 6), (x0 - 6, y1 + 6)]
+    p.append(f'<path d="{pd(forest)}" fill="{D.lin([(0, "#2C4A34"), (1, "#14281C")])}"/>')
+    trees = []
+    for k in range(560):
+        x = rnd.uniform(x0 - 4, x1 + 4)
+        y = rnd.uniform(ftop(x) - 2, y1 + 4)
+        r = 1.4 + 2.4 * (y - Y(0.84)) / (H * 0.16)
+        trees.append((y, x, r))
+    for y, x, r in sorted(trees):
+        c = rnd.choice(["#3E6446", "#2E5038", "#4A7250", "#1E3A28", "#5A7E52"])
+        p.append(f'<path d="M{x - r:.1f} {y + r * 0.9:.1f}Q{x - r:.1f} {y - r * 1.3:.1f} {x:.1f} {y - r * 1.5:.1f}Q{x + r:.1f} {y - r * 1.3:.1f} {x + r:.1f} {y + r * 0.9:.1f}Z" fill="{c}"/>'
+                 f'<path d="M{x - r * 0.4:.1f} {y - r * 0.6:.1f}q{r * 0.3:.1f} {-r * 0.5:.1f} {r * 0.7:.1f} {-r * 0.4:.1f}" stroke="#7A9A6A" stroke-width="0.8" fill="none" opacity="0.6"/>')
+    cartouche(p, X(0.03), Y(0.04), W * 0.075, H * 0.2, 9)
+    out.append(f'<g {cp}>{"".join(p)}</g>')
     out.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="none" stroke="#2A1A10" stroke-width="1.6"/>')
-    out.append(museum_label(D, 464, "Red Fuji", "KATSUSHIKA HOKUSAI · c. 1831", "#F2E4C4", "#C8B48C", ts=40, bs=19, gap=38))
-    out.append(hanko(287, 516, 26, seed=5))
-    return finish(D, out, 47)
+    out.append(museum_label(D, 462, "Red Fuji", "KATSUSHIKA HOKUSAI · c. 1831", "#F2E4C4", "#C8B48C", ts=40, bs=19, gap=38))
+    out.append(hanko(287, 514, 26, seed=5))
+    return gm_finish(D, out, 47, "#24303E", edge=2.2, bristle=0.3, grain_=0.22)
 
 
 # ================================================================ 13. Plum Park in Kameido — Hiroshige, 1857
 @design("plum-garden")
 def plum_garden():
+    """Plum Park in Kameido, Hiroshige 1857 — checklist of the original:
+    vertical print; a huge, dark, gnarled plum trunk in the very foreground, cropped by the frame: it comes up from
+    the bottom edge, bends, and a thick limb runs almost level to the right edge, with thin shoots climbing into the
+    sky and twigs hanging across the front, all studded with white blossoms; behind it a blue-green garden floor,
+    paler blossoming trees and tiny visitors along a low fence; a saturated red sky at the top fading to pale above
+    the garden; red vertical title cartouche at the upper right with a second cartouche beside it."""
     D = Doc("gmpg")
-    box = (172, 56, 428, 436)   # 256 x 380 (36 x 24 cm, portrait)
+    box = (170, 54, 430, 438)
     x0, y0, x1, y1 = box
     W, H = x1 - x0, y1 - y0
 
@@ -2018,86 +2157,112 @@ def plum_garden():
 
     def UV(pts):
         return [(X(u), Y(v)) for u, v in pts]
+    rnd = random.Random(4)
     out = [mat_board(D, (x0 - 4, y0 - 4, x1 + 4, y1 + 4), 5, "#E6DCC8", 101)]
     out.append(simple_frame(D, (x0 - 4, y0 - 4, x1 + 4, y1 + 4), 10, ("#5A4A3A", "#2A2018", "#120C08"), 3))
     cp = clip_box(D, box)
-    paint = [washi(D, box, "#F2EAD6", 9)]
-    # sky: red bokashi at the top melting into pale ivory
-    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H * 0.62}" fill="{D.lin([(0, "#C8281E"), (0.3, "#E0603A"), (0.65, "#F2C8A0", 0.6), (1, "#F2EAD6", 0)])}"/>')
-    paint.append(woodgrain(D, (x0, y0, x1, Y(0.4)), 0.08, 9, "#5A0A06"))
-    # ground: soft green field, a fence and strollers among distant plum trees
-    ground = UV([(-0.02, 0.62), (0.4, 0.6), (1.02, 0.61), (1.02, 1.02), (-0.02, 1.02)])
-    paint.append(f'<path d="{pd(ground)}" fill="{D.lin([(0, "#C8D0A0"), (1, "#8AA070")])}"/>')
-    paint.append(f'<path d="{pd(UV([(-0.02, 0.62), (1.02, 0.6), (1.02, 0.64), (-0.02, 0.66)]))}" fill="#6A8A5A" opacity="0.5"/>')
-    rnd = random.Random(4)
-    # distant plum trees: dark twisted trunks with white blossom dots
-    for k, (u, v, s) in enumerate([(0.08, 0.6, 0.6), (0.3, 0.58, 0.5), (0.62, 0.6, 0.55), (0.86, 0.59, 0.6), (0.46, 0.6, 0.4)]):
+    p = [washi(D, box, "#F3E8D2", 9)]
+    p.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H * 0.58}" fill="{D.lin([(0, "#B81E16"), (0.16, "#CC3322"), (0.38, "#E47A52", 0.85), (0.7, "#F2D2B0", 0.35), (1, "#F3E8D2", 0)])}"/>')
+    p.append(woodgrain(D, (x0, y0, x1, Y(0.45)), 0.09, 9, "#5A0A06"))
+    # garden floor: blue-green bokashi, deeper towards the viewer
+    gtop = Y(0.6)
+    p.append(f'<path d="{pd(UV([(-0.02, 0.6), (0.5, 0.59), (1.02, 0.6), (1.02, 1.02), (-0.02, 1.02)]))}" fill="{D.lin([(0, "#B8CCB0"), (0.3, "#8EB0A0"), (1, "#4E8478")])}"/>')
+    p.append(woodgrain(D, (x0, gtop, x1, y1), 0.06, 13, "#1A3A30"))
+    # paler blossoming trees in the garden beyond
+    for k, (u, v, s) in enumerate([(0.06, 0.64, 0.75), (0.5, 0.62, 0.55), (0.7, 0.63, 0.7), (0.92, 0.62, 0.6), (0.34, 0.61, 0.45)]):
         bx, by = X(u), Y(v)
         segs = []
-        branch_tree(random.Random(40 + k), bx, by, math.radians(-90 + rnd.uniform(-20, 20)), 70 * s, 6 * s, 2, segs, 30)
+        branch_tree(random.Random(40 + k), bx, by, math.radians(-90 + rnd.uniform(-25, 25)), 62 * s, 5 * s, 2, segs, 34)
         for pts, w0, w1 in segs:
-            paint.append(taper(pts, w0 + 0.5, w1, "#3A2A2A"))
+            p.append(taper(pts, w0 + 0.4, w1 * 0.8, "#4A3A3E"))
         for pts, w0, w1 in segs:
-            for (px, py) in pts[1::2]:
-                paint.append(f'<circle cx="{px + rnd.uniform(-3, 3):.1f}" cy="{py + rnd.uniform(-3, 3):.1f}" r="{rnd.uniform(1.4, 2.4):.1f}" fill="#FFFFFF" stroke="#C8B8B8" stroke-width="0.4"/>')
-    # fence
-    for k in range(18):
-        fx = X(-0.02 + k * 0.06)
-        paint.append(f'<path d="M{fx:.1f} {Y(0.66):.1f}V{Y(0.62):.1f}" stroke="#7A6A5A" stroke-width="1.6"/>')
-    paint.append(f'<path d="M{x0} {Y(0.635)}H{x1}" stroke="#7A6A5A" stroke-width="1.4"/>')
-    # small strollers behind the fence
-    from figures import person
-    for k, (u, h, pal) in enumerate([(0.2, 26, {"top": "#3A4A6A", "top_kind": "coat", "bottom_kind": "skirt", "bottom": "#3A4A6A", "hat_kind": None, "hair": "#141018", "hair_style": "bun"}),
-                                    (0.27, 24, {"top": "#8A3A3A", "top_kind": "coat", "bottom_kind": "skirt", "bottom": "#8A3A3A", "hat_kind": None, "hair": "#141018", "hair_style": "bun"}),
-                                    (0.74, 25, {"top": "#4A5A3A", "top_kind": "coat", "bottom_kind": "skirt", "bottom": "#4A5A3A", "hat_kind": None, "hair": "#141018", "hair_style": "short"})]):
-        paint.append(person(X(u), Y(0.655), h, "stand_34", 1 if k else -1, {**pal, "skin": "#F2DCC0"}, seed=60 + k, light=1, shadow=0.15))
-    # the great foreground plum: a dark gnarled trunk rising through the whole picture
-    trunk_c = UV([(0.98, 1.04), (0.92, 0.86), (0.78, 0.74), (0.62, 0.62), (0.5, 0.46), (0.36, 0.36), (0.18, 0.3), (0.02, 0.22), (-0.06, 0.2)])
-    ws = [62, 56, 46, 40, 34, 28, 22, 16, 12]
-    tpts = tongue_pts(catmull_pts(trunk_c, 4), [ws[min(len(ws) - 1, i // 4)] * (1 - (i % 4) / 16) for i in range((len(trunk_c) - 1) * 4 + 1)])
-    tpts = jitter(tpts, 11, 2.5)
-    td = smooth_closed(tpts)
-    paint.append(f'<path d="{td}" fill="#2A2224"/>')
-    # bark: knots, mossy green patches and pale flaking edges, printed in flat layers
-    bark = []
-    for k in range(60):
-        i = rnd.randrange(len(tpts))
-        x, y = tpts[i]
-        bark.append(f'<path d="{blob(x + rnd.uniform(-10, 10), y + rnd.uniform(-10, 10), rnd.uniform(3, 9), rnd.uniform(2, 5), k, 0.3, 8, rnd.uniform(0, 180))}" fill="{rnd.choice(["#4A5A3A", "#5A6A4A", "#1A1418", "#6A5A4A", "#3A3A2A"])}"/>')
-    for k in range(10):
-        t = rnd.uniform(0.1, 0.8)
-        x, y = catmull_pts(trunk_c, 4)[int(t * (len(trunk_c) - 1) * 4)]
-        bark.append(f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{rnd.uniform(4, 8):.1f}" ry="{rnd.uniform(3, 5):.1f}" fill="#120C0E" stroke="#5A4A4A" stroke-width="1"/>')
-    paint.append(f'<g {D.clip(f"<path d=\"{td}\"/>")}>{"".join(bark)}</g>')
-    paint.append(f'<path d="{td}" fill="none" stroke="#0A0608" stroke-width="2"/>')
-    # twigs shooting straight up from the limb, as plums do, studded with blossoms
-    twigs = []
-    for k, (u, v, L, a) in enumerate([(0.26, 0.31, 70, -80), (0.12, 0.27, 50, -95), (0.42, 0.4, 90, -70), (0.55, 0.5, 60, -85), (0.36, 0.34, 40, -120),
-                                      (0.04, 0.22, 46, -60), (0.66, 0.6, 50, -60), (0.48, 0.42, 30, -40)]):
+            for (px, py) in pts[1:]:
+                for _ in range(3):
+                    p.append(f'<circle cx="{px + rnd.uniform(-5, 5):.1f}" cy="{py + rnd.uniform(-5, 4):.1f}" r="{rnd.uniform(1.3, 2.3):.1f}" fill="#FFFFFF" stroke="#D8C0C0" stroke-width="0.4"/>')
+    # low bamboo fence and the visitors standing along it
+    fy = Y(0.685)
+    p.append(f'<path d="M{x0} {fy:.1f}L{x1} {fy - 3:.1f}" stroke="#6A5A48" stroke-width="1.6"/>')
+    p.append(f'<path d="M{x0} {fy + 7:.1f}L{x1} {fy + 4:.1f}" stroke="#6A5A48" stroke-width="1.3"/>')
+    for k in range(22):
+        fx = X(-0.02 + k * 0.05)
+        p.append(f'<path d="M{fx:.1f} {fy + 11 - k * 0.14:.1f}V{fy - 4 - k * 0.14:.1f}" stroke="#5A4A3A" stroke-width="1.5"/>')
+    for k, (u, h, kim, fc, hat) in enumerate([(0.47, 22, "#2E3E62", -1, False), (0.53, 21, "#8A3436", -1, False), (0.62, 19, "#5A6A44", 1, True),
+                                               (0.86, 22, "#3A3A5A", -1, False), (0.91, 20, "#7A4A2E", -1, True)]):
+        p.append(edo_figure(X(u), fy + 2 - u * 3, h, 70 + k, kim, "#D8B060" if k % 2 else "#E8D8B0", fc, hat))
+    # ---- the great plum in the foreground
+    trunk_c = UV([(0.44, 1.06), (0.4, 0.92), (0.3, 0.8), (0.22, 0.7), (0.24, 0.62), (0.36, 0.585), (0.52, 0.565), (0.68, 0.545), (0.84, 0.52), (1.06, 0.49)])
+    ws = [104, 96, 84, 74, 62, 50, 42, 36, 30, 24]
+    cc = catmull_pts(trunk_c, 6)
+    wl = [ws[min(len(ws) - 1, i // 6)] + (ws[min(len(ws) - 1, i // 6 + 1)] - ws[min(len(ws) - 1, i // 6)]) * (i % 6) / 6 for i in range(len(cc))]
+    tpts = jitter(tongue_pts(cc, wl), 11, 2.2)
+    shoot_c = UV([(0.22, 0.68), (0.15, 0.55), (0.13, 0.42), (0.08, 0.3), (0.03, 0.17), (-0.03, 0.08)])
+    sc = catmull_pts(shoot_c, 5)
+    spts = jitter(tongue_pts(sc, [30 * (1 - i / len(sc)) + 5 for i in range(len(sc))]), 12, 1.6)
+    TR = ("#2A2226", "#3E3232", "#14100F")
+    limbs = []
+    for d_, src in ((smooth_closed(spts), spts), (smooth_closed(tpts), tpts)):
+        limbs.append(d_)
+        p.append(f'<path d="{d_}" fill="{D.lin([(0, TR[1]), (0.5, TR[0]), (1, TR[2])], 0, 0, 1, 1)}"/>')
+        bark = []
+        bx0, by0, bx1, by1 = x0 - 20, y0, x1 + 20, y1 + 20
+        for k in range(110):
+            x, y = rnd.uniform(bx0, bx1), rnd.uniform(Y(0.05), by1)
+            col = rnd.choice(["#4E5A3E", "#5E6E4A", "#6A5E4E", "#0C0A0A", "#3A3A2E", "#7A7A5A"])
+            bark.append(f'<path d="{blob(x, y, rnd.uniform(2.5, 8), rnd.uniform(1.5, 4), k, 0.3, 8, rnd.uniform(-30, 30))}" fill="{col}" opacity="{rnd.uniform(0.6, 1):.2f}"/>')
+        for k in range(5):
+            x, y = cc[rnd.randrange(4, len(cc) - 4)]
+            x, y = x + rnd.uniform(-12, 12), y + rnd.uniform(-8, 8)
+            bark.append(f'<path d="{blob(x, y, rnd.uniform(4, 7), rnd.uniform(2, 3.5), k + 50, 0.25, 9, rnd.uniform(-30, 30))}" fill="#0A0808"/>'
+                        f'<path d="{blob(x - 1, y - 2, rnd.uniform(6, 9), rnd.uniform(3, 4.5), k + 60, 0.2, 9, rnd.uniform(-30, 30))}" fill="none" stroke="#6A5E52" stroke-width="1.2" opacity="0.7"/>')
+        bark.append(strokes(D.nid(), d_, (x0 - 20, y0, x1 + 20, y1 + 20), ["#4A3E3E", "#0E0A0A", "#5A5246"], 300 + len(limbs), n=140, angle=-20,
+                            length=(14, 40), width=(1.2, 3), opacity=(0.3, 0.7), curve=0.3))
+        p.append(f'<g {D.clip(f"<path d=\"{d_}\"/>")}>{"".join(bark)}</g>')
+        p.append(f'<path d="{d_}" fill="none" stroke="#0A0608" stroke-width="2.2" stroke-linejoin="round"/>')
+    # straight new shoots rising from the limb, twigs hanging across the front, all in bloom
+    twigs, blooms_ = [], []
+    specs = [(0.3, 0.6, 90, -85), (0.42, 0.575, 120, -78), (0.56, 0.56, 80, -92), (0.7, 0.545, 110, -70), (0.86, 0.52, 70, -95),
+             (0.13, 0.42, 60, -70), (0.08, 0.3, 45, -40), (0.62, 0.56, 70, 75), (0.82, 0.53, 90, 95), (0.95, 0.5, 60, 70), (0.18, 0.52, 50, -130)]
+    for k, (u, v, L, a) in enumerate(specs):
         x, y = X(u), Y(v)
         pts = [(x, y)]
         ang = math.radians(a)
-        for i in range(4):
-            ang += math.radians(rnd.uniform(-12, 12))
-            pts.append((pts[-1][0] + L / 4 * math.cos(ang), pts[-1][1] + L / 4 * math.sin(ang)))
-        twigs.append(taper(pts, 5, 1.6, "#2A2224"))
+        for i in range(5):
+            ang += math.radians(rnd.uniform(-10, 10))
+            pts.append((pts[-1][0] + L / 5 * math.cos(ang), pts[-1][1] + L / 5 * math.sin(ang)))
+        twigs.append(taper(pts, 6 if a < 0 else 5, 1.4, "#241C1E"))
         for (px, py) in pts[1:]:
-            for j in range(2):
-                fx, fy = px + rnd.uniform(-7, 7), py + rnd.uniform(-5, 5)
-                r = rnd.uniform(4.5, 6.5)
-                petals = "".join(f'<circle cx="{fx + r * 0.6 * math.cos(math.radians(72 * i + 18)):.1f}" cy="{fy + r * 0.6 * math.sin(math.radians(72 * i + 18)):.1f}" r="{r * 0.5:.1f}"/>' for i in range(5))
-                twigs.append(f'<g fill="#FFFFFF" stroke="#B8A0A0" stroke-width="0.6">{petals}</g><circle cx="{fx:.1f}" cy="{fy:.1f}" r="{r * 0.25:.1f}" fill="#E85A5A"/>')
-            if rnd.random() < 0.5:
-                twigs.append(f'<circle cx="{px + 3:.1f}" cy="{py - 3:.1f}" r="2.4" fill="#C8303A"/>')
-    paint.append("".join(twigs))
-    out.append(f'<g {cp}>{"".join(paint)}</g>')
-    # title cartouche printed on the picture, as in the series (here in English)
-    out.append(f'<rect x="{x1 - 40}" y="{y0 + 12}" width="28" height="104" fill="#E8D8B0" stroke="#2A1A10" stroke-width="1.2"/>')
-    out.append(f'<rect x="{x1 - 37}" y="{y0 + 15}" width="22" height="98" fill="none" stroke="#C8281E" stroke-width="1"/>')
-    for k in range(4):
-        out.append(f'<path d="M{x1 - 31} {y0 + 26 + k * 22}h10" stroke="#2A1A10" stroke-width="2.4" opacity="0"/>')
-    out.append(museum_label(D, 490, "Plum Garden in Kameido", "UTAGAWA HIROSHIGE · 1857", "#3A2A1E", "#6A5440", ts=28, bs=17, gap=28, max_w=440))
-    return finish(D, out, 53)
+            for j in range(rnd.randint(1, 3)):
+                fx, fy = px + rnd.uniform(-7, 7), py + rnd.uniform(-6, 6)
+                if rnd.random() < 0.25:
+                    blooms_.append(f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="{rnd.uniform(2, 2.8):.1f}" fill="#C8283A" stroke="#7A1420" stroke-width="0.5"/>')
+                else:
+                    blooms_.append(plum_bloom(fx, fy, rnd.uniform(5.2, 7.2), rnd.randint(0, 9999), rnd.uniform(0, 72)))
+    p.append("".join(twigs) + "".join(blooms_))
+    # signature and seal, low on the left
+    for k in range(5):
+        p.append(f'<path d="M{X(0.07) + rnd.uniform(-1, 1):.1f} {Y(0.78) + k * 7:.1f}l{rnd.uniform(-1.5, 1.5):.1f} 5" stroke="#1A1418" stroke-width="1.3" stroke-linecap="round"/>')
+    p.append(f'<rect x="{X(0.05):.1f}" y="{Y(0.78) + 38:.1f}" width="8" height="8" fill="#C0301E"/>')
+    out.append(f'<g {cp}>{"".join(p)}</g>')
+    # title cartouches, as printed on the series: red vertical title, a pale place-name panel beside it
+    cx_ = x1 - 36
+    out.append(f'<rect x="{cx_}" y="{y0 + 10}" width="24" height="104" fill="#C8281E" stroke="#3A0A06" stroke-width="1.2"/>')
+    out.append(f'<rect x="{cx_ + 3}" y="{y0 + 13}" width="18" height="98" fill="none" stroke="#F0C8A0" stroke-width="0.8"/>')
+    rr = random.Random(8)
+    yy = y0 + 18
+    while yy < y0 + 104:
+        l = rr.uniform(3, 6)
+        out.append(f'<path d="M{cx_ + 12 + rr.uniform(-3, 3):.1f} {yy:.1f}l{rr.uniform(-2, 2):.1f} {l:.1f}" stroke="#1A0806" stroke-width="1.6" stroke-linecap="round"/>')
+        yy += l + rr.uniform(1.5, 3.5)
+    out.append(f'<rect x="{cx_ - 30}" y="{y0 + 10}" width="24" height="48" fill="#8EB4A8" stroke="#1A2A26" stroke-width="1.1"/>')
+    yy = y0 + 15
+    for c in (cx_ - 24, cx_ - 13):
+        yy = y0 + 15
+        while yy < y0 + 52:
+            l = rr.uniform(3, 5)
+            out.append(f'<path d="M{c + rr.uniform(-1.5, 1.5):.1f} {yy:.1f}l{rr.uniform(-1.5, 1.5):.1f} {l:.1f}" stroke="#1A2A26" stroke-width="1.3" stroke-linecap="round"/>')
+            yy += l + rr.uniform(1.5, 3)
+    out.append(museum_label(D, 494, "Plum Garden in Kameido", "UTAGAWA HIROSHIGE · 1857", "#3A2A1E", "#6A5440", ts=28, bs=17, gap=28, max_w=440))
+    return gm_finish(D, out, 53, "#E6DCC8", edge=2.2, bristle=0.3, grain_=0.12)
 
 
 # ================================================================ 14. Sudden Shower over Shin-Ōhashi Bridge — Hiroshige, 1857
@@ -2133,6 +2298,13 @@ def rain_walker(x, y, s, kind, seed, facing=1):
 
 @design("sudden-shower")
 def sudden_shower():
+    """Sudden Shower over Shin-Ohashi Bridge and Atake, Hiroshige 1857 (One Hundred Famous Views of Edo). Checklist:
+    tall print; a black cloud pressing down at the top; the rain as hundreds of fine dark lines in two slightly
+    different slants; the far bank (Atake) a low misty band of dark trees high in the picture; the wide river in
+    Prussian-blue bokashi; a lone raftsman poling a long log raft on the river; the great wooden bridge seen from
+    above, its broad deck running diagonally from high on the LEFT down to the near end at the lower RIGHT, a forest
+    of tall pilings standing in the water beneath its higher end; small figures hurrying across both ways under
+    umbrellas, straw capes and kasa hats; red title cartouche and series box at the top right."""
     D = Doc("gmss")
     box = (184, 68, 416, 414)   # 232 x 346 (36 x 24 cm, portrait)
     x0, y0, x1, y1 = box
@@ -2150,68 +2322,115 @@ def sudden_shower():
     cp = clip_box(D, box)
     paint = [washi(D, box, "#ECE2C8", 11)]
     rnd = random.Random(7)
-    # sky: a black thundercloud pressing down, grey below
-    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H * 0.42}" fill="{D.lin([(0, "#16161C"), (0.25, "#3A3A40"), (0.6, "#8A8A84", 0.7), (1, "#ECE2C8", 0)])}"/>')
-    paint.append(woodgrain(D, (x0, y0, x1, Y(0.3)), 0.12, 5, "#000"))
-    # river: blue bokashi bands
-    river = UV([(-0.02, 0.36), (1.02, 0.36), (1.02, 1.02), (-0.02, 1.02)])
-    paint.append(f'<path d="{pd(river)}" fill="{D.lin([(0, "#8AA4B0"), (0.3, "#5A7A90"), (0.7, "#3E5E7A"), (1, "#2A4A6A")])}"/>')
-    paint.append(woodgrain(D, (x0, Y(0.36), x1, y1), 0.08, 7, "#0A1A2A"))
-    # far shore under the rain, a soft grey-green line of trees
-    shore = rough(UV([(-0.02, 0.4), (0.15, 0.37), (0.3, 0.39), (0.45, 0.36), (0.6, 0.385), (0.8, 0.37), (1.02, 0.39)]), 3, 4, 3)
-    paint.append(f'<path d="{pd(shore + UV([(1.02, 0.43), (-0.02, 0.43)]))}" fill="#4A5A4A" opacity="0.85"/>')
-    for k in range(40):
-        x = X(rnd.uniform(0, 1))
-        paint.append(f'<path d="{blob(x, Y(0.385) + rnd.uniform(-3, 3), rnd.uniform(4, 8), rnd.uniform(5, 9), k, 0.2, 8)}" fill="#3A4A3A" opacity="0.7"/>')
-    # a raftsman poling his logs downstream
-    rx, ry = X(0.35), Y(0.55)
-    raft = [(rx - 46, ry), (rx + 40, ry - 10), (rx + 44, ry - 5), (rx - 42, ry + 5)]
-    paint.append(f'<path d="{pd(raft)}" fill="#6A4A2A" stroke="{KEY}" stroke-width="1.2"/>')
+    # sky: a black thundercloud pressing down, the grey of the downpour below it
+    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H * 0.36}" fill="{D.lin([(0, "#121216"), (0.3, "#34343A"), (0.65, "#8A8A84", 0.75), (1, "#ECE2C8", 0)])}"/>')
+    paint.append(woodgrain(D, (x0, y0, x1, Y(0.26)), 0.12, 5, "#000"))
+    # river: Prussian-blue bokashi, pale and misty at the far bank, deep in the foreground
+    river = UV([(-0.02, 0.3), (1.02, 0.3), (1.02, 1.02), (-0.02, 1.02)])
+    paint.append(f'<path d="{pd(river)}" fill="{D.lin([(0, "#9AAEB4"), (0.22, "#6A8A9C"), (0.55, "#3E5E7C"), (1, "#22405E")])}"/>')
+    paint.append(woodgrain(D, (x0, Y(0.3), x1, y1), 0.08, 7, "#0A1A2A"))
+    # the far bank at Atake: a low band of dark trees and roofs dissolving in the rain, lighter towards the right
+    shore = rough(UV([(-0.02, 0.31), (0.1, 0.285), (0.22, 0.295), (0.36, 0.275), (0.5, 0.29), (0.66, 0.282), (0.82, 0.296), (1.02, 0.29)]), 3, 4, 3)
+    paint.append(f'<path d="{pd(shore + UV([(1.02, 0.33), (-0.02, 0.335)]))}" fill="{D.lin([(0, "#2E3A30"), (1, "#5A6A60")], 0, 0, 1, 0)}" opacity="0.9"/>')
+    for k in range(46):
+        u = rnd.uniform(0, 1)
+        paint.append(f'<path d="{blob(X(u), Y(0.292) + rnd.uniform(-3, 3), rnd.uniform(4, 8), rnd.uniform(5, 9), k, 0.2, 8)}" fill="{mix("#24302A", "#5A6A60", u)}" opacity="0.75"/>')
+    paint.append(f'<path d="{pd(UV([(-0.02, 0.33), (1.02, 0.325), (1.02, 0.345), (-0.02, 0.35)]))}" fill="#B8C8C8" opacity="0.5"/>')
+    # a raftsman poling his long raft of logs downstream
+    ra, rb = (X(0.14), Y(0.435)), (X(0.66), Y(0.395))
+    raft = [ra, rb, (rb[0] + 2, rb[1] + 6), (ra[0] + 2, ra[1] + 7)]
+    paint.append(f'<path d="{pd(raft)}" fill="#6A4A2A" stroke="{KEY}" stroke-width="1.1" stroke-linejoin="round"/>')
     for k in range(3):
-        paint.append(f'<path d="M{rx - 44:.1f} {ry - 1 + k * 2:.1f}L{rx + 42:.1f} {ry - 9 + k * 2:.1f}" stroke="#3A2414" stroke-width="0.7"/>')
-    paint.append(rain_walker(rx + 10, ry - 6, 0.9, "mino", 3, 1))
-    paint.append(f'<path d="M{rx + 14:.1f} {ry - 30:.1f}L{rx - 20:.1f} {ry + 18:.1f}" stroke="{KEY}" stroke-width="1.4"/>')
-    for k in range(4):
-        paint.append(f'<path d="M{rx - 50 + k * 4:.1f} {ry + 6 + k * 3:.1f}q20 -3 40 -6" stroke="#C8D8E0" stroke-width="1" fill="none" opacity="0.6"/>')
-    # the bridge: deck on a diagonal, with legs standing in the river
-    deck_l, deck_r = (X(-0.05), Y(0.72)), (X(1.05), Y(0.6))
-    deck = [deck_l, deck_r, (deck_r[0], deck_r[1] + 10), (deck_l[0], deck_l[1] + 12)]
-    for k in range(9):
-        t = 0.04 + k * 0.12
-        px, py = lerp(deck_l, deck_r, t)
-        paint.append(f'<path d="{pd([(px - 3, py + 8), (px + 3, py + 8), (px + 4, y1 + 6), (px - 4, y1 + 6)])}" fill="#5A4A3A" stroke="{KEY}" stroke-width="1"/>')
-        paint.append(f'<path d="M{px - 2:.1f} {py + 20:.1f}L{px + 2:.1f} {y1:.1f}" stroke="#8A7A5A" stroke-width="1" opacity="0.6"/>')
-        if k % 2 == 0:
-            paint.append(f'<path d="M{px:.1f} {py + 30:.1f}L{px + 34:.1f} {py + 68:.1f}" stroke="#4A3A2A" stroke-width="2.4"/>')
-    paint.append(f'<path d="{pd(deck)}" fill="#B89A6A" stroke="{KEY}" stroke-width="1.6" stroke-linejoin="round"/>')
-    for k in range(30):
-        t = k / 30
-        px, py = lerp(deck_l, deck_r, t)
-        paint.append(f'<path d="M{px:.1f} {py:.1f}l0 10" stroke="#8A6A40" stroke-width="0.7"/>')
-    rail_l, rail_r = (deck_l[0], deck_l[1] - 14), (deck_r[0], deck_r[1] - 14)
-    for k in range(14):
-        px, py = lerp(deck_l, deck_r, k / 13)
-        paint.append(f'<path d="M{px:.1f} {py:.1f}V{py - 14:.1f}" stroke="#6A5034" stroke-width="2.2"/>')
-    paint.append(f'<path d="M{rail_l[0]:.1f} {rail_l[1]:.1f}L{rail_r[0]:.1f} {rail_r[1]:.1f}" stroke="#6A5034" stroke-width="3.2"/>')
-    paint.append(f'<path d="M{rail_l[0]:.1f} {rail_l[1]:.1f}L{rail_r[0]:.1f} {rail_r[1]:.1f}" stroke="{KEY}" stroke-width="0.8"/>')
-    # people caught in the shower, hurrying both ways
-    walkers = [(0.14, 1, "umb", 1), (0.24, 1.0, "umb", 1), (0.33, 0.95, "mino", 1), (0.62, 0.9, "umb", -1), (0.7, 0.88, "mino", -1), (0.82, 0.85, "umb", -1)]
-    for k, (t, sc, kind, fc) in enumerate(walkers):
-        px, py = lerp(deck_l, deck_r, t)
-        paint.append(rain_walker(px, py + 6, sc * 1.25, kind, 20 + k, fc))
-    # the rain: hundreds of fine lines at two angles, as two separate blocks
+        paint.append(f'<path d="M{ra[0]:.1f} {ra[1] + 1.5 + k * 2:.1f}L{rb[0]:.1f} {rb[1] + 1.5 + k * 2:.1f}" stroke="#3A2414" stroke-width="0.6"/>')
+    for k in range(3):
+        paint.append(f'<path d="M{ra[0] - 4 + k * 6:.1f} {ra[1] + 9 + k * 3:.1f}q30 -3 60 -5" stroke="#C8D8E0" stroke-width="0.9" fill="none" opacity="0.6"/>')
+    px_, py_ = X(0.48), Y(0.41)
+    paint.append(shower_figure(px_, py_, 30, "man_mino", 3, 1, "#3A3A3A"))
+    paint.append(f'<path d="M{px_ + 8:.1f} {py_ - 26:.1f}L{px_ - 22:.1f} {py_ + 14:.1f}" stroke="{KEY}" stroke-width="1.3"/>')
+
+    # ---- the bridge: deck seen from above, high on the left, its near end at the lower right
+    def far(t):
+        return (X(-0.06 + 1.14 * t), Y(0.53 + 0.27 * t))
+
+    def near(t):
+        fx, fy = far(t)
+        return (fx, fy + H * (0.045 + 0.06 * t))
+    # pilings: a forest of tall posts standing in the river under the higher end, braced, nearer = thicker
+    piles = []
+    for k in range(7):
+        t = 0.05 + k * 0.125
+        nx_, ny_ = near(t)
+        wpost = 3.2 + 2.6 * t
+        for j, dx in enumerate((-9, 0, 9)):
+            px = nx_ + dx * (0.7 + 0.6 * t)
+            col = ["#4A3E32", "#5A4A3A", "#3E342A"][j]
+            piles.append(f'<path d="{pd([(px - wpost / 2, ny_ + 2), (px + wpost / 2, ny_ + 2), (px + wpost / 2 + 1, y1 + 6), (px - wpost / 2 + 1, y1 + 6)])}" fill="{col}" stroke="{KEY}" stroke-width="0.9"/>')
+            piles.append(f'<path d="M{px - wpost * 0.2:.1f} {ny_ + 6:.1f}L{px - wpost * 0.1 + 1:.1f} {y1:.1f}" stroke="#8A7A5A" stroke-width="0.8" opacity="0.6"/>')
+        # cross-bracing between the posts
+        for yy in (ny_ + (y1 - ny_) * 0.25, ny_ + (y1 - ny_) * 0.55):
+            piles.append(f'<path d="M{nx_ - 11:.1f} {yy:.1f}L{nx_ + 11:.1f} {yy + 3:.1f}" stroke="#3A2E24" stroke-width="{1.6 + t:.1f}"/>')
+        # rings of the current where the posts enter the water
+        for dx in (-9, 0, 9):
+            piles.append(f'<path d="M{nx_ + dx - 6:.1f} {y1 - 6 - k:.1f}q6 -3 12 0" stroke="#C8D8E0" stroke-width="0.8" fill="none" opacity="0.5"/>')
+    paint.append("".join(piles))
+    # side beam under the near edge
+    ts = [i / 24 for i in range(25)]
+    beam = [near(t) for t in ts] + [(x, y + 4 + 3 * t) for (x, y), t in zip([near(t) for t in ts][::-1], ts[::-1])]
+    paint.append(f'<path d="{pd(beam)}" fill="#4A3A2A" stroke="{KEY}" stroke-width="1"/>')
+    # the deck: weathered planks across the bridge, darkened by rain, bokashi towards the near end
+    deck = [far(t) for t in ts] + [near(t) for t in ts][::-1]
+    paint.append(f'<path d="{pd(deck)}" fill="{D.lin([(0, "#C8B48A"), (1, "#A88E62")], 0, 0, 1, 1)}" stroke="{KEY}" stroke-width="1.4" stroke-linejoin="round"/>')
+    planks = []
+    for i in range(70):
+        t = i / 70
+        (ax, ay), (bx, by) = far(t), near(t)
+        planks.append(f'M{ax:.1f} {ay:.1f}L{bx:.1f} {by:.1f}')
+    paint.append(f'<path d="{"".join(planks)}" stroke="#8A7048" stroke-width="0.6" opacity="0.6"/>')
+    for k in range(18):
+        t = rnd.uniform(0, 1)
+        (ax, ay), (bx, by) = far(t), near(t)
+        f_ = rnd.uniform(0.2, 0.8)
+        paint.append(f'<path d="M{ax + (bx - ax) * f_:.1f} {ay + (by - ay) * f_:.1f}l{rnd.uniform(8, 20):.1f} {rnd.uniform(3, 6):.1f}" stroke="#E2D2AE" stroke-width="1" opacity="0.5"/>')
+    # railings on both sides: posts and a top rail
+    for side, fn, hgt in ((0, far, 9), (1, near, 7)):
+        for k in range(16):
+            t = k / 15
+            bx, by = fn(t)
+            hh = hgt * (0.8 + 0.5 * t)
+            paint.append(f'<path d="M{bx:.1f} {by:.1f}V{by - hh:.1f}" stroke="#5A4630" stroke-width="{1.5 + t:.1f}"/>')
+        rail = [(x, y - hgt * (0.8 + 0.5 * t)) for (x, y), t in zip([fn(t) for t in ts], ts)]
+        paint.append(f'<path d="{smooth_open(rail)}" stroke="#6A5034" stroke-width="{2.6 if side else 2.2}" fill="none"/>')
+        paint.append(f'<path d="{smooth_open(rail)}" stroke="{KEY}" stroke-width="0.7" fill="none"/>')
+    # people caught in the shower, hurrying both ways; nearer figures larger
+    walkers = [(0.14, "man_mino", -1, None), (0.33, "woman_umb", 1, "#2E3A5A"), (0.39, "woman_umb", 1, "#6A3A3A"),
+               (0.62, "man_mino", -1, None), (0.71, "man_umb", -1, "#3A4A3A"), (0.79, "man_mino", -1, None)]
+    for k, (t, kind, fc, rc) in enumerate(walkers):
+        (fx, fy), (nx_, ny_) = far(t), near(t)
+        hh = 40 + 22 * t
+        paint.append(shower_figure(fx + (nx_ - fx) * 0.55, fy + (ny_ - fy) * 0.62, hh, kind, 20 + k, fc, rc))
+    # the rain: hundreds of fine lines in two blocks of slightly different slant
     rain = []
-    for k in range(420):
+    for k in range(460):
         x = X(rnd.uniform(-0.15, 1.05))
         y = Y(rnd.uniform(-0.05, 1.0))
         L = rnd.uniform(30, 90)
-        a = math.radians(rnd.choice([96, 100]))
+        a = math.radians(rnd.choice([97, 101]))
         rain.append(f'<path d="M{x:.1f} {y:.1f}l{L * math.cos(a):.1f} {L * math.sin(a):.1f}"/>')
-    paint.append(f'<g stroke="#1A1A22" stroke-width="0.8" opacity="0.55">{"".join(rain)}</g>')
+    paint.append(f'<g stroke="#16161E" stroke-width="0.8" opacity="0.55">{"".join(rain)}</g>')
+    # title cartouche (red, vertical) and the square series box at the top right, abstract marks only
+    cx0, cy0 = X(0.86), Y(0.025)
+    paint.append(f'<rect x="{cx0:.1f}" y="{cy0:.1f}" width="{W * 0.1:.1f}" height="{H * 0.2:.1f}" fill="#B83A2A" stroke="#1A1416" stroke-width="1"/>')
+    for k in range(5):
+        paint.append(f'<path d="M{cx0 + W * 0.05 + rnd.uniform(-1.5, 1.5):.1f} {cy0 + 7 + k * 12:.1f}l{rnd.uniform(-1.5, 1.5):.1f} {rnd.uniform(5, 8):.1f}" stroke="#F2E6CC" stroke-width="1.6" stroke-linecap="round"/>')
+    sx0 = X(0.7)
+    paint.append(f'<rect x="{sx0:.1f}" y="{cy0:.1f}" width="{W * 0.13:.1f}" height="{W * 0.13:.1f}" fill="#E8D8B8" stroke="#1A1416" stroke-width="1"/>')
+    paint.append(f'<rect x="{sx0:.1f}" y="{cy0:.1f}" width="{W * 0.13:.1f}" height="{W * 0.04:.1f}" fill="#C84A3A"/>')
+    for k in range(2):
+        paint.append(f'<path d="M{sx0 + 9 + k * 10:.1f} {cy0 + 13:.1f}l0 {rnd.uniform(6, 10):.1f}" stroke="#1A1416" stroke-width="1.4" stroke-linecap="round"/>')
     out.append(f'<g {cp}>{"".join(paint)}</g>')
     out.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="none" stroke="#1A140E" stroke-width="1.6"/>')
     out.append(museum_label(D, 484, "Sudden Shower", "UTAGAWA HIROSHIGE · 1857", "#F0E6CC", "#C8BC9C", ts=36, bs=18, gap=34))
-    return finish(D, out, 59)
+    return gm_finish(D, out, 59, "#3A3428", edge=2.2, bristle=0.3, grain_=0.22)
 
 
 # ================================================================ 15. The Tree of Life — Klimt, 1909
@@ -2340,7 +2559,7 @@ def tree_of_life():
     paint.append(f'<path d="M{bx + 2} {by + 12}l-2 10M{bx + 8} {by + 10}l1 10" stroke="#14100C" stroke-width="2"/>')
     out.append(f'<g {cp}>{"".join(paint)}{varnish(D, box, 0.16, 0.18, 7, 0.35)}</g>')
     out.append(museum_label(D, 474, "The Tree of Life", "GUSTAV KLIMT · 1909", "#F2DC98", "#C8A860", ts=32, bs=18, gap=32))
-    return finish(D, out, 61)
+    return gm_finish(D, out, 61, "#2A241A", edge=1.8, bristle=0.3, grain_=0.14)
 
 
 # ================================================================ portrait toolkit (faces)
@@ -2574,7 +2793,7 @@ def the_kiss():
         paint.append(taper([b0, lerp(b0, b1, 0.5), b1], 5.2, 3.4, "#E2B498"))
     out.append(f'<g {cp}>{"".join(paint)}{varnish(D, box, 0.14, 0.2, 6, 0.3)}</g>')
     out.append(museum_label(D, 488, "The Kiss", "GUSTAV KLIMT · 1908", "#F2DC98", "#C8A860", ts=36, bs=18, gap=34))
-    return finish(D, out, 67)
+    return gm_finish(D, out, 67, "#1E2A2A", edge=1.8, bristle=0.3, grain_=0.14)
 
 
 def leaf_simple_k(x, y, L, ang, pal, seed):
@@ -2817,7 +3036,7 @@ def little_street():
     P.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.rad([(0, "#FFF4DC", 0.18), (1, "#FFF4DC", 0)], 0.25, 0.5, 0.6)}"/>')
     out.append(f'<g {cp}>{"".join(P)}{canvas_weave(D, box, 0.04)}{varnish(D, box, 0.1, 0.25, 8, 0.4)}</g>')
     out.append(museum_label(D, 486, "The Little Street", "JOHANNES VERMEER · c. 1658", "#F2EADA", "#C8BCA2", ts=30, bs=17, gap=28, max_w=440))
-    return finish(D, out, 71)
+    return gm_finish(D, out, 71, "#4A5048", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 18. View of Delft — Vermeer, c. 1661
@@ -2877,6 +3096,20 @@ def view_of_delft():
         paint.append(soft(D, X(rnd.uniform(-0.1, 1.1)), Y(rnd.uniform(-0.05, 0.12)), W * rnd.uniform(0.2, 0.35), H * rnd.uniform(0.06, 0.1), rnd.choice(["#3A4450", "#4A5460", "#5A646E"]), 0.8))
     for k, (u, v, rx, ry) in enumerate([(0.15, 0.3, 70, 26), (0.45, 0.24, 90, 30), (0.78, 0.3, 80, 26), (0.3, 0.42, 70, 16), (0.65, 0.42, 90, 16), (0.95, 0.4, 40, 14)]):
         paint.append(cumulus(D, X(u), Y(v), rx, ry, 30 + k, "#FFFDF4", "#E8E4D8", "#8A9098"))
+    # Vermeer's sky is painted, not airbrushed: scumbled strokes model the cloud tops and the grey undersides
+    Bc = Brush()
+    for k, (u, v, rx, ry) in enumerate([(0.15, 0.3, 70, 26), (0.45, 0.24, 90, 30), (0.78, 0.3, 80, 26), (0.3, 0.42, 70, 16), (0.65, 0.42, 90, 16)]):
+        rc = random.Random(500 + k)
+        for _ in range(int(rx * 1.3)):
+            a_ = rc.uniform(math.pi, 2 * math.pi) if rc.random() < 0.7 else rc.uniform(0, math.pi)
+            q = rc.uniform(0.35, 1.0)
+            px_, py_ = X(u) + rx * q * math.cos(a_), Y(v) + ry * q * math.sin(a_)
+            L = rc.uniform(5, 11)
+            ta = a_ + math.pi / 2 + rc.uniform(-0.3, 0.3)
+            top = math.sin(a_) < 0
+            col = rc.choice(["#FFFFFF", "#F6F2E6", "#ECE8DA"]) if top else rc.choice(["#9AA0A4", "#B0B4B4", "#8A9096", "#C4C4BC"])
+            Bc.dash([(px_ - L / 2 * math.cos(ta), py_ - L / 2 * math.sin(ta)), (px_ + L / 2 * math.cos(ta), py_ + L / 2 * math.sin(ta))], col, rc.uniform(2.2, 3.6), 0.6)
+    paint.append(Bc.render())
     # the town: a long frieze of roofs, gates and towers along the far quay
     sky_line = 0.5
     town = []
@@ -2888,7 +3121,7 @@ def view_of_delft():
         top = Y(0.56) - h_
         town.append(f'<path d="{pd([(xx, Y(0.6)), (xx, top + 6), (xx + w_ / 2, top), (xx + w_, top + 6), (xx + w_, Y(0.6))])}" fill="{rnd.choice(["#C8A070", "#D8B888", "#B8906A", "#E0C49A"])}" opacity="0.85"/>')
         xx += w_ * rnd.uniform(0.7, 1.0)
-    tx = X(0.7)
+    tx = X(0.555)
     town.append(f'<path d="{pd([(tx - 8, Y(0.58)), (tx - 8, Y(0.44)), (tx - 6, Y(0.42)), (tx - 6, Y(0.38)), (tx - 3, Y(0.36)), (tx, Y(0.3)), (tx + 3, Y(0.36)), (tx + 6, Y(0.38)), (tx + 6, Y(0.42)), (tx + 8, Y(0.44)), (tx + 8, Y(0.58))])}" fill="#F2DC98"/>')
     town.append(f'<path d="{pd([(tx + 2, Y(0.58)), (tx + 2, Y(0.44)), (tx + 8, Y(0.44)), (tx + 8, Y(0.58))])}" fill="#C8A868"/>')
     town.append(f'<path d="M{tx} {Y(0.3)}V{Y(0.27)}" stroke="#8A7A5A" stroke-width="1.2"/>')
@@ -2906,7 +3139,7 @@ def view_of_delft():
             town.append(f'<rect x="{xx + rnd.uniform(2, w_ - 5):.1f}" y="{top + h_ * 0.55 + rnd.uniform(0, 6):.1f}" width="2.4" height="3.2" fill="#2A2018"/>')
         xx += w_
     # Schiedam gate with its clock tower and twin turrets
-    gx = X(0.3)
+    gx = X(0.37)
     town.append(f'<path d="{pd([(gx - 26, Y(0.66)), (gx - 26, Y(0.5)), (gx + 26, Y(0.5)), (gx + 26, Y(0.66))])}" fill="#7A6A54"/>')
     town.append(f'<path d="{pd([(gx - 28, Y(0.5)), (gx, Y(0.44)), (gx + 28, Y(0.5))])}" fill="#4A3A2E"/>')
     town.append(f'<path d="{pd([(gx - 6, Y(0.45)), (gx - 6, Y(0.38)), (gx, Y(0.33)), (gx + 6, Y(0.38)), (gx + 6, Y(0.45))])}" fill="#5A4A3A"/>')
@@ -2915,7 +3148,7 @@ def view_of_delft():
         town.append(f'<path d="{pd([(gx + s_ * 30 - 5, Y(0.66)), (gx + s_ * 30 - 5, Y(0.48)), (gx + s_ * 30, Y(0.43)), (gx + s_ * 30 + 5, Y(0.48)), (gx + s_ * 30 + 5, Y(0.66))])}" fill="#6A5A48"/>')
     town.append(f'<path d="{pd([(gx - 10, Y(0.66)), (gx - 10, Y(0.6)), (gx + 10, Y(0.6)), (gx + 10, Y(0.66))])}" fill="#2A2018"/>')
     # Rotterdam gate: twin dark towers with pointed blue roofs
-    rx_ = X(0.82)
+    rx_ = X(0.72)
     for s_ in (-1, 1):
         cx_ = rx_ + s_ * 16
         town.append(f'<path d="{pd([(cx_ - 9, Y(0.67)), (cx_ - 9, Y(0.48)), (cx_ + 9, Y(0.48)), (cx_ + 9, Y(0.67))])}" fill="#4A3E36"/>')
@@ -2928,7 +3161,7 @@ def view_of_delft():
     paint.append("".join(town))
     # quay wall and the bridge
     paint.append(f'<path d="{pd(UV([(-0.02, 0.66), (1.02, 0.665), (1.02, 0.69), (-0.02, 0.69)]))}" fill="#4A3E30"/>')
-    paint.append(f'<path d="M{X(0.5):.1f} {Y(0.69):.1f}q20 -10 40 0" stroke="#3A2E24" stroke-width="4" fill="none"/>')
+    paint.append(f'<path d="M{X(0.44):.1f} {Y(0.69):.1f}q14 -11 28 0q14 -11 28 0" stroke="#3A2E24" stroke-width="4" fill="none"/>')
     # water: the still harbour with long vertical reflections
     water = UV([(-0.02, 0.69), (1.02, 0.69), (1.02, 0.9), (-0.02, 0.92)])
     paint.append(f'<path d="{pd(water)}" fill="{D.lin([(0, "#4A4236"), (0.35, "#6A6658"), (0.6, "#9AA8AC"), (1, "#6A787C")])}"/>')
@@ -2936,7 +3169,7 @@ def view_of_delft():
     for k in range(70):
         x = X(rnd.uniform(0, 1))
         paint.append(soft(D, x, Y(0.73), rnd.uniform(4, 10), H * rnd.uniform(0.03, 0.06), rnd.choice(["#2A2218", "#3A3024", "#5A3A2A"]), 0.5))
-    for gx_, col in ((X(0.3), "#5A4A3A"), (X(0.82) - 16, "#3A3028"), (X(0.82) + 16, "#3A3028"), (X(0.7), "#C8B888")):
+    for gx_, col in ((X(0.37), "#5A4A3A"), (X(0.72) - 16, "#3A3028"), (X(0.72) + 16, "#3A3028"), (X(0.555), "#C8B888")):
         paint.append(soft(D, gx_, Y(0.76), 9, H * 0.07, col, 0.7))
     B = Brush()
     for k in range(160):
@@ -2946,7 +3179,7 @@ def view_of_delft():
         B.dash([(x - L / 2, y), (x + L / 2, y)], rnd.choice(["#C8D4D4", "#A8B8BC", "#E0E4DC", "#7A8A8E"]), rnd.uniform(1, 1.8), 0.55)
     paint.append(B.render())
     # two herring busses moored on the right, dark hulls with Vermeer's beads of light
-    for k, (u, v, s_) in enumerate([(0.78, 0.8, 1.0), (0.9, 0.78, 0.8)]):
+    for k, (u, v, s_) in enumerate([(0.79, 0.8, 1.0), (0.93, 0.78, 0.8)]):
         bx, by = X(u), Y(v)
         hull = [(bx - 40 * s_, by - 8 * s_), (bx + 36 * s_, by - 12 * s_), (bx + 40 * s_, by - 2 * s_), (bx + 30 * s_, by + 6 * s_), (bx - 34 * s_, by + 6 * s_)]
         paint.append(f'<path d="{smooth_closed(hull)}" fill="#1E1A16"/>')
@@ -2964,7 +3197,7 @@ def view_of_delft():
         paint.append(person(X(u), Y(0.935), h, "stand_34" if k < 2 else "stand_side", 1 if k != 1 else -1, {**pal, "skin": "#E8C4A0"}, seed=80 + k, light=-1, shadow=0.2))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.1, 0.22, 8, 0.4)}</g>')
     out.append(museum_label(D, 500, "View of Delft", "JOHANNES VERMEER · c. 1661", "#F2EADA", "#C8BCA2", ts=30, bs=17, gap=27))
-    return finish(D, out, 73)
+    return gm_finish(D, out, 73, "#5A6466", edge=2.4, bristle=0.4, grain_=0.16)
 
 
 # ================================================================ 19. A Sunday on La Grande Jatte — Seurat, 1886
@@ -3281,7 +3514,7 @@ def grande_jatte():
 
     out.append(f'<g {cp}>{"".join(P)}{varnish(D, box, 0.08, 0.12, 6, 0.25)}</g>')
     out.append(museum_label(D, 472, "A Sunday on La Grande Jatte", "GEORGES SEURAT · 1886", "#2A2A3A", "#5A5A6A", ts=29, bs=18, gap=30, max_w=450))
-    return finish(D, out, 79)
+    return gm_finish(D, out, 79, "#EDE6D6", edge=1.6, bristle=0.25, grain_=0.12)
 
 
 # ================================================================ 20. Still Life with Apples — Cézanne, c. 1893
@@ -3398,7 +3631,7 @@ def cezanne_apples():
         paint.append(cz_apple(D, B, ax, ay, r, 100 + k, pal))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.12, 0.2)}</g>')
     out.append(museum_label(D, 494, "Still Life with Apples", "PAUL CÉZANNE · c. 1893", "#F2E8D2", "#D0C0A0", ts=30, bs=18, gap=28))
-    return finish(D, out, 83)
+    return gm_finish(D, out, 83, "#6A5A48", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 21. The Fighting Temeraire — Turner, 1839
@@ -3455,50 +3688,98 @@ def fighting_temeraire():
         L = rnd.uniform(8, 26)
         B.dash([(x - L / 2, y), (x + L / 2, y)], rnd.choice(["#FFE098", "#F6B050", "#FFF0C0", "#E87A2A"]), rnd.uniform(1.6, 3.2), 0.7)
     paint.append(B.render())
+    # the low sun itself, a molten disc sinking into the haze on the horizon
+    paint.append(soft(D, sun[0], Y(0.625), 26, 18, "#FFE8A0", 0.9))
+    paint.append(f'<path d="{blob(sun[0], Y(0.628), 11, 9, 5, 0.06, 14)}" fill="#FFF6D6" opacity="0.95"/>')
     # far shore at the right horizon, a dark smudge under the sun
     paint.append(soft(D, X(0.92), Y(0.645), W * 0.12, H * 0.02, "#5A2A1A", 0.7))
-    # the Temeraire: a pale, ghostly three-decker with tall masts, towed toward the left
-    tx, ty = X(0.25), Y(0.69)
-    hull = [(tx - 72, ty - 34), (tx + 60, ty - 40), (tx + 80, ty - 20), (tx + 72, ty + 4), (tx - 62, ty + 4), (tx - 78, ty - 14)]
+    # distant sails on the left horizon, pale as breath
+    for u, h in ((0.05, 20), (0.09, 14)):
+        paint.append(f'<path d="M{X(u):.1f} {Y(0.655):.1f}l3 -{h}l4 {h}z" fill="#D8D6C8" opacity="0.55"/>')
+    # the Temeraire: a ghostly three-decker ship of the line, bow to the left, bare masts and yards,
+    # towed upriver away from the sunset; painted in pale gold and pearl, edges dissolving into the air
+    bow, stern, wl = X(0.1), X(0.43), Y(0.69)
+    def hx(t):
+        return bow + (stern - bow) * t
+    hull = [(hx(0.0), wl - 42), (hx(0.04), wl - 37), (hx(0.25), wl - 34), (hx(0.55), wl - 35), (hx(0.8), wl - 41), (hx(0.92), wl - 52),
+            (hx(1.0), wl - 58), (hx(1.03), wl - 50), (hx(1.01), wl - 18), (hx(0.95), wl + 1), (hx(0.3), wl + 3), (hx(0.08), wl - 4),
+            (hx(0.02), wl - 22)]
     hd_ = smooth_closed(hull)
-    paint.append(f'<path d="{hd_}" fill="{D.lin([(0, "#F2EEDC"), (0.6, "#D0C8B0"), (1, "#9A9080")], 0, 0, 0, 1)}"/>')
+    paint.append(f'<path d="{hd_}" fill="{D.lin([(0, "#F6ECD2"), (0.5, "#D6C49A"), (1, "#7E6E58")], 0, 0, 0, 1)}"/>')
+    # warm light catching the stern quarter, cool shadow along the waterline, pale wales between the gun decks
+    paint.append(f'<g {D.clip(f"<path d=\"{hd_}\"/>")}>' + soft(D, hx(0.86), wl - 40, 46, 22, "#FFD490", 0.55) +
+                 soft(D, hx(0.4), wl, 100, 8, "#5E544C", 0.5) +
+                 "".join(f'<path d="M{hx(0.0):.1f} {wl - 33 + k * 8:.1f}Q{hx(0.5):.1f} {wl - 30 + k * 8:.1f} {hx(1.02):.1f} {wl - 41 + k * 9:.1f}" stroke="#FBF2DA" stroke-width="1.6" fill="none" opacity="0.55"/>' for k in range(3)) +
+                 "</g>")
+    # three tiers of gun ports along the decks
     for k in range(3):
-        y_ = ty - 28 + k * 9
-        paint.append(f'<path d="M{tx - 62:.1f} {y_:.1f}L{tx + 66:.1f} {y_ - 4:.1f}" stroke="#A8A08A" stroke-width="1.6" stroke-dasharray="4 3" opacity="0.8"/>')
-    paint.append(soft(D, tx + 50, ty - 18, 40, 20, "#F6C080", 0.35))
-    for k, (dx, h) in enumerate(((-38, 190), (6, 215), (46, 150))):
-        mx = tx + dx
-        paint.append(f'<path d="M{mx:.1f} {ty - 34:.1f}L{mx + 3:.1f} {ty - 34 - h:.1f}" stroke="#E8E2C8" stroke-width="3"/>')
-        for j in range(4):
-            yy = ty - 52 - j * h * 0.24
-            w_ = 32 - j * 6
-            paint.append(f'<path d="M{mx - w_:.1f} {yy:.1f}L{mx + w_ + 2:.1f} {yy - 3:.1f}" stroke="#E0DAC0" stroke-width="2"/>')
-        paint.append(f'<path d="M{mx + 3:.1f} {ty - 34 - h:.1f}L{mx - 60:.1f} {ty - 34:.1f}M{mx + 3:.1f} {ty - 34 - h:.1f}L{mx + 62:.1f} {ty - 36:.1f}" stroke="#D8D2BC" stroke-width="0.9" opacity="0.7"/>')
-    paint.append(soft(D, tx, ty - 110, 90, 140, "#F6F2E0", 0.25))
-    paint.append(f'<path d="{smooth_closed([(x, 2 * ty - y + 8) for x, y in hull])}" fill="#E8E0C8" opacity="0.35"/>')
-    # the little black tug, its funnel belching red-brown smoke
-    gx, gy = X(0.45), Y(0.73)
-    tug = [(gx - 34, gy - 6), (gx + 30, gy - 8), (gx + 38, gy + 2), (gx + 28, gy + 8), (gx - 30, gy + 8)]
-    paint.append(f'<path d="{smooth_closed(tug)}" fill="#1A1410"/>')
-    paint.append(f'<path d="M{gx - 4:.1f} {gy - 6:.1f}V{gy - 40:.1f}" stroke="#1A1410" stroke-width="5"/>')
-    paint.append(f'<path d="M{gx - 18:.1f} {gy - 6:.1f}V{gy - 30:.1f}" stroke="#1A1410" stroke-width="2"/>')
-    paint.append(f'<ellipse cx="{gx + 16:.1f}" cy="{gy - 4:.1f}" rx="10" ry="6" fill="#2A1E18"/>')
+        a_, b_ = (hx(0.1), wl - 28 + k * 8), (hx(0.9), wl - 33 + k * 8.5)
+        n_ = 15 - k * 2
+        for j in range(n_):
+            t = (j + 0.5) / n_
+            px_, py_ = a_[0] + (b_[0] - a_[0]) * t, a_[1] + (b_[1] - a_[1]) * t
+            paint.append(f'<rect x="{px_ - 1.5:.1f}" y="{py_ - 1.3:.1f}" width="3" height="2.6" fill="#6E5E4A" opacity="0.72"/>')
+    # stern gallery windows catching the sunset
+    for k in range(3):
+        paint.append(f'<path d="M{hx(0.955):.1f} {wl - 50 + k * 9:.1f}L{hx(1.01):.1f} {wl - 53 + k * 9:.1f}L{hx(1.01):.1f} {wl - 47 + k * 9:.1f}L{hx(0.955):.1f} {wl - 44 + k * 9:.1f}Z" fill="#F6C070" opacity="0.8"/>')
+    # bowsprit and jib-boom raking up to the left
+    paint.append(f'<path d="M{hx(0.02):.1f} {wl - 38:.1f}L{X(0.0):.1f} {wl - 70:.1f}" stroke="#E6DCC0" stroke-width="2.6" stroke-linecap="round" opacity="0.9"/>')
+    # masts with their yards, tapering, and the faint web of rigging
+    rig = []
+    masts = ((0.24, 196, 1.0), (0.5, 220, 1.0), (0.76, 160, 0.8))
+    for k, (t, h, sc) in enumerate(masts):
+        mx, mb = hx(t), wl - 34 - (5 if t > 0.6 else 0)
+        top = (mx + 2, mb - h)
+        paint.append(f'<path d="M{mx - 2:.1f} {mb:.1f}L{top[0] - 0.6:.1f} {top[1]:.1f}L{top[0] + 0.6:.1f} {top[1]:.1f}L{mx + 2:.1f} {mb:.1f}Z" fill="#ECE4CC" opacity="0.92"/>')
+        for j, f in enumerate((0.28, 0.52, 0.72, 0.88)):
+            yy = mb - h * f
+            ww = (34 - j * 7) * sc
+            paint.append(f'<path d="M{mx - ww:.1f} {yy + 1.5:.1f}Q{mx:.1f} {yy - 1.5:.1f} {mx + ww + 1:.1f} {yy + 0.5:.1f}" stroke="#E2D8BC" stroke-width="{2.2 - j * 0.35:.1f}" fill="none" stroke-linecap="round" opacity="0.88"/>')
+            rig.append(f'M{mx - ww:.1f} {yy + 1.5:.1f}L{mx - 10:.1f} {mb:.1f}M{mx + ww:.1f} {yy + 0.5:.1f}L{mx + 12:.1f} {mb:.1f}')
+        rig.append(f'M{top[0]:.1f} {top[1]:.1f}L{hx(t - 0.26) if k else X(0.0):.1f} {(wl - 36) if k else (wl - 70):.1f}')
+        rig.append(f'M{top[0]:.1f} {top[1]:.1f}L{hx(min(1.0, t + 0.24)):.1f} {wl - 36:.1f}')
+        paint.append(soft(D, mx, mb - h * 0.62, 6, 3, "#FFFFFF", 0.4))
+    paint.append(f'<path d="{"".join(rig)}" stroke="#D8CCB0" stroke-width="0.7" fill="none" opacity="0.55"/>')
+    # the whole ship dissolving into haze: a veil of pale air over the upper masts
+    paint.append(soft(D, hx(0.5), wl - 150, 120, 110, "#EFEADA", 0.28))
+    paint.append(f'<path d="{smooth_closed([(x, 2 * wl - y + 6) for x, y in hull])}" fill="#E8DCC0" opacity="0.32"/>')
+    # the black steam tug in FRONT, leading her to the left: low hull, tall funnel, smoke and a tongue of fire
+    gx, gy = X(0.3), Y(0.75)
+    tug = [(gx - 40, gy - 6), (gx - 30, gy - 9), (gx + 34, gy - 10), (gx + 40, gy - 4), (gx + 32, gy + 7), (gx - 34, gy + 7)]
+    paint.append(f'<path d="{smooth_closed([(x, 2 * gy - y + 14) for x, y in tug])}" fill="#2A1A12" opacity="0.4"/>')
+    for k in range(13):
+        paint.append(soft(D, gx + 4 + k * 8 + rnd.uniform(-3, 3), gy - 66 - k * 5.5 + rnd.uniform(-4, 4), 11 + k * 2.6, 7 + k * 1.3,
+                          rnd.choice(["#5A2A1A", "#7A3A20", "#3A2018", "#9A4A24", "#2A1A14"]), 0.62))
+    paint.append(f'<path d="{smooth_closed(tug)}" fill="#18120E"/>')
+    paint.append(f'<path d="M{gx - 22:.1f} {gy - 9:.1f}h22v-8h-22z" fill="#2A1E16"/>')
+    paint.append(f'<path d="M{gx + 2:.1f} {gy - 9:.1f}L{gx + 1:.1f} {gy - 62:.1f}L{gx + 8:.1f} {gy - 62:.1f}L{gx + 8:.1f} {gy - 9:.1f}Z" fill="#14100C"/>')
+    paint.append(f'<path d="M{gx - 26:.1f} {gy - 9:.1f}V{gy - 40:.1f}" stroke="#14100C" stroke-width="2"/>')
+    paint.append(f'<ellipse cx="{gx + 24:.1f}" cy="{gy - 5:.1f}" rx="11" ry="7" fill="#2A1E18"/>')
+    paint.append(soft(D, gx + 4.5, gy - 66, 6, 7, "#FF8A3A", 0.95))
+    paint.append(soft(D, gx + 4.5, gy - 70, 3, 5, "#FFE098", 0.95))
+    # tow line from tug to bow
+    paint.append(f'<path d="M{gx - 34:.1f} {gy - 6:.1f}Q{X(0.15):.1f} {gy - 2:.1f} {hx(0.03):.1f} {wl - 24:.1f}" stroke="#2A1E16" stroke-width="1" fill="none" opacity="0.7"/>')
+    # wake churned white under the paddle box
     for k in range(10):
-        paint.append(soft(D, gx - 4 - k * 9 + rnd.uniform(-3, 3), gy - 46 - k * 4 + rnd.uniform(-3, 3), 10 + k * 2, 7 + k, rnd.choice(["#6A2A1A", "#8A3A20", "#3A2018", "#C85A2A"]), 0.6))
-    paint.append(soft(D, gx - 4, gy - 40, 5, 4, "#F2803A", 0.9))
-    paint.append(f'<path d="{smooth_closed([(x, 2 * gy - y + 12) for x, y in tug])}" fill="#1A1410" opacity="0.35"/>')
+        paint.append(soft(D, gx + 30 + k * 7, gy + 9 + rnd.uniform(-1, 1), 10, 1.8, "#F2E2C0", 0.55))
     # a buoy and a small boat at the right
     paint.append(f'<path d="M{X(0.66):.1f} {Y(0.72):.1f}h22l-4 5h-15z" fill="#2A1A10"/>')
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.14, 0.25)}</g>')
     out.append(museum_label(D, 488, "The Fighting Temeraire", "J. M. W. TURNER · 1839", "#F2E2C4", "#D0B490", ts=30, bs=18, gap=28))
-    return finish(D, out, 89)
+    return gm_finish(D, out, 89, "#4A2A22", edge=3.0, bristle=0.4, grain_=0.16)
 
 
 # ================================================================ 22. Wanderer above the Sea of Fog — Friedrich, 1818
 @design("wanderer-above-the-sea-of-fog")
 def wanderer():
+    """Wanderer above the Sea of Fog, Caspar David Friedrich c. 1818 — checklist of the original:
+    portrait; a lone man seen from behind, dead centre, on a dark rocky summit that rises from the bottom of the
+    picture; dark green frock coat, walking stick in his right hand, left foot on a higher rock, hair blown by the
+    wind; below and beyond him a sea of fog in pale grey and white, with dark rocky crags and small fir trees breaking
+    through at left and right; a broad flat-topped mountain at the far left and a pointed peak on the right horizon;
+    a pale, luminous sky of soft blue-grey and cream; quiet, cool, muted palette."""
     D = Doc("gmwa")
-    box = (160, 56, 440, 422)   # 280 x 366 (94.8 x 74.8 cm, portrait)
+    box = (158, 52, 442, 414)
     x0, y0, x1, y1 = box
     W, H = x1 - x0, y1 - y0
 
@@ -3514,62 +3795,48 @@ def wanderer():
     out.append(gilt_frame(D, box, 14, 193, "plain", gold=("#F2E6C0", "#C8AE70", "#9A8048", "#5A4824", "#2A200E")))
     cp = clip_box(D, box)
     rnd = random.Random(4)
-    paint = []
-    # sky: pale, warm at the horizon, a soft cloud bank rising
-    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#9AB0C0"), (0.35, "#D8DCD8"), (0.55, "#F2E8D8")])}"/>')
-    for k in range(18):
-        paint.append(soft(D, X(rnd.uniform(-0.1, 1.1)), Y(rnd.uniform(0.05, 0.35)), W * rnd.uniform(0.15, 0.35), H * rnd.uniform(0.03, 0.06), rnd.choice(["#E8E4DC", "#C8CCD0", "#F6F2EA", "#B8C0C8"]), 0.6))
-    # far mountains, faint and blue, rising out of the fog
-    for k, (pts, col, op) in enumerate([
-            ([(-0.05, 0.47), (0.1, 0.42), (0.2, 0.44), (0.3, 0.4), (0.38, 0.43), (0.45, 0.45)], "#8A98A8", 0.7),
-            ([(0.55, 0.46), (0.68, 0.36), (0.74, 0.33), (0.8, 0.37), (0.92, 0.42), (1.05, 0.44)], "#7A8A9C", 0.8)]):
-        poly = UV(pts) + UV([(pts[-1][0], 0.6), (pts[0][0], 0.6)])
-        paint.append(f'<path d="{smooth_closed(poly)}" fill="{col}" opacity="{op}"/>')
-    # the sea of fog: rolling banks with grey hollows, rock spurs breaking through
-    for k in range(70):
-        x, y = X(rnd.uniform(-0.1, 1.1)), Y(rnd.uniform(0.45, 0.95))
-        paint.append(soft(D, x, y, W * rnd.uniform(0.1, 0.22), H * rnd.uniform(0.03, 0.06), rnd.choice(["#F2F0EA", "#E0E2E2", "#C8CED4", "#FFFFFF", "#B8C0C8"]), 0.75))
-    for k, (u, v, w_, h_) in enumerate([(0.12, 0.62, 0.12, 0.1), (0.32, 0.58, 0.1, 0.08), (0.82, 0.6, 0.14, 0.12), (0.62, 0.66, 0.08, 0.06), (0.05, 0.75, 0.1, 0.12), (0.95, 0.74, 0.1, 0.1)]):
-        rock = rough(UV([(u - w_ / 2, v + h_ * 0.3), (u - w_ * 0.25, v - h_ * 0.5), (u - w_ * 0.05, v - h_), (u + w_ * 0.1, v - h_ * 0.75), (u + w_ * 0.3, v - h_ * 0.55), (u + w_ / 2, v + h_ * 0.3)]), 60 + k, 5, 3)
-        paint.append(f'<path d="{pd(rock)}" fill="{D.lin([(0, "#9AA098"), (0.5, "#7A8078"), (1, "#5A6058")], 0, 0, 1, 0)}"/>')
-        for j in range(7):
-            tx_, ty_ = X(u + rnd.uniform(-w_ * 0.35, w_ * 0.35)), Y(v - h_ * rnd.uniform(0.1, 0.7))
-            if inside((tx_, ty_), rock):
-                paint.append(conifer_dk(tx_, ty_, rnd.uniform(4, 8), "#4A564E", 50 + k * 9 + j))
-        paint.append(soft(D, X(u), Y(v + h_ * 0.3), W * w_ * 0.7, H * 0.025, "#F2F0EA", 0.85))
-    # foreground crag: dark rocks the wanderer stands on
-    crag = rough(UV([(0.08, 1.04), (0.16, 0.9), (0.24, 0.84), (0.3, 0.8), (0.38, 0.78), (0.44, 0.76), (0.52, 0.775), (0.6, 0.78), (0.68, 0.84), (0.78, 0.88), (0.86, 0.95), (0.94, 1.04)]), 7, 6, 3)
-    cd = pd(crag)
-    paint.append(f'<path d="{cd}" fill="{D.lin([(0, "#4A4640"), (1, "#1A1814")])}"/>')
-    paint.append(f'<g {D.clip(f"<path d=\"{cd}\"/>")}>{"".join(f"<path d=\"M{X(rnd.uniform(0.15, 0.85)):.1f} {Y(rnd.uniform(0.78, 1.0)):.1f}l{rnd.uniform(-14, 14):.1f} {rnd.uniform(-8, 8):.1f}\" stroke=\"{rnd.choice(["#6A665E", "#2A2620", "#8A847A"])}\" stroke-width=\"{rnd.uniform(1.2, 2.6):.1f}\" opacity=\"0.6\"/>" for _ in range(60))}</g>')
-    paint.append(f'<path d="{cd}" fill="none" stroke="#9A9488" stroke-width="1.2" opacity="0.5"/>')
-    # the wanderer, seen from behind: dark green frock coat, windblown hair, walking stick
-    cx_, base = X(0.47), Y(0.78)
-    s_ = H * 0.0042
-
-    def F(x, y):
-        return cx_ + x * s_, base + y * s_
-    legs = [F(-10, 0), F(-9, -38), F(-3, -42), F(4, -40), F(9, -2), F(14, 0), F(8, -32), F(2, -36), F(-3, -10), F(-4, 0)]
-    paint.append(f'<path d="{smooth_closed(legs)}" fill="#1E1C1A"/>')
-    coat = [F(-17, -34), F(-13, -70), F(-12, -86), F(-5, -94), F(6, -94), F(14, -88), F(16, -70), F(20, -36), F(12, -32), F(2, -40), F(-8, -32)]
-    cdd = smooth_closed(coat)
-    paint.append(f'<path d="{cdd}" fill="{D.lin([(0, "#3A4A38"), (0.5, "#24302A"), (1, "#141A16")], 0, 0, 1, 0)}"/>')
-    paint.append(f'<path d="M{F(0, -92)[0]:.1f} {F(0, -92)[1]:.1f}L{F(1, -40)[0]:.1f} {F(1, -40)[1]:.1f}" stroke="#141A16" stroke-width="1.4" opacity="0.8"/>')
-    paint.append(f'<path d="{cdd}" fill="none" stroke="#5A6A58" stroke-width="1" opacity="0.5"/>')
-    # arm and stick on the right
-    paint.append(taper([F(13, -86), F(19, -70), F(22, -58)], 7 * s_, 5 * s_, "#20281F"))
-    paint.append(f'<path d="M{F(22, -58)[0]:.1f} {F(22, -58)[1]:.1f}L{F(30, 2)[0]:.1f} {F(30, 2)[1]:.1f}" stroke="#2A1E14" stroke-width="{max(1.4, 1.6 * s_):.1f}"/>')
-    # head and windblown hair
-    hx, hy = F(1, -103)
-    paint.append(f'<path d="{blob(hx, hy, 6.5 * s_, 8 * s_, 7, 0.06, 12)}" fill="#C89A70"/>')
-    hair = [F(-6, -110), F(-2, -113), F(6, -112), F(10, -106), F(12, -100), F(16, -97), F(9, -98), F(6, -96), F(-4, -96), F(-7, -102)]
-    paint.append(f'<path d="{smooth_closed(hair)}" fill="#6A4A2A"/>')
-    for k in range(5):
-        a, b = F(rnd.uniform(-4, 8), rnd.uniform(-112, -100)), F(rnd.uniform(10, 20), rnd.uniform(-104, -94))
-        paint.append(f'<path d="M{a[0]:.1f} {a[1]:.1f}Q{(a[0] + b[0]) / 2:.1f} {a[1] - 2:.1f} {b[0]:.1f} {b[1]:.1f}" stroke="#8A6A40" stroke-width="1" fill="none"/>')
-    out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.12, 0.22, 7, 0.35)}</g>')
-    out.append(museum_label(D, 474, "Wanderer above the Sea of Fog", "CASPAR DAVID FRIEDRICH · 1818", "#F2EEE4", "#C8D0D4", ts=25, bs=16, gap=28, max_w=460))
-    return finish(D, out, 97)
+    p = []
+    p.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#8C9EAE"), (0.18, "#B4C0C8"), (0.36, "#DCDCD4"), (0.5, "#F0E8DA"), (1, "#C8CCCC")])}"/>')
+    for k in range(22):
+        p.append(soft(D, X(rnd.uniform(-0.1, 1.1)), Y(rnd.uniform(0.02, 0.36)), W * rnd.uniform(0.15, 0.35), H * rnd.uniform(0.025, 0.06),
+                      rnd.choice(["#E8E4DC", "#B4BCC4", "#F6F2EA", "#A4AEB8", "#D0D2D0"]), 0.55, rnd.uniform(-8, 8)))
+    # far mountains: the broad table mountain on the left, the pointed peak on the right
+    left_m = UV([(-0.06, 0.5), (-0.04, 0.43), (0.06, 0.405), (0.2, 0.4), (0.3, 0.41), (0.36, 0.44), (0.42, 0.5)])
+    right_m = UV([(0.52, 0.52), (0.62, 0.44), (0.68, 0.39), (0.72, 0.36), (0.76, 0.375), (0.84, 0.42), (0.94, 0.45), (1.06, 0.47), (1.06, 0.52)])
+    for poly, c in ((left_m, "#8A96A2"), (right_m, "#7C8A98")):
+        p.append(f'<path d="{smooth_closed(poly)}" fill="{c}"/>')
+        p.append(f'<path d="{smooth_closed(poly)}" fill="{D.lin([(0, "#FFFFFF", 0), (1, "#F0ECE4", 0.7)])}"/>')
+    # the sea of fog, far banks first
+    for k in range(40):
+        v = rnd.uniform(0.44, 0.6)
+        p.append(soft(D, X(rnd.uniform(-0.1, 1.1)), Y(v), W * rnd.uniform(0.15, 0.3), H * rnd.uniform(0.02, 0.045), rnd.choice(["#F4F0E8", "#E2E2DE", "#FFFFFF", "#D0D4D6"]), 0.8))
+    # crags breaking through the fog, with small firs
+    for k, pts in enumerate(([(-0.05, 0.66), (0.0, 0.58), (0.06, 0.55), (0.12, 0.57), (0.2, 0.6), (0.27, 0.66)],
+                             [(0.18, 0.62), (0.24, 0.585), (0.3, 0.6), (0.36, 0.64)],
+                             [(0.66, 0.66), (0.74, 0.6), (0.8, 0.57), (0.88, 0.585), (0.96, 0.6), (1.05, 0.63)],
+                             [(0.56, 0.6), (0.6, 0.575), (0.64, 0.59)])):
+        poly = UV(pts) + UV([(pts[-1][0], 0.72), (pts[0][0], 0.72)])
+        col = ["#5A6066", "#7A8288", "#4E555C", "#8A9298"][k]
+        p.append(f'<path d="{smooth_closed(poly)}" fill="{col}"/>')
+        for j in range(5 if k in (0, 2) else 2):
+            tx, ty = lerp(UV([pts[1]])[0], UV([pts[-2]])[0], rnd.uniform(0, 1))
+            p.append(conifer_dk(tx, ty + 2, rnd.uniform(7, 13), col if k % 2 else dk(col, 0.25), 70 + k * 10 + j))
+        p.append(f'<path d="{smooth_closed(poly)}" fill="{D.lin([(0, "#FFFFFF", 0), (0.6, "#F0EEE8", 0.5), (1, "#F6F4EE", 0.95)])}"/>')
+    for k in range(50):
+        v = rnd.uniform(0.58, 0.82)
+        p.append(soft(D, X(rnd.uniform(-0.15, 1.15)), Y(v), W * rnd.uniform(0.12, 0.28), H * rnd.uniform(0.02, 0.05), rnd.choice(["#F6F2EA", "#E6E6E2", "#FFFFFF", "#C8CED2"]), 0.75))
+    # the summit rock rising from the bottom, the figure planted at its crown
+    fx, fy = X(0.5), Y(0.775)
+    rock = UV([(-0.06, 0.86), (0.04, 0.83), (0.1, 0.845), (0.16, 0.81), (0.22, 0.815), (0.28, 0.79), (0.33, 0.8), (0.38, 0.77), (0.42, 0.775),
+               (0.455, 0.76), (0.5, 0.772), (0.56, 0.768), (0.6, 0.785), (0.66, 0.79), (0.72, 0.82), (0.78, 0.815), (0.86, 0.85), (0.94, 0.86),
+               (1.06, 0.88), (1.06, 1.06), (-0.06, 1.06)])
+    p.append(rock_mass(D, rock, 31, ("#3A3632", "#22201E", "#0E0C0C"), "#A8B0B4", facets=30, n=200))
+    p.append(rock_mass(D, UV([(0.37, 0.79), (0.4, 0.745), (0.44, 0.735), (0.46, 0.75), (0.45, 0.8)]), 32, ("#4A4642", "#2A2624", "#141210"), "#B8C0C4", 6, 30))
+    p.append(rock_mass(D, UV([(0.0, 0.95), (0.05, 0.88), (0.12, 0.9), (0.18, 0.96), (0.2, 1.05), (0.0, 1.05)]), 33, ("#2E2A28", "#1A1816", "#0A0808"), "#8A9096", 8, 40))
+    p.append(wanderer_figure(D, fx, fy, H * 0.52, 5))
+    out.append(f'<g {cp}>{"".join(p)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.1, 0.2, 6, 0.3)}</g>')
+    out.append(museum_label(D, 470, "Wanderer above the Sea of Fog", "CASPAR DAVID FRIEDRICH · 1818", "#F2E8D4", "#C8BCA4", ts=28, bs=17, gap=28, max_w=450))
+    return gm_finish(D, out, 197, "#3A4A52", edge=2.4, bristle=0.4, grain_=0.16)
 
 
 def conifer_dk(x, base, h, col, seed):
@@ -3993,18 +4260,19 @@ def hunters_in_the_snow():
         trail.append(f'<ellipse cx="{X(u):.1f}" cy="{Y(v):.1f}" rx="{rnd.uniform(0.9, 1.6):.1f}" ry="0.7" fill="#98A6A6" opacity="0.55"/>')
     paint.append("".join(trail))
     # the pack strung out around and behind the men, noses down
-    dogs = [(0.135, 0.69, 0.78, 1, 0.2, "#2E241C"), (0.19, 0.745, 0.84, 1, 0.8, "#4A3626"), (0.27, 0.81, 0.9, 1, 0.4, "#2A201A"),
-            (0.355, 0.875, 0.98, 1, 0.9, "#3A2A20"), (0.2, 0.83, 0.92, 1, 0.1, "#6A5038"), (0.5, 0.955, 1.06, 1, 0.6, "#2E241C"),
-            (0.1, 0.77, 0.86, 1, 0.3, "#5A4430"), (0.29, 0.93, 1.02, 1, 0.55, "#1E1814"), (0.475, 0.86, 0.92, 1, 0.8, "#3A2C22"),
-            (0.06, 0.71, 0.76, 1, 0.5, "#3A2C22"), (0.39, 0.975, 1.1, 1, 0.25, "#4A3828"), (0.15, 0.9, 0.98, 1, 0.7, "#2A201A"),
-            (0.56, 0.905, 0.96, 1, 0.35, "#2A201A")]
+    # the pack strung out close around and behind the men along the same diagonal, noses down (Bruegel's hounds
+    # stay with the hunters; they do not scatter across the field)
+    dogs = [(0.15, 0.7, 0.8, 1, 0.2, "#2E241C"), (0.205, 0.765, 0.86, 1, 0.8, "#4A3626"), (0.285, 0.835, 0.92, 1, 0.4, "#2A201A"),
+            (0.37, 0.865, 0.96, 1, 0.9, "#3A2A20"), (0.115, 0.745, 0.84, 1, 0.1, "#6A5038"), (0.47, 0.935, 1.04, 1, 0.6, "#2E241C"),
+            (0.245, 0.81, 0.88, 1, 0.55, "#1E1814"), (0.525, 0.905, 0.96, 1, 0.3, "#3A2C22"), (0.39, 0.955, 1.06, 1, 0.25, "#4A3828"),
+            (0.565, 0.965, 1.0, 1, 0.7, "#2A201A")]
     for i, (u, v, s, f, ph, c) in enumerate(dogs):
         paint.append(hs_dog(X(u), Y(v), s, 240 + i, c, mix(c, "#C8B090", 0.45), f, ph, 1.0 if i % 3 else 0.55))
     for (u, v, h, sd_, fox, coat) in hunters:
         paint.append(hs_hunter(X(u), Y(v), h, sd_, coat=coat, fox=fox, pike=True, bend=0.6 + h * 0.004, stride=0.8 + (h - 50) * 0.02))
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.1, 0.2)}</g>')
     out.append(museum_label(D, 474, "Hunters in the Snow", "PIETER BRUEGEL THE ELDER · 1565", "#F2EEE4", "#C8C4B4", ts=29, bs=16, gap=28, max_w=460))
-    return finish(D, out, 101)
+    return gm_finish(D, out, 101, "#3A3A36", edge=2.2, bristle=0.4, grain_=0.16)
 
 
 # ================================================================ 24. Several Circles — Kandinsky, 1926
@@ -4056,7 +4324,7 @@ def several_circles():
         paint.append(f'<circle cx="{X(rnd.uniform(0, 1)):.1f}" cy="{Y(rnd.uniform(0, 1)):.1f}" r="{rnd.uniform(0.5, 1.0):.1f}" fill="#E8E4F0" opacity="{rnd.uniform(0.15, 0.4):.2f}"/>')
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.08, 0.15, 5, 0.25)}</g>')
     out.append(museum_label(D, 506, "Several Circles", "WASSILY KANDINSKY · 1926", "#2A2620", "#6A645A", ts=29, bs=17, gap=26))
-    return finish(D, out, 107)
+    return gm_finish(D, out, 107, "#E6E2DA", edge=1.8, bristle=0.3, grain_=0.14)
 
 
 # ================================================================ 25. Tiger in a Tropical Storm (Surprised!) — Rousseau, 1891
@@ -4137,8 +4405,15 @@ def tiger(D, x, y, s, seed):
 
 @design("tiger-in-a-tropical-storm")
 def rousseau_tiger():
+    """Tiger in a Tropical Storm (Surprised!), Henri Rousseau 1891 — checklist of the original:
+    landscape; a tiger crouched low in the middle-lower part of the picture among dense grasses, back arched,
+    teeth bared, one paw creeping out below the chin, tail winding through the grass behind; layers of patiently
+    outlined foliage in dozens of greens: snake-like grasses along the foreground, spiky fan palms, two tall pampas
+    plumes behind the tiger, a scarlet swamp cypress on the right, a big dark rubber plant at the bottom right; a dark
+    weeping fig on the left whose Y-shaped trunk sends a bough arching across the sky; a slate-grey storm sky with white
+    zigzag lightning (two bolts top right, one top left); a fine mesh of diagonal silver rain over everything."""
     D = Doc("gmrt")
-    box = (68, 66, 532, 420)   # 464 x 354 (130 x 162 cm)
+    box = (68, 66, 532, 420)
     x0, y0, x1, y1 = box
     W, H = x1 - x0, y1 - y0
 
@@ -4151,44 +4426,88 @@ def rousseau_tiger():
     out.append(gilt_frame(D, box, 22, 223, "ornate"))
     cp = clip_box(D, box)
     rnd = random.Random(7)
-    paint = []
-    # storm sky: bruised grey-violet with a flash of lightning
-    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#5A5A6A"), (0.5, "#8A8A88"), (1, "#3A4A3A")])}"/>')
-    for k in range(10):
-        paint.append(soft(D, X(rnd.uniform(0, 1)), Y(rnd.uniform(0, 0.35)), W * rnd.uniform(0.12, 0.25), H * rnd.uniform(0.05, 0.1), rnd.choice(["#4A4A5A", "#9A9890", "#6A6A78"]), 0.6))
-    bolt = [(X(0.62), Y(-0.02)), (X(0.6), Y(0.08)), (X(0.64), Y(0.1)), (X(0.6), Y(0.22)), (X(0.63), Y(0.24)), (X(0.58), Y(0.36))]
-    paint.append(f'<path d="{pd(bolt, False)}" stroke="#FFFFF0" stroke-width="2.4" fill="none"/><path d="{pd(bolt, False)}" stroke="#F2F0FF" stroke-width="7" fill="none" opacity="0.25"/>')
-    # layers of jungle: dark back, mid greens, bright foreground blades, each leaf outlined
-    pals = [("#4A6A3A", "#2E4A2A", "#16261A"), ("#6A8A3A", "#4A6A2A", "#24361A"), ("#8AAA4A", "#5A7A2A", "#2A3A14"), ("#A8B85A", "#6A8A2A", "#34461A"),
-            ("#5A8A6A", "#2E5A4A", "#14302A"), ("#C8C86A", "#8A9A3A", "#4A5A1A")]
-    for layer in range(4):
-        leaves = []
-        for k in range(70 if layer < 3 else 40):
-            x = X(rnd.uniform(-0.05, 1.05))
-            y = Y(rnd.uniform(0.25 + layer * 0.08, 1.05))
-            L = rnd.uniform(26, 60) * (0.8 + layer * 0.15)
-            ang = rnd.uniform(-160, -20)
-            leaves.append(jungle_leaf(D, x, y, L, L * rnd.uniform(0.18, 0.32), ang, pals[(layer + k) % len(pals)] if layer else pals[0], 1000 * layer + k, layer > 0))
-        paint.append("".join(leaves))
-        if layer == 1:
-            # tall grass blades and a tree trunk
-            paint.append(taper([(X(0.86), y1 + 10), (X(0.85), Y(0.4)), (X(0.88), Y(0.0))], 22, 12, "#4A3A2A"))
-        if layer == 2:
-            blades = []
-            for k in range(60):
-                bx = X(rnd.uniform(-0.05, 1.05))
-                by = y1 + 10
-                h = rnd.uniform(60, 180)
-                bend = rnd.uniform(20, 60)
-                blades.append(taper([(bx, by), (bx + bend * 0.2, by - h * 0.5), (bx + bend, by - h)], rnd.uniform(4, 8), 1, rnd.choice(["#6A8A2A", "#8AA03A", "#4A6A2A", "#A8B848"])))
-            paint.append("".join(blades))
-            paint.append(tiger(D, X(0.36), Y(0.7), 1.9, 9))
-    # rain: fine silver slants across everything
-    rain = "".join(f'<path d="M{X(rnd.uniform(-0.1, 1.1)):.1f} {Y(rnd.uniform(-0.1, 1)):.1f}l{-14:.1f} {40:.1f}"/>' for _ in range(220))
-    paint.append(f'<g stroke="#E8ECF0" stroke-width="0.8" opacity="0.45">{rain}</g>')
-    out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.1, 0.22)}</g>')
-    out.append(museum_label(D, 492, "Tiger in a Tropical Storm", "HENRI ROUSSEAU · 1891", "#F2EEDC", "#C8C8A8", ts=29, bs=17, gap=28))
-    return finish(D, out, 109)
+    p = []
+    # slate storm sky
+    p.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#4E545A"), (0.35, "#7A7E7C"), (0.6, "#9A9A90"), (1, "#5A6450")])}"/>')
+    for k in range(12):
+        p.append(soft(D, X(rnd.uniform(0, 1)), Y(rnd.uniform(0, 0.35)), W * rnd.uniform(0.12, 0.25), H * rnd.uniform(0.04, 0.08), rnd.choice(["#3E444A", "#9A9A92", "#62686E"]), 0.55))
+    for pts_ in ([(0.8, -0.02), (0.78, 0.06), (0.81, 0.08), (0.77, 0.17), (0.8, 0.19), (0.75, 0.3)], [(0.92, 0.0), (0.9, 0.07), (0.93, 0.09), (0.89, 0.18)],
+                 [(0.12, -0.02), (0.14, 0.05), (0.11, 0.07), (0.15, 0.15)]):
+        bolt = [(X(u), Y(v)) for u, v in pts_]
+        p.append(f'<path d="{pd(bolt, False)}" stroke="#F2F0FF" stroke-width="7" fill="none" opacity="0.22"/><path d="{pd(bolt, False)}" stroke="#FFFFF4" stroke-width="2" fill="none"/>')
+    # the weeping fig on the left: Y trunk, a bough arching right across the sky, hanging leaves
+    trunk = [(X(0.1), Y(1.05)), (X(0.12), Y(0.75)), (X(0.13), Y(0.5))]
+    p.append(taper(trunk, 26, 16, "#2A2418"))
+    arch = catmull_pts([(X(0.13), Y(0.5)), (X(0.2), Y(0.26)), (X(0.38), Y(0.1)), (X(0.58), Y(0.06)), (X(0.74), Y(0.12))], 6)
+    p.append(taper(arch, 15, 3, "#2A2418"))
+    fork = catmull_pts([(X(0.13), Y(0.5)), (X(0.07), Y(0.34)), (X(0.0), Y(0.22)), (X(-0.04), Y(0.16))], 5)
+    p.append(taper(fork, 14, 6, "#2A2418"))
+    for i in range(2, len(arch) - 1, 2):
+        ax, ay = arch[i]
+        for j in range(3):
+            p.append(jungle_leaf(D, ax + rnd.uniform(-6, 6), ay + rnd.uniform(-2, 4), rnd.uniform(14, 22), rnd.uniform(4, 6), rnd.uniform(70, 120),
+                                 ("#3E5A30", "#26401E", "#0E1A0C"), 400 + i * 3 + j, False))
+    # dark jungle mass behind everything
+    p.append(f'<rect x="{x0}" y="{Y(0.5):.1f}" width="{W}" height="{H * 0.52:.1f}" fill="{D.lin([(0, "#2A4428"), (1, "#14261A")])}"/>')
+    for k in range(150):
+        x, y = X(rnd.uniform(-0.04, 1.04)), Y(rnd.uniform(0.38, 0.62))
+        p.append(jungle_leaf(D, x, y + 30, rnd.uniform(30, 52), rnd.uniform(9, 14), rnd.uniform(-125, -55),
+                             rnd.choice([("#2E4A2A", "#1E3420", "#0C1A0E"), ("#3A5432", "#24401E", "#0E1C0C"), ("#2A4440", "#1A3230", "#0A1816")]), 1500 + k, False))
+    pals = [("#4A6A3A", "#2E4A2A", "#16261A"), ("#6A8A3A", "#4A6A2A", "#24361A"), ("#8AAA4A", "#5A7A2A", "#2A3A14"), ("#5A8A6A", "#2E5A4A", "#14302A"),
+            ("#A8B85A", "#6A8A2A", "#34461A")]
+    for k in range(60):
+        x, y = X(rnd.uniform(-0.02, 1.02)), Y(rnd.uniform(0.42, 0.7))
+        p.append(jungle_leaf(D, x, y, rnd.uniform(16, 30), rnd.uniform(5, 9), rnd.uniform(-160, -20), rnd.choice(pals[:2]), 500 + k))
+    # scarlet swamp cypress on the right
+    p.append(taper([(X(0.9), Y(0.8)), (X(0.905), Y(0.5)), (X(0.9), Y(0.2))], 9, 3, "#4A2A1A"))
+    for k in range(9):
+        by_ = Y(0.24 + k * 0.055)
+        bl = W * (0.03 + 0.012 * k)
+        p.append(taper([(X(0.9), by_), (X(0.9) - bl * 0.5, by_ - 4), (X(0.9) - bl, by_ + 3)], 3, 1, "#4A2A1A"))
+        p.append(taper([(X(0.9), by_ + 6), (X(0.9) + bl * 0.5, by_ + 2), (X(0.9) + bl, by_ + 8)], 3, 1, "#4A2A1A"))
+    for k in range(320):
+        v = rnd.uniform(0.2, 0.72)
+        half = W * (0.025 + 0.09 * (v - 0.2) / 0.52)
+        cx_, cy_ = X(0.9) + rnd.uniform(-half, half), Y(v)
+        p.append(rt_blade(cx_, cy_, rnd.uniform(7, 14), rnd.uniform(70, 115), 2.6, (rnd.choice(["#C8401E", "#A8301A", "#E0602A", "#8A2A14", "#D8502A"]), "#F2A060"), 600 + k, 0.2))
+    # fan palms and pampas plumes behind the tiger
+    p.append(rt_fan(X(0.27), Y(0.62), 62, -165, -15, 15, ["#5A8A3A", "#3E6A2A", "#7AA84A", "#C8D888"], 31))
+    p.append(rt_fan(X(0.74), Y(0.6), 56, -170, -20, 13, ["#4A7A3A", "#6A9A44", "#2E5A2A", "#B8D080"], 32))
+    p.append(rt_plume(X(0.44), Y(0.74), H * 0.52, 0.08, ["#7A6A3A", "#E8DCB8", "#D8C8A0", "#F2ECD8"], 33))
+    p.append(rt_plume(X(0.6), Y(0.74), H * 0.46, 0.12, ["#7A6A3A", "#E8DCB8", "#D8C8A0", "#F2ECD8"], 34))
+    for k in range(40):
+        x, y = X(rnd.uniform(0.0, 1.0)), Y(rnd.uniform(0.6, 0.8))
+        p.append(jungle_leaf(D, x, y, rnd.uniform(18, 30), rnd.uniform(5, 9), rnd.uniform(-150, -30), rnd.choice(pals[1:4]), 700 + k))
+    # the fig's Y-shaped trunk standing in front of the jungle
+    p.append(taper([(X(0.07), Y(1.05)), (X(0.09), Y(0.8)), (X(0.12), Y(0.6)), (X(0.13), Y(0.5))], 30, 16, "#2A2418"))
+    p.append(taper([(X(0.11), Y(0.64)), (X(0.06), Y(0.5)), (X(0.02), Y(0.36)), (X(-0.02), Y(0.26))], 15, 8, "#2A2418"))
+    for k in range(18):
+        yy = Y(rnd.uniform(0.55, 1.0))
+        p.append(f'<path d="M{X(0.075) + rnd.uniform(-8, 8):.1f} {yy:.1f}q{rnd.uniform(-2, 2):.1f} {rnd.uniform(-10, -4):.1f} {rnd.uniform(-1, 1):.1f} {rnd.uniform(-20, -10):.1f}" stroke="{rnd.choice(["#4A3E2A", "#14100A", "#5A4A30"])}" stroke-width="1.6" fill="none" opacity="0.8"/>')
+    # the tiger, in the grass
+    p.append(rt_tiger(D, X(0.43), Y(0.8), 98, 9, 1))
+    # foreground: snake-like grasses swept by the wind, crossing in front of the tiger's legs
+    for k in range(110):
+        x, y = X(rnd.uniform(-0.05, 1.0)), Y(rnd.uniform(0.86, 1.06))
+        p.append(rt_blade(x, y, rnd.uniform(40, 90), rnd.uniform(-75, -35), rnd.uniform(3, 5.5),
+                          (rnd.choice(["#3E6A26", "#5A8A30", "#2E5A1E", "#76A03A", "#2A4E2E", "#4A6A22"]), "#A8C878"), 800 + k, rnd.uniform(0.3, 0.8)))
+    # rubber plant at the bottom right: big dark glossy leaves
+    for k in range(9):
+        a = -170 + k * 18 + rnd.uniform(-6, 6)
+        p.append(jungle_leaf(D, X(0.93), Y(1.02), rnd.uniform(46, 64), rnd.uniform(13, 17), a, ("#3A5A3A", "#1E3A26", "#0A1A10"), 900 + k))
+    for k in range(5):
+        a = -150 + k * 25
+        p.append(jungle_leaf(D, X(0.03), Y(1.02), rnd.uniform(36, 50), rnd.uniform(10, 13), a, ("#4A6A3A", "#2A4A2A", "#10200E"), 950 + k))
+    # rain: a fine mesh of silver diagonals over the whole canvas
+    rain = []
+    for k in range(260):
+        x, y = X(rnd.uniform(-0.2, 1.0)), Y(rnd.uniform(-0.1, 1.0))
+        L = rnd.uniform(40, 110)
+        rain.append(f'<path d="M{x:.1f} {y:.1f}l{L * 0.42:.1f} {L:.1f}"/>')
+    p.append(f'<g stroke="#E8ECF0" stroke-width="0.9" opacity="0.42">{"".join(rain)}</g>')
+    out.append(f'<g {cp}>{"".join(p)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.1, 0.22, 6, 0.3)}</g>')
+    out.append(museum_label(D, 486, "Tiger in a Tropical Storm", "HENRI ROUSSEAU · 1891", "#F2E8CE", "#C8BC98", ts=30, bs=18, gap=29))
+    return gm_finish(D, out, 157, "#2A3428", edge=2.6, bristle=0.45, grain_=0.18)
 
 
 # ================================================================ 26. Walk on the Beach — Sorolla, 1909
@@ -4199,8 +4518,15 @@ def broad(B, region, n, colfn, seed, L=(10, 22), W=(5, 9), angle=-80, spread=18,
 
 @design("walk-on-the-beach")
 def walk_on_the_beach():
+    """Walk on the Beach, Joaquin Sorolla 1909 — checklist of the original:
+    almost square; the sea fills the whole background (no sky), shimmering in long horizontal strokes of blue,
+    turquoise and white; an ochre beach in short strokes across the bottom; two women in white walking towards the
+    RIGHT, leaning slightly into the wind: Clotilde on the left, upright, a straw hat with violet flowers under a
+    greenish veil blown back almost horizontally, right hand raised to the veil, an open white parasol held low and
+    angled to the sand on her left; her daughter Maria to the right, head turned over her shoulder towards us, holding
+    her wide yellow straw hat, a white scarf streaming behind her; white dresses painted in lilac shadow and blazing sun."""
     D = Doc("gmwb")
-    box = (92, 54, 508, 458)   # 416 x 404 (205 x 200 cm)
+    box = (92, 54, 508, 458)
     x0, y0, x1, y1 = box
     W, H = x1 - x0, y1 - y0
 
@@ -4218,80 +4544,35 @@ def walk_on_the_beach():
     cp = clip_box(D, box)
     rnd = random.Random(5)
     B = Brush()
-    paint = []
-    # the sea: deep turquoise far out, emerald and foam near the shore
-    sea = UV([(-0.02, -0.02), (1.02, -0.02), (1.02, 0.5), (-0.02, 0.44)])
-    paint.append(f'<path d="{pd(sea)}" fill="{D.lin([(0, "#2E6A8A"), (0.6, "#3E8A9A"), (1, "#7AB8B0")])}"/>')
+    p = []
+    sea = UV([(-0.02, -0.02), (1.02, -0.02), (1.02, 0.66), (-0.02, 0.6)])
+    p.append(f'<path d="{pd(sea)}" fill="{D.lin([(0, "#1E5A7E"), (0.45, "#2E7A96"), (0.8, "#4A9EAA"), (1, "#8CC4BC")])}"/>')
 
     def sea_c(x, y, r):
         v = (y - y0) / H
-        if r.random() < 0.12 + v * 0.4:
-            return r.choice(["#FFFFFF", "#E8F4F0", "#CDE8E4"])
-        return r.choice(["#2E6A8A", "#3A7A9A", "#4A9AA8", "#5AAAB0", "#2A5A7A", "#6ABAB8"])
-    broad(B, sea, 900, sea_c, 1, L=(10, 24), W=(4, 7), angle=0, spread=8)
-    paint.append(B.render())
-    # wet sand mirroring the sky, then warm dry sand with violet shadows
-    sand = UV([(-0.02, 0.44), (1.02, 0.5), (1.02, 1.02), (-0.02, 1.02)])
-    paint.append(f'<path d="{pd(sand)}" fill="{D.lin([(0, "#C8C8C0"), (0.2, "#E8D8C0"), (1, "#E0C8A8")])}"/>')
-    broad(B, sand, 900, lambda x, y, r: r.choice(["#F2E2C8", "#E8D0B0", "#D8C8D0", "#F6EAD8", "#C8B8C8", "#E0C8A0"]), 2, L=(12, 24), W=(4, 7), angle=-5, spread=10)
-    paint.append(B.render())
-    # the two women walking into the wind, white dresses blazing in the sun
-    # shadows on the sand first
-    paint.append(soft(D, X(0.48), Y(0.97), W * 0.3, H * 0.035, "#8A7AA8", 0.6))
-    paint.append(soft(D, X(0.8), Y(0.93), W * 0.22, H * 0.03, "#8A7AA8", 0.5))
-    def lady(ox, oy, sc, seed, hat="#F2EEE6", hatband="#C8B8D8", parasol=False, veil=True):
-        """An Edwardian woman in white walking left into the wind: fitted bodice, flaring skirt blown back,
-        a wide hat over a profile in warm shadow."""
-        def Q(x, y):
-            return X(ox + x * sc), Y(oy + y * sc)
-        g = []
-        skirt = [Q(-0.05, 0.0), Q(-0.07, 0.2), Q(-0.12, 0.42), Q(-0.12, 0.52), Q(0.06, 0.54), Q(0.22, 0.52), Q(0.3, 0.46), Q(0.16, 0.3), Q(0.06, 0.12), Q(0.04, 0.0)]
-        bodice = [Q(-0.06, -0.2), Q(-0.075, -0.15), Q(-0.065, -0.08), Q(-0.05, 0.02), Q(0.045, 0.02), Q(0.05, -0.1), Q(0.045, -0.2), Q(0.0, -0.22)]
-        for poly, n_, sd in ((skirt, 300, 1), (bodice, 90, 2)):
-            dd = smooth_closed(poly)
-            g.append(f'<path d="{dd}" fill="#ECECF4"/>')
-            lit_edge = ox * W + x0
-            broad(B, poly, int(n_ * sc / 0.5), lambda x, y, r, le=lit_edge: r.choice(["#FFFFFF", "#FAFAF4", "#FFF8EA", "#F2F2F8"]) if x > X(ox + 0.0 * sc) + (y - Y(oy)) * 0.15 else
-                  r.choice(["#B4B4D8", "#A4A4CC", "#C4C4E2", "#9898C4", "#B0C0E0"]), seed + sd, L=(12 * sc / 0.5, 26 * sc / 0.5), W=(4, 7.5), angle=-100, spread=12)
-            g.append(f'<g {D.clip(f"<path d=\"{dd}\"/>")}>{B.render()}</g>')
-        # neck, profile and hair in the warm shadow of the hat
-        g.append(f'<path d="{smooth_closed([Q(-0.02, -0.21), Q(-0.022, -0.26), Q(0.02, -0.26), Q(0.02, -0.21)])}" fill="#A87460"/>')
-        face_ = [Q(-0.01, -0.36), Q(-0.035, -0.345), Q(-0.04, -0.325), Q(-0.052, -0.31), Q(-0.04, -0.302), Q(-0.042, -0.29), Q(-0.036, -0.282), Q(-0.034, -0.27),
-                 Q(-0.02, -0.258), Q(0.01, -0.262), Q(0.03, -0.3), Q(0.025, -0.35)]
-        g.append(f'<path d="{smooth_closed(face_)}" fill="{D.lin([(0, "#D8A088"), (1, "#8A5A48")], 0, 0, 1, 0)}"/>')
-        g.append(soft(D, *Q(-0.03, -0.305), 3.5 * sc / 0.5, 3 * sc / 0.5, "#F2C0A0", 0.6))
-        g.append(f'<path d="{blob(*Q(0.03, -0.31), 0.03 * W * sc, 0.035 * H * sc, seed + 5, 0.15, 10)}" fill="#4A3020"/>')
-        # the hat
-        g.append(f'<path d="{blob(*Q(0.0, -0.355), 0.13 * W * sc, 0.028 * H * sc, seed + 6, 0.05, 14, -5)}" fill="{hat}"/>')
-        g.append(f'<path d="{blob(*Q(0.01, -0.385), 0.055 * W * sc, 0.035 * H * sc, seed + 7, 0.06, 12)}" fill="{hat}"/>')
-        g.append(f'<path d="{blob(*Q(0.01, -0.362), 0.06 * W * sc, 0.012 * H * sc, seed + 8, 0.06, 10)}" fill="{hatband}"/>')
-        if veil:
-            v_ = [Q(0.02, -0.37), Q(0.12, -0.38), Q(0.24, -0.35), Q(0.3, -0.29), Q(0.2, -0.3), Q(0.1, -0.32)]
-            g.append(f'<path d="{smooth_closed(v_)}" fill="#FFFFFF" opacity="0.82"/>')
-        return "".join(g)
-    # shadows on the sand
-    paint.append(soft(D, X(0.5), Y(0.97), W * 0.3, H * 0.035, "#8A7AA8", 0.6))
-    paint.append(soft(D, X(0.82), Y(0.92), W * 0.2, H * 0.03, "#8A7AA8", 0.5))
-    paint.append(lady(0.8, 0.4, 0.8, 30, "#E8C878", "#C88A5A"))
-    # the parasol, then the woman holding it
-    pc = UV([(0.2, 0.22), (0.28, 0.1), (0.4, 0.06), (0.52, 0.1), (0.58, 0.2), (0.48, 0.18), (0.38, 0.2), (0.28, 0.2)])
-    paint.append(f'<path d="{smooth_closed(pc)}" fill="{D.lin([(0, "#FFFFFF"), (0.6, "#F2F0EA"), (1, "#C8C0D8")], 0, 0, 0, 1)}"/>')
-    for k in range(6):
-        a_ = UV([(0.39, 0.065)])[0]
-        b_ = UV([(0.22 + k * 0.07, 0.205)])[0]
-        paint.append(f'<path d="M{a_[0]:.1f} {a_[1]:.1f}L{b_[0]:.1f} {b_[1]:.1f}" stroke="#C8C4D4" stroke-width="1.2" opacity="0.8"/>')
-    paint.append(f'<path d="M{X(0.39):.1f} {Y(0.065):.1f}L{X(0.405):.1f} {Y(0.33):.1f}" stroke="#7A6A5A" stroke-width="1.6"/>')
-    paint.append(lady(0.47, 0.44, 1.0, 40))
-    paint.append(taper(UV([(0.44, 0.25), (0.415, 0.3), (0.405, 0.33)]), 9, 6, "#C8C8DC"))
-    paint.append(f'<path d="{blob(X(0.405), Y(0.33), 4.5, 4, 3, 0.1, 8)}" fill="#C89878"/>')
-    # sparkle of the sun on the foam and a scatter of loose, bright touches
-    for k in range(40):
-        x, y = X(rnd.uniform(0, 1)), Y(rnd.uniform(0.25, 0.46))
-        B.dash([(x - 4, y), (x + 4, y)], "#FFFFFF", 2.2, 0.85)
-    paint.append(B.render())
-    out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.1, 0.12, 6, 0.25)}</g>')
-    out.append(museum_label(D, 502, "Walk on the Beach", "JOAQUÍN SOROLLA · 1909", "#3A3228", "#7A6A58", ts=29, bs=17, gap=27))
-    return finish(D, out, 113)
+        if r.random() < 0.08 + v * 0.35:
+            return r.choice(["#FFFFFF", "#E8F4F0", "#CDE8E4", "#F6EEDC"])
+        if v < 0.3:
+            return r.choice(["#1E5A7E", "#2A6A8E", "#2E7A9A", "#16486A", "#3A88A0"])
+        return r.choice(["#2E6A8A", "#3A7A9A", "#4A9AA8", "#5AAAB0", "#2A5A7A", "#6ABAB8", "#7CC4BC"])
+    broad(B, sea, 1300, sea_c, 1, L=(12, 28), W=(3.5, 6.5), angle=0, spread=6)
+    p.append(B.render())
+    # the last wash of the waves running up the sand
+    for k in range(5):
+        y = Y(0.58 + k * 0.025)
+        p.append(taper([(X(-0.02), y + 6), (X(0.3), y + rnd.uniform(-3, 3)), (X(0.7), y + 2), (X(1.02), y + 6 + k)], 2, 5, "#FFFFFF", 0.55))
+    sand = UV([(-0.02, 0.6), (1.02, 0.66), (1.02, 1.02), (-0.02, 1.02)])
+    p.append(f'<path d="{pd(sand)}" fill="{D.lin([(0, "#C8C4BC"), (0.15, "#E6D4B8"), (1, "#DCC09A")])}"/>')
+    broad(B, sand, 1000, lambda x, y, r: r.choice(["#F2E2C8", "#E8D0B0", "#D8C8D0", "#F6EAD8", "#C8B8C8", "#E0C8A0", "#D8B88A"]), 2, L=(7, 14), W=(3.5, 6), angle=-5, spread=14)
+    p.append(B.render())
+    # violet shadows cast on the sand towards the left
+    p.append(soft(D, X(0.26), Y(0.94), W * 0.24, H * 0.03, "#7A6AA8", 0.55))
+    p.append(soft(D, X(0.62), Y(0.92), W * 0.2, H * 0.026, "#7A6AA8", 0.5))
+    p.append(sorolla_woman(D, B, X(0.66), Y(0.925), H * 0.74, 51, "maria"))
+    p.append(sorolla_woman(D, B, X(0.38), Y(0.955), H * 0.8, 41, "clotilde"))
+    out.append(f'<g {cp}>{"".join(p)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.1, 0.16, 6, 0.25)}</g>')
+    out.append(museum_label(D, 500, "Walk on the Beach", "JOAQUÍN SOROLLA · 1909", "#3A2E22", "#6A5A44", ts=30, bs=18, gap=27))
+    return gm_finish(D, out, 231, "#E8E0D2", edge=3.0, bristle=0.55, grain_=0.12)
 
 
 # ================================================================ 27. The Scream — Munch, 1893
@@ -4315,8 +4596,15 @@ def band_strokes(B, line_fn, n_lines, t_range, cols, seed, w=(3, 6), jitter_=2.0
 
 @design("the-scream")
 def the_scream():
+    """The Scream, Munch 1893 — checklist of the original:
+    portrait; a blood-orange, red and yellow sky in long undulating bands with streaks of blue-green, over the
+    upper ~40%; below, the Oslofjord in deep blue curving in from the right, dark blue-green hills and shoreline,
+    two tiny boats; a bridge whose railing runs straight and steep from the right foreground away to the middle
+    distance at the LEFT, two dark upright figures in hats at its far end; in the foreground, centre, a sinuous dark
+    figure with a pale, bald, skull-like head, hands pressed to its cheeks, eyes and mouth open in round hollows,
+    its body swaying like the landscape; everything in fluid, rhythmic strokes."""
     D = Doc("gmms")
-    box = (150, 56, 450, 428)   # 300 x 372 (91 x 73.5 cm)
+    box = (142, 50, 458, 442)
     x0, y0, x1, y1 = box
     W, H = x1 - x0, y1 - y0
 
@@ -4334,90 +4622,132 @@ def the_scream():
     cp = clip_box(D, box)
     rnd = random.Random(5)
     B = Brush()
-    paint = []
-    # the screaming sky: bands of blood-orange, red and yellow, with streaks of blue-green
-    paint.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#D8602A"), (0.25, "#E88A3A"), (0.45, "#C8402A")])}"/>')
+    p = []
+    # ---- the sky
+    p.append(f'<rect x="{x0}" y="{y0}" width="{W}" height="{H}" fill="{D.lin([(0, "#C84A26"), (0.18, "#E2763A"), (0.3, "#E8A040"), (0.4, "#C8482A")])}"/>')
 
     def sky_line(k, t):
-        x = x0 - 20 + t * (W + 40)
-        y = Y(0.02 + k * 0.42) + H * 0.035 * math.sin(t * 7 + k * 5) + H * 0.05 * math.sin(t * 2.5 + 1) * (1 - k * 0.5)
+        x = x0 - 30 + t * (W + 60)
+        y = Y(-0.01 + k * 0.47) + H * 0.03 * math.sin(t * 6.5 + k * 4) + H * 0.055 * math.sin(t * 2.6 + 0.8 + k) * (1 - k * 0.4)
         return x, y
 
     def sky_cols(k, r):
-        if 0.35 < k < 0.55 and r.random() < 0.45:
-            return r.choice(["#F2D050", "#F6E070", "#E8B830"])
-        if k > 0.7 and r.random() < 0.3:
-            return r.choice(["#6A9A8A", "#5A8A9A", "#8AB0A0"])
+        if 0.42 < k < 0.62 and r.random() < 0.55:
+            return r.choice(["#F2D050", "#F6E07A", "#E8B830", "#F0C040"])
+        if k > 0.78 and r.random() < 0.4:
+            return r.choice(["#5E8E86", "#4E7E8E", "#7EA698", "#3E6A7A"])
+        if k < 0.2:
+            return r.choice(["#C8381E", "#D84A26", "#B82E1A", "#E05A2A"])
         return r.choice(["#E8602A", "#D8402A", "#F2903A", "#C8301E", "#E87A2A", "#F2A040"])
-    band_strokes(B, sky_line, 46, (0, 1), sky_cols, 3, w=(4, 7))
-    paint.append(B.render())
-    # the land and the fjord below, all swirling: dark blue water curving in from the right, green-black hills
-    land = UV([(-0.02, 0.42), (0.2, 0.4), (0.4, 0.44), (0.6, 0.4), (0.8, 0.38), (1.02, 0.42), (1.02, 1.02), (-0.02, 1.02)])
-    paint.append(f'<path d="{smooth_closed(land)}" fill="#2A3A4A"/>')
+    band_strokes(B, sky_line, 64, (0, 1), sky_cols, 3, w=(3.5, 6.5), steps=30)
+    p.append(B.render())
+    # ---- land, fjord and hills, all in swirling bands
+    land = UV([(-0.04, 0.44), (0.12, 0.41), (0.28, 0.43), (0.44, 0.415), (0.6, 0.39), (0.78, 0.37), (0.92, 0.38), (1.04, 0.4), (1.04, 1.04), (-0.04, 1.04)])
+    ld = smooth_closed(land)
+    p.append(f'<path d="{ld}" fill="#26384A"/>')
+    # hills on the right and the left shore: dark green-blue with ochre seams
+    hill_r = UV([(0.5, 0.42), (0.66, 0.39), (0.82, 0.37), (1.04, 0.39), (1.04, 0.52), (0.86, 0.5), (0.7, 0.47), (0.56, 0.45)])
 
+    def hill_line(k, t):
+        a, b = lerp(hill_r[0], hill_r[-1], k), lerp(hill_r[3], hill_r[4], k)
+        x, y = lerp(a, b, t)
+        return x, y + 3 * math.sin(t * 9 + k * 6)
+    band_strokes(B, hill_line, 14, (0, 1), lambda k, r: r.choice(["#2E4A3A", "#3A5A44", "#1E3A2E", "#4E6A44", "#6A6A3A"]), 41, w=(3, 5), steps=14)
+    # the fjord: deep blue water sweeping in a great curve from the right towards the left shore
     def fjord_line(k, t):
-        cx_, cy_ = X(0.72), Y(0.62)
-        a = math.pi * (0.9 + 1.3 * t)
-        r = W * (0.12 + 0.45 * k)
-        return cx_ + r * math.cos(a) * 1.2, cy_ + r * math.sin(a) * 0.45
-
+        cx_, cy_ = X(0.62), Y(0.6)
+        a = math.pi * (0.92 + 1.15 * t)
+        r = W * (0.1 + 0.42 * k)
+        return cx_ + r * math.cos(a) * 1.25, cy_ + r * math.sin(a) * 0.36
     band_strokes(B, fjord_line, 30, (0, 1), lambda k, r: r.choice(["#1E3A6A", "#2A4A8A", "#3A5A9A", "#14284A", "#4A6AA8"]) if k < 0.55 else
-                 r.choice(["#2E4A3A", "#3A5A3A", "#1E3A2A", "#4A6A4A", "#5A4A3A", "#E8803A"]), 4, w=(4, 7))
-    paint.append(f'<g {D.clip(f"<path d=\"{smooth_closed(land)}\"/>")}>{B.render()}</g>')
-    # two boats on the fjord
-    for u, v in ((0.66, 0.5), (0.74, 0.54)):
-        paint.append(f'<path d="M{X(u) - 6:.1f} {Y(v):.1f}h12l-3 3h-6z" fill="#1A1A1A"/><path d="M{X(u):.1f} {Y(v):.1f}v-9" stroke="#1A1A1A" stroke-width="1"/>')
-    # the bridge: its deck rushing diagonally from the near right corner away to the left
-    deck = UV([(1.02, 0.86), (1.02, 1.02), (-0.02, 1.02), (-0.02, 0.5)])
-    paint.append(f'<path d="{pd(deck)}" fill="#B8783A"/>')
+                 r.choice(["#2E4A3A", "#3A5A3A", "#1E3A2A", "#4A6A4A", "#6A5A3A", "#D8803A"]), 4, w=(3.5, 6), steps=26)
+    # left shore: olive and ochre slopes curving down to the water
+    def shore_line(k, t):
+        x = X(-0.04 + 0.55 * t)
+        y = Y(0.43 + k * 0.12) + H * 0.04 * math.sin(t * 3 + k * 2) + t * H * 0.04
+        return x, y
+    band_strokes(B, shore_line, 14, (0, 1), lambda k, r: r.choice(["#5A6A3A", "#7A7A3A", "#3E5A3A", "#A8803A", "#2E4A4A"]), 42, w=(3, 5), steps=16)
+    p.append(f'<g {D.clip(f"<path d=\"{ld}\"/>")}>{B.render()}</g>')
+    for u, v in ((0.71, 0.5), (0.77, 0.525)):
+        p.append(f'<path d="M{X(u) - 6:.1f} {Y(v):.1f}q6 3 12 0l-2 2.5h-8z" fill="#141418"/><path d="M{X(u):.1f} {Y(v):.1f}v-8" stroke="#141418" stroke-width="1"/>')
+    # ---- the bridge: deck rushing from the near foreground away to the middle distance at the left
+    rail_a, rail_b = (X(1.06), Y(0.775)), (X(-0.06), Y(0.425))
+    deck = [rail_b, rail_a, (X(1.06), Y(1.06)), (X(-0.06), Y(1.06))]
+    dd = pd(deck)
+    p.append(f'<path d="{dd}" fill="#B87038"/>')
 
     def deck_line(k, t):
-        a = lerp((X(1.05), Y(0.88 + k * 0.16)), (X(-0.05), Y(0.48 + k * 0.18)), t)
-        return a
-    band_strokes(B, deck_line, 16, (0, 1), ["#C8864A", "#A86A30", "#D89A5A", "#8A5A2A", "#E8A060"], 6, w=(4, 6), steps=12)
-    paint.append(f'<g {D.clip(f"<path d=\"{pd(deck)}\"/>")}>{B.render()}</g>')
-    # the railing: three long rails converging on the far end, with posts
-    for k, (dy0, dy1) in enumerate(((0.72, 0.4), (0.76, 0.43), (0.8, 0.46))):
-        a, b = (X(1.04), Y(dy0)), (X(-0.04), Y(dy1))
-        paint.append(f'<path d="M{a[0]:.1f} {a[1]:.1f}L{b[0]:.1f} {b[1]:.1f}" stroke="#5A3A20" stroke-width="{4.5 - k:.1f}" stroke-linecap="round"/>')
-        paint.append(f'<path d="M{a[0]:.1f} {a[1] - 1.5:.1f}L{b[0]:.1f} {b[1] - 1:.1f}" stroke="#E8A060" stroke-width="1.2" opacity="0.6"/>')
-    for k in range(9):
-        t = (k / 8) ** 1.6
-        a = lerp((X(1.04), Y(0.72)), (X(-0.04), Y(0.4)), t)
-        b = lerp((X(1.04), Y(0.9)), (X(-0.04), Y(0.5)), t)
-        paint.append(f'<path d="M{a[0]:.1f} {a[1]:.1f}L{b[0]:.1f} {b[1]:.1f}" stroke="#4A2E18" stroke-width="{max(1.2, 3.6 * (1 - t)):.1f}"/>')
-    # the two strollers at the far end of the bridge
-    for k, u in enumerate((0.1, 0.17)):
-        fx, fy = X(u), Y(0.46 + k * 0.012)
-        paint.append(f'<path d="{smooth_closed([(fx - 4, fy), (fx - 3, fy - 16), (fx, fy - 20), (fx + 3, fy - 16), (fx + 4, fy)])}" fill="#141418"/>'
-                     f'<circle cx="{fx:.1f}" cy="{fy - 22:.1f}" r="3.2" fill="#141418"/><path d="M{fx - 5:.1f} {fy - 24:.1f}h10" stroke="#141418" stroke-width="2"/>')
-    # the figure: a sinuous dark body and a pale, skull-like head clasped in its hands
-    body = UV([(0.3, 1.04), (0.33, 0.88), (0.38, 0.76), (0.44, 0.69), (0.5, 0.66), (0.58, 0.69), (0.62, 0.78), (0.6, 0.9), (0.66, 1.04)])
+        far = (X(-0.06), Y(0.44 + k * 0.08))
+        near = (X(1.06) - k * W * 0.9, Y(0.8 + k * 0.4))
+        return lerp(near, far, t)
+    band_strokes(B, deck_line, 26, (0, 1), lambda k, r: r.choice(["#C8864A", "#A86A30", "#D89A5A", "#8A5A2A", "#E8A060", "#6A4A3A", "#4A4A5A"] if k > 0.3 else
+                 ["#C8864A", "#A86A30", "#D89A5A", "#B8783A", "#E8A060"]), 6, w=(3.5, 6), steps=14)
+    p.append(f'<g {D.clip(f"<path d=\"{dd}\"/>")}>{B.render()}</g>')
+    # railing: heavy top bar, two lower rails converging on the far end, posts thinning into the distance
+    for k, off in enumerate((0.0, 0.05, 0.1)):
+        a, b = (rail_a[0], rail_a[1] + H * off), (rail_b[0], rail_b[1] + H * off * 0.3)
+        p.append(f'<path d="M{a[0]:.1f} {a[1]:.1f}L{b[0]:.1f} {b[1]:.1f}" stroke="#4A2C18" stroke-width="{6 - k * 1.6:.1f}" stroke-linecap="round"/>')
+        p.append(f'<path d="M{a[0]:.1f} {a[1] - 2:.1f}L{b[0]:.1f} {b[1] - 1:.1f}" stroke="#E89A58" stroke-width="{1.6 - k * 0.3:.1f}" opacity="0.7"/>')
+    for k in range(13):
+        t = (k / 12) ** 1.5
+        a = lerp(rail_a, rail_b, t)
+        b = lerp((rail_a[0], rail_a[1] + H * 0.13), (rail_b[0], rail_b[1] + H * 0.04), t)
+        p.append(f'<path d="M{a[0]:.1f} {a[1]:.1f}L{b[0]:.1f} {b[1]:.1f}" stroke="#3E2414" stroke-width="{max(1.2, 4.2 * (1 - t)):.1f}"/>')
+    # the two dark figures at the far end of the bridge
+    for k, (u, h_) in enumerate(((0.09, 40), (0.165, 37))):
+        fx, fy = X(u), Y(0.47 + k * 0.012)
+        coat = [(fx - h_ * 0.13, fy), (fx - h_ * 0.12, fy - h_ * 0.55), (fx - h_ * 0.08, fy - h_ * 0.78), (fx + h_ * 0.08, fy - h_ * 0.78),
+                (fx + h_ * 0.12, fy - h_ * 0.55), (fx + h_ * 0.13, fy)]
+        p.append(f'<path d="{smooth_closed(coat)}" fill="#141418"/>')
+        p.append(f'<ellipse cx="{fx:.1f}" cy="{fy - h_ * 0.85:.1f}" rx="{h_ * 0.07:.1f}" ry="{h_ * 0.08:.1f}" fill="#141418"/>')
+        p.append(f'<path d="M{fx - h_ * 0.12:.1f} {fy - h_ * 0.9:.1f}h{h_ * 0.24:.1f}M{fx - h_ * 0.06:.1f} {fy - h_ * 0.9:.1f}v{-h_ * 0.1:.1f}h{h_ * 0.12:.1f}v{h_ * 0.1:.1f}" stroke="#141418" stroke-width="2.2" fill="#141418"/>')
+        p.append(f'<path d="M{fx - h_ * 0.05:.1f} {fy:.1f}v3M{fx + h_ * 0.05:.1f} {fy:.1f}v3" stroke="#141418" stroke-width="2"/>')
+    # ---- the figure: a sinuous dark body swaying like the shoreline, a pale skull-like head held in its hands
+    body = UV([(0.33, 1.05), (0.35, 0.95), (0.4, 0.86), (0.42, 0.79), (0.37, 0.75), (0.4, 0.71), (0.47, 0.7), (0.53, 0.7), (0.6, 0.72),
+               (0.63, 0.77), (0.58, 0.81), (0.6, 0.9), (0.66, 0.98), (0.7, 1.05)])
     bd = smooth_closed(body)
-    paint.append(f'<path d="{bd}" fill="#1E2430"/>')
-    band_strokes(B, lambda k, t: (lerp(UV([(0.4 + k * 0.17, 1.04)])[0], UV([(0.46 + k * 0.08, 0.76)])[0], t)[0] + 6 * math.sin(t * 6 + k * 3),
-                                  lerp(UV([(0.4 + k * 0.17, 1.04)])[0], UV([(0.46 + k * 0.08, 0.76)])[0], t)[1]), 9, (0, 1),
-                 ["#2A3448", "#141820", "#3A4458", "#24283A"], 7, w=(3, 5), steps=12)
-    paint.append(f'<g {D.clip(f"<path d=\"{bd}\"/>")}>{B.render()}</g>')
+    p.append(f'<path d="{bd}" fill="#1A2030"/>')
+
+    def body_line(k, t):
+        a = lerp(UV([(0.36 + k * 0.32, 1.05)])[0], UV([(0.42 + k * 0.16, 0.71)])[0], t)
+        return a[0] + 7 * math.sin(t * 5.5 + 1 + k * 2) * (1 - t * 0.5), a[1]
+    band_strokes(B, body_line, 12, (0, 1), ["#2A3448", "#141820", "#3A4458", "#24283A", "#46506A", "#2E2A3A"], 7, w=(3, 5.5), steps=14)
+    p.append(f'<g {D.clip(f"<path d=\"{bd}\"/>")}>{B.render()}</g>')
+    p.append(f'<path d="{bd}" fill="none" stroke="#0C0E16" stroke-width="1.6" opacity="0.7"/>')
     hx, hy = X(0.5), Y(0.6)
-    k_ = 1.35
-    head = [(hx + x * k_, hy + y * k_) for x, y in ((-16, -6), (-13, -22), (0, -28), (13, -22), (16, -6), (11, 14), (4, 24), (-4, 24), (-11, 14))]
+    s = W * 0.0042
+    # sleeves: forearms rising from the elbows to the face
+    for sg in (-1, 1):
+        arm = [(hx + sg * 30 * s, hy + 52 * s), (hx + sg * 31 * s, hy + 38 * s), (hx + sg * 22 * s, hy + 24 * s), (hx + sg * 14 * s, hy + 16 * s)]
+        p.append(taper(catmull_pts(arm, 4), 13 * s, 8 * s, "#1E2636"))
+        p.append(taper(catmull_pts([(x - sg * 2, y) for x, y in arm], 4), 4 * s, 2 * s, "#4A5670", 0.7))
+    head = [(-15, -10), (-13, -24), (-4, -31), (6, -30), (14, -22), (15, -8), (10, 8), (6, 22), (0, 28), (-6, 22), (-10, 8)]
+    head = [(hx + x * s, hy + y * s) for x, y in head]
     hd = smooth_closed(head)
-    paint.append(f'<path d="{hd}" fill="{D.rad([(0, "#E8D8A0"), (0.6, "#C8B880"), (1, "#8A8050")], 0.45, 0.4, 0.65)}"/>')
-    # hands pressed to the cheeks, arms rising from the body
+    p.append(f'<path d="{hd}" fill="{D.rad([(0, "#EEDFA8"), (0.55, "#D2C48C"), (1, "#8E8A5C")], 0.42, 0.35, 0.7)}"/>')
+    band_strokes(B, lambda k, t: (hx + (-13 + 26 * k) * s * (1 - 0.45 * t), hy - 28 * s + t * 54 * s * (1 - abs(k - 0.5) * 0.4)), 7, (0, 1),
+                 ["#E8DCA4", "#D8CC94", "#CCC48C", "#C4C090", "#F0E4B0"], 9, w=(2, 3.2), steps=8, op=0.45)
+    p.append(f'<g {D.clip(f"<path d=\"{hd}\"/>")}>{B.render()}</g>')
+    # hollow eyes, nostril dots, the long open mouth
     for sg in (-1, 1):
-        paint.append(taper([(hx + sg * 26, hy + 62), (hx + sg * 30, hy + 34), (hx + sg * 21, hy + 4)], 13, 9, "#232A38"))
-        paint.append(f'<path d="{blob(hx + sg * 20, hy + 2, 7, 12, 3 + sg, 0.12, 10, sg * 10)}" fill="#C8B880" stroke="#5A5030" stroke-width="0.9"/>')
-    # eyes: dark staring hollows; nostril slits; the open oval mouth
+        p.append(f'<path d="{blob(hx + sg * 6.5 * s, hy - 11 * s, 4.8 * s, 6 * s, 7 + sg, 0.12, 10, sg * 12)}" fill="#3A3424"/>')
+        p.append(f'<path d="{blob(hx + sg * 6.8 * s, hy - 10.5 * s, 2.2 * s, 3.0 * s, 9 + sg, 0.1, 8)}" fill="#D8D2A8" opacity="0.7"/>')
+        p.append(f'<circle cx="{hx + sg * 6.8 * s:.1f}" cy="{hy - 10.5 * s:.1f}" r="{1.3 * s:.1f}" fill="#1E1A12"/>')
+        p.append(f'<ellipse cx="{hx + sg * 2.2 * s:.1f}" cy="{hy + 3 * s:.1f}" rx="{0.9 * s:.1f}" ry="{1.6 * s:.1f}" fill="#4A4228"/>')
+    p.append(f'<path d="{blob(hx, hy + 15 * s, 4.2 * s, 8 * s, 13, 0.08, 10)}" fill="#2A2418"/>')
+    p.append(f'<path d="{blob(hx, hy + 15 * s, 4.2 * s, 8 * s, 13, 0.08, 10)}" fill="none" stroke="#6A6038" stroke-width="1"/>')
+    p.append(f'<path d="{hd}" fill="none" stroke="#3E3A24" stroke-width="1.4"/>')
+    # hands pressed flat to the cheeks, fingers spread up towards the temples
     for sg in (-1, 1):
-        paint.append(f'<path d="{blob(hx + sg * 8, hy - 12, 5, 6.5, 7 + sg, 0.12, 10)}" fill="#3A3420"/>')
-        paint.append(f'<path d="{blob(hx + sg * 8.5, hy - 11, 2.4, 3.2, 9 + sg, 0.12, 8)}" fill="#E8E0B8" opacity="0.5"/>')
-        paint.append(f'<ellipse cx="{hx + sg * 3:.1f}" cy="{hy + 4:.1f}" rx="1.2" ry="2" fill="#3A3420"/>')
-    paint.append(f'<path d="{blob(hx, hy + 18, 6, 10, 13, 0.08, 10)}" fill="#2A2418" stroke="#5A5030" stroke-width="0.8"/>')
-    paint.append(f'<path d="{hd}" fill="none" stroke="#4A4428" stroke-width="1.3"/>')
-    out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.08, 0.2, 6, 0.3)}</g>')
-    out.append(museum_label(D, 486, "The Scream", "EDVARD MUNCH · 1893", "#F2E6D4", "#C8B8A0", ts=34, bs=18, gap=32))
-    return finish(D, out, 117)
+        palm = [(hx + sg * 8 * s, hy + 20 * s), (hx + sg * 15 * s, hy + 18 * s), (hx + sg * 17 * s, hy + 6 * s), (hx + sg * 16 * s, hy - 6 * s),
+                (hx + sg * 12.5 * s, hy - 9 * s), (hx + sg * 10 * s, hy - 4 * s), (hx + sg * 8.5 * s, hy + 8 * s)]
+        p.append(f'<path d="{smooth_closed(palm)}" fill="{D.lin([(0, "#E6D69C"), (1, "#B8AC74")], 0, 0, 1, 1)}" stroke="#4A4228" stroke-width="1.1"/>')
+        for j in range(3):
+            fx0, fy0 = hx + sg * (10.5 + j * 2.0) * s, hy + (2 - j * 0.5) * s
+            p.append(f'<path d="M{fx0:.1f} {fy0:.1f}l{sg * 0.6 * s:.1f} {-(9 - j * 1.5) * s:.1f}" stroke="#5A5030" stroke-width="0.9" opacity="0.7"/>')
+    out.append(f'<g {cp}>{"".join(p)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.08, 0.2, 6, 0.3)}</g>')
+    out.append(museum_label(D, 494, "The Scream", "EDVARD MUNCH · 1893", "#F2E6D4", "#C8B8A0", ts=34, bs=18, gap=31))
+    return gm_finish(D, out, 117, "#2A3038", edge=3.2, bristle=0.55, grain_=0.2)
 
 
 # ================================================================ 28. Spring (The Seasons) — Mucha, 1896
@@ -4695,7 +5025,7 @@ def mucha_spring():
     P.append(f'<rect x="{bx0 + 4}" y="{by0 + 4}" width="{bx1 - bx0 - 8}" height="{by1 - by0 - 8}" fill="none" stroke="#A8925A" stroke-width="1.2"/>')
     out.append(f'<g {cp}>{"".join(P)}</g>')
     out.append(museum_label(D, 490, "Spring, from The Seasons", "ALPHONSE MUCHA · 1896", "#3A2E22", "#6A5A44", ts=27, bs=17, gap=27, max_w=440))
-    return finish(D, out, 131)
+    return gm_finish(D, out, 131, "#E2D6C0", edge=1.6, bristle=0.25, grain_=0.12)
 
 
 # ================================================================ 29. The Bedroom — Van Gogh, 1888
@@ -4795,7 +5125,7 @@ def bedroom():
     paint.append(f'<path d="M{X(0.22):.1f} {Y(0.54):.1f}q-4 -16 4 -18q8 2 4 18z" fill="#5A8AB8" stroke="#2A2A3A" stroke-width="1.4"/>')
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.06)}{varnish(D, box, 0.12, 0.18)}</g>')
     out.append(museum_label(D, 488, "The Bedroom", "VINCENT VAN GOGH · 1888", "#F4EEDC", "#D8CCA8", ts=32, bs=18, gap=30))
-    return finish(D, out, 139)
+    return gm_finish(D, out, 139, "#5A4A3E", edge=2.2, bristle=0.4, grain_=0.15)
 
 
 # ================================================================ 30. Birch Forest — Klimt, 1903
@@ -4845,7 +5175,785 @@ def birch_forest():
         paint.append(f'<ellipse cx="{tx:.1f}" cy="{base:.1f}" rx="{w_ * 0.8:.1f}" ry="{w_ * 0.15:.1f}" fill="#3A1A08" opacity="0.4"/>')
     out.append(f'<g {cp}>{"".join(paint)}{canvas_weave(D, box, 0.05)}{varnish(D, box, 0.1, 0.18, 6, 0.3)}</g>')
     out.append(museum_label(D, 486, "Birch Forest", "GUSTAV KLIMT · 1903", "#F2E6CC", "#C8B48C", ts=32, bs=18, gap=30))
-    return finish(D, out, 149)
+    return gm_finish(D, out, 149, "#4A3A2A", edge=2.2, bristle=0.4, grain_=0.15)
+
+
+def gm_finish(D, out, seed, bg="#2A2A2A", edge=2.6, bristle=0.45, grain_=0.2, pseed=None, freq=0.05):
+    """Gallery-upgrade finish: grain, then the painterly varnish (brush edges, bristle texture, pigment grain) over
+    the whole art while text stays crisp. A flat full-bleed ground sits underneath, so displaced edges never show
+    white at the magnet's border."""
+    from painterly import _FILTER
+    # Text-bearing parts (labels, plaques) are kept out of the filtered art and drawn crisp on top, so the art is
+    # written once (painterly() would duplicate the whole body to keep text sharp).
+    art = [o for o in out if "<text" not in o]
+    txt = [o for o in out if "<text" in o]
+    body = finish(D, art, seed)
+    s = pseed or seed
+    fid = D.u + f"pf{s}"
+    filt = _FILTER.format(fid=fid, seed=s, seed2=s + 17, seed3=s + 31, edge=edge, bf=freq, bristle=bristle, grain=grain_)
+    return (f'<rect width="600" height="600" fill="{bg}"/><defs>{filt}</defs>'
+            f'<g filter="url(#{fid})">{body}</g>' + "".join(txt))
+
+
+def ribbon_band(A, B, f0, f1, i0=0, i1=None):
+    """Polygon between two lerped curves (fractions f0, f1 between curve A and curve B, same length)."""
+    i1 = i1 or len(A)
+    L0 = [lerp(a, b, f0) for a, b in zip(A[i0:i1], B[i0:i1])]
+    L1 = [lerp(a, b, f1) for a, b in zip(A[i0:i1], B[i0:i1])]
+    return L0 + L1[::-1]
+
+
+def key_line(pts, w0, w1, col, op=1.0, closed=False):
+    """Woodblock key line with a cut-wood swell: thin at the ends, fuller in the middle."""
+    n = len(pts)
+    if closed:
+        pts = pts + pts[:1]
+        n += 1
+    left, right = [], []
+    for i, (x, y) in enumerate(pts):
+        a = pts[max(i - 1, 0)]
+        b = pts[min(i + 1, n - 1)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        L = math.hypot(dx, dy) or 1
+        nx, ny = -dy / L, dx / L
+        t = i / max(1, n - 1)
+        w = (w0 + (w1 - w0) * math.sin(math.pi * t)) / 2 if not closed else w1 / 2
+        left.append((x + nx * w, y + ny * w))
+        right.append((x - nx * w, y - ny * w))
+    return f'<path d="{smooth_closed(left + right[::-1])}" fill="{col}" opacity="{op}"/>'
+
+
+def gw_claw(x, y, ang, s, seed, depth=2, curl=120, fill="#F7F1DF", line="#1C2238", lw=None, fat=0.36):
+    """Hokusai foam finger: a tapering talon that curls at the tip, sprouting smaller talons from its back."""
+    rnd = random.Random(seed)
+    n = 10
+    a = math.radians(ang)
+    turn = math.radians(curl * rnd.uniform(0.85, 1.15)) / n
+    pts = [(x, y)]
+    step = s / n
+    for i in range(n):
+        a += turn * (0.15 + 3.4 * (i / n) ** 2.6)
+        pts.append((pts[-1][0] + step * math.cos(a), pts[-1][1] + step * math.sin(a)))
+    ws = [s * fat * (1 - i / n) ** 0.7 + 0.5 for i in range(n + 1)]
+    poly = tongue_pts(pts, ws)
+    lw = lw or max(0.8, s * 0.045)
+    out = [f'<path d="{smooth_closed(poly)}" fill="{fill}" stroke="{line}" stroke-width="{lw:.2f}" stroke-linejoin="round"/>']
+    if depth > 0:
+        for k, t in enumerate((0.3, 0.55) if depth > 1 else (0.5,)):
+            i = int(t * n)
+            (ax, ay), (bx, by) = pts[i], pts[i + 1]
+            h = math.degrees(math.atan2(by - ay, bx - ax))
+            out.append(gw_claw(ax, ay, h - rnd.uniform(28, 45), s * rnd.uniform(0.4, 0.55), seed * 7 + k, depth - 1, curl,
+                               fill, line, lw * 0.8, fat))
+    return "".join(out)
+
+
+def gw_boat(D, x0, y0, x1, y1, rowers, seed, w=11.0, hull=("#F2E2B0", "#D9BF80", "#9A7E46"), line="#1C2238"):
+    """Oshiokuri fast boat from bow (x0, y0) to stern (x1, y1): long narrow hull with a raised pointed bow,
+    plank line, and a row of crouching rowers in indigo, heads bowed into the spray."""
+    rnd = random.Random(seed)
+    L = math.hypot(x1 - x0, y1 - y0)
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L
+    nx, ny = uy, -ux                      # "up" side of the hull (towards the sky when the boat is level)
+    if ny > 0:
+        nx, ny = -nx, -ny
+
+    def P(t, v):
+        return (x0 + ux * L * t + nx * v, y0 + uy * L * t + ny * v)
+    top = [P(-0.03, w * 0.95), P(0.06, w * 0.45), P(0.3, w * 0.35), P(0.7, w * 0.35), P(0.97, w * 0.5), P(1.02, w * 0.62)]
+    bot = [P(1.0, -w * 0.15), P(0.75, -w * 0.5), P(0.3, -w * 0.55), P(0.08, -w * 0.3)]
+    hp = top + bot
+    out = []
+    hd = smooth_closed(hp)
+    out.append(f'<path d="{hd}" fill="{D.lin([(0, hull[0]), (0.55, hull[1]), (1, hull[2])], 0, 0, 0, 1)}"/>')
+    out.append(f'<path d="{smooth_open([P(0.04, w * 0.1), P(0.4, -w * 0.05), P(0.95, w * 0.0)])}" fill="none" stroke="{hull[2]}" stroke-width="1.3"/>')
+    out.append(f'<path d="{hd}" fill="none" stroke="{line}" stroke-width="1.5" stroke-linejoin="round"/>')
+    # rowers: hunched indigo backs with bowed heads, sitting along the gunwale
+    men = []
+    for i in range(rowers):
+        t = 0.14 + 0.78 * i / max(1, rowers - 1) + rnd.uniform(-0.015, 0.015)
+        bx, by = P(t, w * 0.35)
+        s = w * rnd.uniform(0.62, 0.72)
+        back = [P(t - 0.025, w * 0.3), P(t - 0.03, w * 0.3 + s * 0.9), P(t - 0.005, w * 0.3 + s * 1.35), P(t + 0.02, w * 0.3 + s * 1.1),
+                P(t + 0.03, w * 0.3 + s * 0.4), P(t + 0.025, w * 0.3)]
+        men.append(f'<path d="{smooth_closed(back)}" fill="{rnd.choice(["#2A3A62", "#22325A", "#34476E"])}" stroke="{line}" stroke-width="0.9"/>')
+        hx, hy = P(t - 0.024, w * 0.3 + s * 1.25)
+        men.append(f'<circle cx="{hx:.1f}" cy="{hy:.1f}" r="{s * 0.36:.1f}" fill="#E6D2A8" stroke="{line}" stroke-width="0.8"/>')
+        men.append(f'<path d="M{hx - s * 0.36:.1f} {hy:.1f}a{s * 0.36:.1f} {s * 0.36:.1f} 0 0 1 {s * 0.72:.1f} 0z" fill="#1A1A22"/>')
+        ox, oy = P(t + 0.02, w * 0.3 + s * 0.6)
+        tx, ty = P(t + 0.08, -w * 0.9)
+        men.append(f'<path d="M{ox:.1f} {oy:.1f}L{tx:.1f} {ty:.1f}" stroke="#7A6036" stroke-width="1.1"/>')
+    out.insert(0, "".join(men))
+    return "".join(out)
+
+
+def gw_claw_d(x, y, ang, s, seed, depth=2, curl=120, fat=0.3):
+    """Same talon as gw_claw, returned as a list of outline paths (for merging many into one foam mass)."""
+    rnd = random.Random(seed)
+    n = 10
+    a = math.radians(ang)
+    turn = math.radians(curl * rnd.uniform(0.85, 1.15)) / n
+    pts = [(x, y)]
+    step = s / n
+    for i in range(n):
+        a += turn * (0.15 + 3.4 * (i / n) ** 2.6)
+        pts.append((pts[-1][0] + step * math.cos(a), pts[-1][1] + step * math.sin(a)))
+    ws = [s * fat * (1 - i / n) ** 0.7 + 0.6 for i in range(n + 1)]
+    ds = [smooth_closed(tongue_pts(pts, ws))]
+    spines = [smooth_open(pts[1:-1])]
+    if depth > 0:
+        for k, t in enumerate((0.3, 0.55) if depth > 1 else (0.5,)):
+            i = int(t * n)
+            (ax, ay), (bx, by) = pts[i], pts[i + 1]
+            h = math.degrees(math.atan2(by - ay, bx - ax))
+            d2, s2 = gw_claw_d(ax, ay, h - rnd.uniform(28, 45), s * rnd.uniform(0.4, 0.55), seed * 7 + k, depth - 1, curl, fat)
+            ds += d2
+            spines += s2
+    return ds, spines
+
+
+def foam_mass(claws, fill="#F7F1DF", line="#1C2238", lw=2.0, spine=0.0):
+    """Many talons merged into one foam silhouette: an outline pass under a fill pass, so only the outer edge
+    of the mass is inked; optional faint blue spines give each finger its form."""
+    ds = [d for c in claws for d in c[0]]
+    out = [f'<g fill="{line}" stroke="{line}" stroke-width="{lw * 2:.1f}" stroke-linejoin="round">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>",
+           f'<g fill="{fill}">' + "".join(f'<path d="{d}"/>' for d in ds) + "</g>"]
+    if spine:
+        sp = [d for c in claws for d in c[1]]
+        out.append(f'<g fill="none" stroke="#7FA4CC" stroke-width="1.1" stroke-linecap="round" opacity="{spine}">' + "".join(f'<path d="{d}"/>' for d in sp) + "</g>")
+    return "".join(out)
+
+
+def lane_strokes(B, path, width, lanes, cols, seed, L=(8, 14), W=(2.6, 3.6), ridge=0.35, taper_ends=True, op=1.0):
+    """A band of impasto dashes laid in parallel lanes along a curve (a swirl, a current, a ribbon of light).
+    cols: list, or fn(lane_fraction, along_fraction, rnd) -> colour."""
+    rnd = random.Random(seed)
+    if len(path) < 3:
+        return
+    seg = [0.0]
+    for (ax, ay), (bx, by) in zip(path, path[1:]):
+        seg.append(seg[-1] + math.hypot(bx - ax, by - ay))
+    total = seg[-1]
+
+    def at(s):
+        s = max(0.0, min(total - 1e-6, s))
+        j = max(0, min(len(seg) - 2, next((k for k in range(len(seg) - 1) if seg[k + 1] >= s), len(seg) - 2)))
+        f = (s - seg[j]) / (seg[j + 1] - seg[j] + 1e-9)
+        (ax, ay), (bx, by) = path[j], path[j + 1]
+        L_ = math.hypot(bx - ax, by - ay) or 1
+        return ax + (bx - ax) * f, ay + (by - ay) * f, -(by - ay) / L_, (bx - ax) / L_
+    rid = []
+    for li in range(lanes):
+        lf = (li + 0.5) / lanes
+        s = rnd.uniform(0, 8)
+        while s < total:
+            Ls = rnd.uniform(*L)
+            t = s / total
+            wf = math.sin(math.pi * min(1, max(0, t))) ** 0.5 if taper_ends else 1.0
+            off = (lf - 0.5) * width * wf + rnd.uniform(-1.2, 1.2)
+            pts = []
+            for q in (0, 0.5, 1):
+                x, y, nx, ny = at(s + Ls * q)
+                pts.append((x + nx * off, y + ny * off))
+            c = cols(lf, t, rnd) if callable(cols) else rnd.choice(cols)
+            w = rnd.uniform(*W)
+            B.dash(pts, c, w, op)
+            if rnd.random() < ridge:
+                rid.append(([(x - w * 0.18, y - w * 0.18) for x, y in pts], lt(c, 0.4), w * 0.3))
+            s += Ls * rnd.uniform(0.8, 1.05)
+    for p_, c, w in rid:
+        B.dash(p_, c, w, 0.55)
+
+
+def cartouche(p, x, y, w, h, seed, ink_c="#2A2A2E", paper_c="#EFE3C2", cols=3, sig=True):
+    """Woodblock title cartouche with abstract brush marks (no real lettering) and a signature column."""
+    rnd = random.Random(seed)
+    p.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="{paper_c}" stroke="{ink_c}" stroke-width="1.4"/>')
+    for c in range(cols):
+        cxx = x + w * (0.78 - c * (0.56 / max(1, cols - 1)))
+        yy = y + 6
+        while yy < y + h - 6 - (8 if c == cols - 1 else 0):
+            l = rnd.uniform(2.5, 5)
+            p.append(f'<path d="M{cxx + rnd.uniform(-2.5, 2.5):.1f} {yy:.1f}l{rnd.uniform(-2, 2):.1f} {l:.1f}" stroke="{ink_c}" stroke-width="1.4" stroke-linecap="round"/>')
+            yy += l + rnd.uniform(1.5, 3.5)
+    if sig:
+        cxx = x + w + 7
+        yy = y + 2
+        while yy < y + h * 0.8:
+            l = rnd.uniform(2.5, 5)
+            p.append(f'<path d="M{cxx + rnd.uniform(-1.5, 1.5):.1f} {yy:.1f}l{rnd.uniform(-1.5, 1.5):.1f} {l:.1f}" stroke="{ink_c}" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>')
+            yy += l + rnd.uniform(2, 3.5)
+
+
+def mackerel(p, D, X, Y, W, H, rows, seed, region=None, white="#FBF8EE", shade="#B9CCE0"):
+    """Rows of small altocumulus puffs (a mackerel sky): each puff a soft white blob with a cool underside,
+    sizes and spacing varying along the row and from row to row."""
+    rnd = random.Random(seed)
+    for row, (v, u0, u1, s, dens) in enumerate(rows):
+        u = u0 + rnd.uniform(0, 0.02)
+        while u < u1:
+            w = W * s * rnd.uniform(0.6, 1.35)
+            h = w * rnd.uniform(0.2, 0.3)
+            cx, cy = X(u), Y(v) + rnd.uniform(-2.5, 2.5) + 6 * math.sin(u * 7 + row)
+            if region and not region(cx, cy):
+                u += s * rnd.uniform(1.3, 2.2)
+                continue
+            p.append(f'<path d="{blob(cx + w * 0.06, cy + h * 0.35, w * 0.5, h * 0.42, rnd.randint(0, 9999), 0.14, 12)}" fill="{shade}" opacity="0.75"/>')
+            p.append(f'<path d="{blob(cx, cy, w * 0.5, h * 0.5, rnd.randint(0, 9999), 0.16, 14)}" fill="{white}" opacity="{rnd.uniform(0.85, 1):.2f}"/>')
+            if rnd.random() < 0.6:
+                p.append(f'<path d="{blob(cx - w * 0.15, cy - h * 0.2, w * 0.22, h * 0.3, rnd.randint(0, 9999), 0.1, 10)}" fill="#FFFFFF" opacity="0.8"/>')
+            u += s * rnd.uniform(1.05, 1.6) / dens + (s * rnd.uniform(1.5, 4) if rnd.random() < 0.18 else 0)
+
+
+def edo_figure(x, base, h, seed, kimono="#3A4A6A", obi="#C8A050", facing=1, hat=False, line="#1C1A22"):
+    """A tiny woodblock-print stroller: kimono falling in a soft bell from the shoulders, obi, black hair or a
+    straw hat. Drawn as a print would at this size: one flat shape with a key line, no face."""
+    rnd = random.Random(seed)
+    f = facing
+    sh = base - h * 0.78
+    body = [(x - h * 0.13 * f, sh + h * 0.04), (x + h * 0.1 * f, sh), (x + h * 0.15 * f, sh + h * 0.35), (x + h * 0.2 * f, base - h * 0.05),
+            (x + h * 0.1 * f, base), (x - h * 0.16 * f, base), (x - h * 0.2 * f, base - h * 0.08), (x - h * 0.15 * f, sh + h * 0.4)]
+    out = [f'<path d="{smooth_closed(body)}" fill="{kimono}" stroke="{line}" stroke-width="0.8"/>',
+           f'<path d="M{x - h * 0.15 * f:.1f} {sh + h * 0.33:.1f}L{x + h * 0.15 * f:.1f} {sh + h * 0.3:.1f}" stroke="{obi}" stroke-width="{h * 0.07:.1f}"/>',
+           f'<path d="M{x - h * 0.02:.1f} {sh + h * 0.08:.1f}L{x + h * 0.03 * f:.1f} {base - h * 0.04:.1f}" stroke="{dk(kimono, 0.35)}" stroke-width="0.7" opacity="0.7"/>']
+    hx, hy = x + h * 0.02 * f, sh - h * 0.09
+    out.append(f'<circle cx="{hx:.1f}" cy="{hy:.1f}" r="{h * 0.085:.1f}" fill="#EED8BC" stroke="{line}" stroke-width="0.6"/>')
+    if hat:
+        out.append(f'<path d="M{hx - h * 0.2:.1f} {hy + h * 0.02:.1f}Q{hx:.1f} {hy - h * 0.2:.1f} {hx + h * 0.2:.1f} {hy + h * 0.02:.1f}Z" fill="#C8A868" stroke="{line}" stroke-width="0.6"/>')
+    else:
+        out.append(f'<path d="M{hx - h * 0.09:.1f} {hy:.1f}a{h * 0.09:.1f} {h * 0.09:.1f} 0 0 1 {h * 0.18:.1f} 0z" fill="#141018"/>'
+                   f'<circle cx="{hx - h * 0.06 * f:.1f}" cy="{hy - h * 0.08:.1f}" r="{h * 0.05:.1f}" fill="#141018"/>')
+    return "".join(out)
+
+
+def plum_bloom(x, y, r, seed, rot=0, open_=1.0, pet="#FFFFFF", edge="#C9B4B0", eye="#D8384A"):
+    """Five-petalled ume blossom as Hiroshige cut it: round white petals, a faint pink edge, red heart and stamen dots."""
+    rnd = random.Random(seed)
+    out = []
+    for i in range(5):
+        a = math.radians(rot + 72 * i)
+        px, py = x + r * 0.55 * math.cos(a), y + r * 0.55 * math.sin(a)
+        out.append(f'<path d="{blob(px, py, r * 0.48 * open_, r * 0.46 * open_, rnd.randint(0, 999), 0.06, 10)}"/>')
+    g = f'<g fill="{pet}" stroke="{edge}" stroke-width="0.6">{"".join(out)}</g>'
+    g += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r * 0.24:.1f}" fill="{eye}"/>'
+    for i in range(6):
+        a = math.radians(rot + 60 * i + 30)
+        g += f'<circle cx="{x + r * 0.42 * math.cos(a):.1f}" cy="{y + r * 0.42 * math.sin(a):.1f}" r="0.7" fill="#B8862A"/>'
+    return g
+
+
+def shower_figure(x, y, h, kind, seed, f=1, robe=None, line="#1C1E2C"):
+    """A woodblock pedestrian hurrying through a downpour, about h px tall: head bowed, shoulders hunched forward
+    into the rain, robe hitched up over bare striding legs (men) or a long kimono with short steps (women);
+    a tilted paper umbrella with ribs, or a straw rain cape and wide kasa hat."""
+    rnd = random.Random(seed)
+    robe = robe or rnd.choice(["#3A4A6A", "#5A4A3A", "#2E3A4A", "#4A3A4A", "#6A5A40"])
+    woman = kind.startswith("woman")
+    lean = h * (0.1 if woman else 0.15) * f
+    hip = (x, y - h * 0.47)
+    sh = (x + lean, y - h * 0.8)
+    out = []
+    # legs
+    if woman:
+        legs = [((hip[0], hip[1]), (x + f * h * 0.04, y - h * 0.22), (x + f * h * 0.08, y)), ((hip[0], hip[1]), (x - f * h * 0.02, y - h * 0.22), (x - f * h * 0.06, y - h * 0.01))]
+    else:
+        legs = [((hip[0], hip[1]), (x + f * h * 0.13, y - h * 0.25), (x + f * h * 0.17, y)), ((hip[0], hip[1]), (x - f * h * 0.06, y - h * 0.24), (x - f * h * 0.16, y - h * 0.03))]
+    for a, b, c in legs:
+        out.append(taper([a, b, c], h * 0.075, h * 0.045, line))
+        out.append(taper([a, b, c], h * 0.055, h * 0.03, "#E2C49A"))
+        out.append(f'<path d="M{c[0] - f * h * 0.02:.1f} {c[1]:.1f}l{f * h * 0.07:.1f} 0" stroke="{line}" stroke-width="{h * 0.03:.1f}" stroke-linecap="round"/>')
+    # robe
+    hem_y = y - h * (0.06 if woman else 0.36)
+    back = -f
+    robe_pts = [(sh[0] + back * h * 0.1, sh[1] + h * 0.02), (sh[0] + f * h * 0.08, sh[1] - h * 0.01), (x + f * h * 0.09, y - h * 0.55),
+                (x + f * h * (0.1 if woman else 0.14), hem_y), (x + back * h * (0.16 if woman else 0.13), hem_y + h * 0.02),
+                (x + back * h * 0.12, y - h * 0.55)]
+    out.append(f'<path d="{smooth_closed(robe_pts)}" fill="{robe}" stroke="{line}" stroke-width="{max(0.7, h * 0.022):.2f}" stroke-linejoin="round"/>')
+    out.append(f'<path d="M{sh[0]:.1f} {sh[1] + h * 0.03:.1f}Q{x + f * h * 0.02:.1f} {y - h * 0.5:.1f} {x + f * h * 0.03:.1f} {hem_y:.1f}" stroke="{dk(robe, 0.4)}" stroke-width="{h * 0.02:.2f}" fill="none"/>')
+    out.append(f'<path d="M{x + back * h * 0.11:.1f} {y - h * 0.53:.1f}L{x + f * h * 0.09:.1f} {y - h * 0.55:.1f}" stroke="{lt(robe, 0.35) if not woman else "#C8A050"}" stroke-width="{h * 0.045:.2f}"/>')
+    hx, hy = sh[0] + f * h * 0.05, sh[1] - h * 0.06
+    if kind.endswith("mino"):
+        cape = [(sh[0] + back * h * 0.13, sh[1] + h * 0.04), (sh[0] + f * h * 0.1, sh[1] - h * 0.02), (x + f * h * 0.16, y - h * 0.42),
+                (x + back * h * 0.2, y - h * 0.4)]
+        out.append(f'<path d="{smooth_closed(cape)}" fill="#8A7A48" stroke="{line}" stroke-width="{max(0.7, h * 0.022):.2f}"/>')
+        for k in range(7):
+            t = k / 6
+            ax, ay = lerp(cape[0], cape[1], t)
+            bx, by = lerp(cape[3], cape[2], t)
+            out.append(f'<path d="M{ax:.1f} {ay:.1f}L{bx + rnd.uniform(-1, 1):.1f} {by:.1f}" stroke="#4E4224" stroke-width="{h * 0.016:.2f}"/>')
+        out.append(f'<circle cx="{hx:.1f}" cy="{hy:.1f}" r="{h * 0.06:.1f}" fill="#E2C49A" stroke="{line}" stroke-width="0.6"/>')
+        out.append(f'<path d="{pd([(hx - h * 0.2, hy + h * 0.02), (hx + f * h * 0.02, hy - h * 0.12), (hx + h * 0.2, hy + h * 0.03)])}" fill="#C8A860" stroke="{line}" stroke-width="{max(0.7, h * 0.022):.2f}" stroke-linejoin="round"/>')
+    else:
+        out.append(f'<circle cx="{hx:.1f}" cy="{hy:.1f}" r="{h * 0.06:.1f}" fill="#E2C49A" stroke="{line}" stroke-width="0.6"/>')
+        out.append(f'<path d="M{hx - h * 0.065:.1f} {hy:.1f}a{h * 0.065:.1f} {h * 0.065:.1f} 0 0 1 {h * 0.13:.1f} 0z" fill="#141018"/>')
+        if woman:
+            out.append(f'<ellipse cx="{hx + back * h * 0.04:.1f}" cy="{hy - h * 0.05:.1f}" rx="{h * 0.05:.1f}" ry="{h * 0.035:.1f}" fill="#141018"/>')
+        hand = (sh[0] + f * h * 0.1, sh[1] + h * 0.05)
+        out.append(taper([(sh[0], sh[1] + h * 0.04), (sh[0] + f * h * 0.08, sh[1] + h * 0.12), hand], h * 0.05, h * 0.04, robe))
+        top = (hand[0] - f * h * 0.04, hand[1] - h * 0.36)
+        out.append(f'<path d="M{hand[0]:.1f} {hand[1]:.1f}L{top[0]:.1f} {top[1]:.1f}" stroke="{line}" stroke-width="{max(0.8, h * 0.02):.2f}"/>')
+        R = h * 0.3
+        tilt = math.radians(18 * f)
+        ca, sa = math.cos(tilt), math.sin(tilt)
+
+        def T(u, v):
+            return (top[0] + u * ca - v * sa, top[1] + u * sa + v * ca)
+        dome = [T(-R, R * 0.28), T(-R * 0.6, -R * 0.05), T(0, -R * 0.25), T(R * 0.6, -R * 0.05), T(R, R * 0.28)]
+        col = rnd.choice(["#D8C090", "#E8D8B0", "#C8A870", "#E0C898"])
+        out.append(f'<path d="{smooth_open(dome)} Q{T(0, R * 0.12)[0]:.1f} {T(0, R * 0.12)[1]:.1f} {dome[0][0]:.1f} {dome[0][1]:.1f}Z" fill="{col}" stroke="{line}" stroke-width="{max(0.7, h * 0.022):.2f}"/>')
+        for k in (-0.75, -0.4, 0, 0.4, 0.75):
+            a_, b_ = T(0, -R * 0.24), T(R * k, R * 0.22 - abs(k) * R * 0.02)
+            out.append(f'<path d="M{a_[0]:.1f} {a_[1]:.1f}L{b_[0]:.1f} {b_[1]:.1f}" stroke="#8A6A3A" stroke-width="{h * 0.012 + 0.3:.2f}"/>')
+    return "".join(out)
+
+
+def branch_tree2(rnd, x, y, ang, L, w, depth, out, kink=18, up=0.0):
+    """Gnarled branch whose leader always carries on and tapers to a twig (no blunt ends): list of (points, w0, w1).
+    `up` bends every limb slightly towards the light (radians per segment, negative = upward on screen)."""
+    pts = [(x, y)]
+    a = ang
+    seg = L / 4
+    for _ in range(4):
+        a += math.radians(rnd.uniform(-kink, kink)) + up
+        x, y = x + seg * math.cos(a), y + seg * math.sin(a)
+        pts.append((x, y))
+    w_end = w * 0.66
+    out.append((pts, w, w_end))
+    if depth > 0:
+        branch_tree2(rnd, x, y, a + math.radians(rnd.uniform(-15, 15)), L * rnd.uniform(0.6, 0.78), w_end, depth - 1, out, kink, up)
+        for k in range(rnd.choice([1, 1, 2])):
+            t = rnd.uniform(0.3, 0.85)
+            i = min(3, int(t * 4))
+            bx, by = pts[i + 1]
+            side = rnd.choice([-1, 1])
+            branch_tree2(rnd, bx, by, a + side * math.radians(rnd.uniform(28, 62)), L * rnd.uniform(0.4, 0.62), w * 0.55, depth - 1, out, kink, up)
+    else:
+        # finish with a fine twig
+        tw = [(x, y)]
+        for _ in range(2):
+            a += math.radians(rnd.uniform(-kink, kink))
+            tw.append((tw[-1][0] + seg * 0.5 * math.cos(a), tw[-1][1] + seg * 0.5 * math.sin(a)))
+        out.append((tw, w_end, max(1.2, w_end * 0.4)))
+    return out
+
+
+def rt_tiger(D, x, y, s, seed, f=1):
+    """Rousseau's startled tiger, crouched low and creeping to the right, head turned three-quarters to the viewer,
+    teeth bared, one forepaw stretched out under the chin, tail lashing up behind. Built from the real animal:
+    deep chest, long low back with shoulder blades and hips standing up, heavy forelegs, big paws, white muzzle and
+    cheek ruff, a ringed tail; painted with an orange gradient, cream underside, fur strokes and stripes that wrap
+    around the body."""
+    rnd = random.Random(seed)
+
+    def T(u, v):
+        return (x + u * s * f, y + v * s)
+
+    def TP(pts):
+        return [T(u, v) for u, v in pts]
+    out = []
+    INKT = "#1A1008"
+    ORA = ("#F2A040", "#E2802A", "#C25E16", "#8A3A0C")
+    CREAM = "#F4EAD2"
+    # far legs first (in shadow)
+    far_front = TP([(0.3, -0.12), (0.4, 0.02), (0.5, 0.1), (0.56, 0.15), (0.46, 0.17), (0.36, 0.08), (0.24, -0.02)])
+    far_hind = TP([(-0.62, -0.1), (-0.58, 0.04), (-0.5, 0.12), (-0.4, 0.16), (-0.5, 0.18), (-0.66, 0.1), (-0.74, -0.02)])
+    for leg in (far_hind, far_front):
+        out.append(f'<path d="{smooth_closed(leg)}" fill="{ORA[3]}" stroke="{INKT}" stroke-width="1.1"/>')
+    # tail: thick at the root, lashing up and back, black rings and tip
+    tail_c = catmull_pts(TP([(-0.86, -0.34), (-1.08, -0.42), (-1.28, -0.58), (-1.38, -0.8), (-1.34, -0.98)]), 6)
+    tail = tongue_pts(tail_c, [s * (0.12 - 0.05 * i / (len(tail_c) - 1)) for i in range(len(tail_c))])
+    out.append(f'<path d="{smooth_closed(tail)}" fill="{ORA[1]}" stroke="{INKT}" stroke-width="1.1"/>')
+    for i in range(3, len(tail_c) - 1, 3):
+        (ax, ay), (bx, by) = tail_c[i - 1], tail_c[i + 1]
+        L = math.hypot(bx - ax, by - ay) or 1
+        nx, ny = -(by - ay) / L, (bx - ax) / L
+        w = s * 0.07
+        cx_, cy_ = tail_c[i]
+        out.append(f'<path d="M{cx_ - nx * w:.1f} {cy_ - ny * w:.1f}Q{cx_ + (bx - ax) / L * 3:.1f} {cy_ + (by - ay) / L * 3:.1f} {cx_ + nx * w:.1f} {cy_ + ny * w:.1f}" stroke="{INKT}" stroke-width="{s * 0.035:.1f}" fill="none" stroke-linecap="round"/>')
+    tip = tail_c[-4:]
+    out.append(taper(tip, s * 0.075, s * 0.03, INKT))
+    # body
+    body = TP([(0.56, -0.44), (0.42, -0.5), (0.3, -0.54), (0.12, -0.46), (-0.15, -0.42), (-0.4, -0.46), (-0.62, -0.52), (-0.8, -0.44), (-0.92, -0.3),
+               (-0.94, -0.14), (-0.84, 0.0), (-0.6, 0.05), (-0.3, 0.06), (0.05, 0.08), (0.36, 0.06), (0.56, -0.02), (0.66, -0.16), (0.66, -0.3)])
+    bd = smooth_closed(body)
+    out.append(f'<path d="{bd}" fill="{D.lin([(0, ORA[0]), (0.45, ORA[1]), (0.8, ORA[2]), (1, ORA[3])], 0, 0, 0, 1)}"/>')
+    inner = []
+    belly = TP([(0.5, -0.06), (0.3, 0.0), (0.0, 0.02), (-0.3, 0.0), (-0.55, -0.02), (-0.5, 0.08), (-0.2, 0.09), (0.1, 0.1), (0.4, 0.08), (0.58, 0.0)])
+    inner.append(f'<path d="{smooth_closed(belly)}" fill="{CREAM}" opacity="0.92"/>')
+    # haunch: the round thigh standing up from the body, lit on top
+    th = TP([(-0.86, -0.36), (-0.62, -0.46), (-0.42, -0.36), (-0.36, -0.14), (-0.46, 0.02), (-0.7, 0.04), (-0.86, -0.08)])
+    inner.append(f'<path d="{smooth_closed(th)}" fill="{D.rad([(0, ORA[0]), (0.7, ORA[1]), (1, ORA[2])], 0.4, 0.3, 0.7)}"/>')
+    inner.append(f'<path d="{smooth_closed(th)}" fill="none" stroke="{ORA[3]}" stroke-width="1.2" opacity="0.6"/>')
+    # fur strokes along the body
+    inner.append(strokes(D.nid(), bd, (x - s * 1.0, y - s * 0.6, x + s * 0.8, y + s * 0.2), [ORA[0], ORA[2], "#F6B860", ORA[1]], seed + 3,
+                         n=160, angle=0 if f > 0 else 180, length=(6, 14), width=(0.8, 1.8), opacity=(0.25, 0.55), curve=0.2))
+    # stripes wrapping around the barrel, the haunch and the shoulder
+    for k in range(13):
+        u = -0.84 + k * 0.105 + rnd.uniform(-0.02, 0.02)
+        top = -0.48 + 0.06 * math.cos((u + 0.2) * 3.2)
+        L = rnd.uniform(0.3, 0.46)
+        bend = rnd.uniform(-0.06, 0.06)
+        pts = TP([(u, top - 0.05), (u + bend + 0.03, top + L * 0.5), (u + bend * 1.6 + 0.07, top + L)])
+        inner.append(taper(pts, s * rnd.uniform(0.05, 0.075), s * 0.012, INKT))
+        if rnd.random() < 0.45:
+            pts2 = TP([(u + 0.02, top + L * 0.35), (u + 0.07, top + L * 0.55), (u + 0.08, top + L * 0.75)])
+            inner.append(taper(pts2, s * 0.035, s * 0.01, INKT))
+    for k in range(2):
+        cx_, cy_ = T(-0.62, -0.2)
+        r = s * (0.13 + k * 0.1)
+        inner.append(f'<path d="{smooth_open([(cx_ - r * 0.9, cy_ - r * 0.2), (cx_ - r * 0.3, cy_ - r * 0.9), (cx_ + r * 0.5, cy_ - r * 0.7)])}" stroke="{INKT}" stroke-width="{s * 0.04:.1f}" fill="none" stroke-linecap="round"/>')
+    out.append(f'<g {D.clip(f"<path d=\"{bd}\"/>")}>{"".join(inner)}</g>')
+    out.append(f'<path d="{bd}" fill="none" stroke="{INKT}" stroke-width="1.4" stroke-linejoin="round"/>')
+    # near hind leg folded under, near foreleg stretched out with the paw creeping forward
+    hind = TP([(-0.5, -0.06), (-0.4, 0.06), (-0.28, 0.13), (-0.16, 0.14), (-0.16, 0.2), (-0.36, 0.2), (-0.52, 0.14), (-0.6, 0.04)])
+    out.append(f'<path d="{smooth_closed(hind)}" fill="{D.lin([(0, ORA[1]), (1, CREAM)], 0, 0, 0, 1)}" stroke="{INKT}" stroke-width="1.2"/>')
+    fore = TP([(0.34, -0.3), (0.5, -0.18), (0.62, -0.02), (0.76, 0.08), (0.94, 0.1), (1.0, 0.16), (0.92, 0.2), (0.7, 0.19), (0.52, 0.12), (0.34, 0.0), (0.22, -0.16)])
+    fd = smooth_closed(fore)
+    out.append(f'<path d="{fd}" fill="{D.lin([(0, ORA[0]), (0.6, ORA[1]), (1, CREAM)], 0, 0, 0.3, 1)}"/>')
+    st = []
+    for k in range(4):
+        u = 0.38 + k * 0.1
+        st.append(taper(TP([(u, -0.2 + k * 0.05), (u + 0.04, -0.08 + k * 0.05), (u + 0.06, 0.02 + k * 0.04)]), s * 0.05, s * 0.01, INKT))
+    out.append(f'<g {D.clip(f"<path d=\"{fd}\"/>")}>{"".join(st)}</g>')
+    out.append(f'<path d="{fd}" fill="none" stroke="{INKT}" stroke-width="1.3"/>')
+    for k in range(3):
+        cx_, cy_ = T(0.94 + k * 0.02, 0.17 - k * 0.015)
+        out.append(f'<path d="M{cx_:.1f} {cy_:.1f}l{s * 0.04 * f:.1f} {s * 0.03:.1f}" stroke="{INKT}" stroke-width="0.9"/>')
+    # head, three-quarters to the viewer
+    hc = T(0.8, -0.4)
+    for ex, ey in ((0.6, -0.66), (0.98, -0.66)):
+        ear = TP([(ex - 0.09, ey + 0.08), (ex - 0.04, ey - 0.06), (ex + 0.06, ey - 0.06), (ex + 0.1, ey + 0.08)])
+        out.append(f'<path d="{smooth_closed(ear)}" fill="{ORA[1]}" stroke="{INKT}" stroke-width="1.2"/>')
+        out.append(f'<path d="{blob(*T(ex, ey + 0.02), s * 0.04, s * 0.04, int(ex * 100), 0.1, 8)}" fill="{INKT}"/>')
+        out.append(f'<circle cx="{T(ex, ey + 0.04)[0]:.1f}" cy="{T(ex, ey + 0.04)[1]:.1f}" r="{s * 0.025:.1f}" fill="{CREAM}"/>')
+    head = TP([(0.8, -0.67), (0.66, -0.64), (0.57, -0.54), (0.52, -0.44), (0.47, -0.36), (0.53, -0.33), (0.5, -0.26), (0.58, -0.22), (0.62, -0.13),
+               (0.72, -0.08), (0.8, -0.04), (0.88, -0.08), (0.98, -0.13), (1.02, -0.22), (1.1, -0.26), (1.07, -0.33), (1.13, -0.36), (1.08, -0.44),
+               (1.03, -0.54), (0.94, -0.64)])
+    hd = smooth_closed(head)
+    out.append(f'<path d="{hd}" fill="{D.rad([(0, ORA[0]), (0.65, ORA[1]), (1, ORA[2])], 0.5, 0.35, 0.7)}"/>')
+    hi = []
+    # white cheek ruffs and muzzle
+    for sx_, sy_, rx, ry in ((0.58, -0.25, 0.1, 0.09), (1.02, -0.25, 0.1, 0.09), (0.8, -0.16, 0.14, 0.12), (0.8, -0.3, 0.06, 0.1)):
+        hi.append(f'<path d="{blob(*T(sx_, sy_), s * rx, s * ry, int(sx_ * 99), 0.15, 12)}" fill="{CREAM}"/>')
+    for sx_ in (0.69, 0.91):
+        hi.append(f'<path d="{blob(*T(sx_, -0.53), s * 0.06, s * 0.035, int(sx_ * 77), 0.15, 10)}" fill="{CREAM}"/>')
+    # stripes on brow and cheeks
+    for u, v, a, L in ((0.74, -0.66, 90, 0.1), (0.8, -0.67, 90, 0.12), (0.86, -0.66, 90, 0.1), (0.56, -0.42, 20, 0.1), (0.57, -0.34, 10, 0.09),
+                       (1.04, -0.42, 160, 0.1), (1.03, -0.34, 170, 0.09), (0.66, -0.6, 60, 0.07), (0.94, -0.6, 120, 0.07)):
+        a_ = math.radians(a)
+        hi.append(taper([T(u, v), T(u + L * 0.5 * math.cos(a_), v + L * 0.5 * math.sin(a_)), T(u + L * math.cos(a_), v + L * math.sin(a_))], s * 0.045, s * 0.01, INKT))
+    out.append(f'<g {D.clip(f"<path d=\"{hd}\"/>")}>{"".join(hi)}</g>')
+    out.append(f'<path d="{hd}" fill="none" stroke="{INKT}" stroke-width="1.3"/>')
+    # eyes: wide, green-gold, black pupils looking out at us
+    for ex, sg in ((0.71, -1), (0.89, 1)):
+        e = T(ex, -0.46)
+        out.append(f'<path d="{smooth_closed([(e[0] - s * 0.05, e[1] + s * 0.012 * -sg), (e[0], e[1] - s * 0.026), (e[0] + s * 0.05, e[1] + s * 0.012 * sg), (e[0], e[1] + s * 0.024)])}" fill="#D8C848" stroke="{INKT}" stroke-width="1.6"/>')
+        out.append(f'<circle cx="{e[0]:.1f}" cy="{e[1] - s * 0.002:.1f}" r="{s * 0.02:.1f}" fill="{INKT}"/>')
+        out.append(f'<circle cx="{e[0] - s * 0.012:.1f}" cy="{e[1] - s * 0.012:.1f}" r="{s * 0.007 + 0.4:.1f}" fill="#FFFFFF"/>')
+    # nose and the snarling open mouth with fangs
+    n = T(0.8, -0.32)
+    out.append(f'<path d="M{n[0] - s * 0.045:.1f} {n[1] - s * 0.025:.1f}h{s * 0.09:.1f}l{-s * 0.045:.1f} {s * 0.05:.1f}z" fill="#B85A4A" stroke="{INKT}" stroke-width="0.9"/>')
+    m = T(0.8, -0.17)
+    mouth = [(m[0] - s * 0.1, m[1] - s * 0.05), (m[0], m[1] - s * 0.075), (m[0] + s * 0.1, m[1] - s * 0.05), (m[0] + s * 0.06, m[1] + s * 0.06), (m[0] - s * 0.06, m[1] + s * 0.06)]
+    out.append(f'<path d="{smooth_closed(mouth)}" fill="#6A1A14" stroke="{INKT}" stroke-width="1.1"/>')
+    for sg in (-1, 1):
+        out.append(f'<path d="M{m[0] + sg * s * 0.075:.1f} {m[1] - s * 0.055:.1f}l{-sg * s * 0.015:.1f} {s * 0.065:.1f}l{-sg * s * 0.016:.1f} {-s * 0.06:.1f}z" fill="#FFF8E8"/>'
+                   f'<path d="M{m[0] + sg * s * 0.05:.1f} {m[1] + s * 0.055:.1f}l{-sg * s * 0.01:.1f} {-s * 0.04:.1f}l{-sg * s * 0.012:.1f} {s * 0.04:.1f}z" fill="#FFF8E8"/>')
+    out.append(f'<path d="M{m[0] - s * 0.06:.1f} {m[1] + s * 0.035:.1f}Q{m[0]:.1f} {m[1] + s * 0.0:.1f} {m[0] + s * 0.06:.1f} {m[1] + s * 0.035:.1f}" stroke="#C8504A" stroke-width="{s * 0.025:.1f}" fill="none"/>')
+    for sg in (-1, 1):
+        for k in range(3):
+            a0 = T(0.8 + sg * 0.09, -0.27 + k * 0.02)
+            out.append(f'<path d="M{a0[0]:.1f} {a0[1]:.1f}q{sg * s * 0.12 * f:.1f} {-s * 0.03 + k * s * 0.02:.1f} {sg * s * 0.24 * f:.1f} {-s * 0.02 + k * s * 0.04:.1f}" stroke="#FFFFFF" stroke-width="0.7" fill="none" opacity="0.85"/>')
+    return "".join(out)
+
+
+def rt_blade(x, y, L, ang, w, cols, seed, bend=0.35):
+    """A long grass or reed blade swept by the wind, two-toned with a pale midrib."""
+    rnd = random.Random(seed)
+    a = math.radians(ang)
+    pts = [(x, y)]
+    for i in range(6):
+        a += bend / 6 * rnd.uniform(0.7, 1.3)
+        pts.append((pts[-1][0] + L / 6 * math.cos(a), pts[-1][1] + L / 6 * math.sin(a)))
+    return taper(pts, w, 0.6, cols[0]) + taper([(px + 0.5, py - 0.5) for px, py in pts[:-1]], w * 0.35, 0.3, cols[1], 0.8)
+
+
+def rt_fan(x, y, r, a0, a1, n, cols, seed):
+    """A spiky fan palm: narrow fronds radiating from one point, each outlined."""
+    rnd = random.Random(seed)
+    out = []
+    for i in range(n):
+        a = a0 + (a1 - a0) * i / max(1, n - 1) + rnd.uniform(-4, 4)
+        L = r * rnd.uniform(0.75, 1.05)
+        out.append(rt_blade(x, y, L, a, rnd.uniform(3, 4.5), (rnd.choice(cols[:-1]), cols[-1]), seed + i, 0.15))
+    return "".join(out)
+
+
+def rt_plume(x, y, h, lean, cols, seed):
+    """Pampas grass: a tall stem ending in a feathery plume of short pale strokes."""
+    rnd = random.Random(seed)
+    top = (x + lean * h, y - h)
+    out = [taper([(x, y), (x + lean * h * 0.4, y - h * 0.5), top], 3.2, 1.2, cols[0])]
+    for k in range(70):
+        t = rnd.uniform(0.0, 0.32)
+        px, py = top[0] - lean * h * t, top[1] + h * t
+        a = math.radians(-60 + lean * 80 + rnd.uniform(-40, 40))
+        L = rnd.uniform(5, 11) * (1 - t)
+        out.append(f'<path d="M{px:.1f} {py:.1f}l{L * math.cos(a):.1f} {L * math.sin(a):.1f}" stroke="{rnd.choice(cols[1:])}" stroke-width="{rnd.uniform(1.4, 2.4):.1f}" stroke-linecap="round" opacity="0.9"/>')
+    return "".join(out)
+
+
+def rock_mass(D, poly, seed, base=("#3A3430", "#24201E", "#100E0E"), lit="#8A8C90", light=(-0.4, -1.0), facets=26, n=160):
+    """A rocky outcrop painted as planes: a dark gradient body, facets of lighter and darker stone, cracks, and cool
+    light catching the upper edges."""
+    rnd = random.Random(seed)
+    d = pd(poly)
+    x0, y0, x1, y1 = bbox(poly)
+    out = [f'<path d="{d}" fill="{D.lin([(0, base[0]), (0.5, base[1]), (1, base[2])], 0, 0, 0.3, 1)}"/>']
+    inner = []
+    for k in range(facets):
+        cx, cy = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
+        r = rnd.uniform(6, 18)
+        pts = [(cx + r * math.cos(a) * rnd.uniform(0.6, 1.2), cy + r * 0.7 * math.sin(a) * rnd.uniform(0.6, 1.2)) for a in [i * 1.2566 + rnd.uniform(-0.3, 0.3) for i in range(5)]]
+        inner.append(f'<path d="{pd(pts)}" fill="{rnd.choice([base[0], lt(base[0], 0.06), base[2], mix(base[0], lit, 0.15)])}" opacity="{rnd.uniform(0.3, 0.6):.2f}"/>')
+    inner.append(strokes(D.nid(), d, (x0, y0, x1, y1), [lt(base[0], 0.1), base[2], mix(base[0], lit, 0.2)], seed + 2, n=n, angle=-25, length=(6, 16),
+                         width=(1.2, 3), opacity=(0.2, 0.45), curve=0.25))
+    for k in range(12):
+        cx, cy = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
+        inner.append(f'<path d="M{cx:.1f} {cy:.1f}l{rnd.uniform(-8, 8):.1f} {rnd.uniform(4, 14):.1f}l{rnd.uniform(-5, 5):.1f} {rnd.uniform(3, 9):.1f}" stroke="{base[2]}" stroke-width="1.2" fill="none" opacity="0.8"/>')
+    out.append(f'<g {D.clip(f"<path d=\"{d}\"/>")}>{"".join(inner)}</g>')
+    # light on the upper edges
+    top = sorted(poly, key=lambda p: p[0])
+    edge = [p for p in poly if p[1] < (y0 + y1) / 2]
+    if len(edge) > 2:
+        edge.sort(key=lambda p: p[0])
+        out.append(f'<path d="{pd(edge, False)}" fill="none" stroke="{lit}" stroke-width="1.5" opacity="0.5"/>')
+    return "".join(out)
+
+
+def wanderer_figure(D, cx, foot, Hf, seed):
+    """A man seen from behind standing on a summit, about Hf px tall (7.5 heads): broad shoulders under a long dark
+    green frock coat nipped at the waist with tails to the knee and a back vent, dark trousers, left foot raised on a
+    higher rock, right hand resting on a walking stick, wind lifting his hair. Backlit by the misty sky: mostly
+    dark, with a cool rim of light along the silhouette and soft folds."""
+    rnd = random.Random(seed)
+
+    def P(u, v):
+        return (cx + u * Hf, foot - v * Hf)
+
+    def PP(pts):
+        return [P(u, v) for u, v in pts]
+    COAT = ("#26321F", "#151E12", "#080C06")
+    TROU = ("#3A3634", "#222020", "#0E0C0C")
+    RIM = "#B8C0C4"
+    out = []
+    # legs: left (image left) raised on a higher rock with the knee bent; right straight, carrying the weight
+    lleg = PP([(-0.06, 0.47), (-0.1, 0.36), (-0.115, 0.26), (-0.11, 0.17), (-0.12, 0.1), (-0.14, 0.085), (-0.075, 0.08), (-0.07, 0.16), (-0.065, 0.25),
+               (-0.04, 0.34), (-0.005, 0.44)])
+    rleg = PP([(-0.005, 0.46), (0.0, 0.32), (0.012, 0.18), (0.02, 0.06), (0.025, 0.02), (0.085, 0.0), (0.08, 0.03), (0.065, 0.06), (0.068, 0.18),
+               (0.075, 0.32), (0.08, 0.45)])
+    for leg, shade in ((lleg, 0.0), (rleg, 0.15)):
+        out.append(f'<path d="{smooth_closed(leg)}" fill="{D.lin([(0, TROU[0]), (0.5, TROU[1]), (1, TROU[2])], 0, 0, 1, 0)}"/>')
+    # boots
+    for bx, by, f in ((-0.11, 0.085, -1), (0.055, 0.008, 1)):
+        out.append(f'<path d="{blob(*P(bx, by), Hf * 0.032, Hf * 0.014, seed + int(bx * 100), 0.1, 10)}" fill="#0C0A0A"/>')
+    # walking stick, planted on the rock to his right
+    hand = P(0.135, 0.5)
+    tip = P(0.17, -0.01)
+    out.append(f'<path d="M{hand[0]:.1f} {hand[1] - 2:.1f}L{tip[0]:.1f} {tip[1]:.1f}" stroke="#2A1E14" stroke-width="2.2" stroke-linecap="round"/>')
+    out.append(f'<path d="M{hand[0] + 0.8:.1f} {hand[1]:.1f}L{tip[0] + 0.8:.1f} {tip[1] - 2:.1f}" stroke="#7A6A54" stroke-width="0.7" opacity="0.6"/>')
+    # frock coat: shoulders, nipped waist, flared tails with the back vent
+    coat = PP([(-0.035, 0.85), (-0.085, 0.835), (-0.115, 0.81), (-0.122, 0.75), (-0.11, 0.67), (-0.082, 0.6), (-0.09, 0.52), (-0.1, 0.42), (-0.102, 0.33),
+               (-0.085, 0.3), (-0.04, 0.29), (0.0, 0.295), (0.045, 0.29), (0.088, 0.3), (0.098, 0.33),
+               (0.095, 0.42), (0.086, 0.52), (0.08, 0.6), (0.105, 0.67), (0.118, 0.75), (0.11, 0.81), (0.082, 0.835), (0.035, 0.85)])
+    cd = smooth_closed(coat)
+    out.append(f'<path d="{cd}" fill="{D.lin([(0, COAT[0]), (0.45, COAT[1]), (1, COAT[2])], 0, 0, 0.4, 1)}"/>')
+    folds = []
+    # shoulder-blade light, spine seam, the vent, and tails' folds
+    folds.append(soft(D, *P(-0.055, 0.76), Hf * 0.045, Hf * 0.06, "#4A5A40", 0.4))
+    folds.append(soft(D, *P(0.055, 0.76), Hf * 0.04, Hf * 0.055, "#3E4E36", 0.3))
+    folds.append(f'<path d="{smooth_open(PP([(0.0, 0.82), (0.002, 0.7), (-0.003, 0.58), (0.0, 0.46), (0.004, 0.3)]))}" stroke="#0A0E08" stroke-width="1.6" fill="none"/>')
+    folds.append(f'<path d="{smooth_open(PP([(-0.085, 0.585), (0.0, 0.575), (0.085, 0.585)]))}" stroke="#0A0E08" stroke-width="1.3" fill="none" opacity="0.8"/>')
+    for u0, u1 in ((-0.075, -0.09), (-0.035, -0.045), (0.035, 0.045), (0.07, 0.085)):
+        folds.append(f'<path d="{smooth_open(PP([(u0, 0.55), (u0 + (u1 - u0) * 0.5, 0.43), (u1, 0.31)]))}" stroke="{rnd.choice(["#060A04", "#26321F"])}" stroke-width="1.3" fill="none" opacity="0.6"/>')
+    folds.append(strokes(D.nid(), cd, (cx - Hf * 0.15, foot - Hf * 0.86, cx + Hf * 0.15, foot - Hf * 0.28), ["#34422E", "#080C06", "#202A1C"], seed + 5,
+                         n=60, angle=-88, length=(8, 20), width=(1, 2.2), opacity=(0.2, 0.45), curve=0.1))
+    out.append(f'<g {D.clip(f"<path d=\"{cd}\"/>")}>{"".join(folds)}</g>')
+    # arms: left hanging relaxed with the hand at the hip, right reaching down to the stick
+    for arm in (PP([(-0.095, 0.8), (-0.115, 0.73), (-0.122, 0.64), (-0.118, 0.53)]), PP([(0.093, 0.8), (0.113, 0.73), (0.128, 0.63), (0.133, 0.53)])):
+        out.append(taper(catmull_pts(arm, 4), Hf * 0.058, Hf * 0.036, COAT[1]))
+        out.append(taper(catmull_pts([(x_ - 1.2, y_) for x_, y_ in arm[:3]], 4), Hf * 0.016, Hf * 0.006, "#3A4A34", 0.6))
+    for hx, hy in ((-0.118, 0.5), (0.134, 0.5)):
+        out.append(f'<path d="{blob(*P(hx, hy), Hf * 0.016, Hf * 0.022, seed + int(hx * 1000), 0.12, 8)}" fill="#C8A890"/>')
+    # collar and neck, the head of wind-tossed hair
+    out.append(f'<path d="{smooth_closed(PP([(-0.045, 0.85), (-0.03, 0.875), (0.03, 0.875), (0.045, 0.85), (0.0, 0.835)]))}" fill="#1A2018"/>')
+    out.append(f'<path d="{smooth_closed(PP([(-0.02, 0.87), (-0.018, 0.89), (0.018, 0.89), (0.02, 0.87)]))}" fill="#B89880"/>')
+    head = PP([(-0.04, 0.9), (-0.044, 0.945), (-0.028, 0.985), (0.008, 0.995), (0.04, 0.975), (0.045, 0.93), (0.036, 0.895), (0.0, 0.885)])
+    out.append(f'<path d="{smooth_closed(head)}" fill="{D.rad([(0, "#8A5232"), (0.7, "#5A341C"), (1, "#30200E")], 0.4, 0.3, 0.7)}"/>')
+    for k in range(16):
+        sx, sy = P(rnd.uniform(-0.035, 0.03), rnd.uniform(0.91, 0.985))
+        L = Hf * rnd.uniform(0.015, 0.03)
+        a = math.radians(rnd.uniform(-5, 35))
+        out.append(f'<path d="M{sx:.1f} {sy:.1f}q{L * 0.5 * math.cos(a):.1f} {L * 0.5 * math.sin(a) - 1:.1f} {L * math.cos(a):.1f} {L * math.sin(a):.1f}" stroke="{rnd.choice(["#8A5434", "#6A3A20", "#94603E", "#4A2814"])}" stroke-width="1.0" fill="none" stroke-linecap="round" opacity="0.7"/>')
+    for k in range(0):
+        sx, sy = P(0.035 + rnd.uniform(-0.01, 0.01), rnd.uniform(0.94, 0.985))
+        out.append(f'<path d="M{sx:.1f} {sy:.1f}q{Hf * 0.02:.1f} {-Hf * 0.01:.1f} {Hf * rnd.uniform(0.03, 0.045):.1f} {-Hf * rnd.uniform(0.0, 0.02):.1f}" stroke="#9A5A30" stroke-width="1" fill="none" stroke-linecap="round"/>')
+    # rim light from the bright fog along the silhouette's left edges
+    rim = PP([(-0.03, 0.995), (-0.05, 0.95), (-0.045, 0.9)])
+    out.append(f'<path d="{smooth_open(rim)}" stroke="{RIM}" stroke-width="1" fill="none" opacity="0.55"/>')
+    rim2 = PP([(-0.095, 0.825), (-0.125, 0.8), (-0.135, 0.7), (-0.14, 0.6)])
+    out.append(f'<path d="{smooth_open(rim2)}" stroke="{RIM}" stroke-width="1.1" fill="none" opacity="0.45"/>')
+    rim3 = PP([(0.12, 0.8), (0.125, 0.72), (0.11, 0.64)])
+    out.append(f'<path d="{smooth_open(rim3)}" stroke="{RIM}" stroke-width="0.9" fill="none" opacity="0.35"/>')
+    return "".join(out)
+
+
+def sorolla_dress(D, B, poly, seed, light_x, lean=0.0, n=260, folds=None):
+    """A white summer dress painted the way Sorolla did: a lilac-blue shadow side and a sunlit cream side,
+    laid in long loaded strokes running down the folds, with a few hard fold lines and pure white highlights."""
+    rnd = random.Random(seed)
+    d = smooth_closed(poly)
+    x0, y0, x1, y1 = bbox(poly)
+    out = [f'<path d="{d}" fill="{D.lin([(0, "#B8B0D8"), (0.45, "#DCD8EC"), (0.7, "#F6F2EA"), (1, "#FFFDF4")], 0, 0, 1, 0) if light_x > 0 else D.lin([(0, "#FFFDF4"), (0.3, "#F6F2EA"), (0.55, "#DCD8EC"), (1, "#B8B0D8")], 0, 0, 1, 0)}"/>']
+
+    def col(x, y, r):
+        f = (x - x0) / max(1, x1 - x0)
+        lit = f if light_x > 0 else 1 - f
+        if lit > 0.62:
+            return r.choice(["#FFFFFF", "#FFFCF2", "#FBF4E4", "#F8EEDC", "#FFFFFF"])
+        if lit > 0.38:
+            return r.choice(["#ECE8F2", "#E4DEEE", "#F4F0F0", "#D8D2E8", "#FFFFFF"])
+        return r.choice(["#B4ACD4", "#A49CC8", "#C8C0E0", "#9890C0", "#BCC4E0", "#D0C8E4"])
+    dabs(B, poly, n, col, seed, L=(10, 22), W=(3.2, 6), angle=lambda x, y: -90 + lean * 25 + 12 * math.sin(y / 30), spread=10, op=(0.75, 1.0))
+    inner = [B.render()]
+    for k, (fx0, fy0, fx1, fy1) in enumerate(folds or []):
+        inner.append(taper([(fx0, fy0), ((fx0 + fx1) / 2 + rnd.uniform(-5, 5), (fy0 + fy1) / 2), (fx1, fy1)], 0.5, 2.4, "#8A84B4", 0.32))
+    out.append(f'<g {D.clip(f"<path d=\"{d}\"/>")}>{"".join(inner)}</g>')
+    return "".join(out)
+
+
+def sorolla_woman(D, B, cx, foot, Hf, seed, kind):
+    """One of Sorolla's two women walking into the sea wind, about Hf px tall (7.5 heads, 1909 dress):
+    long white skirt swept back by the wind, fitted bodice with a high lace collar and puffed sleeves, a wide straw
+    hat with violet flowers. kind 'clotilde': veil blown back almost horizontally, right hand raised to the veil, open
+    white parasol held low in the left hand. kind 'maria': head turned over her right shoulder towards us, right hand
+    holding the brim of her yellow straw hat, a long white scarf streaming behind her in arabesques."""
+    rnd = random.Random(seed)
+
+    def P(u, v):
+        return (cx + u * Hf, foot - v * Hf)
+
+    def PP(pts):
+        return [P(u, v) for u, v in pts]
+    out = []
+    lean = 0.03
+    SK = ("#F2CCA8", "#D89C78", "#9A6A50")
+    # the trailing scarf / veil behind (drawn first so the body overlaps it)
+    if kind == "maria":
+        scarf = catmull_pts(PP([(0.0, 0.84), (-0.12, 0.8), (-0.22, 0.86), (-0.32, 0.8), (-0.42, 0.84), (-0.5, 0.78)]), 6)
+        sp = tongue_pts(scarf, [Hf * (0.05 + 0.03 * math.sin(i / 3)) for i in range(len(scarf))])
+        out.append(f'<path d="{smooth_closed(sp)}" fill="#F4F2F6" opacity="0.88"/>')
+        out.append(f'<path d="{smooth_open(scarf)}" stroke="#B8B4D4" stroke-width="1.6" fill="none" opacity="0.6"/>')
+    else:
+        veil = catmull_pts(PP([(0.02, 0.955), (-0.1, 0.96), (-0.22, 0.99), (-0.34, 0.965), (-0.46, 0.985)]), 6)
+        vp = tongue_pts(veil, [Hf * (0.07 - 0.03 * i / len(veil) + 0.012 * math.sin(i / 2)) for i in range(len(veil))])
+        out.append(f'<path d="{smooth_closed(vp)}" fill="#E4EEE6" opacity="0.62"/>')
+        out.append(f'<path d="{smooth_open(veil)}" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.7"/>')
+        # the parasol, open and angled down to the sand on her left
+        pc = P(-0.2, 0.3)
+        R = Hf * 0.2
+        a = math.radians(-125)
+        ca, sa = math.cos(a), math.sin(a)
+
+        def T(u, v):
+            return (pc[0] + u * ca - v * sa, pc[1] + u * sa + v * ca)
+        canopy = [T(0, -R), T(R * 0.55, -R * 0.85), T(R * 0.95, -R * 0.35), T(R * 1.0, 0), T(R * 0.95, R * 0.35), T(R * 0.55, R * 0.85), T(0, R),
+                  T(-R * 0.18, R * 0.4), T(-R * 0.2, 0), T(-R * 0.18, -R * 0.4)]
+        cdd = smooth_closed(canopy)
+        out.append(f'<path d="{cdd}" fill="{D.lin([(0, "#FFFFFF"), (0.5, "#ECE6F2"), (1, "#A8A0CC")], 1, 0, 0, 1)}"/>')
+        rib = [f'<path d="M{T(R * 1.0, 0)[0]:.1f} {T(R * 1.0, 0)[1]:.1f}L{T(-R * 0.19, v * R)[0]:.1f} {T(-R * 0.19, v * R)[1]:.1f}" stroke="#B0A8D0" stroke-width="1" opacity="0.7"/>' for v in (-0.8, -0.4, 0, 0.4, 0.8)]
+        out.append(f'<g {D.clip(f"<path d=\"{cdd}\"/>")}>{"".join(rib)}</g>')
+        out.append(f'<path d="{cdd}" fill="none" stroke="#9A92BE" stroke-width="1" opacity="0.6"/>')
+        out.append(f'<path d="M{T(R * 1.0, 0)[0]:.1f} {T(R * 1.0, 0)[1]:.1f}L{P(-0.11, 0.5)[0]:.1f} {P(-0.11, 0.5)[1]:.1f}" stroke="#6A5A4A" stroke-width="1.6"/>')
+    # skirt: long, floor length, swept back (to the left) by the wind
+    sw = 1.0 if kind == "clotilde" else 0.8
+    skirt = PP([(-0.06 + lean, 0.64), (-0.1, 0.52), (-0.17 * sw, 0.34), (-0.27 * sw, 0.16), (-0.34 * sw, 0.06), (-0.33 * sw, 0.015), (-0.2, -0.005),
+                (-0.04, 0.0), (0.1, 0.004), (0.15, 0.02), (0.13, 0.12), (0.1, 0.32), (0.075, 0.5), (0.06 + lean, 0.64)])
+    sk = PP([(-0.05, 0.6), (-0.14, 0.3), (-0.26 * sw, 0.06)]), PP([(-0.01, 0.6), (-0.06, 0.3), (-0.12, 0.02)]), PP([(0.03, 0.6), (0.04, 0.3), (0.03, 0.02)]), PP([(0.06, 0.58), (0.09, 0.3), (0.11, 0.03)])
+    folds = [(a[0][0], a[0][1], a[2][0], a[2][1]) for a in sk]
+    out.append(sorolla_dress(D, B, skirt, seed + 1, 1, -0.3, 300, folds))
+    # bodice and sleeves
+    bod = PP([(-0.058 + lean, 0.645), (-0.08 + lean, 0.72), (-0.092 + lean, 0.79), (-0.075 + lean, 0.83), (0.0 + lean, 0.845), (0.075 + lean, 0.83),
+              (0.095 + lean, 0.79), (0.088 + lean, 0.72), (0.06 + lean, 0.645)])
+    out.append(sorolla_dress(D, B, bod, seed + 2, 1, 0, 70))
+    out.append(f'<path d="{smooth_open(PP([(-0.065 + lean, 0.645), (0.0 + lean, 0.635), (0.062 + lean, 0.645)]))}" stroke="#C8C0DC" stroke-width="2.4" fill="none"/>')
+    # arms
+    if kind == "clotilde":
+        rarm = PP([(0.07 + lean, 0.82), (0.11 + lean, 0.76), (0.12 + lean, 0.7), (0.09 + lean, 0.77), (0.06 + lean, 0.86), (0.05 + lean, 0.9)])
+        larm = PP([(-0.075 + lean, 0.82), (-0.1, 0.72), (-0.11, 0.6), (-0.11, 0.52)])
+        out.append(taper(catmull_pts(larm, 4), Hf * 0.06, Hf * 0.034, "#D8D2EA"))
+        out.append(taper(catmull_pts([(x + 1.5, y) for x, y in larm], 4), Hf * 0.02, Hf * 0.01, "#FFFFFF", 0.8))
+        out.append(f'<path d="{blob(*P(-0.11, 0.5), Hf * 0.018, Hf * 0.024, seed + 5, 0.1, 8)}" fill="{SK[1]}"/>')
+        out.append(taper(catmull_pts(rarm[:3], 4), Hf * 0.064, Hf * 0.045, "#F0ECF4"))
+        out.append(taper(catmull_pts(rarm[2:], 4), Hf * 0.04, Hf * 0.03, "#E8E2F0"))
+        hand = P(0.045 + lean, 0.905)
+    else:
+        rarm = PP([(-0.07 + lean, 0.82), (-0.1 + lean, 0.88), (-0.085 + lean, 0.95), (-0.06 + lean, 0.985)])
+        larm = PP([(0.075 + lean, 0.82), (0.095 + lean, 0.72), (0.1 + lean, 0.62), (0.09 + lean, 0.56)])
+        out.append(taper(catmull_pts(larm, 4), Hf * 0.062, Hf * 0.034, "#FBF6EC"))
+        out.append(f'<path d="{blob(*P(0.088 + lean, 0.545), Hf * 0.018, Hf * 0.024, seed + 5, 0.1, 8)}" fill="{SK[0]}"/>')
+        out.append(taper(catmull_pts(rarm, 4), Hf * 0.062, Hf * 0.036, "#D4CEE8"))
+        hand = P(-0.06 + lean, 0.99)
+    # neck and head
+    nx_, ny_ = P(0.005 + lean, 0.85)
+    out.append(f'<path d="{smooth_closed(PP([(-0.022 + lean, 0.845), (-0.02 + lean, 0.88), (0.022 + lean, 0.88), (0.024 + lean, 0.845)]))}" fill="{SK[1]}"/>')
+    out.append(f'<path d="{smooth_closed(PP([(-0.03 + lean, 0.84), (-0.026 + lean, 0.87), (0.028 + lean, 0.87), (0.032 + lean, 0.84)]))}" fill="#F4F0F8"/>')
+    hc = P(0.008 + lean, 0.915)
+    hr = Hf * 0.058
+    if kind == "clotilde":
+        # profile to the right, under the veil
+        prof = [(-0.9, -0.6), (-0.4, -1.0), (0.3, -0.95), (0.75, -0.5), (0.85, -0.15), (1.05, 0.05), (0.85, 0.2), (0.9, 0.42), (0.7, 0.62), (0.45, 0.9),
+                (0.0, 0.95), (-0.6, 0.6), (-0.95, 0.0)]
+        hp = [(hc[0] + x * hr, hc[1] + y * hr * 1.15) for x, y in prof]
+        out.append(f'<path d="{smooth_closed(hp)}" fill="{D.lin([(0, SK[1]), (0.5, SK[0]), (1, "#F8DCC0")], 0, 0, 1, 0)}"/>')
+        out.append(f'<path d="{blob(hc[0] - hr * 0.5, hc[1] - hr * 0.25, hr * 0.5, hr * 0.62, seed + 7, 0.12, 10)}" fill="#3A2418"/>')
+        out.append(f'<path d="M{hc[0] + hr * 0.3:.1f} {hc[1] + hr * 0.62:.1f}q{hr * 0.2:.1f} {hr * 0.06:.1f} {hr * 0.35:.1f} {-hr * 0.1:.1f}" stroke="#B05048" stroke-width="1.3" fill="none" stroke-linecap="round"/>')
+        out.append(soft(D, hc[0] + hr * 0.4, hc[1] + hr * 0.2, hr * 0.3, hr * 0.25, "#E8907A", 0.4))
+        out.append(f'<path d="M{hc[0] + hr * 0.45:.1f} {hc[1] - hr * 0.2:.1f}l{hr * 0.25:.1f} 0" stroke="#5A3020" stroke-width="1.1" opacity="0.7"/>')
+    else:
+        # three-quarters towards us, the face in the warm shade of the brim
+        fh = [(-0.75, -0.7), (-0.2, -1.0), (0.55, -0.85), (0.85, -0.3), (0.8, 0.25), (0.5, 0.75), (0.05, 1.0), (-0.45, 0.8), (-0.75, 0.3)]
+        hp = [(hc[0] + x * hr, hc[1] + y * hr * 1.15) for x, y in fh]
+        hd = smooth_closed(hp)
+        out.append(f'<path d="{hd}" fill="{D.lin([(0, SK[0]), (0.6, SK[1]), (1, SK[2])], 0, 0, 1, 0.3)}"/>')
+        inner = [soft(D, hc[0], hc[1] - hr * 0.7, hr * 1.2, hr * 0.6, "#8A5A48", 0.55),
+                 f'<path d="M{hc[0] - hr * 0.42:.1f} {hc[1] - hr * 0.12:.1f}q{hr * 0.12:.1f} {-hr * 0.08:.1f} {hr * 0.26:.1f} 0" stroke="#4A2A20" stroke-width="1.3" fill="none" stroke-linecap="round"/>',
+                 f'<path d="M{hc[0] + hr * 0.12:.1f} {hc[1] - hr * 0.12:.1f}q{hr * 0.1:.1f} {-hr * 0.07:.1f} {hr * 0.22:.1f} 0" stroke="#4A2A20" stroke-width="1.2" fill="none" stroke-linecap="round"/>',
+                 f'<path d="M{hc[0] - hr * 0.02:.1f} {hc[1] - hr * 0.05:.1f}l{-hr * 0.08:.1f} {hr * 0.3:.1f}l{hr * 0.12:.1f} {hr * 0.03:.1f}" stroke="#9A6450" stroke-width="1" fill="none" opacity="0.8"/>',
+                 f'<path d="M{hc[0] - hr * 0.2:.1f} {hc[1] + hr * 0.5:.1f}q{hr * 0.18:.1f} {hr * 0.08:.1f} {hr * 0.32:.1f} 0" stroke="#A8504A" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
+                 soft(D, hc[0] + hr * 0.45, hc[1] + hr * 0.3, hr * 0.3, hr * 0.22, "#E8907A", 0.35)]
+        out.append(f'<g {D.clip(f"<path d=\"{hd}\"/>")}>{"".join(inner)}</g>')
+        out.append(f'<path d="{blob(hc[0] - hr * 0.75, hc[1] - hr * 0.2, hr * 0.35, hr * 0.7, seed + 7, 0.12, 10)}" fill="#3A2418"/>')
+    # wide straw hat with violet flowers (and a turquoise bow for Maria)
+    hb = P(0.01 + lean, 0.968 if kind == "clotilde" else 0.962)
+    brim_rx, brim_ry = Hf * (0.13 if kind == "clotilde" else 0.15), Hf * 0.032
+    tilt = -8 if kind == "clotilde" else 10
+    out.append(f'<ellipse cx="{hb[0]:.1f}" cy="{hb[1]:.1f}" rx="{brim_rx:.1f}" ry="{brim_ry:.1f}" transform="rotate({tilt} {hb[0]:.1f} {hb[1]:.1f})" fill="{D.lin([(0, "#F2DC8A"), (0.6, "#D8B060"), (1, "#A8803A")])}"/>')
+    crown = [(hb[0] - brim_rx * 0.45, hb[1]), (hb[0] - brim_rx * 0.4, hb[1] - Hf * 0.04), (hb[0], hb[1] - Hf * 0.055), (hb[0] + brim_rx * 0.42, hb[1] - Hf * 0.035), (hb[0] + brim_rx * 0.45, hb[1])]
+    out.append(f'<path d="{smooth_closed(crown)}" fill="{D.lin([(0, "#F6E4A0"), (1, "#C8A050")])}"/>')
+    for k in range(9):
+        fx, fy = hb[0] + rnd.uniform(-brim_rx * 0.45, brim_rx * 0.4), hb[1] - Hf * rnd.uniform(0.01, 0.05)
+        out.append(f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="{Hf * rnd.uniform(0.008, 0.014):.1f}" fill="{rnd.choice(["#8A5AA8", "#A87AC8", "#6A3A8A", "#C8A0E0"])}"/>')
+    if kind == "maria":
+        out.append(f'<path d="{blob(hb[0] + brim_rx * 0.5, hb[1] - Hf * 0.01, Hf * 0.022, Hf * 0.012, seed + 9, 0.2, 8)}" fill="#3AB0B0"/>')
+        out.append(f'<path d="{blob(*hand, Hf * 0.018, Hf * 0.022, seed + 11, 0.1, 8)}" fill="{SK[0]}"/>')
+    else:
+        # the veil over hat and face, a green-white glaze, the right hand resting on it
+        vv = [(hb[0] - brim_rx * 1.0, hb[1] + 2), (hb[0] - brim_rx * 0.5, hb[1] - Hf * 0.06), (hb[0] + brim_rx * 0.6, hb[1] - Hf * 0.05),
+              (hb[0] + brim_rx * 1.0, hb[1] + 3), (hc[0] + hr * 1.2, hc[1] + hr * 0.6), (hc[0] + hr * 0.4, hc[1] + hr * 1.3), (hc[0] - hr * 1.0, hc[1] + hr * 0.8)]
+        out.append(f'<path d="{smooth_closed(vv)}" fill="#EEF6EE" opacity="0.22"/>')
+        out.append(f'<path d="{blob(*hand, Hf * 0.018, Hf * 0.022, seed + 11, 0.1, 8)}" fill="{SK[0]}"/>')
+    return "".join(out)
 
 
 # ---------------------------------------------------------------- build
