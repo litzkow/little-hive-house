@@ -328,10 +328,40 @@ COLLECTIONS = [
         "titles": {"a-single-step": "A Journey of a Thousand Miles", "a-thing-of-beauty": "A Thing of Beauty", "ars-longa": "Ars Longa, Vita Brevis", "cogito-ergo-sum": "Cogito, Ergo Sum", "cultivate-our-garden": "Il Faut Cultiver Notre Jardin", "eureka": "Eureka!", "heaven-under-our-feet": "Heaven Is Under Our Feet", "hitch-your-wagon-to-a-star": "Hitch Your Wagon to a Star", "i-cannot-live-without-books": "I Cannot Live Without Books", "learning-without-thought": "Learning Without Thought", "life-speeds-by": "While We Are Postponing, Life Speeds By", "master-of-himself": "Master of Himself", "one-swallow": "One Swallow Does Not Make a Summer", "per-aspera-ad-astra": "Per Aspera ad Astra", "philosophy-begins-in-wonder": "Philosophy Begins in Wonder", "que-sais-je": "Que Sais-Je?", "shoulders-of-giants": "The Shoulders of Giants", "such-stuff-as-dreams": "Such Stuff as Dreams", "the-heart-has-its-reasons": "The Heart Has Its Reasons", "the-love-which-moves-the-sun": "The Love Which Moves the Sun", "the-same-river-twice": "The Same River Twice", "the-soul-is-dyed": "The Soul Is Dyed by Its Thoughts", "the-unexamined-life": "The Unexamined Life", "to-thine-own-self-be-true": "To Thine Own Self Be True", "well-done": "Well Done Is Better Than Well Said", "know-thyself": "Know Thyself", "carpe-diem": "Carpe Diem", "festina-lente": "Festina Lente", "gutta-cavat-lapidem": "Gutta Cavat Lapidem", "omnia-vincit-amor": "Omnia Vincit Amor"},
         "order": ["carpe-diem", "a-single-step", "per-aspera-ad-astra", "such-stuff-as-dreams", "to-thine-own-self-be-true", "know-thyself", "the-unexamined-life", "omnia-vincit-amor", "philosophy-begins-in-wonder", "the-heart-has-its-reasons", "i-cannot-live-without-books", "hitch-your-wagon-to-a-star", "shoulders-of-giants", "cogito-ergo-sum", "eureka", "festina-lente", "life-speeds-by", "master-of-himself", "the-same-river-twice", "cultivate-our-garden", "a-thing-of-beauty", "heaven-under-our-feet", "the-soul-is-dyed", "ars-longa", "learning-without-thought", "que-sais-je", "the-love-which-moves-the-sun", "gutta-cavat-lapidem", "one-swallow", "well-done"],
     },
+    {
+        "slug": "philippines", "name": "Pilipinas", "tag": "Kain na, on the fridge",
+        "blurb": "Hand-painted love letters to the Philippines, from adobo in the palayok and the parol in the window to Lola's tumba-tumba, the tsinelas at the door and the balikbayan box on its way home.",
+        "titles": {"kain-na": "Kain Na!", "halo-halo": "Halo-Halo", "ingat": "Ingat!", "hay-naku": "Hay Naku!", "gigil": "Gigil!", "isa-pang-kanta": "Isa Pang Kanta!", "taho": "Tahooo!", "sari-sari-store": "Sari-Sari Store", "mabuhay": "Mabuhay!"},
+        "order": ["kain-na", "adobo", "halo-halo", "lola", "balikbayan-box", "maligayang-pasko", "ingat", "sinigang", "lumpia", "pancit", "lechon", "mahal-kita", "salamat-po", "kilig", "hay-naku", "bahala-na", "nanay", "tatay", "tuloy-po-kayo", "magandang-umaga", "taho", "ube", "simbang-gabi", "sari-sari-store", "isa-pang-kanta", "gigil", "banaue", "el-nido", "tarsier", "mabuhay"],
+    },
+    {
+        "slug": "india", "name": "India", "tag": "Chai, masala and home",
+        "blurb": "From cutting chai and Nani's kitchen to Diwali diyas and three pressure-cooker whistles, little painted pieces of ghar for every desi fridge.",
+        "titles": {"chai": "Chai?", "chalo": "Chalo!", "kai-po-che": "Kai Po Che!", "ekdum-filmy": "Ekdum Filmy!", "holi-hai": "Holi Hai!", "howzat": "Howzat!", "its-not-ice-cream": "It's Not Ice Cream", "bas-one-more-roti": "Bas, One More Roti", "nanis-kitchen": "Nani's Kitchen"},
+        "order": ["shubh-deepavali", "masala-dabba", "its-not-ice-cream", "chai", "maa-ke-haath-ka-khana", "ekdum-filmy", "taj-mahal", "kerala", "teen-seeti", "chalo", "mor", "thoda-adjust-karo", "dadi-ke-laddoo", "jalebi", "filter-kaapi", "dosa", "nazar-na-lage", "holi-hai", "kai-po-che", "bas-one-more-roti", "jugaad", "samosa", "biryani", "rakhi", "mango-season", "baarish", "namaste", "howzat", "jaipur", "nanis-kitchen"],
+    },
+    {
+        "slug": "puerto-rico", "name": "Puerto Rico", "tag": "Boricua on the fridge",
+        "blurb": "Hand-painted love letters to la Isla del Encanto, from the coquí's song and mofongo in the pilón to Abuela's rocking chair and kites over El Morro, for boricuas everywhere.",
+        "titles": {"coqui": "Coquí", "bendicion": "Bendición, Abuela", "wepa": "¡Wepa!", "flamboyan": "Flamboyán", "arroz-con-gandules": "Arroz con Gandules", "ay-bendito": "¡Ay, Bendito!", "cafe-colao": "Café Colao", "pa-lante": "Pa’lante", "capicu": "¡Capicú!", "bahia-bioluminiscente": "Bahía Bioluminiscente", "dia-de-reyes": "Día de Reyes", "llegamos": "¡Llegamos!", "a-comer": "¡Nene, a Comer!", "pinones": "Piñones"},
+        "order": ["coqui", "viejo-san-juan", "bendicion", "wepa", "el-morro", "boricua", "flamboyan", "arroz-con-gandules", "pasteles", "coquito", "ay-bendito", "mofongo", "vejigante", "cafe-colao", "mi-isla", "pa-lante", "parranda", "capicu", "el-yunque", "bahia-bioluminiscente", "dia-de-reyes", "llegamos", "mami", "piraguas", "tostones", "a-comer", "pinones", "chinas", "quesitos", "tembleque"],
+    },
+    {
+        "slug": "greece", "name": "Greece", "tag": "Yia mas from the fridge",
+        "blurb": "From yiayia's tapsi of spanakopita and the evil-eye mati by the door to blue domes, red Easter eggs and a frappé on the beach. Kali orexi, and siga siga!",
+        "titles": {"yia-mas": "Yia Mas!", "ftou-ftou": "Ftou, Ftou!", "kalimera": "Kalimera!", "opa": "Opa!", "kali-orexi": "Kali Orexi!", "chronia-polla": "Chronia Polla!", "frappe": "Frappé", "apo-to-chorio": "Apo to Chorio"},
+        "order": ["ftou-ftou", "yiayia", "santorini", "philotimo", "spanakopita", "philoxenia", "yia-mas", "kafedaki", "agapi-mou", "kalo-pascha", "siga-siga", "athina", "pappou", "kefi", "loukoumades", "horiatiki", "kalimera", "apo-to-chorio", "opa", "kala-christougenna", "mykonos", "ellada-mou", "spiti-mou", "chronia-polla", "frappe", "kalokairi", "meteora", "avgolemono", "kali-orexi", "souvlaki"],
+    },
+    {
+        "slug": "france", "name": "France", "tag": "Joie de vivre on the fridge",
+        "blurb": "Everyday French life in hand-painted gouache: the morning baguette, a café crème au comptoir, Mamie's cocotte and l'heure de l'apéro, for every family that signs off with bisous.",
+        "titles": {"cafe-creme": "Café Crème", "cocorico": "Cocorico!", "mont-saint-michel": "Mont-Saint-Michel", "bon-appetit": "Bon Appétit!", "le-marche": "Le Marché", "crepes": "Crêpes", "la-mariniere": "La Marinière", "galette-des-rois": "Galette des Rois", "le-gouter": "Le Goûter", "l-heure-de-l-apero": "L'Heure de l'Apéro", "oh-la-la": "Oh Là Là!", "bonjour": "Bonjour!", "c-est-la-vie": "C'est la Vie", "joie-de-vivre": "Joie de Vivre", "on-tire-ou-on-pointe": "On Tire ou On Pointe?", "petit-a-petit": "Petit à Petit", "val-de-loire": "Val de Loire", "le-14-juillet": "Le 14 Juillet", "porte-bonheur": "Porte-Bonheur", "bonne-fete": "Bonne Fête"},
+        "order": ["la-baguette", "cafe-creme", "bisous", "mamie", "l-heure-de-l-apero", "oh-la-la", "bonjour", "le-fromage", "cocorico", "c-est-la-vie", "mont-saint-michel", "petit-a-petit", "la-mariniere", "galette-des-rois", "le-marche", "mon-petit-chou", "ma-petite-maison", "macarons", "on-tire-ou-on-pointe", "le-14-juillet", "la-madeleine", "porte-bonheur", "bonne-fete", "val-de-loire", "crepes", "le-gouter", "les-bouquinistes", "bon-appetit", "joie-de-vivre", "papi"],
+    },
 ]
 
 DISPLAY = ["places", "world", "ink-cities", "city-sketches", "fall", "halloween", "christmas", "holidays", "summer", "kitchen-words",
-           "bumper-stickers", "night-sky", "birth-flowers", "bee-kind", "furry-friends", "brasil", "mexico", "italia", "japan", "korea", "ireland", "americana", "home-notes", "great-masters", "storybook-classics", "fairy-tales", "wise-words"]
+           "bumper-stickers", "night-sky", "birth-flowers", "bee-kind", "furry-friends", "brasil", "mexico", "italia", "japan", "korea", "philippines", "india", "ireland", "france", "greece", "puerto-rico", "americana", "home-notes", "great-masters", "storybook-classics", "fairy-tales", "wise-words"]
 COLLECTIONS.sort(key=lambda c: DISPLAY.index(c["slug"]))
 
 # Parent collections: one page that gathers several collections (shown as sub-collections).
@@ -339,7 +369,7 @@ GROUPS = [
     {"slug": "heritage", "name": "Heritage", "tag": "A little piece of home",
      "blurb": "Hand-painted magnets from the cultures we carry with us: the foods, words, places and little rituals of home, "
               "for everyone who misses a country, grew up between two, or simply fell in love with one.",
-     "children": ["brasil", "mexico", "italia", "japan", "korea", "ireland", "americana"]},
+     "children": ["brasil", "mexico", "puerto-rico", "italia", "france", "greece", "ireland", "japan", "korea", "philippines", "india", "americana"]},
 ]
 
 # The home page spotlight changes with the calendar. (start MM-DD, end MM-DD), first match wins.
