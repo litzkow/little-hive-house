@@ -3600,6 +3600,546 @@
    "collectionName": "Japan",
    "price": 5
   },
+  "korea/saranghae": {
+   "title": "Saranghae",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/bibimbap": {
+   "title": "Bibimbap",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/halmeoni": {
+   "title": "Halmeoni",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/eommas-gimbap": {
+   "title": "Eomma's Gimbap",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/jeong": {
+   "title": "Jeong",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/tteokbokki": {
+   "title": "Tteokbokki",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/kkachi-horangi": {
+   "title": "Kkachi Horangi",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/hanbok": {
+   "title": "Hanbok",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/gyeongbokgung": {
+   "title": "Gyeongbokgung",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/chuseok": {
+   "title": "Chuseok",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/haenyeo": {
+   "title": "Haenyeo",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/kimchi-jjigae": {
+   "title": "Kimchi Jjigae",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/hwaiting": {
+   "title": "Hwaiting!",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/hotteok": {
+   "title": "Hotteok",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/jangdokdae": {
+   "title": "Jangdokdae",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/mugunghwa": {
+   "title": "Mugunghwa",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/tteokguk": {
+   "title": "Tteokguk",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/uri-jip": {
+   "title": "Uri Jip",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/namsan": {
+   "title": "Namsan",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/bungeoppang": {
+   "title": "Bungeoppang",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/pojangmacha": {
+   "title": "Pojangmacha",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/samgyeopsal": {
+   "title": "Samgyeopsal",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/ramyeon": {
+   "title": "Ramyeon",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/kimchi": {
+   "title": "Kimchi",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/gyul": {
+   "title": "Gyul",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/dol-hareubang": {
+   "title": "Dol Hareubang",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/boseong": {
+   "title": "Boseong",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/jal-meokgesseumnida": {
+   "title": "Jal Meokgesseumnida",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/jjimjilbang": {
+   "title": "Jjimjilbang",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "korea/yut-nori": {
+   "title": "Yut Nori",
+   "collection": "korea",
+   "collectionName": "Korea",
+   "price": 5
+  },
+  "ireland/cead-mile-failte": {
+   "title": "Céad Míle Fáilte",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/slainte": {
+   "title": "Sláinte",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/may-the-road-rise": {
+   "title": "May the Road Rise to Meet You",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/the-kettles-on": {
+   "title": "The Kettle's On",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/claddagh": {
+   "title": "The Claddagh",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/mammy": {
+   "title": "Mammy",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/itll-be-grand": {
+   "title": "It'll Be Grand",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/cliffs-of-moher": {
+   "title": "Cliffs of Moher",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/brown-bread-and-tea": {
+   "title": "Brown Bread & Tea",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/grannys-kitchen": {
+   "title": "Granny's Kitchen",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/irish-traffic-jam": {
+   "title": "Irish Traffic Jam",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/its-baltic": {
+   "title": "It's Baltic!",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/eire": {
+   "title": "Éire",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/galway": {
+   "title": "Galway",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/la-fheile-padraig": {
+   "title": "Lá Fhéile Pádraig",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/spideog": {
+   "title": "Spideog",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/seamrog": {
+   "title": "Seamróg",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/the-full-irish": {
+   "title": "The Full Irish",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/ceol-agus-craic": {
+   "title": "Ceol agus Craic",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/irish-harp": {
+   "title": "Cláirseach",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/go-raibh-maith-agat": {
+   "title": "Go Raibh Maith Agat",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/nollaig-shona": {
+   "title": "Nollaig Shona",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/samhain": {
+   "title": "Samhain",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/connemara": {
+   "title": "Connemara",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/giants-causeway": {
+   "title": "Giant's Causeway",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/glendalough": {
+   "title": "Glendalough",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/puffin": {
+   "title": "Puifín",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/aran-islands": {
+   "title": "Aran Islands",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/grand-drying-day": {
+   "title": "A Grand Drying Day",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "ireland/the-bog-road": {
+   "title": "The Bog Road",
+   "collection": "ireland",
+   "collectionName": "Ireland",
+   "price": 5
+  },
+  "americana/county-fair": {
+   "title": "County Fair",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/small-town-big-heart": {
+   "title": "Small Town, Big Heart",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/drive-in-tonight": {
+   "title": "Drive-In Tonight",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/land-of-the-free": {
+   "title": "Land of the Free",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/down-on-the-farm": {
+   "title": "Down on the Farm",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/root-beer-float": {
+   "title": "Root Beer Float",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/pie-and-coffee": {
+   "title": "Pie & Coffee",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/american-as-apple-pie": {
+   "title": "American as Apple Pie",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/home-sweet-home": {
+   "title": "Home Sweet Home",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/school-days": {
+   "title": "School Days",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/take-me-out-to-the-ball-game": {
+   "title": "Take Me Out to the Ball Game",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/the-mother-road": {
+   "title": "The Mother Road",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/fourth-of-july": {
+   "title": "Fourth Of July",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/deep-dish": {
+   "title": "Deep Dish",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/short-stack": {
+   "title": "Short Stack",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/home-for-the-holidays": {
+   "title": "Home for the Holidays",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/yall-come-back-now": {
+   "title": "Y'all Come Back Now",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/smores": {
+   "title": "S'mores",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/lemonade-stand": {
+   "title": "Lemonade Stand",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/heartland": {
+   "title": "Heartland",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/bald-eagle": {
+   "title": "Bald Eagle",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/friday-night-football": {
+   "title": "Friday Night Football",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/pass-the-gravy": {
+   "title": "Pass the Gravy",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/wicked-good": {
+   "title": "Wicked Good",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/sweet-tea": {
+   "title": "Sweet Tea",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/hot-dog": {
+   "title": "Hot Dog!",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/letters-from-home": {
+   "title": "Letters from Home",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/bless-your-heart": {
+   "title": "Bless Your Heart",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/low-and-slow": {
+   "title": "Low & Slow",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
+  "americana/howdy-partner": {
+   "title": "Howdy, Partner",
+   "collection": "americana",
+   "collectionName": "Americana",
+   "price": 5
+  },
   "home-notes/theres-no-place-like-home": {
    "title": "There's No Place Like Home",
    "collection": "home-notes",
@@ -4138,6 +4678,366 @@
    "title": "Heidi",
    "collection": "storybook-classics",
    "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "fairy-tales/little-red-riding-hood": {
+   "title": "Little Red Riding Hood",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/rapunzel": {
+   "title": "Rapunzel",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/hansel-and-gretel": {
+   "title": "Hansel & Gretel",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-little-mermaid": {
+   "title": "The Little Mermaid",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/cinderella": {
+   "title": "Cinderella",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-princess-and-the-pea": {
+   "title": "The Princess & the Pea",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/sleeping-beauty": {
+   "title": "Sleeping Beauty",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/jack-and-the-beanstalk": {
+   "title": "Jack and the Beanstalk",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/snow-white": {
+   "title": "Snow White",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-snow-queen": {
+   "title": "The Snow Queen",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/aladdin": {
+   "title": "Aladdin",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/persephone": {
+   "title": "Persephone",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/icarus": {
+   "title": "Icarus",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/pegasus": {
+   "title": "Pegasus",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/pandoras-box": {
+   "title": "Pandora's Box",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-ugly-duckling": {
+   "title": "The Ugly Duckling",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/thumbelina": {
+   "title": "Thumbelina",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-tortoise-and-the-hare": {
+   "title": "The Tortoise & the Hare",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-fox-and-the-grapes": {
+   "title": "The Fox and the Grapes",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/goldilocks": {
+   "title": "Goldilocks",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-frog-prince": {
+   "title": "The Frog Prince",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/puss-in-boots": {
+   "title": "Puss in Boots",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-elves-and-the-shoemaker": {
+   "title": "The Elves & the Shoemaker",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/king-arthur": {
+   "title": "King Arthur",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/robin-hood": {
+   "title": "Robin Hood",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/ali-baba": {
+   "title": "Open, Sesame!",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/sinbad-the-sailor": {
+   "title": "Sinbad the Sailor",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/the-trojan-horse": {
+   "title": "The Trojan Horse",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/yggdrasil": {
+   "title": "Yggdrasil",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "fairy-tales/mjolnir": {
+   "title": "Mjölnir",
+   "collection": "fairy-tales",
+   "collectionName": "Fairy Tales & Myths",
+   "price": 5
+  },
+  "wise-words/carpe-diem": {
+   "title": "Carpe Diem",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/a-single-step": {
+   "title": "A Journey of a Thousand Miles",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/per-aspera-ad-astra": {
+   "title": "Per Aspera ad Astra",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/such-stuff-as-dreams": {
+   "title": "Such Stuff as Dreams",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/to-thine-own-self-be-true": {
+   "title": "To Thine Own Self Be True",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/know-thyself": {
+   "title": "Know Thyself",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/the-unexamined-life": {
+   "title": "The Unexamined Life",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/omnia-vincit-amor": {
+   "title": "Omnia Vincit Amor",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/philosophy-begins-in-wonder": {
+   "title": "Philosophy Begins in Wonder",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/the-heart-has-its-reasons": {
+   "title": "The Heart Has Its Reasons",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/i-cannot-live-without-books": {
+   "title": "I Cannot Live Without Books",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/hitch-your-wagon-to-a-star": {
+   "title": "Hitch Your Wagon to a Star",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/shoulders-of-giants": {
+   "title": "The Shoulders of Giants",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/cogito-ergo-sum": {
+   "title": "Cogito, Ergo Sum",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/eureka": {
+   "title": "Eureka!",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/festina-lente": {
+   "title": "Festina Lente",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/life-speeds-by": {
+   "title": "While We Are Postponing, Life Speeds By",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/master-of-himself": {
+   "title": "Master of Himself",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/the-same-river-twice": {
+   "title": "The Same River Twice",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/cultivate-our-garden": {
+   "title": "Il Faut Cultiver Notre Jardin",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/a-thing-of-beauty": {
+   "title": "A Thing of Beauty",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/heaven-under-our-feet": {
+   "title": "Heaven Is Under Our Feet",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/the-soul-is-dyed": {
+   "title": "The Soul Is Dyed by Its Thoughts",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/ars-longa": {
+   "title": "Ars Longa, Vita Brevis",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/learning-without-thought": {
+   "title": "Learning Without Thought",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/que-sais-je": {
+   "title": "Que Sais-Je?",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/the-love-which-moves-the-sun": {
+   "title": "The Love Which Moves the Sun",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/gutta-cavat-lapidem": {
+   "title": "Gutta Cavat Lapidem",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/one-swallow": {
+   "title": "One Swallow Does Not Make a Summer",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
+   "price": 5
+  },
+  "wise-words/well-done": {
+   "title": "Well Done Is Better Than Well Said",
+   "collection": "wise-words",
+   "collectionName": "Wise Words",
    "price": 5
   }
  },

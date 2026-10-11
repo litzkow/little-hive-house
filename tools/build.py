@@ -9,11 +9,29 @@ import re
 
 import datetime
 
-from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, PRICE, SEASONS, VOLUME, title_for
+from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, PRICE, SEASONS, VOLUME, title_for
+BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
+PARENT = {ch: g for g in GROUPS for ch in g["children"]}
+
+
+def top_level():
+    """Collections as browsed: each group stands in for its children, at the place of its first child."""
+    out, seen = [], set()
+    for c in COLLECTIONS:
+        g = PARENT.get(c["slug"])
+        if not g:
+            out.append(c)
+        elif g["slug"] not in seen:
+            seen.add(g["slug"]); out.append(g)
+    return out
+
+
+def group_kids(g):
+    return [BY_SLUG[s] for s in g["children"] if s in BY_SLUG]
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "12"
+VERSION = "13"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -128,7 +146,12 @@ def header(pg, active):
         f'      <a href="{pg.p}{href}"{CUR if key == active else ""}>{label}</a>'
         for href, label, key in NAV)
     mobile = "\n".join(f'      <a href="{pg.p}{href}">{label}</a>' for href, label, _ in NAV)
-    subs = "\n".join(f'      <a class="sub" href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a>' for c in COLLECTIONS)
+    def _sub(c):
+        line = f'      <a class="sub" href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a>'
+        if "children" in c:
+            line += "".join(f'\n      <a class="sub sub2" href="{pg.p}collections/{k["slug"]}.html">{E(k["name"])}</a>' for k in group_kids(c))
+        return line
+    subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
 <div class="strip"><span>Free US shipping on orders over $35</span><span class="dot" aria-hidden="true">·</span><span>Handmade in small batches</span></div>
 
@@ -215,6 +238,18 @@ def product(pg, col, slug, show_col=True):
 
 
 def col_card(pg, col):
+    if "children" in col:
+        kids = group_kids(col)
+        fan = "".join(f'<span class="m">{pg.svg(k["slug"], k["order"][0], cls="fan-svg")}</span>' for k in kids[:3])
+        n = sum(len(k["order"]) for k in kids)
+        return f"""<li><a class="col-card" href="{pg.p}collections/{col["slug"]}.html">
+  <div class="fan" aria-hidden="true">{fan}</div>
+  <div class="col-body">
+    <h3>{E(col["name"])}</h3>
+    <p>{E(col["tag"])} · {len(kids)} countries · {n} designs</p>
+    <span class="more">{E(", ".join(k["name"] for k in kids))} →</span>
+  </div>
+</a></li>"""
     fan = "".join(f'<span class="m">{pg.svg(col["slug"], s, cls="fan-svg")}</span>' for s in col["order"][:3])
     return f"""<li><a class="col-card" href="{pg.p}collections/{col["slug"]}.html">
   <div class="fan" aria-hidden="true">{fan}</div>
@@ -415,7 +450,7 @@ def gift_cards(pg):
 # ---------------------------------------------------------------- pages
 def page_home():
     pg = Page("")
-    cards = "\n".join(col_card(pg, c) for c in COLLECTIONS)
+    cards = "\n".join(col_card(pg, c) for c in top_level())
     feat = "\n".join(product(pg, BY_SLUG[c], s) for c, s in FEATURED)
     body = f"""{header(pg, "home")}
 <main id="main">
@@ -593,7 +628,7 @@ def page_shop():
 
 def page_collections_index():
     pg = Page("../")
-    cards = "\n".join(col_card(pg, c) for c in COLLECTIONS)
+    cards = "\n".join(col_card(pg, c) for c in top_level())
     body = f"""{header(pg, "collections")}
 <main id="main">
   <div class="wrap page-head">
@@ -614,16 +649,73 @@ def page_collections_index():
     write("collections/index.html", head(pg, "Collections", "Browse every Little Hive House magnet collection.", "collections/") + body + chrome_end(pg))
 
 
+def page_group(g):
+    pg = Page("../")
+    kids = group_kids(g)
+    n = sum(len(k["order"]) for k in kids)
+    chips = "".join(f'<a class="tab" href="{k["slug"]}.html">{E(k["name"])} <small>{len(k["order"])}</small></a>' for k in kids)
+    cards = "\n".join(col_card(pg, k) for k in kids)
+    rows = []
+    for k in kids:
+        items = "\n".join(product(pg, k, s, show_col=False) for s in k["order"][:8])
+        rows.append(f"""  <section class="tight">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">{E(k["tag"])}</p>
+          <h2>{E(k["name"])}</h2>
+        </div>
+        <a class="btn btn-ghost btn-small" href="{k["slug"]}.html">See all {len(k["order"])}</a>
+      </div>
+      <div class="fridge">
+        <ul class="products">
+{items}
+        </ul>
+      </div>
+    </div>
+  </section>""")
+    body = f"""{header(pg, "collections")}
+<main id="main">
+  <div class="wrap page-head">
+    <ol class="crumbs"><li><a href="../index.html">Home</a></li><li><a href="index.html">Collections</a></li><li aria-current="page">{E(g["name"])}</li></ol>
+    <p class="eyebrow">{E(g["tag"])}</p>
+    <h1>{E(g["name"])}</h1>
+    <p class="lede">{E(g["blurb"])}</p>
+    <div class="head-row">{deal()} {vol_badge()}<span class="count">{len(kids)} countries · {n} designs · ${PRICE} each</span></div>
+  </div>
+<div class="tabs-bar">
+  <nav class="wrap tabs" aria-label="{E(g["name"])} collections">
+    {chips}
+  </nav>
+</div>
+  <section class="tight">
+    <div class="wrap">
+      <ul class="col-grid">
+{cards}
+      </ul>
+    </div>
+  </section>
+{chr(10).join(rows)}
+</main>
+{footer(pg)}"""
+    write(f"collections/{g['slug']}.html",
+          head(pg, f"{g['name']} magnets", f"{g['name']}: {g['blurb']}", f"collections/{g['slug']}.html") + body + chrome_end(pg))
+
+
 def page_collection(col):
     pg = Page("../")
     items = "\n".join(product(pg, col, s, show_col=False) for s in col["order"])
     idx = COLLECTIONS.index(col)
     others = [COLLECTIONS[(idx + k) % len(COLLECTIONS)] for k in (1, 2, 3)]
     more = "\n".join(col_card(pg, c) for c in others)
+    grp = PARENT.get(col["slug"])
+    parent_crumb = f'<li><a href="{grp["slug"]}.html">{E(grp["name"])}</a></li>' if grp else ""
+    if grp:
+        more = "\n".join(col_card(pg, c) for c in group_kids(grp) if c is not col)
     body = f"""{header(pg, "collections")}
 <main id="main">
   <div class="wrap page-head">
-    <ol class="crumbs"><li><a href="../index.html">Home</a></li><li><a href="index.html">Collections</a></li><li aria-current="page">{E(col["name"])}</li></ol>
+    <ol class="crumbs"><li><a href="../index.html">Home</a></li><li><a href="index.html">Collections</a></li>{parent_crumb}<li aria-current="page">{E(col["name"])}</li></ol>
     <p class="eyebrow">{E(col["tag"])}</p>
     <h1>{E(col["name"])}</h1>
     <p class="lede">{E(col["blurb"])}</p>
@@ -644,9 +736,9 @@ def page_collection(col):
       <div class="section-head">
         <div>
           <p class="eyebrow">Keep exploring</p>
-          <h2>More collections</h2>
+          <h2>{("More from " + E(grp["name"])) if grp else "More collections"}</h2>
         </div>
-        <a class="btn btn-ghost btn-small" href="index.html">All collections</a>
+        <a class="btn btn-ghost btn-small" href="{(grp["slug"] + ".html") if grp else "index.html"}">{("All of " + E(grp["name"])) if grp else "All collections"}</a>
       </div>
       <ul class="col-grid">
 {more}
@@ -961,6 +1053,8 @@ def write_sitemap():
                 f"<image:title>{E(title)} magnet</image:title></image:image>")
     entries = [("", "1.0", ""), ("shop.html", "0.9", ""), ("collections/", "0.9", ""),
                ("photo-magnets.html", "0.8", ""), ("big-orders.html", "0.8", "")]
+    for g in GROUPS:
+        entries.append((f"collections/{g['slug']}.html", "0.8", ""))
     for c in COLLECTIONS:
         imgs = "".join(img(c["slug"], s, c["titles"].get(s) or s.replace("-", " ").title())
                        for s in c["order"] if (ROOT / f"assets/art/{c['slug']}/{s}.webp").exists())
@@ -983,6 +1077,8 @@ if __name__ == "__main__":
     page_collections_index()
     for c in COLLECTIONS:
         page_collection(c)
+    for g in GROUPS:
+        page_group(g)
     page_photo()
     page_big()
     page_404()

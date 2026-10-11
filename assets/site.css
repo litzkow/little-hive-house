@@ -242,6 +242,7 @@ footer { padding-block: 48px 64px; }
 .mobile-menu nav { display: grid; gap: 4px; padding-block: 12px 18px; }
 .mobile-menu a { display: flex; align-items: center; min-height: 44px; text-decoration: none; font-weight: 600; font-size: 18px; border-bottom: 1px solid var(--line); }
 .mobile-menu .sub { font-weight: 500; font-size: 16px; color: var(--muted); padding-left: 14px; min-height: 40px; }
+.mobile-menu .sub2 { padding-left: 32px; font-size: 15px; min-height: 36px; }
 
 /* collection tabs */
 .tabs-bar { border-bottom: 1px solid var(--line); background: var(--surface); }
