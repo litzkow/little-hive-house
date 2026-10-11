@@ -29,13 +29,21 @@ jobs:
           MINUTES: ${{ inputs.minutes }}
         run: |
           gcloud logging read 'severity>=WARNING AND (resource.type="cloud_run_revision" OR resource.type="cloud_function")' \
-            --project "$PROJECT" --freshness="${MINUTES:-60}m" --limit 40 --order desc \
-            --format='value(timestamp,resource.labels.service_name,severity,textPayload,jsonPayload.message,protoPayload.status.message)' \
-            > logs.txt 2>&1 || true
+            --project "$PROJECT" --freshness="${MINUTES:-60}m" --limit 40 --order desc --format=json > raw.json 2>err.txt || cat err.txt
+          python3 - <<'PY' > logs.txt
+          import json
+          try: rows = json.load(open("raw.json"))
+          except Exception: rows = []
+          for e in rows:
+              pay = e.get("textPayload") or e.get("jsonPayload") or (e.get("protoPayload") or {}).get("status") or e.get("httpRequest") or ""
+              if not isinstance(pay, str): pay = json.dumps(pay)[:1500]
+              svc = (e.get("resource", {}).get("labels", {}) or {}).get("service_name", "")
+              print(f"{e.get('timestamp','')[:19]} {svc} {e.get('severity','')} {pay}".replace("\n", " | "))
+          PY
           cat logs.txt
           n=0
           while IFS= read -r line && [ $n -lt 40 ]; do
-            line="$(printf '%s' "$line" | cut -c1-900)"; line="${line//'%'/'%25'}"
+            line="$(printf '%s' "$line" | cut -c1-1600)"; line="${line//'%'/'%25'}"
             echo "::warning title=log::$line"; n=$((n + 1))
           done < logs.txt
           [ -s logs.txt ] || echo "::notice title=log::No warnings or errors in the last ${MINUTES:-60} minutes"
