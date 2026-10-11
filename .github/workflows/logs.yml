@@ -8,6 +8,9 @@ on:
       minutes:
         description: "How many minutes back to look"
         default: "60"
+      service:
+        description: "Optional: one function (lowercase, e.g. claimadmin) to show ALL its log lines"
+        default: ""
 
 jobs:
   logs:
@@ -27,8 +30,11 @@ jobs:
       - name: Read recent errors
         env:
           MINUTES: ${{ inputs.minutes }}
+          SERVICE: ${{ inputs.service }}
         run: |
-          gcloud logging read 'severity>=WARNING AND (resource.type="cloud_run_revision" OR resource.type="cloud_function")' \
+          FILTER='severity>=WARNING AND (resource.type="cloud_run_revision" OR resource.type="cloud_function")'
+          [ -n "$SERVICE" ] && FILTER="resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"$SERVICE\""
+          gcloud logging read "$FILTER" \
             --project "$PROJECT" --freshness="${MINUTES:-60}m" --limit 40 --order desc --format=json > raw.json 2>err.txt || cat err.txt
           python3 - <<'PY' > logs.txt
           import json
