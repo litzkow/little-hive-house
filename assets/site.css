@@ -211,6 +211,11 @@ footer { padding-block: 48px 64px; }
 .line { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding-block: 16px; border-bottom: 1px solid var(--line); }
 .line h3 { font-family: var(--body); font-size: 16px; font-weight: 600; }
 .line .detail { color: var(--muted); font-size: 14px; }
+.line-main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.line-main > div { min-width: 0; }
+.line-thumb { flex: none; width: 56px; height: 56px; border-radius: 8px; object-fit: cover; box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 4px 10px -4px rgba(0,0,0,.35); background: var(--fridge); }
+.line-thumb-icon { object-fit: contain; padding: 6px; }
+.line .qty { margin-left: 68px; }
 .line .amt { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 .qty { display: inline-flex; align-items: center; gap: 4px; }
 .qty button { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; font-size: 16px; }

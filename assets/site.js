@@ -55,6 +55,20 @@
     return { sub: sub, disc: disc, vol: vol, pct: pct, magnets: magnets, next: next, goods: goods, ship: ship, total: goods + ship, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
   }
 
+  /* small picture of each cart line: the design itself, the frame of the first photo, or the honeycomb for packages */
+  var ROOT = (function () { var me = document.querySelector('script[src*="site.js"]'); return me ? me.src.replace(/assets\/site\.js.*$/, '') : '/'; })();
+  function lineThumb(l) {
+    var src = '';
+    if (l.kind === 'design' && /^[a-z0-9-]+\/[a-z0-9-]+$/.test(l.id || '')) src = ROOT + 'assets/art/' + l.id + '.webp';
+    else if (l.photos && l.photos.length && /^[a-z0-9-]+$/.test(l.photos[0].frame || '')) src = ROOT + 'assets/email/thumbs/frames/' + l.photos[0].frame + '.jpg';
+    else src = ROOT + 'assets/favicon.svg';
+    var img = document.createElement('img');
+    img.className = 'line-thumb' + (l.kind === 'design' ? '' : ' line-thumb-icon');
+    img.src = src; img.alt = ''; img.width = 56; img.height = 56; img.loading = 'lazy'; img.decoding = 'async';
+    img.onerror = function () { img.remove(); };
+    return img;
+  }
+
   function render() {
     var t = totals();
     document.querySelectorAll('[data-cart-count]').forEach(function (el) { el.textContent = t.count; });
@@ -62,9 +76,12 @@
     ul.innerHTML = '';
     cart.forEach(function (l, i) {
       var li = document.createElement('li'); li.className = 'line';
-      var left = document.createElement('div');
-      var h = document.createElement('h3'); h.textContent = l.name; left.appendChild(h);
-      var d = document.createElement('p'); d.className = 'detail'; d.textContent = l.detail; left.appendChild(d);
+      var left = document.createElement('div'); left.className = 'line-main';
+      var thumb = lineThumb(l);
+      if (thumb) left.appendChild(thumb);
+      var txt = document.createElement('div'); left.appendChild(txt);
+      var h = document.createElement('h3'); h.textContent = l.name; txt.appendChild(h);
+      var d = document.createElement('p'); d.className = 'detail'; d.textContent = l.detail; txt.appendChild(d);
       if (l.photos && l.photos.length) {  /* photo packs: the frame (and caption) chosen for each photo */
         var det = document.createElement('details'); det.className = 'line-photos';
         var sm = document.createElement('summary'); sm.textContent = 'Frame for each photo'; det.appendChild(sm);
