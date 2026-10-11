@@ -126,7 +126,15 @@ jobs:
 
       - name: Deploy
         if: steps.check.outputs.ready == 'true'
-        run: npx --yes firebase-tools@13 deploy --only functions,firestore,storage --project "$PROJECT" --non-interactive --force
+        run: |
+          set -o pipefail
+          if ! npx --yes firebase-tools@13 deploy --only functions,firestore,storage --project "$PROJECT" --non-interactive --force 2>&1 | tee "$RUNNER_TEMP/deploy.log"; then
+            # surface the reason as an annotation (readable on the run page and through the API)
+            msg="$( { grep -iE "error|denied|permission|failed|forbidden|invalid|quota|not found|must" "$RUNNER_TEMP/deploy.log" | tail -25; echo '--- firebase-debug.log ---'; grep -iE "error|denied|permission|status\":4|status\":5|message" firebase-debug.log 2>/dev/null | tail -25; } | cut -c1-400 )"
+            msg="${msg//'%'/'%25'}"; msg="${msg//$'\n'/'%0A'}"; msg="${msg//$'\r'/}"
+            echo "::error title=Firebase deploy failed::$msg"
+            exit 1
+          fi
 
       - name: Clean up secrets
         if: always()
