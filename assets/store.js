@@ -26,7 +26,15 @@
   var REGION = 'us-east1';
   var SUPPORT = 'support@littlehivehouse.com';
   var C = window.LHH_FIREBASE || {};
-  var configured = !!(C.apiKey && C.projectId && C.live !== false);
+  /* Owners can try the store before it opens: visit any page with ?storetest=1 (and ?storetest=0 to stop). */
+  var testMode = false;
+  try {
+    var tq = (location.search.match(/[?&]storetest=([01])/) || [])[1];
+    if (tq === '1') localStorage.setItem('lhh-store-test', '1');
+    if (tq === '0') localStorage.removeItem('lhh-store-test');
+    testMode = localStorage.getItem('lhh-store-test') === '1';
+  } catch (e) { testMode = /[?&]storetest=1/.test(location.search); }
+  var configured = !!(C.apiKey && C.projectId && (C.live !== false || testMode));
   var me = document.querySelector('script[src*="store.js"]');
   var base = me ? me.getAttribute('src').replace(/assets\/store\.js.*$/, '') : '';
 
