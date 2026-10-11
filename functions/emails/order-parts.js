@@ -138,6 +138,7 @@ function totals(order, opts = {}) {
   if (num(pr.volumeDiscount) > 0) rows.push([`Volume discount${num(pr.volumePct) ? ` (${num(pr.volumePct)}% off)` : ""}`, "−" + money(pr.volumeDiscount, cur), "save"]);
   if (pr.promo && num(pr.promo.amount) > 0) rows.push([`Promo code${pr.promo.code ? " " + F.line(pr.promo.code, 30) : ""}`, "−" + money(pr.promo.amount, cur), "save"]);
   if (pr.shipping !== undefined && pr.shipping !== null) rows.push(["Shipping", num(pr.shipping) > 0 ? money(pr.shipping, cur) : "Free", num(pr.shipping) > 0 ? "" : "save"]);
+  if (num(pr.tax) > 0) rows.push(["Sales tax", money(pr.tax, cur)]);
   const total = num(pr.total);
   const refunded = num(order && order.refundedTotal);
   const showRefund = opts.withRefunds && refunded > 0;

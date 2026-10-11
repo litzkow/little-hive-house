@@ -199,6 +199,7 @@
     if (p.volumeDiscount) rows.push(['Big order' + (p.volumePct ? ', ' + p.volumePct + '% off' : ''), money(-p.volumeDiscount), 'disc']);
     if (p.promo && p.promo.amount) rows.push(['Code ' + (p.promo.code || ''), money(-p.promo.amount), 'disc']);
     rows.push(['Shipping', p.shipping ? money(p.shipping) : 'Free']);
+    if (p.tax) rows.push(['Sales tax', money(p.tax)]);
     var dl = h('dl', { class: 'osum' }, rows.map(function (r) { return h('div', { class: r[2] || null }, h('dt', { text: r[0] }), h('dd', { text: r[1] })); }),
       h('div', { class: 'grand' }, h('dt', { text: 'Total' }), h('dd', { text: money(p.total) })));
     if (o.refundedTotal) dl.append(h('div', { class: 'disc' }, h('dt', { text: 'Refunded' }), h('dd', { text: money(-o.refundedTotal) })));

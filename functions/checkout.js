@@ -1,7 +1,7 @@
 "use strict";
 /* createCheckout, orderBySession, trackOrder and completeCheckout (shared with the webhook). */
 
-const { fail, need, siteUrl, mailAdmin, nowIso, AppError } = require("./config");
+const { fail, need, env, siteUrl, mailAdmin, nowIso, AppError } = require("./config");
 const deps = require("./deps");
 const stripe = require("./stripe");
 const mail = require("./mail");
@@ -9,10 +9,20 @@ const { priceCart, allocate, dollars, cents } = require("./pricing");
 const O = require("./orders");
 const U = require("./util");
 
+/* Sales tax: Stripe Tax computes it from the shipping address and adds it on top of our prices.
+   STRIPE_TAX=off turns it off; otherwise we ask for it and fall back to no tax if Stripe Tax isn't set up yet. */
+const TAX_GOODS = "txcd_99999999";      // General - Tangible Goods
+const TAX_SHIPPING = "txcd_92010001";   // Shipping
+function taxWanted() { return String(env("STRIPE_TAX") || "").toLowerCase() !== "off"; }
+function isTaxSetupError(err) {
+  if (!err || !(err.status >= 400 && err.status < 500)) return false;
+  return /tax/i.test(`${err.message || ""} ${err.code || ""} ${err.param || ""}`);
+}
+
 const PHOTO_PATH = /^uploads\/([^/]+)\/([A-Za-z0-9_-]{1,64})\/(\d{1,3})\.(jpe?g|png|heic|heif|webp)$/i;
 
 /** Stripe line items whose amounts add up to the discounted goods total. */
-function stripeLineItems(priced, base = siteUrl()) {
+function stripeLineItems(priced, base = siteUrl(), tax = false) {
   const shares = allocate(priced.lines, priced.totals);
   return priced.lines.map((l, i) => {
     const { net, discount } = shares[i];
@@ -26,27 +36,29 @@ function stripeLineItems(priced, base = siteUrl()) {
     } else if (l.kind === "package") {
       product.description = `${l.count} custom magnets. We email you about your design after checkout.`;
     }
+    if (tax) product.tax_code = TAX_GOODS;
     if (discount > 0) product.description = `${product.description ? product.description + " · " : ""}bundle and big-order savings included`;
     if (net % l.qty === 0) {
-      return { price_data: { currency: "usd", unit_amount: net / l.qty, product_data: product }, quantity: l.qty };
+      return { price_data: { currency: "usd", unit_amount: net / l.qty, product_data: product, ...(tax ? { tax_behavior: "exclusive" } : {}) }, quantity: l.qty };
     }
     product.name = `${l.name} × ${l.qty}`.slice(0, 240);
-    return { price_data: { currency: "usd", unit_amount: net, product_data: product }, quantity: 1 };
+    return { price_data: { currency: "usd", unit_amount: net, product_data: product, ...(tax ? { tax_behavior: "exclusive" } : {}) }, quantity: 1 };
   });
 }
 
-function sessionParams({ orderId, priced, email }) {
+function sessionParams({ orderId, priced, email, tax = false }) {
   const base = siteUrl();
   const ship = priced.totals.ship;
   const p = {
     mode: "payment",
-    line_items: stripeLineItems(priced, base),
+    line_items: stripeLineItems(priced, base, tax),
     shipping_address_collection: { allowed_countries: ["US", "CA"] },
     shipping_options: [{
       shipping_rate_data: {
         type: "fixed_amount", fixed_amount: { amount: ship, currency: "usd" },
         display_name: ship ? "Standard shipping" : "Free shipping",
         delivery_estimate: { minimum: { unit: "business_day", value: 3 }, maximum: { unit: "business_day", value: 10 } },
+        ...(tax ? { tax_behavior: "exclusive", tax_code: TAX_SHIPPING } : {}),
       },
     }],
     allow_promotion_codes: true,
@@ -56,6 +68,7 @@ function sessionParams({ orderId, priced, email }) {
     success_url: `${base}/thank-you.html?order=${orderId}&session={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/shop.html?checkout=canceled`,
   };
+  if (tax) p.automatic_tax = { enabled: true };
   if (email) p.customer_email = email;
   return p;
 }
@@ -101,14 +114,26 @@ async function createCheckout(data, auth) {
   };
   await ref.set(order);
   let session;
+  let taxOn = taxWanted();
   try {
-    session = await stripe.request("POST", "/checkout/sessions", sessionParams({ orderId: ref.id, priced, email }),
-      { idempotencyKey: `checkout-${ref.id}` });
+    try {
+      session = await stripe.request("POST", "/checkout/sessions", sessionParams({ orderId: ref.id, priced, email, tax: taxOn }),
+        { idempotencyKey: `checkout-${ref.id}${taxOn ? "" : "-notax"}` });
+    } catch (err) {
+      if (!taxOn || !isTaxSetupError(err)) throw err;
+      // Stripe Tax isn't switched on in the Stripe dashboard yet: take the order anyway, without tax, and tell the owners.
+      console.warn("[checkout] Stripe Tax unavailable, continuing without tax:", err.message);
+      taxOn = false;
+      session = await stripe.request("POST", "/checkout/sessions", sessionParams({ orderId: ref.id, priced, email, tax: false }),
+        { idempotencyKey: `checkout-${ref.id}-notax` });
+    }
   } catch (err) {
     await ref.delete().catch(() => {});
     throw stripe.friendly(err, "opening checkout");
   }
-  await ref.update({ "stripe.sessionId": session.id, updatedAt: nowIso() });
+  const upd = { "stripe.sessionId": session.id, "pricing.taxCalculated": taxOn, updatedAt: nowIso() };
+  if (!taxOn && taxWanted()) upd.adminNotes = [{ at: nowIso(), by: "system", text: "Sales tax was not charged: Stripe Tax is not set up in the Stripe dashboard yet." }];
+  await ref.update(upd);
   return { url: session.url, orderId: ref.id };
 }
 
@@ -189,6 +214,7 @@ async function completeCheckout(session) {
   const piId = pi && typeof pi === "object" ? pi.id : pi || null;
   const email = ((session.customer_details && session.customer_details.email) || session.customer_email || "").toLowerCase();
   const amountTotal = Number.isFinite(session.amount_total) ? session.amount_total : null;
+  const taxCents = Number.isFinite(session.total_details && session.total_details.amount_tax) ? session.total_details.amount_tax : 0;
 
   let result = { orderId, status: null, newlyPaid: false };
   let after = null;
@@ -203,9 +229,12 @@ async function completeCheckout(session) {
     const at = nowIso();
     const pricing = { ...(o.pricing || {}) };
     if (promo) pricing.promo = promo;
+    pricing.tax = dollars(taxCents);          // sales tax the customer paid: belongs to the state, not to the shop
+    pricing.taxState = taxCents > 0 ? (ship.address.state || "") : "";
+    pricing.taxCountry = taxCents > 0 ? (ship.address.country || "") : "";
     const notes = Array.isArray(o.adminNotes) ? o.adminNotes.slice() : [];
     if (amountTotal !== null) {
-      const expected = cents(pricing.total || 0) - (promo ? cents(promo.amount) : 0);
+      const expected = cents(pricing.total || 0) - (promo ? cents(promo.amount) : 0) + taxCents;
       if (Math.abs(expected - amountTotal) > 0) {
         notes.push({ at, by: "system", text: `Check: we expected $${(expected / 100).toFixed(2)} but Stripe charged $${(amountTotal / 100).toFixed(2)}.` });
       }
@@ -278,4 +307,4 @@ async function trackOrder(data, auth, rawRequest) {
   return O.publicOrderView(doc.id, doc.data());
 }
 
-module.exports = { createCheckout, completeCheckout, orderBySession, trackOrder, retrieveSession, sessionParams, stripeLineItems, PHOTO_PATH, addressFromSession, feeFromSession };
+module.exports = { TAX_GOODS, TAX_SHIPPING, taxWanted, isTaxSetupError, createCheckout, completeCheckout, orderBySession, trackOrder, retrieveSession, sessionParams, stripeLineItems, PHOTO_PATH, addressFromSession, feeFromSession };

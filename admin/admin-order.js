@@ -358,10 +358,11 @@
     if (R.num(pr.volumeDiscount)) rows.push(['Volume discount' + (pr.volumePct ? ' (' + pr.volumePct + '%)' : ''), '−' + money(pr.volumeDiscount)]);
     if (pr.promo && R.num(pr.promo.amount)) rows.push(['Code ' + (pr.promo.code || ''), '−' + money(pr.promo.amount)]);
     rows.push(['Shipping', p.shipping ? money(p.shipping) : 'Free']);
+    if (p.tax) rows.push(['Sales tax' + (p.taxState ? ' (' + esc(p.taxState) + ')' : '') + ' <span class="muted small">· owed to the state</span>', money(p.tax)]);
     var refunded = R.refundedTotal(o);
     return '<section class="card"><div class="card-head"><h2>Items</h2><span class="sub">' + h.plural(R.magnetsOf(o), 'magnet') + '</span></div>' +
       '<p class="small" id="photos-status" hidden></p><ul class="items">' + lis + '</ul>' +
-      '<table class="totals">' + rows.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td></tr>'; }).join('') +
+      '<table class="totals">' + rows.map(function (r) { return '<tr><td>' + (/^Sales tax/.test(r[0]) ? r[0] : esc(r[0])) + '</td><td>' + r[1] + '</td></tr>'; }).join('') +
       '<tr class="total"><td>Total paid</td><td>' + money(p.total) + '</td></tr>' +
       (refunded ? '<tr class="ref"><td>Refunded</td><td>−' + money(refunded) + '</td></tr><tr><td><b>Net</b></td><td><b>' + money(p.total - refunded) + '</b></td></tr>' : '') + '</table></section>';
   }

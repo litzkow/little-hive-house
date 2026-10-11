@@ -1,7 +1,10 @@
 # Deploys the store backend (Cloud Functions, Firestore rules + indexes, Storage rules) to Firebase.
 # The website itself is still published by GitHub Pages; this only runs when backend files change.
-# Needs two repository secrets (see SETUP.md): FIREBASE_SERVICE_ACCOUNT and FUNCTIONS_ENV.
-# Optional repository variable FIREBASE_PROJECT (defaults to little-hive-house).
+# Needs the repository secret FIREBASE_SERVICE_ACCOUNT plus the store keys, each as its own secret (easy to paste
+# from a phone): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY and optionally USPS_CLIENT_ID,
+# USPS_CLIENT_SECRET, SHIPPO_API_KEY, UNSUBSCRIBE_SECRET. Plain settings go in repository *variables*:
+# ADMIN_EMAILS, MAIL_POSTAL_ADDRESS (and optionally MAIL_FROM, MAIL_ADMIN, SITE_URL, STRIPE_TAX, FIREBASE_PROJECT).
+# The older single FUNCTIONS_ENV secret (a whole .env file) still works; the separate secrets/variables win.
 name: Deploy store backend (Firebase)
 
 on:
@@ -32,10 +35,10 @@ jobs:
         id: check
         env:
           HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
-          HAS_ENV: ${{ secrets.FUNCTIONS_ENV != '' }}
+          HAS_KEYS: ${{ secrets.STRIPE_SECRET_KEY != '' || secrets.FUNCTIONS_ENV != '' }}
         run: |
-          if [ "$HAS_SA" != "true" ] || [ "$HAS_ENV" != "true" ]; then
-            echo "::notice title=Firebase deploy skipped::Add the FIREBASE_SERVICE_ACCOUNT and FUNCTIONS_ENV secrets (see SETUP.md) to deploy the store backend."
+          if [ "$HAS_SA" != "true" ] || [ "$HAS_KEYS" != "true" ]; then
+            echo "::notice title=Firebase deploy skipped::Add the FIREBASE_SERVICE_ACCOUNT and STRIPE_SECRET_KEY secrets (see SETUP.md) to deploy the store backend."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -59,17 +62,44 @@ jobs:
         env:
           FUNCTIONS_ENV: ${{ secrets.FUNCTIONS_ENV }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          UNSUBSCRIBE_SECRET: ${{ secrets.UNSUBSCRIBE_SECRET }}
+          USPS_CLIENT_ID: ${{ secrets.USPS_CLIENT_ID }}
+          USPS_CLIENT_SECRET: ${{ secrets.USPS_CLIENT_SECRET }}
+          SHIPPO_API_KEY: ${{ secrets.SHIPPO_API_KEY }}
+          ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS || secrets.ADMIN_EMAILS }}
+          MAIL_POSTAL_ADDRESS: ${{ vars.MAIL_POSTAL_ADDRESS }}
+          MAIL_FROM: ${{ vars.MAIL_FROM }}
+          MAIL_ADMIN: ${{ vars.MAIL_ADMIN }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          STRIPE_TAX: ${{ vars.STRIPE_TAX }}
         run: |
           umask 077
-          printf '%s\n' "$FUNCTIONS_ENV" | tr -d '\r' > functions/.env
+          # 1) the old all-in-one FUNCTIONS_ENV secret, if there is one
+          printf '%s\n' "$FUNCTIONS_ENV" | tr -d '\r' | grep -v '^[[:space:]]*$' > functions/.env.base || true
+          # 2) each separate secret / variable overrides it (values are trimmed and quoted for the .env file)
+          KEYS="STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY UNSUBSCRIBE_SECRET USPS_CLIENT_ID USPS_CLIENT_SECRET SHIPPO_API_KEY ADMIN_EMAILS MAIL_POSTAL_ADDRESS MAIL_FROM MAIL_ADMIN SITE_URL STRIPE_TAX"
+          cp functions/.env.base functions/.env
+          for k in $KEYS; do
+            v="$(printenv "$k" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            [ -z "$v" ] && continue
+            grep -v "^$k=" functions/.env > functions/.env.tmp || true
+            mv functions/.env.tmp functions/.env
+            esc="$(printf '%s' "$v" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
+            printf '%s="%s"\n' "$k" "$esc" >> functions/.env
+          done
+          rm -f functions/.env.base
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
-          for k in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY ADMIN_EMAILS SITE_URL MAIL_FROM MAIL_ADMIN MAIL_POSTAL_ADDRESS UNSUBSCRIBE_SECRET; do
-            grep -q "^$k=." functions/.env || echo "::warning title=FUNCTIONS_ENV::$k is missing or empty"
+          for k in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY ADMIN_EMAILS MAIL_POSTAL_ADDRESS; do
+            grep -q "^$k=." functions/.env || echo "::warning title=Store setting missing::$k is missing or empty (see SETUP.md)"
           done
           for k in USPS_CLIENT_ID USPS_CLIENT_SECRET; do
-            grep -q "^$k=." functions/.env || echo "::notice title=FUNCTIONS_ENV::$k is empty, so automatic USPS tracking is off (SETUP.md part 3b)"
+            grep -q "^$k=." functions/.env || echo "::notice title=USPS tracking off::$k is empty, so automatic USPS tracking is off (SETUP.md part 3b)"
           done
+          echo "Settings written: $(cut -d= -f1 functions/.env | tr '\n' ' ')"
 
       - name: Install function dependencies
         if: steps.check.outputs.ready == 'true'

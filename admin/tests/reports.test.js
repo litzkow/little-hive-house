@@ -195,3 +195,30 @@ test('CSV quoting and formula guard', () => {
   const csv = R.toCSV([{ a: 'x, "y"', b: '=SUM(A1)', c: -5 }], [['A', 'a'], ['B', 'b'], ['C', 'c']]);
   assert.equal(csv, 'A,B,C\r\n"x, ""y""",\'=SUM(A1),-5\r\n');
 });
+
+test('sales tax stays out of sales and profit; refunds give tax back in proportion; income tax reserve', () => {
+  const at = new Date(2026, 9, 5).toISOString();
+  const orders = [
+    { status: 'paid', paidAt: at, items: [{ kind: 'design', price: 5, qty: 4 }], pricing: { subtotal: 20, shipping: 4.95, tax: 1.75, taxState: 'GA', total: 26.70 }, stripe: { fee: 1.07 } },
+    { status: 'partially_refunded', paidAt: at, items: [{ kind: 'design', price: 5, qty: 2 }], pricing: { subtotal: 10, shipping: 4.95, tax: 1.05, taxState: 'GA', total: 16 }, stripe: { fee: 0.76 },
+      refunds: [{ amount: 8, reason: 'damaged', at, status: 'succeeded' }], refundedTotal: 8 },
+    { status: 'paid', paidAt: at, items: [{ kind: 'design', price: 5, qty: 1 }], pricing: { subtotal: 5, shipping: 4.95, total: 9.95 }, stripe: { fee: 0.59 } },
+  ];
+  const m = R.monthMetrics(orders, {}, '2026-10');
+  assert.equal(m.netSales, 42.38);
+  assert.equal(m.refunds, 7.47);
+  assert.equal(m.salesTax, 2.8);
+  assert.equal(m.taxRefunded, 0.53);
+  assert.equal(m.taxOwed, 2.27);
+  assert.deepEqual(m.taxByState, { GA: 2.27 });
+  assert.equal(m.stripeTaxFees, 0.21);
+  assert.equal(m.profit, 34.1);
+  assert.equal(m.incomeTaxPct, 25);
+  assert.equal(m.incomeTaxReserve, 8.53);
+  assert.equal(m.profitAfterTax, 25.57);
+  const loss = R.monthMetrics(orders, { monthlyFixedCosts: 100 }, '2026-10');
+  assert.equal(loss.incomeTaxReserve, 0, 'no reserve on a loss');
+  const year = R.totalsOf(R.monthly(orders, { incomeTaxPct: 30 }, '2026-10', 12));
+  assert.equal(year.taxOwed, 2.27);
+  assert.equal(year.incomeTaxReserve, R.round2(year.profit * 0.3));
+});

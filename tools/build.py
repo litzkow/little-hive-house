@@ -302,7 +302,8 @@ def chrome_end(pg, extra_js=()):
     <div class="discount" id="t-disc-row" hidden><span>Any {BUNDLE[0]} designs for ${BUNDLE[1]}</span><span id="t-disc">−$0</span></div>
     <div class="discount" id="t-vol-row" hidden><span id="t-vol-label">Big order discount</span><span id="t-vol">−$0</span></div>
     <div><span>Shipping</span><span id="t-ship">$4.95</span></div>
-    <div class="grand"><span>Total</span><span id="t-total">$0</span></div>
+    <div class="tax-row"><span>Sales tax</span><span>Added at checkout</span></div>
+    <div class="grand"><span>Total before tax</span><span id="t-total">$0</span></div>
     <p class="ship-note" id="ship-note"></p>
     <p class="ship-note" id="vol-note" hidden></p>
     <!-- store: checkout extras (assets/checkout.js shows them once the store is connected) -->

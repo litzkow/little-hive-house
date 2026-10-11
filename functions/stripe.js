@@ -30,6 +30,7 @@ class StripeError extends Error {
     this.status = status;
     this.type = e.type;
     this.code = e.code;
+    this.param = e.param;
   }
 }
 

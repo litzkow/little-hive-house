@@ -33,7 +33,9 @@
     ['Orders', 'orders', 'int'], ['Magnets sold', 'magnets', 'int'], ['Gross sales', 'grossSales', 'money'], ['Discounts', 'discounts', 'money'],
     ['Shipping charged', 'shippingCharged', 'money'], ['Refunds', 'refunds', 'money'], ['Net sales', 'netSales', 'money'], ['Stripe fees', 'stripeFees', 'money'],
     ['Shipping labels', 'labels', 'money'], ['Product costs', 'productCosts', 'money'], ['Fixed costs', 'fixedCosts', 'money'], ['Total costs', 'costs', 'money'],
-    ['Profit', 'profit', 'money'], ['Margin', 'margin', 'pct'], ['ROI', 'roi', 'pct'], ['Avg order', 'aov', 'money'], ['Repeat customers', 'repeatRate', 'pct']
+    ['Profit', 'profit', 'money'], ['Margin', 'margin', 'pct'], ['ROI', 'roi', 'pct'], ['Avg order', 'aov', 'money'], ['Repeat customers', 'repeatRate', 'pct'],
+    ['Stripe Tax fees', 'stripeTaxFees', 'money'], ['Income tax reserve', 'incomeTaxReserve', 'money'], ['Profit after tax reserve', 'profitAfterTax', 'money'],
+    ['Sales tax collected', 'salesTax', 'money'], ['Sales tax refunded', 'taxRefunded', 'money'], ['Sales tax owed', 'taxOwed', 'money']
   ];
   function fmtCell(v, kind) { return kind === 'int' ? h.int(v) : kind === 'pct' ? h.pct(v) : h.signedMoney(v); }
   V.reports = function (r) {
@@ -68,11 +70,23 @@
       ['Refunds', -m.refunds, h.plural(m.refundCount, 'refund') + ' paid back in this period'],
       ['Net sales', m.netSales, 'What you really took in', 'sum'],
       ['Stripe fees', -m.stripeFees, m.feesEstimated ? 'Some estimated' : 'From Stripe'],
+      ['Stripe Tax fees', -m.stripeTaxFees, S.settings.stripeTaxPct + '% of orders with sales tax (estimate)'],
       ['Shipping labels', -m.labels, ''],
       ['Product costs', -m.productCosts, h.int(m.magnets) + ' magnets × ' + money(S.settings.magnetUnitCost) + ' + ' + money(S.settings.packagingCost) + ' packaging per order'],
       ['Fixed costs', -m.fixedCosts, money(S.settings.monthlyFixedCosts) + ' a month'],
-      ['Profit', m.profit, (m.margin == null ? '' : h.pct(m.margin) + ' margin') + (m.roi == null ? '' : ' · ' + h.pct(m.roi) + ' return on costs'), 'sum big']
+      ['Profit', m.profit, (m.margin == null ? '' : h.pct(m.margin) + ' margin') + (m.roi == null ? '' : ' · ' + h.pct(m.roi) + ' return on costs'), 'sum big'],
+      ['Set aside for income tax', -m.incomeTaxReserve, m.incomeTaxPct + '% of profit (change it in Settings)'],
+      ['Yours to keep', m.profitAfterTax, 'Profit after the income tax reserve', 'sum']
     ];
+    var states = Object.keys(m.taxByState || {}).filter(function (k) { return Math.abs(m.taxByState[k]) >= 0.005; })
+      .sort(function (a, b) { return m.taxByState[b] - m.taxByState[a]; });
+    var taxCard = '<section class="card gap-top"><div class="card-head"><div><h2>Sales tax · not your money</h2><p class="sub">' + esc(period) +
+      ' · kept apart from sales and profit</p></div></div><table class="pl">' +
+      '<tr><td>Collected from customers<span class="why">Added on top of prices at checkout</span></td><td>' + money(m.salesTax) + '</td></tr>' +
+      '<tr><td>Given back in refunds<span class="why">The tax part of refunds</span></td><td>' + h.signedMoney(-m.taxRefunded) + '</td></tr>' +
+      '<tr class="sum big"><td>Owed to the state<span class="why">Pay this when you file sales tax</span></td><td>' + money(m.taxOwed) + '</td></tr>' +
+      states.map(function (k) { return '<tr><td>' + esc(k === '?' ? 'Unknown state' : k) + '</td><td>' + money(m.taxByState[k]) + '</td></tr>'; }).join('') +
+      '</table>' + (m.salesTax ? '' : '<p class="small muted" style="margin-top:10px">No sales tax collected in this period.</p>') + '</section>';
     var topReason = reasons[0];
     var html = head('Reports', 'Reports', esc(period),
       '<label><span class="sr">Month</span><select class="input" id="r-month" style="width:auto">' + months.map(function (k) {
@@ -88,6 +102,8 @@
       h.tile('Magnets sold', h.int(m.magnets), m.orders ? (m.magnets / m.orders).toFixed(1) + ' per order' : '') +
       h.tile('Refunds', '<span class="' + (m.refunds ? 'neg' : '') + '">' + money(m.refunds) + '</span>', h.plural(m.refundCount, 'refund')) +
       h.tile('Repeat customers', h.pct(m.repeatRate), h.int(m.returningCustomers || 0) + ' of ' + h.plural(m.customers || 0, 'customer')) +
+      h.tile('Sales tax to pay', money(m.taxOwed), 'Collected for the state, not yours') +
+      h.tile('Income tax reserve', money(m.incomeTaxReserve), m.incomeTaxPct + '% of profit · keep ' + h.signedMoney(m.profitAfterTax)) +
       '</div>' + estNote +
       '<div class="two"><section class="card"><div class="card-head"><div><h2>Where the money went</h2><p class="sub">' + esc(period) + '</p></div></div><table class="pl">' + pl.map(function (x) {
         return '<tr class="' + (x[3] || '') + '"><td>' + esc(x[0]) + (x[2] ? '<span class="why">' + esc(x[2]) + '</span>' : '') + '</td><td class="' + (x[1] < 0 && /sum/.test(x[3] || '') ? 'neg' : '') + '">' + h.signedMoney(x[1]) + '</td></tr>';
@@ -97,6 +113,7 @@
         (m.orders ? ' (' + h.pct(topReason.count / Math.max(1, m.orders) * 100) + ' of orders)' : '') + '.' + adviceFor(topReason.reason) + '</p></div>' : '') +
         h.hbars(reasons.map(function (x) { return { label: x.label, sub: h.plural(x.count, 'refund'), value: x.amount, valueText: money(x.amount) }; }))
         : '<div class="empty">' + icon('check') + '<b>No refunds</b>Nothing went back to customers in this period.</div>') + '</section></div>' +
+      taxCard +
       '<div class="two gap-top"><section class="card"><div class="card-head"><div><h2>Net sales by month</h2><p class="sub">12 months to ' + esc(R.monthLabel(u.month, true)) + '</p></div></div>' +
       h.chart('ch-net', { data: rows.map(function (x) { return { label: R.monthLabel(x.key, true), tick: R.monthLabel(x.key).split(' ')[0], value: x.netSales, tip: R.monthLabel(x.key, true) + ' · ' + h.plural(x.orders, 'order') }; }), height: 220, aria: 'Net sales by month' }) + '</section>' +
       '<section class="card"><div class="card-head"><div><h2>Profit by month</h2><p class="sub">After fees, labels, product and fixed costs</p></div></div>' +
@@ -424,7 +441,9 @@
     ['defaultLabelCost', 'Usual shipping label', 'money', 'Pre-filled when you ship, and used in reports for shipped orders without a label cost.'],
     ['stripePct', 'Stripe fee (percent)', 'pct', 'Stripe’s standard US card fee is 2.9% + 30¢. Only used when Stripe didn’t send the real fee.'],
     ['stripeFixed', 'Stripe fee (fixed)', 'money', 'The fixed part of the Stripe fee per payment.'],
-    ['monthlyFixedCosts', 'Monthly fixed costs', 'money', 'Things you pay every month no matter how much you sell: website, Etsy plan, printer lease, software. Subtracted from each month’s profit.']
+    ['monthlyFixedCosts', 'Monthly fixed costs', 'money', 'Things you pay every month no matter how much you sell: website, Etsy plan, printer lease, software. Subtracted from each month’s profit.'],
+    ['stripeTaxPct', 'Stripe Tax fee (percent)', 'pct', 'Stripe charges this on each order where it calculates sales tax. Counted as a cost in reports.'],
+    ['incomeTaxPct', 'Set aside for income tax', 'pct', 'Share of each month’s profit to put aside for federal, state and self-employment tax. Ask your accountant for the right number; 25% to 30% is a common starting point.']
   ];
   V.settings = function () {
     var s = S.settings;

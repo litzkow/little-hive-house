@@ -21,7 +21,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0 };
+  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25 };
   var SALE_STATUSES = ['paid', 'in_production', 'shipped', 'delivered', 'refunded', 'partially_refunded'];
   var REASONS = [
     ['not_delivered', 'Never arrived'],
@@ -108,8 +108,10 @@
     var promo = p.promo && p.promo.amount ? num(p.promo.amount) : 0;
     var discounts = num(p.bundleDiscount) + num(p.volumeDiscount) + promo;
     var shipping = num(p.shipping);
-    var total = p.total != null ? num(p.total) : round2(subtotal - discounts + shipping);
-    return { subtotal: subtotal, discounts: discounts, promo: promo, shipping: shipping, total: total };
+    var tax = num(p.tax);   /* sales tax the customer paid on top: owed to the state, never part of sales or profit */
+    var total = p.total != null ? num(p.total) : round2(subtotal - discounts + shipping + tax);
+    return { subtotal: subtotal, discounts: discounts, promo: promo, shipping: shipping, tax: tax, total: total,
+             taxState: tax > 0 ? String(p.taxState || (o.shipping && o.shipping.address && o.shipping.address.state) || '?').toUpperCase() : '' };
   }
   function refundsOf(o) {
     /* failed or canceled Stripe refunds never reached the customer */
@@ -119,6 +121,9 @@
     var out = list.map(function (r) { return { amount: num(r.amount), reason: r.reason || 'other', note: r.note || '', at: toMs(r.at) || orderDate(o), by: r.by || '' }; });
     /* refunds made in the Stripe dashboard may only show up in refundedTotal */
     if (total - listed > 0.004) out.push({ amount: round2(total - listed), reason: 'other', note: '', at: toMs(o.updatedAt) || orderDate(o), by: 'stripe' });
+    /* a refund gives back sales tax in proportion: that part lowers the tax owed, not the shop's sales */
+    var p = pricing(o), share = p.total > 0 ? Math.min(1, p.tax / p.total) : 0;
+    out.forEach(function (r) { r.tax = round2(r.amount * share); });
     return out;
   }
   function refundedTotal(o) { return round2(refundsOf(o).reduce(function (a, r) { return a + r.amount; }, 0)); }
@@ -171,7 +176,8 @@
   function emptyMetrics() {
     return { orders: 0, magnets: 0, grossSales: 0, discounts: 0, shippingCharged: 0, refunds: 0, refundCount: 0, netSales: 0,
              stripeFees: 0, feesEstimated: 0, labels: 0, labelsEstimated: 0, productCosts: 0, fixedCosts: 0, costs: 0,
-             profit: 0, margin: null, roi: null, aov: 0, customers: 0, returningCustomers: 0, repeatRate: null, totalCollected: 0 };
+             profit: 0, margin: null, roi: null, aov: 0, customers: 0, returningCustomers: 0, repeatRate: null, totalCollected: 0,
+             salesTax: 0, taxRefunded: 0, taxOwed: 0, taxByState: {}, stripeTaxFees: 0, incomeTaxPct: 0, incomeTaxReserve: 0, profitAfterTax: 0 };
   }
   /* range = {from, to} in ms (to exclusive); opts.months = how many months of fixed costs to count (default 1) */
   function summarize(orders, settings, range, opts) {
@@ -196,6 +202,11 @@
         m.discounts += p.discounts;
         m.shippingCharged += p.shipping;
         m.totalCollected += p.total;
+        if (p.tax > 0) {
+          m.salesTax += p.tax;
+          m.taxByState[p.taxState] = (m.taxByState[p.taxState] || 0) + p.tax;
+          m.stripeTaxFees += p.total * s.stripeTaxPct / 100;
+        }
         m.stripeFees += fee.amount;
         if (fee.estimated && fee.amount) m.feesEstimated += 1;
         m.labels += lab.amount;
@@ -204,7 +215,11 @@
         var k = customerKey(o);
         if (k) perCustomer[k] = (perCustomer[k] || 0) + 1;
       }
-      refundsOf(o).forEach(function (r) { if (inRange(r.at)) { m.refunds += r.amount; m.refundCount += 1; } });
+      refundsOf(o).forEach(function (r) {
+        if (!inRange(r.at)) return;
+        m.refunds += r.amount - r.tax; m.refundCount += 1;
+        if (r.tax) { m.taxRefunded += r.tax; var st = pricing(o).taxState; m.taxByState[st] = (m.taxByState[st] || 0) - r.tax; }
+      });
     });
     Object.keys(perCustomer).forEach(function (k) {
       m.customers += 1;
@@ -216,14 +231,25 @@
     if (!first || range.to <= first) months = 0;
     else if (first > range.from) months = Math.max(1, Math.min(months, monthsBetween(first, range.to)));
     m.fixedCosts = s.monthlyFixedCosts * months;
-    ['grossSales', 'discounts', 'shippingCharged', 'refunds', 'stripeFees', 'labels', 'productCosts', 'fixedCosts', 'totalCollected'].forEach(function (k) { m[k] = round2(m[k]); });
+    ['grossSales', 'discounts', 'shippingCharged', 'refunds', 'stripeFees', 'labels', 'productCosts', 'fixedCosts', 'totalCollected',
+     'salesTax', 'taxRefunded', 'stripeTaxFees'].forEach(function (k) { m[k] = round2(m[k]); });
+    Object.keys(m.taxByState).forEach(function (k) { m.taxByState[k] = round2(m.taxByState[k]); });
     m.netSales = round2(m.grossSales - m.discounts + m.shippingCharged - m.refunds);
-    m.costs = round2(m.stripeFees + m.labels + m.productCosts + m.fixedCosts);
+    m.costs = round2(m.stripeFees + m.stripeTaxFees + m.labels + m.productCosts + m.fixedCosts);
     m.profit = round2(m.netSales - m.costs);
+    taxLines(m, s.incomeTaxPct);
     m.margin = m.netSales > 0 ? round2(m.profit / m.netSales * 100) : null;
     m.roi = m.costs > 0 ? round2(m.profit / m.costs * 100) : null;
     m.aov = m.orders ? round2(m.totalCollected / m.orders) : 0;
     m.repeatRate = m.customers ? round2(m.returningCustomers / m.customers * 100) : null;
+    return m;
+  }
+  /* sales tax owed to the state, and how much profit to set aside for income tax */
+  function taxLines(m, pct) {
+    m.taxOwed = round2(m.salesTax - m.taxRefunded);
+    m.incomeTaxPct = num(pct);
+    m.incomeTaxReserve = m.profit > 0 ? round2(m.profit * m.incomeTaxPct / 100) : 0;
+    m.profitAfterTax = round2(m.profit - m.incomeTaxReserve);
     return m;
   }
   function monthMetrics(orders, settings, key) {
@@ -242,12 +268,14 @@
   function totalsOf(rows) {
     var t = emptyMetrics();
     ['orders', 'magnets', 'grossSales', 'discounts', 'shippingCharged', 'refunds', 'refundCount', 'stripeFees', 'feesEstimated', 'labels',
-     'labelsEstimated', 'productCosts', 'fixedCosts', 'totalCollected'].forEach(function (k) {
+     'labelsEstimated', 'productCosts', 'fixedCosts', 'totalCollected', 'salesTax', 'taxRefunded', 'stripeTaxFees'].forEach(function (k) {
       t[k] = round2(rows.reduce(function (a, r) { return a + num(r[k]); }, 0));
     });
+    rows.forEach(function (r) { Object.keys(r.taxByState || {}).forEach(function (k) { t.taxByState[k] = round2((t.taxByState[k] || 0) + r.taxByState[k]); }); });
     t.netSales = round2(t.grossSales - t.discounts + t.shippingCharged - t.refunds);
-    t.costs = round2(t.stripeFees + t.labels + t.productCosts + t.fixedCosts);
+    t.costs = round2(t.stripeFees + t.stripeTaxFees + t.labels + t.productCosts + t.fixedCosts);
     t.profit = round2(t.netSales - t.costs);
+    taxLines(t, rows.length ? rows[rows.length - 1].incomeTaxPct : 0);   /* reserve on the whole period's profit */
     t.margin = t.netSales > 0 ? round2(t.profit / t.netSales * 100) : null;
     t.roi = t.costs > 0 ? round2(t.profit / t.costs * 100) : null;
     t.aov = t.orders ? round2(t.totalCollected / t.orders) : 0;
@@ -393,7 +421,7 @@
     orderDate: orderDate, isSale: isSale, isAbandoned: isAbandoned, isPaymentLink: isPaymentLink, itemMagnets: itemMagnets, itemPrice: itemPrice, magnetsOf: magnetsOf,
     pricing: pricing, refundsOf: refundsOf, refundedTotal: refundedTotal, refundable: refundable, stripeFee: stripeFee, labelCost: labelCost,
     wasShipped: wasShipped, stage: stage, matchesTab: matchesTab, customerKey: customerKey, collectionOf: collectionOf,
-    summarize: summarize, monthMetrics: monthMetrics, monthly: monthly, totalsOf: totalsOf, refundsByReason: refundsByReason, topItems: topItems,
+    summarize: summarize, taxLines: taxLines, monthMetrics: monthMetrics, monthly: monthly, totalsOf: totalsOf, refundsByReason: refundsByReason, topItems: topItems,
     salesBetween: salesBetween, refundsBetween: refundsBetween, dailySales: dailySales, home: home, customers: customers,
     csvCell: csvCell, toCSV: toCSV
   };

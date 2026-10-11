@@ -11,8 +11,9 @@ const U = require("./util");
 const { syncRefunds, sendRefundEmail } = require("./webhook");
 const { dollars } = require("./pricing");
 const { trackerFor } = require("./tracking");
+const { TAX_GOODS, taxWanted, isTaxSetupError } = require("./checkout");
 
-const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0 };
+const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25 };
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -265,16 +266,27 @@ async function adminCreatePaymentLink(data, auth) {
   let link;
   try {
     // A Payment Link (not a Checkout Session) so the customer can pay days later; one payment only.
-    const price = await stripe.request("POST", "/prices", { currency: "usd", unit_amount: amountCents, product_data: { name: title.slice(0, 240) } },
-      { idempotencyKey: `plink-price-${ref.id}` });
-    link = await stripe.request("POST", "/payment_links", {
-      line_items: [{ price: price.id, quantity: 1 }],
-      metadata: { orderId: ref.id },
-      payment_intent_data: { metadata: { orderId: ref.id }, description: `Little Hive House: ${title}`.slice(0, 900) },
-      shipping_address_collection: { allowed_countries: ["US", "CA"] },
-      restrictions: { completed_sessions: { limit: 1 } },
-      after_completion: { type: "redirect", redirect: { url: `${siteUrl()}/thank-you.html?order=${ref.id}&session={CHECKOUT_SESSION_ID}` } },
-    }, { idempotencyKey: `plink-${ref.id}` });
+    const makeLink = async (tax) => {
+      const k = tax ? "" : "-notax";
+      const price = await stripe.request("POST", "/prices", { currency: "usd", unit_amount: amountCents,
+        product_data: { name: title.slice(0, 240), ...(tax ? { tax_code: TAX_GOODS } : {}) }, ...(tax ? { tax_behavior: "exclusive" } : {}) },
+        { idempotencyKey: `plink-price-${ref.id}${k}` });
+      return stripe.request("POST", "/payment_links", {
+        line_items: [{ price: price.id, quantity: 1 }],
+        metadata: { orderId: ref.id },
+        payment_intent_data: { metadata: { orderId: ref.id }, description: `Little Hive House: ${title}`.slice(0, 900) },
+        shipping_address_collection: { allowed_countries: ["US", "CA"] },
+        ...(tax ? { automatic_tax: { enabled: true } } : {}),
+        restrictions: { completed_sessions: { limit: 1 } },
+        after_completion: { type: "redirect", redirect: { url: `${siteUrl()}/thank-you.html?order=${ref.id}&session={CHECKOUT_SESSION_ID}` } },
+      }, { idempotencyKey: `plink-${ref.id}${k}` });
+    };
+    // sales tax is added on top, from the customer's shipping address (falls back to no tax until Stripe Tax is set up)
+    try { link = await makeLink(taxWanted()); } catch (err) {
+      if (!taxWanted() || !isTaxSetupError(err)) throw err;
+      console.warn("[paymentLink] Stripe Tax unavailable, continuing without tax:", err.message);
+      link = await makeLink(false);
+    }
   } catch (err) {
     await ref.delete().catch(() => {});
     throw stripe.friendly(err, "creating the payment link");

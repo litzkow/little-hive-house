@@ -411,3 +411,44 @@ test("daily delivery check emails the shop only when something is late", async (
   assert.match(net.emails[0].text, /LHH-1001/);
   assertTemplated(net.emails);
 });
+
+test("sales tax: Stripe Tax params, tax kept apart from sales, fallback while Stripe Tax isn't set up", async () => {
+  const { db, net, S } = setup();
+  delete process.env.STRIPE_TAX;
+  const checkout = require("../checkout");
+  const r = await checkout.createCheckout({ cart: [{ kind: "design", id: "places/chicago", qty: 2 }], email: "ana@example.com" }, null);
+  const p = S.sessions.cs_test_1.params;
+  assert.equal(p["automatic_tax[enabled]"], "true");
+  assert.equal(p["line_items[0][price_data][tax_behavior]"], "exclusive");
+  assert.equal(p["line_items[0][price_data][product_data][tax_code]"], checkout.TAX_GOODS);
+  assert.equal(p["shipping_options[0][shipping_rate_data][tax_code]"], checkout.TAX_SHIPPING);
+  // the customer pays $0.80 of Georgia sales tax on top
+  const full = pay(S, "cs_test_1");
+  full.amount_total += 80;
+  full.total_details.amount_tax = 80;
+  await checkout.completeCheckout(full);
+  const o = db.docs.get(`orders/${r.orderId}`);
+  assert.equal(o.status, "paid");
+  assert.equal(o.pricing.tax, 0.8);
+  assert.equal(o.pricing.taxState, "GA");
+  assert.equal(Math.round(o.pricing.total * 100), flatSum(p) + Number(p["shipping_options[0][shipping_rate_data][fixed_amount][amount]"]) + 80);
+  assert.ok(!(o.adminNotes || []).some((n) => /expected/.test(n.text)), "tax must not look like an overcharge");
+
+  // Stripe Tax not activated yet: the order still goes through, without tax, and the owners see a note
+  net.handlers["POST /v1/checkout/sessions"] = (q) => {
+    if (q["automatic_tax[enabled]"] === "true") { const e = new Error("Stripe Tax has not been activated on your account."); e.status = 400; throw e; }
+    const id = `cs_test_${++S.n}`; S.sessions[id] = { params: q, id, url: `https://checkout.stripe.com/c/pay/${id}` }; return { id, url: S.sessions[id].url };
+  };
+  const r2 = await checkout.createCheckout({ cart: [{ kind: "design", id: "places/chicago", qty: 1 }] }, null);
+  const o2 = db.docs.get(`orders/${r2.orderId}`);
+  assert.ok(r2.url);
+  assert.equal(o2.pricing.taxCalculated, false);
+  assert.ok(o2.adminNotes.some((n) => /Stripe Tax is not set up/.test(n.text)));
+
+  // STRIPE_TAX=off: no tax at all
+  process.env.STRIPE_TAX = "off";
+  net.handlers["POST /v1/checkout/sessions"] = (q) => { const id = `cs_test_${++S.n}`; S.sessions[id] = { params: q, id, url: "u" }; return { id, url: "u" }; };
+  await checkout.createCheckout({ cart: [{ kind: "design", id: "places/chicago", qty: 1 }] }, null);
+  assert.equal(S.sessions[`cs_test_${S.n}`].params["automatic_tax[enabled]"], undefined);
+  delete process.env.STRIPE_TAX;
+});
