@@ -268,10 +268,40 @@ COLLECTIONS = [
                  "the-laundry-can-wait", "dad-jokes-loading", "love-you-more", "family", "hello-sunshine", "blessed",
                  "choose-joy", "youve-got-this"],
     },
+    {
+        "slug": "mexico", "name": "México", "tag": "Con cariño, from home",
+        "blurb": "Hand-painted love letters to México: pan dulce and café de olla, papel picado and talavera, monarchs and marigolds, and the little phrases that sound like home.",
+        "titles": {"viva-mexico": "¡Viva México!", "dia-de-muertos": "Día de Muertos", "tacos-al-pastor": "Tacos al Pastor", "que-padre": "¡Qué Padre!", "calavera-de-azucar": "Calavera de Azúcar", "cafe-de-olla": "Café de Olla", "salsa-de-molcajete": "Salsa de Molcajete", "echale-ganas": "¡Échale Ganas!", "dale-dale-dale": "¡Dale, Dale, Dale!", "con-carino": "Con Cariño", "noche-de-tamales": "Noche de Tamales", "elote-con-todo": "Elote con Todo", "colibri": "Colibrí", "la-cocina-de-mi-abuela": "La Cocina de Mi Abuela", "tortillas-hechas-a-mano": "Tortillas Hechas a Mano", "mi-casa-es-su-casa": "Mi Casa Es Su Casa", "la-familia-es-primero": "La Familia Es Primero", "el-aguacate": "El Aguacate", "el-mercado": "El Mercado", "la-chancla": "La Chancla", "mi-familia": "Mi Familia", "pan-dulce": "Pan Dulce", "mariposa-monarca": "Mariposa Monarca"},
+        "order": ["viva-mexico", "dia-de-muertos", "talavera", "tacos-al-pastor", "que-padre", "la-chancla", "calavera-de-azucar", "mi-casa-es-su-casa", "pan-dulce", "cafe-de-olla", "salsa-de-molcajete", "jacarandas", "mariposa-monarca", "el-aguacate", "el-mercado", "echale-ganas", "mi-familia", "dale-dale-dale", "guanajuato", "con-carino", "ahorita", "la-familia-es-primero", "noche-de-tamales", "jalisco", "elote-con-todo", "xochimilco", "colibri", "la-cocina-de-mi-abuela", "serenata", "tortillas-hechas-a-mano"],
+    },
+    {
+        "slug": "italia", "name": "Italia", "tag": "Mangia, the fridge is set",
+        "blurb": "Hand-painted love letters to Italy, from Nonna's Sunday sauce and the moka on the stove to lemons over the Amalfi sea and gondolas at dusk.",
+        "titles": {"il-sugo-della-domenica": "Il Sugo della Domenica", "la-cucina-della-nonna": "La Cucina della Nonna", "pasta-fatta-in-casa": "Pasta Fatta in Casa", "a-tavola": "A Tavola!", "che-bello": "Che Bello!", "mangia": "Mangia!", "cin-cin": "Cin Cin!", "un-caffe": "Un Caffè", "tiramisu": "Tiramisù", "la-moka": "La Moka", "ti-voglio-bene": "Ti Voglio Bene", "la-dolce-vita": "La Dolce Vita", "piano-piano": "Piano Piano", "erbe-aromatiche": "Erbe Aromatiche", "buon-natale": "Buon Natale", "pizza-margherita": "Pizza Margherita", "al-mercato": "Al Mercato", "la-vendemmia": "La Vendemmia"},
+        "order": ["limoncello", "la-moka", "venezia", "ti-voglio-bene", "burano", "il-sugo-della-domenica", "cannoli", "che-bello", "la-dolce-vita", "caprese", "roma", "pizza-margherita", "toscana", "mangia", "piano-piano", "tiramisu", "erbe-aromatiche", "gelato", "buon-natale", "a-tavola", "cin-cin", "la-cucina-della-nonna", "sicilia", "basilico", "pasta-fatta-in-casa", "famiglia", "napoli", "un-caffe", "al-mercato", "la-vendemmia"],
+    },
+    {
+        "slug": "japan", "name": "Japan", "tag": "Itadakimasu, fridge",
+        "blurb": "Hand-painted everyday Japan, from onigiri and steaming ramen to lantern-lit Kyoto alleys, snow monkeys in the onsen and a beckoning lucky cat.",
+        "titles": {"fuji-san": "Fuji-san", "maneki-neko": "Maneki-neko", "wabi-sabi": "Wabi-sabi", "wan-wan": "Wan Wan!", "ganbatte": "Ganbatte!", "irasshaimase": "Irasshaimase!"},
+        "order": ["kyoto", "miyajima", "konbanwa", "ramen", "maneki-neko", "onsen", "wan-wan", "kazoku", "fuji-san", "tsuru", "itadakimasu", "osechi", "koi", "ganbatte", "sento", "mejiro", "kotatsu", "tadaima", "sakura", "onigiri", "matcha", "daruma", "wabi-sabi", "irasshaimase", "kawaii", "furin", "arigatou", "nami", "mochi", "omiyage"],
+    },
+    {
+        "slug": "great-masters", "name": "Great Masters", "tag": "A tiny museum on your fridge",
+        "blurb": "The world's most beloved paintings, from Van Gogh's starry skies to Hokusai's Great Wave and Klimt's gold, hand-painted in each master's own brushwork.",
+        "titles": {"cafe-terrace-at-night": "Café Terrace at Night", "impression-sunrise": "Impression, Sunrise", "sunday-on-la-grande-jatte": "A Sunday on La Grande Jatte", "wanderer-above-the-sea-of-fog": "Wanderer above the Sea of Fog", "still-life-with-apples": "Still Life with Apples", "hunters-in-the-snow": "Hunters in the Snow", "tiger-in-a-tropical-storm": "Tiger in a Tropical Storm", "walk-on-the-beach": "Walk on the Beach", "view-of-delft": "View of Delft", "wheatfield-with-cypresses": "Wheat Field with Cypresses", "plum-garden": "Plum Garden in Kameido", "tree-of-life": "The Tree of Life", "spring-mucha": "Spring (Mucha)", "the-fighting-temeraire": "The Fighting Temeraire"},
+        "order": ["the-starry-night", "cafe-terrace-at-night", "the-great-wave", "almond-blossoms", "the-kiss", "plum-garden", "red-fuji", "water-lilies", "sunflowers", "wheatfield-with-cypresses", "irises", "the-scream", "tree-of-life", "impression-sunrise", "sunday-on-la-grande-jatte", "the-japanese-footbridge", "the-bedroom", "the-little-street", "view-of-delft", "birch-forest", "several-circles", "the-fighting-temeraire", "wanderer-above-the-sea-of-fog", "hunters-in-the-snow", "still-life-with-apples", "poppy-field", "sudden-shower", "tiger-in-a-tropical-storm", "walk-on-the-beach", "spring-mucha"],
+    },
+    {
+        "slug": "storybook-classics", "name": "Storybook Classics", "tag": "For the bookworms",
+        "blurb": "Hand-painted book-plate magnets for bookworms: beloved classics from Alice and Peter Pan to Dracula and Gatsby, each with its own painted scene and a favorite line.",
+        "titles": {"alice-in-wonderland": "Alice's Adventures in Wonderland", "the-wonderful-wizard-of-oz": "The Wonderful Wizard of Oz", "pride-and-prejudice": "Pride and Prejudice", "anne-of-green-gables": "Anne of Green Gables", "moby-dick": "Moby-Dick", "romeo-and-juliet": "Romeo and Juliet", "the-wind-in-the-willows": "The Wind in the Willows", "winnie-the-pooh": "Winnie-the-Pooh", "around-the-world-in-eighty-days": "Around the World in Eighty Days", "twenty-thousand-leagues-under-the-sea": "Twenty Thousand Leagues Under the Sea", "through-the-looking-glass": "Through the Looking-Glass", "hope-is-the-thing-with-feathers": "\"Hope\" Is the Thing with Feathers"},
+        "order": ["the-raven", "peter-pan", "the-secret-garden", "sherlock-holmes", "the-velveteen-rabbit", "dracula", "hamlet", "alice-in-wonderland", "don-quixote", "the-great-gatsby", "the-wind-in-the-willows", "the-odyssey", "jane-eyre", "romeo-and-juliet", "the-wonderful-wizard-of-oz", "around-the-world-in-eighty-days", "treasure-island", "little-women", "twenty-thousand-leagues-under-the-sea", "frankenstein", "moby-dick", "walden", "anne-of-green-gables", "through-the-looking-glass", "pride-and-prejudice", "winnie-the-pooh", "the-jungle-book", "robinson-crusoe", "hope-is-the-thing-with-feathers", "heidi"],
+    },
 ]
 
 DISPLAY = ["places", "world", "ink-cities", "city-sketches", "fall", "halloween", "christmas", "holidays", "summer", "kitchen-words",
-           "bumper-stickers", "night-sky", "birth-flowers", "bee-kind", "furry-friends", "brasil", "home-notes"]
+           "bumper-stickers", "night-sky", "birth-flowers", "bee-kind", "furry-friends", "brasil", "mexico", "italia", "japan", "home-notes", "great-masters", "storybook-classics"]
 COLLECTIONS.sort(key=lambda c: DISPLAY.index(c["slug"]))
 
 # The home page spotlight changes with the calendar. (start MM-DD, end MM-DD), first match wins.

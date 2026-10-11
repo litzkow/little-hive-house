@@ -595,6 +595,108 @@
     <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/vai-dar-certo.webp</image:loc><image:title>Vai Dar Certo magnet</image:title></image:image>
   </url>
   <url>
+    <loc>https://littlehivehouse.com/collections/mexico.html</loc>
+    <priority>0.8</priority>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/viva-mexico.webp</image:loc><image:title>¡Viva México! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/dia-de-muertos.webp</image:loc><image:title>Día de Muertos magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/talavera.webp</image:loc><image:title>Talavera magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/tacos-al-pastor.webp</image:loc><image:title>Tacos al Pastor magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/que-padre.webp</image:loc><image:title>¡Qué Padre! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/la-chancla.webp</image:loc><image:title>La Chancla magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/calavera-de-azucar.webp</image:loc><image:title>Calavera de Azúcar magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/mi-casa-es-su-casa.webp</image:loc><image:title>Mi Casa Es Su Casa magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/pan-dulce.webp</image:loc><image:title>Pan Dulce magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/cafe-de-olla.webp</image:loc><image:title>Café de Olla magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/salsa-de-molcajete.webp</image:loc><image:title>Salsa de Molcajete magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/jacarandas.webp</image:loc><image:title>Jacarandas magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/mariposa-monarca.webp</image:loc><image:title>Mariposa Monarca magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/el-aguacate.webp</image:loc><image:title>El Aguacate magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/el-mercado.webp</image:loc><image:title>El Mercado magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/echale-ganas.webp</image:loc><image:title>¡Échale Ganas! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/mi-familia.webp</image:loc><image:title>Mi Familia magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/dale-dale-dale.webp</image:loc><image:title>¡Dale, Dale, Dale! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/guanajuato.webp</image:loc><image:title>Guanajuato magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/con-carino.webp</image:loc><image:title>Con Cariño magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/ahorita.webp</image:loc><image:title>Ahorita magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/la-familia-es-primero.webp</image:loc><image:title>La Familia Es Primero magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/noche-de-tamales.webp</image:loc><image:title>Noche de Tamales magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/jalisco.webp</image:loc><image:title>Jalisco magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/elote-con-todo.webp</image:loc><image:title>Elote con Todo magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/xochimilco.webp</image:loc><image:title>Xochimilco magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/colibri.webp</image:loc><image:title>Colibrí magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/la-cocina-de-mi-abuela.webp</image:loc><image:title>La Cocina de Mi Abuela magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/serenata.webp</image:loc><image:title>Serenata magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/mexico/tortillas-hechas-a-mano.webp</image:loc><image:title>Tortillas Hechas a Mano magnet</image:title></image:image>
+  </url>
+  <url>
+    <loc>https://littlehivehouse.com/collections/italia.html</loc>
+    <priority>0.8</priority>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/limoncello.webp</image:loc><image:title>Limoncello magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/la-moka.webp</image:loc><image:title>La Moka magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/venezia.webp</image:loc><image:title>Venezia magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/ti-voglio-bene.webp</image:loc><image:title>Ti Voglio Bene magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/burano.webp</image:loc><image:title>Burano magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/il-sugo-della-domenica.webp</image:loc><image:title>Il Sugo della Domenica magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/cannoli.webp</image:loc><image:title>Cannoli magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/che-bello.webp</image:loc><image:title>Che Bello! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/la-dolce-vita.webp</image:loc><image:title>La Dolce Vita magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/caprese.webp</image:loc><image:title>Caprese magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/roma.webp</image:loc><image:title>Roma magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/pizza-margherita.webp</image:loc><image:title>Pizza Margherita magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/toscana.webp</image:loc><image:title>Toscana magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/mangia.webp</image:loc><image:title>Mangia! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/piano-piano.webp</image:loc><image:title>Piano Piano magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/tiramisu.webp</image:loc><image:title>Tiramisù magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/erbe-aromatiche.webp</image:loc><image:title>Erbe Aromatiche magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/gelato.webp</image:loc><image:title>Gelato magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/buon-natale.webp</image:loc><image:title>Buon Natale magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/a-tavola.webp</image:loc><image:title>A Tavola! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/cin-cin.webp</image:loc><image:title>Cin Cin! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/la-cucina-della-nonna.webp</image:loc><image:title>La Cucina della Nonna magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/sicilia.webp</image:loc><image:title>Sicilia magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/basilico.webp</image:loc><image:title>Basilico magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/pasta-fatta-in-casa.webp</image:loc><image:title>Pasta Fatta in Casa magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/famiglia.webp</image:loc><image:title>Famiglia magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/napoli.webp</image:loc><image:title>Napoli magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/un-caffe.webp</image:loc><image:title>Un Caffè magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/al-mercato.webp</image:loc><image:title>Al Mercato magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/italia/la-vendemmia.webp</image:loc><image:title>La Vendemmia magnet</image:title></image:image>
+  </url>
+  <url>
+    <loc>https://littlehivehouse.com/collections/japan.html</loc>
+    <priority>0.8</priority>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/kyoto.webp</image:loc><image:title>Kyoto magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/miyajima.webp</image:loc><image:title>Miyajima magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/konbanwa.webp</image:loc><image:title>Konbanwa magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/ramen.webp</image:loc><image:title>Ramen magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/maneki-neko.webp</image:loc><image:title>Maneki-neko magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/onsen.webp</image:loc><image:title>Onsen magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/wan-wan.webp</image:loc><image:title>Wan Wan! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/kazoku.webp</image:loc><image:title>Kazoku magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/fuji-san.webp</image:loc><image:title>Fuji-san magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/tsuru.webp</image:loc><image:title>Tsuru magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/itadakimasu.webp</image:loc><image:title>Itadakimasu magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/osechi.webp</image:loc><image:title>Osechi magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/koi.webp</image:loc><image:title>Koi magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/ganbatte.webp</image:loc><image:title>Ganbatte! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/sento.webp</image:loc><image:title>Sento magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/mejiro.webp</image:loc><image:title>Mejiro magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/kotatsu.webp</image:loc><image:title>Kotatsu magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/tadaima.webp</image:loc><image:title>Tadaima magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/sakura.webp</image:loc><image:title>Sakura magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/onigiri.webp</image:loc><image:title>Onigiri magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/matcha.webp</image:loc><image:title>Matcha magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/daruma.webp</image:loc><image:title>Daruma magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/wabi-sabi.webp</image:loc><image:title>Wabi-sabi magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/irasshaimase.webp</image:loc><image:title>Irasshaimase! magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/kawaii.webp</image:loc><image:title>Kawaii magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/furin.webp</image:loc><image:title>Furin magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/arigatou.webp</image:loc><image:title>Arigatou magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/nami.webp</image:loc><image:title>Nami magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/mochi.webp</image:loc><image:title>Mochi magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/japan/omiyage.webp</image:loc><image:title>Omiyage magnet</image:title></image:image>
+  </url>
+  <url>
     <loc>https://littlehivehouse.com/collections/home-notes.html</loc>
     <priority>0.8</priority>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/home-notes/theres-no-place-like-home.webp</image:loc><image:title>There&#x27;s No Place Like Home magnet</image:title></image:image>
@@ -627,6 +729,74 @@
     <image:image><image:loc>https://littlehivehouse.com/assets/art/home-notes/blessed.webp</image:loc><image:title>Blessed magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/home-notes/choose-joy.webp</image:loc><image:title>Choose Joy magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/home-notes/youve-got-this.webp</image:loc><image:title>You&#x27;ve Got This magnet</image:title></image:image>
+  </url>
+  <url>
+    <loc>https://littlehivehouse.com/collections/great-masters.html</loc>
+    <priority>0.8</priority>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-starry-night.webp</image:loc><image:title>The Starry Night magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/cafe-terrace-at-night.webp</image:loc><image:title>Café Terrace at Night magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-great-wave.webp</image:loc><image:title>The Great Wave magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/almond-blossoms.webp</image:loc><image:title>Almond Blossoms magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-kiss.webp</image:loc><image:title>The Kiss magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/plum-garden.webp</image:loc><image:title>Plum Garden in Kameido magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/red-fuji.webp</image:loc><image:title>Red Fuji magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/water-lilies.webp</image:loc><image:title>Water Lilies magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/sunflowers.webp</image:loc><image:title>Sunflowers magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/wheatfield-with-cypresses.webp</image:loc><image:title>Wheat Field with Cypresses magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/irises.webp</image:loc><image:title>Irises magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-scream.webp</image:loc><image:title>The Scream magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/tree-of-life.webp</image:loc><image:title>The Tree of Life magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/impression-sunrise.webp</image:loc><image:title>Impression, Sunrise magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/sunday-on-la-grande-jatte.webp</image:loc><image:title>A Sunday on La Grande Jatte magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-japanese-footbridge.webp</image:loc><image:title>The Japanese Footbridge magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-bedroom.webp</image:loc><image:title>The Bedroom magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-little-street.webp</image:loc><image:title>The Little Street magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/view-of-delft.webp</image:loc><image:title>View of Delft magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/birch-forest.webp</image:loc><image:title>Birch Forest magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/several-circles.webp</image:loc><image:title>Several Circles magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/the-fighting-temeraire.webp</image:loc><image:title>The Fighting Temeraire magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/wanderer-above-the-sea-of-fog.webp</image:loc><image:title>Wanderer above the Sea of Fog magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/hunters-in-the-snow.webp</image:loc><image:title>Hunters in the Snow magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/still-life-with-apples.webp</image:loc><image:title>Still Life with Apples magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/poppy-field.webp</image:loc><image:title>Poppy Field magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/sudden-shower.webp</image:loc><image:title>Sudden Shower magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/tiger-in-a-tropical-storm.webp</image:loc><image:title>Tiger in a Tropical Storm magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/walk-on-the-beach.webp</image:loc><image:title>Walk on the Beach magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/great-masters/spring-mucha.webp</image:loc><image:title>Spring (Mucha) magnet</image:title></image:image>
+  </url>
+  <url>
+    <loc>https://littlehivehouse.com/collections/storybook-classics.html</loc>
+    <priority>0.8</priority>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-raven.webp</image:loc><image:title>The Raven magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/peter-pan.webp</image:loc><image:title>Peter Pan magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-secret-garden.webp</image:loc><image:title>The Secret Garden magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/sherlock-holmes.webp</image:loc><image:title>Sherlock Holmes magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-velveteen-rabbit.webp</image:loc><image:title>The Velveteen Rabbit magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/dracula.webp</image:loc><image:title>Dracula magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/hamlet.webp</image:loc><image:title>Hamlet magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/alice-in-wonderland.webp</image:loc><image:title>Alice&#x27;s Adventures in Wonderland magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/don-quixote.webp</image:loc><image:title>Don Quixote magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-great-gatsby.webp</image:loc><image:title>The Great Gatsby magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-wind-in-the-willows.webp</image:loc><image:title>The Wind in the Willows magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-odyssey.webp</image:loc><image:title>The Odyssey magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/jane-eyre.webp</image:loc><image:title>Jane Eyre magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/romeo-and-juliet.webp</image:loc><image:title>Romeo and Juliet magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-wonderful-wizard-of-oz.webp</image:loc><image:title>The Wonderful Wizard of Oz magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/around-the-world-in-eighty-days.webp</image:loc><image:title>Around the World in Eighty Days magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/treasure-island.webp</image:loc><image:title>Treasure Island magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/little-women.webp</image:loc><image:title>Little Women magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/twenty-thousand-leagues-under-the-sea.webp</image:loc><image:title>Twenty Thousand Leagues Under the Sea magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/frankenstein.webp</image:loc><image:title>Frankenstein magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/moby-dick.webp</image:loc><image:title>Moby-Dick magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/walden.webp</image:loc><image:title>Walden magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/anne-of-green-gables.webp</image:loc><image:title>Anne of Green Gables magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/through-the-looking-glass.webp</image:loc><image:title>Through the Looking-Glass magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/pride-and-prejudice.webp</image:loc><image:title>Pride and Prejudice magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/winnie-the-pooh.webp</image:loc><image:title>Winnie-the-Pooh magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/the-jungle-book.webp</image:loc><image:title>The Jungle Book magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/robinson-crusoe.webp</image:loc><image:title>Robinson Crusoe magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/hope-is-the-thing-with-feathers.webp</image:loc><image:title>&quot;Hope&quot; Is the Thing with Feathers magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/storybook-classics/heidi.webp</image:loc><image:title>Heidi magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/contact.html</loc>

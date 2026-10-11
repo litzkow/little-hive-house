@@ -3060,6 +3060,546 @@
    "collectionName": "Brasil",
    "price": 5
   },
+  "mexico/viva-mexico": {
+   "title": "¡Viva México!",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/dia-de-muertos": {
+   "title": "Día de Muertos",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/talavera": {
+   "title": "Talavera",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/tacos-al-pastor": {
+   "title": "Tacos al Pastor",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/que-padre": {
+   "title": "¡Qué Padre!",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/la-chancla": {
+   "title": "La Chancla",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/calavera-de-azucar": {
+   "title": "Calavera de Azúcar",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/mi-casa-es-su-casa": {
+   "title": "Mi Casa Es Su Casa",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/pan-dulce": {
+   "title": "Pan Dulce",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/cafe-de-olla": {
+   "title": "Café de Olla",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/salsa-de-molcajete": {
+   "title": "Salsa de Molcajete",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/jacarandas": {
+   "title": "Jacarandas",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/mariposa-monarca": {
+   "title": "Mariposa Monarca",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/el-aguacate": {
+   "title": "El Aguacate",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/el-mercado": {
+   "title": "El Mercado",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/echale-ganas": {
+   "title": "¡Échale Ganas!",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/mi-familia": {
+   "title": "Mi Familia",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/dale-dale-dale": {
+   "title": "¡Dale, Dale, Dale!",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/guanajuato": {
+   "title": "Guanajuato",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/con-carino": {
+   "title": "Con Cariño",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/ahorita": {
+   "title": "Ahorita",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/la-familia-es-primero": {
+   "title": "La Familia Es Primero",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/noche-de-tamales": {
+   "title": "Noche de Tamales",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/jalisco": {
+   "title": "Jalisco",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/elote-con-todo": {
+   "title": "Elote con Todo",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/xochimilco": {
+   "title": "Xochimilco",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/colibri": {
+   "title": "Colibrí",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/la-cocina-de-mi-abuela": {
+   "title": "La Cocina de Mi Abuela",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/serenata": {
+   "title": "Serenata",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "mexico/tortillas-hechas-a-mano": {
+   "title": "Tortillas Hechas a Mano",
+   "collection": "mexico",
+   "collectionName": "México",
+   "price": 5
+  },
+  "italia/limoncello": {
+   "title": "Limoncello",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/la-moka": {
+   "title": "La Moka",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/venezia": {
+   "title": "Venezia",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/ti-voglio-bene": {
+   "title": "Ti Voglio Bene",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/burano": {
+   "title": "Burano",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/il-sugo-della-domenica": {
+   "title": "Il Sugo della Domenica",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/cannoli": {
+   "title": "Cannoli",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/che-bello": {
+   "title": "Che Bello!",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/la-dolce-vita": {
+   "title": "La Dolce Vita",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/caprese": {
+   "title": "Caprese",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/roma": {
+   "title": "Roma",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/pizza-margherita": {
+   "title": "Pizza Margherita",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/toscana": {
+   "title": "Toscana",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/mangia": {
+   "title": "Mangia!",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/piano-piano": {
+   "title": "Piano Piano",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/tiramisu": {
+   "title": "Tiramisù",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/erbe-aromatiche": {
+   "title": "Erbe Aromatiche",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/gelato": {
+   "title": "Gelato",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/buon-natale": {
+   "title": "Buon Natale",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/a-tavola": {
+   "title": "A Tavola!",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/cin-cin": {
+   "title": "Cin Cin!",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/la-cucina-della-nonna": {
+   "title": "La Cucina della Nonna",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/sicilia": {
+   "title": "Sicilia",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/basilico": {
+   "title": "Basilico",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/pasta-fatta-in-casa": {
+   "title": "Pasta Fatta in Casa",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/famiglia": {
+   "title": "Famiglia",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/napoli": {
+   "title": "Napoli",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/un-caffe": {
+   "title": "Un Caffè",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/al-mercato": {
+   "title": "Al Mercato",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "italia/la-vendemmia": {
+   "title": "La Vendemmia",
+   "collection": "italia",
+   "collectionName": "Italia",
+   "price": 5
+  },
+  "japan/kyoto": {
+   "title": "Kyoto",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/miyajima": {
+   "title": "Miyajima",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/konbanwa": {
+   "title": "Konbanwa",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/ramen": {
+   "title": "Ramen",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/maneki-neko": {
+   "title": "Maneki-neko",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/onsen": {
+   "title": "Onsen",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/wan-wan": {
+   "title": "Wan Wan!",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/kazoku": {
+   "title": "Kazoku",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/fuji-san": {
+   "title": "Fuji-san",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/tsuru": {
+   "title": "Tsuru",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/itadakimasu": {
+   "title": "Itadakimasu",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/osechi": {
+   "title": "Osechi",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/koi": {
+   "title": "Koi",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/ganbatte": {
+   "title": "Ganbatte!",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/sento": {
+   "title": "Sento",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/mejiro": {
+   "title": "Mejiro",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/kotatsu": {
+   "title": "Kotatsu",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/tadaima": {
+   "title": "Tadaima",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/sakura": {
+   "title": "Sakura",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/onigiri": {
+   "title": "Onigiri",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/matcha": {
+   "title": "Matcha",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/daruma": {
+   "title": "Daruma",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/wabi-sabi": {
+   "title": "Wabi-sabi",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/irasshaimase": {
+   "title": "Irasshaimase!",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/kawaii": {
+   "title": "Kawaii",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/furin": {
+   "title": "Furin",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/arigatou": {
+   "title": "Arigatou",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/nami": {
+   "title": "Nami",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/mochi": {
+   "title": "Mochi",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
+  "japan/omiyage": {
+   "title": "Omiyage",
+   "collection": "japan",
+   "collectionName": "Japan",
+   "price": 5
+  },
   "home-notes/theres-no-place-like-home": {
    "title": "There's No Place Like Home",
    "collection": "home-notes",
@@ -3238,6 +3778,366 @@
    "title": "You've Got This",
    "collection": "home-notes",
    "collectionName": "Home Notes",
+   "price": 5
+  },
+  "great-masters/the-starry-night": {
+   "title": "The Starry Night",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/cafe-terrace-at-night": {
+   "title": "Café Terrace at Night",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/the-great-wave": {
+   "title": "The Great Wave",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/almond-blossoms": {
+   "title": "Almond Blossoms",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/the-kiss": {
+   "title": "The Kiss",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/plum-garden": {
+   "title": "Plum Garden in Kameido",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/red-fuji": {
+   "title": "Red Fuji",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/water-lilies": {
+   "title": "Water Lilies",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/sunflowers": {
+   "title": "Sunflowers",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/wheatfield-with-cypresses": {
+   "title": "Wheat Field with Cypresses",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/irises": {
+   "title": "Irises",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/the-scream": {
+   "title": "The Scream",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/tree-of-life": {
+   "title": "The Tree of Life",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/impression-sunrise": {
+   "title": "Impression, Sunrise",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/sunday-on-la-grande-jatte": {
+   "title": "A Sunday on La Grande Jatte",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/the-japanese-footbridge": {
+   "title": "The Japanese Footbridge",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/the-bedroom": {
+   "title": "The Bedroom",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/the-little-street": {
+   "title": "The Little Street",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/view-of-delft": {
+   "title": "View of Delft",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/birch-forest": {
+   "title": "Birch Forest",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/several-circles": {
+   "title": "Several Circles",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/the-fighting-temeraire": {
+   "title": "The Fighting Temeraire",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/wanderer-above-the-sea-of-fog": {
+   "title": "Wanderer above the Sea of Fog",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/hunters-in-the-snow": {
+   "title": "Hunters in the Snow",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/still-life-with-apples": {
+   "title": "Still Life with Apples",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/poppy-field": {
+   "title": "Poppy Field",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/sudden-shower": {
+   "title": "Sudden Shower",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/tiger-in-a-tropical-storm": {
+   "title": "Tiger in a Tropical Storm",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/walk-on-the-beach": {
+   "title": "Walk on the Beach",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "great-masters/spring-mucha": {
+   "title": "Spring (Mucha)",
+   "collection": "great-masters",
+   "collectionName": "Great Masters",
+   "price": 5
+  },
+  "storybook-classics/the-raven": {
+   "title": "The Raven",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/peter-pan": {
+   "title": "Peter Pan",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/the-secret-garden": {
+   "title": "The Secret Garden",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/sherlock-holmes": {
+   "title": "Sherlock Holmes",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/the-velveteen-rabbit": {
+   "title": "The Velveteen Rabbit",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/dracula": {
+   "title": "Dracula",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/hamlet": {
+   "title": "Hamlet",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/alice-in-wonderland": {
+   "title": "Alice's Adventures in Wonderland",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/don-quixote": {
+   "title": "Don Quixote",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/the-great-gatsby": {
+   "title": "The Great Gatsby",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/the-wind-in-the-willows": {
+   "title": "The Wind in the Willows",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/the-odyssey": {
+   "title": "The Odyssey",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/jane-eyre": {
+   "title": "Jane Eyre",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/romeo-and-juliet": {
+   "title": "Romeo and Juliet",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/the-wonderful-wizard-of-oz": {
+   "title": "The Wonderful Wizard of Oz",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/around-the-world-in-eighty-days": {
+   "title": "Around the World in Eighty Days",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/treasure-island": {
+   "title": "Treasure Island",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/little-women": {
+   "title": "Little Women",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/twenty-thousand-leagues-under-the-sea": {
+   "title": "Twenty Thousand Leagues Under the Sea",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/frankenstein": {
+   "title": "Frankenstein",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/moby-dick": {
+   "title": "Moby-Dick",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/walden": {
+   "title": "Walden",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/anne-of-green-gables": {
+   "title": "Anne of Green Gables",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/through-the-looking-glass": {
+   "title": "Through the Looking-Glass",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/pride-and-prejudice": {
+   "title": "Pride and Prejudice",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/winnie-the-pooh": {
+   "title": "Winnie-the-Pooh",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/the-jungle-book": {
+   "title": "The Jungle Book",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/robinson-crusoe": {
+   "title": "Robinson Crusoe",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/hope-is-the-thing-with-feathers": {
+   "title": "\"Hope\" Is the Thing with Feathers",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
+   "price": 5
+  },
+  "storybook-classics/heidi": {
+   "title": "Heidi",
+   "collection": "storybook-classics",
+   "collectionName": "Storybook Classics",
    "price": 5
   }
  },
