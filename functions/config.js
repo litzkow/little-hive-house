@@ -3,7 +3,9 @@
    Env (functions/.env, written by CI from the GitHub secret FUNCTIONS_ENV — never committed):
      STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, ADMIN_EMAILS, SITE_URL, MAIL_FROM, MAIL_ADMIN,
      UNSUBSCRIBE_SECRET (signs unsubscribe links), MAIL_POSTAL_ADDRESS (shown in every customer email footer, CAN-SPAM),
-     USPS_CLIENT_ID + USPS_CLIENT_SECRET (automatic USPS tracking), SHIPPO_API_KEY (optional: UPS / FedEx / DHL tracking) */
+     USPS_CLIENT_ID + USPS_CLIENT_SECRET (automatic USPS tracking), SHIPPO_API_KEY (optional: UPS / FedEx / DHL tracking),
+     STRIPE_TAX ("off" turns automatic sales tax off; on by default).
+   CI builds the .env from separate GitHub secrets/variables (see .github/workflows/firebase.yml). */
 
 const REGION = "us-east1";
 
