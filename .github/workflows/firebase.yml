@@ -28,8 +28,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write     # keyless sign-in to Google Cloud (Workload Identity Federation, set up by tools/setup-gcp.sh)
     env:
       PROJECT: ${{ vars.FIREBASE_PROJECT || 'little-hive-house' }}
+      WIF_PROVIDER: ${{ vars.WIF_PROVIDER || 'projects/752604920358/locations/global/workloadIdentityPools/github/providers/github' }}
+      DEPLOY_SA: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
     steps:
       - name: Check secrets
         id: check
@@ -37,8 +42,9 @@ jobs:
           HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
           HAS_KEYS: ${{ secrets.STRIPE_SECRET_KEY != '' || secrets.FUNCTIONS_ENV != '' }}
         run: |
-          if [ "$HAS_SA" != "true" ] || [ "$HAS_KEYS" != "true" ]; then
-            echo "::notice title=Firebase deploy skipped::Add the FIREBASE_SERVICE_ACCOUNT and STRIPE_SECRET_KEY secrets (see SETUP.md) to deploy the store backend."
+          echo "has_sa=$HAS_SA" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_KEYS" != "true" ]; then
+            echo "::notice title=Firebase deploy skipped::Add the STRIPE_SECRET_KEY secret (see SETUP.md) to deploy the store backend."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -91,8 +97,10 @@ jobs:
             printf '%s="%s"\n' "$k" "$esc" >> functions/.env
           done
           rm -f functions/.env.base
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then   # optional: a service account key file instead of keyless sign-in
+            printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+            echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          fi
           for k in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY ADMIN_EMAILS MAIL_POSTAL_ADDRESS; do
             grep -q "^$k=." functions/.env || echo "::warning title=Store setting missing::$k is missing or empty (see SETUP.md)"
           done
@@ -100,6 +108,15 @@ jobs:
             grep -q "^$k=." functions/.env || echo "::notice title=USPS tracking off::$k is empty, so automatic USPS tracking is off (SETUP.md part 3b)"
           done
           echo "Settings written: $(cut -d= -f1 functions/.env | tr '\n' ' ')"
+
+      - name: Sign in to Google Cloud (keyless)
+        if: steps.check.outputs.ready == 'true' && steps.check.outputs.has_sa != 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
+          create_credentials_file: true
+          export_environment_variables: true
 
       - name: Install function dependencies
         if: steps.check.outputs.ready == 'true'
