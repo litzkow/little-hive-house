@@ -32,7 +32,7 @@ jobs:
           export_environment_variables: true
       - name: Install
         working-directory: functions
-        run: npm install --no-audit --no-fund --omit=optional firebase-admin@12
+        run: npm install --no-audit --no-fund firebase-admin@12 2>&1 | tail -5 || echo "::error::npm install failed"
       - name: Run
         env:
           DRY_RUN: ${{ inputs.dry_run }}

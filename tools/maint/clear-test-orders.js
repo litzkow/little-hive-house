@@ -32,4 +32,4 @@ const dry = process.env.DRY_RUN === "1";
     console.log("order counter reset: the next order will be LHH-1001");
   } else if (real > 0) console.log("real orders exist, so the order counter was left as it is");
   console.log(`::notice title=Test orders::${dry ? "Would delete" : "Deleted"} ${test.length} test order(s); ${real} real order(s) kept`);
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch((e) => { console.error(e); console.log(`::error title=clear-test-orders::${String(e && (e.stack || e.message) || e).replace(/\n/g, "%0A").slice(0, 1500)}`); process.exit(1); });
