@@ -144,9 +144,15 @@ def grain(uid, box, col="#3A2418", seed=9, op=0.5, density=70):
             f'<rect x="{F(x0)}" y="{F(y0)}" width="{F(x1 - x0)}" height="{F(y1 - y0)}" fill="url(#{uid})" opacity="{op}"/>')
 
 
+# The owner prefers the subjects cut out on the page colour, without a painted sky/landscape panel behind them.
+BACKDROP = False
+
+
 def vignette(uid, inner, cx, cy, rx, ry, seed=1, edge=0.55, wobble=0.05, ground=None, gfade=0.3):
     """inner drawn through a soft-edged mask: opaque near (cx, cy), fading to nothing at an irregular painted edge.
     With ground=y, everything below y also stays solid down to the bottom edge (fading only at the sides)."""
+    if not BACKDROP:
+        return ""
     d = blob(cx, cy, rx, ry, seed, wobble, 22)
     extra = ""
     if ground is not None:

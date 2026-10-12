@@ -3,13 +3,13 @@
    order counter so the first real order is LHH-1001. Run by .github/workflows/maint.yml (needs functions/node_modules).
    DRY_RUN=1 only lists what it would delete. */
 process.on("uncaughtException", (e) => { console.log(`::error title=clear-test-orders::${String(e && (e.stack || e.message) || e).replace(/\n/g, "%0A").slice(0, 1500)}`); process.exit(1); });
-const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
-const { getStorage } = require("firebase-admin/storage");
+// @google-cloud clients (not firebase-admin): they accept the keyless GitHub sign-in (workload identity) credentials
+const { Firestore } = require("@google-cloud/firestore");
+const { Storage } = require("@google-cloud/storage");
 
 const project = process.env.PROJECT || "little-hive-house";
-initializeApp({ projectId: project, storageBucket: process.env.BUCKET || `${project}.firebasestorage.app` });
-const db = getFirestore();
+const db = new Firestore({ projectId: project });
+const bucket = new Storage({ projectId: project }).bucket(process.env.BUCKET || `${project}.firebasestorage.app`);
 const dry = process.env.DRY_RUN === "1";
 
 (async () => {
@@ -24,7 +24,7 @@ const dry = process.env.DRY_RUN === "1";
     const o = d.data();
     console.log(`${dry ? "would delete" : "deleting"} ${o.number || "(pending)"} ${d.id} ${o.email || ""}`);
     if (dry) continue;
-    await getStorage().bucket().deleteFiles({ prefix: `orders/${d.id}/` }).catch(() => {});
+    await bucket.deleteFiles({ prefix: `orders/${d.id}/` }).catch(() => {});
     await d.ref.delete();
   }
   if (!dry && real === 0) {

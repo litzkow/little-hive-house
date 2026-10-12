@@ -199,9 +199,15 @@ def shadow(cx, cy, rx, ry, op=0.16, col=INK):
     return f'<ellipse cx="{F(cx)}" cy="{F(cy)}" rx="{F(rx)}" ry="{F(ry)}" fill="{col}" opacity="{op}"/>'
 
 
+# The owner prefers the subjects cut out on the page colour, without a painted sky/landscape panel behind them.
+BACKDROP = False
+
+
 def vignette(uid, body, blots, box=(0, 0, 380, 330)):
     """Soft-edged painted backdrop: body (sky, hills, ground...) shown through a luminance mask built from a few
     overlapping radial fades, so the painting has an organic, brushed-out edge instead of a hard rectangle."""
+    if not BACKDROP:
+        return ""
     defs, ells = [], []
     for k, (cx, cy, rx, ry, inner) in enumerate(blots):
         g = f"{uid}-m{k}"

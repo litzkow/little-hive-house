@@ -34,7 +34,7 @@ jobs:
         working-directory: tools/maint
         run: |
           echo '{"private":true}' > package.json
-          npm install --no-audit --no-fund firebase-admin@12
+          npm install --no-audit --no-fund @google-cloud/firestore@7 @google-cloud/storage@7
       - name: Run
         env:
           DRY_RUN: ${{ inputs.dry_run }}
