@@ -188,8 +188,6 @@
   }
   /* PDF: a clean printable page in a new tab; Print > Save as PDF (iPhone: Print, then Share > Save to Files) */
   function printDoc(title, sub, body) {
-    var w = window.open('', '_blank');
-    if (!w) { toast('Your browser blocked the new tab. Allow pop-ups for this page and try again.', true); return; }
     var css = 'body{font:13px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#2B2118;margin:28px;background:#fff}' +
       'header{display:flex;align-items:center;gap:14px;border-bottom:2px solid #F2A81D;padding-bottom:12px;margin-bottom:18px}' +
       'header img{width:46px;height:46px}h1{font-size:22px;margin:0}h2{font-size:16px;margin:22px 0 8px}.sub{color:#7A6A58;margin:2px 0 0}' +
@@ -198,18 +196,34 @@
       'tr.sum td{font-weight:700;border-top:2px solid #2B2118}.neg{color:#B23A2A}.why{display:block;font-size:11px;color:#7A6A58}' +
       '.bar{position:sticky;top:0;background:#FFF6E5;border:1px solid #EADFCB;border-radius:12px;padding:12px 14px;margin:-8px 0 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}' +
       '.bar button{font:600 15px -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#2B2118;background:#F2A81D;border:0;border-radius:999px;padding:10px 18px;cursor:pointer}' +
-      '.bar .back{background:#fff;border:1.5px solid #2B2118}' +
+      '.bar .back{background:#fff;border:1.5px solid #2B2118}.bar{display:none}' +
       '@media (max-width:640px){body{margin:14px;font-size:12px}th,td{padding:5px 4px}th{font-size:9.5px;letter-spacing:.02em}h1{font-size:19px}header img{width:38px;height:38px}}' +
       '.wide{overflow-x:auto}@media print{.bar{display:none}body{margin:0}h2{break-after:avoid}tr{break-inside:avoid}}';
     var logo = location.origin + '/assets/favicon.svg';
-    w.document.open();
-    w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>' + css + '</style></head><body>' +
-      '<div class="bar"><button class="back" onclick="goBack()">&larr; Back</button><button onclick="print()">Save as PDF / Print</button><span>On iPhone: tap Save as PDF / Print, then the Share icon, then <b>Save to Files</b>.</span></div>' +
-      '<script>function goBack(){try{window.close()}catch(e){}setTimeout(function(){location.href=' + JSON.stringify(location.origin + '/admin/') + '},250)}<\/script>' +
+    var html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>' + css + '</style></head><body>' +
       '<header><img src="' + logo + '" alt=""><div><h1>' + esc(title) + '</h1><p class="sub">' + esc(sub) + ' · Little Hive House · made ' + esc(fmtDate(Date.now())) + '</p></div></header>' +
-      body + '</body></html>');
-    w.document.close();
-    setTimeout(function () { try { w.focus(); w.print(); } catch (e) { /* the button is there */ } }, 600);
+      body + '</body></html>';
+    /* shown inside the admin (an overlay with its own Back button), so the installed app never gets stuck on a page without a way back */
+    var old = document.getElementById('pdf-view'); if (old) old.remove();
+    var ov = document.createElement('div');
+    ov.id = 'pdf-view';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', title);
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column';
+    ov.innerHTML = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;background:#FFF6E5;border-bottom:1px solid #EADFCB">' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-pdf="back">&larr; Back</button>' +
+      '<button type="button" class="btn btn-sm" data-pdf="print">Save as PDF / Print</button>' +
+      '<span class="tiny muted" style="flex:1 1 220px">iPhone: Save as PDF / Print, then the Share icon, then <b>Save to Files</b>.</span></div>' +
+      '<iframe title="' + esc(title) + '" style="flex:1;border:0;width:100%;background:#fff"></iframe>';
+    document.body.appendChild(ov);
+    var fr = ov.querySelector('iframe');
+    fr.srcdoc = html;
+    var close = function () { ov.remove(); document.removeEventListener('keydown', onKey); };
+    var onKey = function (e) { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    ov.querySelector('[data-pdf="back"]').onclick = close;
+    ov.querySelector('[data-pdf="print"]').onclick = function () {
+      try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('Could not open printing. Try again.', true); }
+    };
   }
   /* cols: [label, key or fn(row), kind] with kind 'money' | 'int' | 'pct' | 'signed' | '' */
   function pdfTable(rows, cols, sumRow) {
