@@ -3,9 +3,10 @@
    order counter so the first real order is LHH-1001. Run by .github/workflows/maint.yml (needs functions/node_modules).
    DRY_RUN=1 only lists what it would delete. */
 const path = require("path");
-const { initializeApp } = require(path.join(__dirname, "../../functions/node_modules/firebase-admin/app"));
-const { getFirestore } = require(path.join(__dirname, "../../functions/node_modules/firebase-admin/firestore"));
-const { getStorage } = require(path.join(__dirname, "../../functions/node_modules/firebase-admin/storage"));
+const fnRequire = require("module").createRequire(path.join(__dirname, "../../functions/package.json"));
+const { initializeApp } = fnRequire("firebase-admin/app");
+const { getFirestore } = fnRequire("firebase-admin/firestore");
+const { getStorage } = fnRequire("firebase-admin/storage");
 
 const project = process.env.PROJECT || "little-hive-house";
 initializeApp({ projectId: project, storageBucket: process.env.BUCKET || `${project}.firebasestorage.app` });
