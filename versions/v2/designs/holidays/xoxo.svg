@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F4C7C3"/>
+<path d="M 210 174.75 C 168.75 147.25 177 117 199 122.5 Q 207.25 125.25 210 133.5 Q 212.75 125.25 221 122.5 C 243 117 251.25 147.25 210 174.75 Z" fill="#C2343A"/>
+<path d="M 300 171.75 C 243.75 134.25 255 93 285 100.5 Q 296.25 104.25 300 115.5 Q 303.75 104.25 315 100.5 C 345 93 356.25 134.25 300 171.75 Z" fill="#C2343A"/>
+<path d="M 390 174.75 C 348.75 147.25 357 117 379 122.5 Q 387.25 125.25 390 133.5 Q 392.75 125.25 401 122.5 C 423 117 431.25 147.25 390 174.75 Z" fill="#C2343A"/>
+<text x="306" y="404" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="210" letter-spacing="12" fill="#C2343A">XOXO</text>
+<text x="300" y="488" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="64" fill="#C2343A">with love</text>
+</svg>

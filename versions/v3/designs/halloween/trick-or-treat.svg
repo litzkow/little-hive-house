@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#E8833A"/>
+<g transform="rotate(-18 300 190)"><polygon points="232,190 196,160 196,220" fill="#4B2C64"/><polygon points="368,190 404,160 404,220" fill="#4B2C64"/><ellipse cx="300" cy="190" rx="74" ry="52" fill="#4B2C64"/><path d="M 256 160 Q 300 190 268 228" fill="none" stroke="#F6EFE0" stroke-width="8"/><path d="M 304 142 Q 340 190 312 238" fill="none" stroke="#F6EFE0" stroke-width="8"/></g>
+<text x="305" y="396" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="120" letter-spacing="10" fill="#151515">TRICK</text>
+<text x="300" y="442" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="52" fill="#151515">or</text>
+<text x="305" y="540" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="120" letter-spacing="10" fill="#151515">TREAT</text>
+</svg>

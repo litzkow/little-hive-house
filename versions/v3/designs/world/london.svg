@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#1F3A5F"/>
+<svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444">
+<rect width="600" height="444" fill="#D7E3EA"/>
+<g fill="#FFFFFF"><ellipse cx="120" cy="80" rx="60" ry="20"/><ellipse cx="160" cy="68" rx="40" ry="22"/><ellipse cx="470" cy="110" rx="56" ry="18"/></g>
+<rect x="0" y="250" width="600" height="140" fill="#A87C4C"/>
+<g fill="#8E6538"><rect x="20" y="236" width="10" height="20"/><rect x="80" y="236" width="10" height="20"/><rect x="140" y="236" width="10" height="20"/><rect x="410" y="236" width="10" height="20"/><rect x="470" y="236" width="10" height="20"/><rect x="530" y="236" width="10" height="20"/></g>
+<g fill="#8E6538"><rect x="20" y="276" width="12" height="40" rx="6"/><rect x="54" y="276" width="12" height="40" rx="6"/><rect x="88" y="276" width="12" height="40" rx="6"/><rect x="122" y="276" width="12" height="40" rx="6"/><rect x="156" y="276" width="12" height="40" rx="6"/><rect x="190" y="276" width="12" height="40" rx="6"/><rect x="360" y="276" width="12" height="40" rx="6"/><rect x="394" y="276" width="12" height="40" rx="6"/><rect x="428" y="276" width="12" height="40" rx="6"/><rect x="462" y="276" width="12" height="40" rx="6"/><rect x="496" y="276" width="12" height="40" rx="6"/><rect x="530" y="276" width="12" height="40" rx="6"/><rect x="564" y="276" width="12" height="40" rx="6"/><rect x="598" y="276" width="12" height="40" rx="6"/></g>
+<rect x="236" y="120" width="88" height="270" fill="#B98D57"/>
+<rect x="228" y="110" width="104" height="16" fill="#A87C4C"/>
+<path d="M 240 110 L 280 30 L 320 110 Z" fill="#8E6538"/>
+<rect x="277" y="10" width="6" height="24" fill="#8E6538"/>
+<circle cx="280" cy="168" r="30" fill="#F6EFE0"/><circle cx="280" cy="168" r="30" fill="none" stroke="#8E6538" stroke-width="4"/>
+<g stroke="#3A2A20" stroke-width="4" stroke-linecap="round"><line x1="280" y1="168" x2="280" y2="148"/><line x1="280" y1="168" x2="294" y2="174"/></g>
+<g fill="#8E6538"><rect x="252" y="220" width="10" height="150" rx="5"/><rect x="298" y="220" width="10" height="150" rx="5"/></g>
+<rect x="0" y="380" width="600" height="64" fill="#6E7C86"/>
+<rect x="316" y="340" width="226" height="86" rx="12" fill="#C8322E"/>
+<rect x="330" y="358" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="330" y="394" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="360" y="358" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="360" y="394" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="390" y="358" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="390" y="394" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="420" y="358" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="420" y="394" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="450" y="358" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="450" y="394" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="480" y="358" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="480" y="394" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="510" y="358" width="22" height="16" rx="3" fill="#F6EFE0"/><rect x="510" y="394" width="22" height="16" rx="3" fill="#F6EFE0"/>
+<rect x="316" y="380" width="226" height="6" fill="#9E2420"/>
+<circle cx="356" cy="428" r="14" fill="#2B2B2B"/><circle cx="500" cy="428" r="14" fill="#2B2B2B"/>
+</svg>
+<rect x="0" y="444" width="600" height="5" fill="#C8322E"/>
+<text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#F6EFE0">LONDON</text>
+<text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#D7E3EA">ENGLAND · UNITED KINGDOM</text>
+</svg>

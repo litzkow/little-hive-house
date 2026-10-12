@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#2559A8"/>
+<svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444">
+<rect width="600" height="444" fill="#CFE8F2"/>
+<circle cx="470" cy="90" r="40" fill="#FFD27A"/>
+<path d="M 0 300 Q 100 270 200 290 Q 320 310 420 284 Q 520 262 600 280 L 600 380 L 0 380 Z" fill="#C9A57E"/>
+<rect x="40" y="250" width="90" height="70" fill="#F7F4EE"/><rect x="118" y="250" width="12" height="70" fill="#DCE3E8"/><rect x="50" y="264" width="12" height="16" rx="2" fill="#2559A8"/><rect x="120" y="220" width="80" height="100" fill="#F7F4EE"/><rect x="188" y="220" width="12" height="100" fill="#DCE3E8"/><rect x="130" y="234" width="12" height="16" rx="2" fill="#2559A8"/><rect x="190" y="250" width="70" height="80" fill="#F7F4EE"/><rect x="248" y="250" width="12" height="80" fill="#DCE3E8"/><rect x="200" y="264" width="12" height="16" rx="2" fill="#2559A8"/><rect x="330" y="236" width="90" height="90" fill="#F7F4EE"/><rect x="408" y="236" width="12" height="90" fill="#DCE3E8"/><rect x="340" y="250" width="12" height="16" rx="2" fill="#2559A8"/><rect x="410" y="210" width="100" height="120" fill="#F7F4EE"/><rect x="498" y="210" width="12" height="120" fill="#DCE3E8"/><rect x="420" y="224" width="12" height="16" rx="2" fill="#2559A8"/><rect x="500" y="246" width="80" height="90" fill="#F7F4EE"/><rect x="568" y="246" width="12" height="90" fill="#DCE3E8"/><rect x="510" y="260" width="12" height="16" rx="2" fill="#2559A8"/><rect x="90" y="300" width="100" height="60" fill="#F7F4EE"/><rect x="178" y="300" width="12" height="60" fill="#DCE3E8"/><rect x="100" y="314" width="12" height="16" rx="2" fill="#2559A8"/><rect x="260" y="280" width="100" height="70" fill="#F7F4EE"/><rect x="348" y="280" width="12" height="70" fill="#DCE3E8"/><rect x="270" y="294" width="12" height="16" rx="2" fill="#2559A8"/><rect x="440" y="290" width="110" height="60" fill="#F7F4EE"/><rect x="538" y="290" width="12" height="60" fill="#DCE3E8"/><rect x="450" y="304" width="12" height="16" rx="2" fill="#2559A8"/>
+<path d="M 236 250 A 34 34 0 0 1 304 250 Z" fill="#2559A8"/><rect x="236" y="250" width="68" height="40" fill="#F7F4EE"/><rect x="268" y="206" width="4" height="12" fill="#F7F4EE"/>
+<path d="M 520 246 A 26 26 0 0 1 572 246 Z" fill="#2559A8"/>
+<rect x="352" y="186" width="34" height="50" fill="#F7F4EE"/><path d="M 352 186 A 17 17 0 0 1 386 186 Z" fill="#2559A8"/><rect x="362" y="198" width="14" height="18" rx="7" fill="#C9A57E"/>
+<rect x="0" y="370" width="600" height="74" fill="#2E7FB8"/>
+<g stroke="#8CC3E3" stroke-width="3" stroke-linecap="round"><line x1="40" y1="392" x2="100" y2="392"/><line x1="180" y1="410" x2="250" y2="410"/><line x1="340" y1="396" x2="400" y2="396"/><line x1="470" y1="418" x2="540" y2="418"/></g>
+<path d="M 380 404 L 440 404 L 430 416 L 390 416 Z" fill="#F7F4EE"/><path d="M 410 404 L 410 376 L 428 400 Z" fill="#F7F4EE"/>
+</svg>
+<rect x="0" y="444" width="600" height="5" fill="#FFFFFF"/>
+<text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#FFFFFF">SANTORINI</text>
+<text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#CFE8F2">GREECE · CYCLADES</text>
+</svg>

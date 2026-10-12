@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#B9A6E0"/>
+<ellipse cx="256" cy="150" rx="34" ry="96" fill="#F6EFE0" transform="rotate(-10 256 150)"/><ellipse cx="256" cy="156" rx="16" ry="70" fill="#F2A6B4" transform="rotate(-10 256 156)"/><ellipse cx="344" cy="150" rx="34" ry="96" fill="#F6EFE0" transform="rotate(10 344 150)"/><ellipse cx="344" cy="156" rx="16" ry="70" fill="#F2A6B4" transform="rotate(10 344 156)"/><path d="M 190 300 Q 300 214 410 300 Z" fill="#F6EFE0"/>
+<text x="300" y="410" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="104" fill="#1F2F4D">hoppy</text>
+<text x="306" y="516" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="130" letter-spacing="12" fill="#F6EFE0">EASTER</text>
+</svg>

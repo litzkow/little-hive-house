@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#1F2F4D"/>
+<path d="M 280 110 L 320 110 L 310 136 L 336 260 L 300 300 L 264 260 L 290 136 Z" fill="#F6EFE0"/><path d="M 280 110 L 320 110 L 310 136 L 290 136 Z" fill="#E9B949"/>
+<text x="300" y="400" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="86" fill="#E9B949">best</text>
+<text x="305" y="500" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="126" letter-spacing="10" fill="#F6EFE0">DAD EVER</text>
+<text x="302.5" y="548" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="18" letter-spacing="5" fill="#F6EFE0">HAPPY FATHER'S DAY</text>
+</svg>

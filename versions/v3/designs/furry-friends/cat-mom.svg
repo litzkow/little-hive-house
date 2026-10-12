@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#C8673E"/>
+<g fill="#C8673E" stroke="#F7F1E6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 236 194 L 242 122 L 286 158 Z"/>
+<path d="M 364 194 L 358 122 L 314 158 Z"/>
+<ellipse cx="300" cy="214" rx="72" ry="60"/>
+<path d="M 286 236 Q 293 244 300 234 Q 307 244 314 236" fill="none"/>
+</g>
+<g stroke="#F7F1E6" stroke-width="3" stroke-linecap="round"><line x1="270" y1="226" x2="208" y2="216"/><line x1="270" y1="234" x2="210" y2="240"/><line x1="330" y1="226" x2="392" y2="216"/><line x1="330" y1="234" x2="390" y2="240"/></g>
+<g fill="#F7F1E6"><ellipse cx="274" cy="206" rx="7" ry="10"/><ellipse cx="326" cy="206" rx="7" ry="10"/><path d="M 292 222 L 308 222 L 300 231 Z"/></g>
+<text x="304" y="440" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="8" fill="#F7F1E6">CAT MOM</text>
+<text x="303" y="500" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#F7F1E6">EST. WITH LOVE</text>
+</svg>

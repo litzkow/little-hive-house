@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F6EDE0"/>
+<path d="M 300 256 Q 252 186 300 104 Q 348 186 300 256 Z" fill="#D98A3D" transform="rotate(-42 300 256)"/>
+<path d="M 300 256 Q 252 186 300 104 Q 348 186 300 256 Z" fill="#B4532A" transform="rotate(42 300 256)"/>
+<path d="M 300 256 Q 252 186 300 104 Q 348 186 300 256 Z" fill="#5A3A22"/>
+<g stroke="#F6EDE0" stroke-width="3" stroke-linecap="round"><line x1="300" y1="250" x2="300" y2="128"/><line x1="300" y1="250" x2="300" y2="128" transform="rotate(-42 300 256)"/><line x1="300" y1="250" x2="300" y2="128" transform="rotate(42 300 256)"/></g>
+<text x="300" y="404" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="106" fill="#5A3A22">thankful</text>
+<text x="304" y="474" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="18" letter-spacing="8" fill="#B4532A">GIVE THANKS</text>
+</svg>

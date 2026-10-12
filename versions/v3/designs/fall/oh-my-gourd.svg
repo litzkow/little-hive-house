@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#6B2E3A"/>
+<rect x="212.3" y="141.8" width="15.4" height="28.6" rx="4.4" fill="#5A6B2E"/>
+<path d="M 225.5 152.8 Q 253.0 133.0 259.6 157.2 Q 242.0 166.0 225.5 157.2 Z" fill="#5A6B2E"/>
+<g fill="#E37B33" stroke="#4A2F1E" stroke-width="3.9">
+<ellipse cx="180.4" cy="210" rx="46.2" ry="50.6"/>
+<ellipse cx="259.6" cy="210" rx="46.2" ry="50.6"/>
+<ellipse cx="220" cy="210" rx="48.4" ry="55.0"/></g>
+<rect x="373.7" y="166.2" width="12.6" height="23.4" rx="3.6" fill="#5A6B2E"/>
+<path d="M 384.5 175.2 Q 407.0 159.0 412.4 178.8 Q 398.0 186.0 384.5 178.8 Z" fill="#5A6B2E"/>
+<g fill="#D9A23B" stroke="#4A2F1E" stroke-width="3.2">
+<ellipse cx="347.6" cy="222" rx="37.8" ry="41.4"/>
+<ellipse cx="412.4" cy="222" rx="37.8" ry="41.4"/>
+<ellipse cx="380" cy="222" rx="39.6" ry="45.0"/></g>
+<rect x="295.1" y="206.6" width="9.8" height="18.2" rx="2.8" fill="#5A6B2E"/>
+<path d="M 303.5 213.6 Q 321.0 201.0 325.2 216.4 Q 314.0 222.0 303.5 216.4 Z" fill="#5A6B2E"/>
+<g fill="#F6EDE0" stroke="#4A2F1E" stroke-width="2.5">
+<ellipse cx="274.8" cy="250" rx="29.4" ry="32.2"/>
+<ellipse cx="325.2" cy="250" rx="29.4" ry="32.2"/>
+<ellipse cx="300" cy="250" rx="30.8" ry="35.0"/></g>
+<text x="300" y="410" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="90" fill="#F6EDE0">oh my</text>
+<text x="305" y="520" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="10" fill="#D9A23B">GOURD!</text>
+</svg>

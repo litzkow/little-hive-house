@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#2E7D4F"/>
+<path d="M 300 170 Q 312.0 242.0 348.0 278.0" fill="none" stroke="#F6EFE0" stroke-width="10.8" stroke-linecap="round"/>
+<g transform="rotate(0 300 170)"><path d="M 300 163.25 C 239.25 122.75 251.4 78.2 283.8 86.3 Q 295.95 90.35 300 102.5 Q 304.05 90.35 316.2 86.3 C 348.6 78.2 360.75 122.75 300 163.25 Z" fill="#F6EFE0"/></g>
+<g transform="rotate(90 300 170)"><path d="M 300 163.25 C 239.25 122.75 251.4 78.2 283.8 86.3 Q 295.95 90.35 300 102.5 Q 304.05 90.35 316.2 86.3 C 348.6 78.2 360.75 122.75 300 163.25 Z" fill="#F6EFE0"/></g>
+<g transform="rotate(180 300 170)"><path d="M 300 163.25 C 239.25 122.75 251.4 78.2 283.8 86.3 Q 295.95 90.35 300 102.5 Q 304.05 90.35 316.2 86.3 C 348.6 78.2 360.75 122.75 300 163.25 Z" fill="#F6EFE0"/></g>
+<g transform="rotate(270 300 170)"><path d="M 300 163.25 C 239.25 122.75 251.4 78.2 283.8 86.3 Q 295.95 90.35 300 102.5 Q 304.05 90.35 316.2 86.3 C 348.6 78.2 360.75 122.75 300 163.25 Z" fill="#F6EFE0"/></g>
+<text x="307" y="420" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="160" letter-spacing="14" fill="#F6EFE0">LUCKY</text>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="44" fill="#F3D27A">happy st. patrick's day</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FFC93C"/>
+<circle cx="300" cy="150" r="70" fill="#FF6F59"/>
+<g stroke="#FF6F59" stroke-width="10" stroke-linecap="round"><line x1="386.0" y1="150.0" x2="410.0" y2="150.0"/><line x1="374.5" y1="193.0" x2="395.3" y2="205.0"/><line x1="343.0" y1="224.5" x2="355.0" y2="245.3"/><line x1="300.0" y1="236.0" x2="300.0" y2="260.0"/><line x1="257.0" y1="224.5" x2="245.0" y2="245.3"/><line x1="225.5" y1="193.0" x2="204.7" y2="205.0"/><line x1="214.0" y1="150.0" x2="190.0" y2="150.0"/><line x1="225.5" y1="107.0" x2="204.7" y2="95.0"/><line x1="257.0" y1="75.5" x2="245.0" y2="54.7"/><line x1="300.0" y1="64.0" x2="300.0" y2="40.0"/><line x1="343.0" y1="75.5" x2="355.0" y2="54.7"/><line x1="374.5" y1="107.0" x2="395.3" y2="95.0"/></g>
+<text x="305" y="352" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="130" letter-spacing="10" fill="#163A5C">SUNSHINE</text>
+<text x="300" y="440" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="76" fill="#163A5C">state of mind</text>
+<text x="302" y="512" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="16" letter-spacing="4" fill="#163A5C">FLORIDA · GEORGIA · EVERYWHERE</text>
+</svg>

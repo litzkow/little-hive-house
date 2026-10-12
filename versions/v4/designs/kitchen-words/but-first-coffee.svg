@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F4F0E8"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#161616" stroke-width="2"/>
+<g fill="none" stroke="#161616" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 230 120 L 370 120 L 356 226 Q 352 242 336 242 L 264 242 Q 248 242 244 226 Z"/>
+<path d="M 368 140 Q 410 140 406 172 Q 402 202 362 202"/>
+<line x1="214" y1="258" x2="386" y2="258"/>
+<path d="M 270 104 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 300 104 q -10 -12 0 -24 t 0 -24"/>
+<path d="M 330 104 q -10 -12 0 -24 t 0 -24"/>
+</g>
+<text x="300" y="360" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="72" fill="#161616">but first,</text>
+<text x="303" y="522" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="168" letter-spacing="6" fill="#161616">COFFEE</text>
+</svg>

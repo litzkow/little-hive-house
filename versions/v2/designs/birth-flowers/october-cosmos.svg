@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FAF8F3"/>
+<path d="M 120 470 L 120 230 A 180 180 0 0 1 480 230 L 480 470 Z" fill="#F1ECE2" stroke="#222222" stroke-width="2.5"/>
+<g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 300 230 Q 310 360 300 466"/>
+<path d="M 305 340 Q 360 304 380 256"/>
+<path d="M 304 384 L 342 352"/>
+<path d="M 320 370 L 330 344"/>
+<path d="M 302 412 L 262 388"/>
+<path d="M 284 400 L 272 376"/>
+<path d="M 302 440 L 340 424"/>
+</g>
+<g fill="#F1ECE2" stroke="#222222" stroke-width="3" stroke-linejoin="round">
+<ellipse cx="384" cy="244" rx="10" ry="14" transform="rotate(25 384 244)"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z" transform="rotate(45 300 215)"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z" transform="rotate(90 300 215)"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z" transform="rotate(135 300 215)"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z" transform="rotate(180 300 215)"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z" transform="rotate(225 300 215)"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z" transform="rotate(270 300 215)"/>
+<path d="M 300 215 Q 268 180 278 140 L 289 148 L 300 136 L 311 148 L 322 140 Q 332 180 300 215 Z" transform="rotate(315 300 215)"/>
+</g>
+<circle cx="300" cy="215" r="15" fill="#222222"/>
+<text x="300" y="530" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="50" fill="#222222">October</text>
+<text x="303" y="566" text-anchor="middle" font-family="'DM Mono', monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#222222">COSMOS</text>
+</svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FAF8F3"/>
+<path d="M 120 470 L 120 230 A 180 180 0 0 1 480 230 L 480 470 Z" fill="#F1ECE2" stroke="#222222" stroke-width="2.5"/>
+<g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 300 280 Q 304 370 300 466"/>
+<path d="M 302 330 L 314 322"/>
+<path d="M 300 400 L 288 392"/>
+<path d="M 302 362 Q 350 330 382 340 Q 362 374 302 364"/>
+<path d="M 304 363 L 372 342"/>
+<path d="M 300 422 Q 250 396 218 406 Q 244 438 300 424"/>
+<path d="M 298 423 L 228 408"/>
+<path d="M 232 186 Q 226 252 268 274 Q 300 288 332 274 Q 374 252 368 186"/>
+<path d="M 232 186 Q 248 170 270 182"/>
+<path d="M 368 186 Q 352 170 330 182"/>
+<path d="M 258 176 Q 264 138 300 144 Q 336 138 342 176"/>
+<path d="M 266 184 Q 268 224 300 228 Q 332 224 334 184"/>
+<path d="M 282 186 Q 282 162 304 164 Q 322 166 320 184 Q 316 200 300 198 Q 288 196 290 184 Q 292 176 302 177"/>
+<path d="M 246 236 Q 276 258 300 248 Q 324 258 354 236"/>
+<path d="M 284 282 L 270 298"/>
+<path d="M 316 282 L 330 298"/>
+</g>
+<text x="300" y="530" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="50" fill="#222222">June</text>
+<text x="303" y="566" text-anchor="middle" font-family="'DM Mono', monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#222222">ROSE</text>
+</svg>

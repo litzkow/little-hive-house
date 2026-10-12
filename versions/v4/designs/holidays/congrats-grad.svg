@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F6EFE0"/>
+<polygon points="300,90 440,146 300,202 160,146" fill="#1F2F4D"/><path d="M 214 168 L 214 230 Q 300 270 386 230 L 386 168 L 300 202 Z" fill="#1F2F4D"/><path d="M 300 146 L 410 160 L 410 236" fill="none" stroke="#E9B949" stroke-width="5"/><rect x="402" y="232" width="16" height="34" rx="4" fill="#E9B949"/>
+<text x="300" y="404" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="96" fill="#1F2F4D">congrats</text>
+<text x="306" y="512" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="12" fill="#C2343A">GRAD!</text>
+</svg>

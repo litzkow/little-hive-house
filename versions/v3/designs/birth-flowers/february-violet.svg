@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#FAF8F3"/>
+<path d="M 120 470 L 120 230 A 180 180 0 0 1 480 230 L 480 470 Z" fill="#F1ECE2" stroke="#222222" stroke-width="2.5"/>
+<g fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 300 250 Q 310 360 300 466"/>
+<path d="M 300 420 Q 240 410 228 380 Q 226 360 246 362 Q 262 352 272 372 Q 284 396 300 420 Z"/>
+<path d="M 302 440 Q 362 430 374 400 Q 376 380 356 382 Q 340 372 330 392 Q 318 416 302 440 Z"/>
+</g>
+<g fill="#F1ECE2" stroke="#222222" stroke-width="3">
+<ellipse cx="300" cy="182" rx="26" ry="36" transform="rotate(-36 300 220)"/>
+<ellipse cx="300" cy="182" rx="26" ry="36" transform="rotate(36 300 220)"/>
+<ellipse cx="300" cy="186" rx="24" ry="32" transform="rotate(-110 300 220)"/>
+<ellipse cx="300" cy="186" rx="24" ry="32" transform="rotate(110 300 220)"/>
+<ellipse cx="300" cy="188" rx="34" ry="30" transform="rotate(180 300 220)"/>
+</g>
+<g fill="none" stroke="#222222" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<line x1="300" y1="232" x2="300" y2="262"/>
+<line x1="294" y1="232" x2="286" y2="258"/>
+<line x1="306" y1="232" x2="314" y2="258"/>
+</g>
+<circle cx="300" cy="220" r="8" fill="#222222"/>
+<text x="300" y="530" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="50" fill="#222222">February</text>
+<text x="303" y="566" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#222222">VIOLET</text>
+</svg>

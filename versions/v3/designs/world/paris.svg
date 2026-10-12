@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#3D3A5C"/>
+<svg x="0" y="0" width="600" height="444" viewBox="0 0 600 444">
+<rect width="600" height="444" fill="#F8D3C5"/>
+<circle cx="300" cy="200" r="120" fill="#F4A28C"/>
+<path d="M 0 330 L 0 300 L 30 300 L 30 286 L 40 286 L 40 300 L 70 300 Q 80 284 100 284 Q 120 284 130 300 L 170 300 L 170 280 L 180 280 L 180 300 L 210 300 L 210 318 L 390 318 L 390 296 L 420 296 Q 430 280 450 280 Q 470 280 480 296 L 510 296 L 510 282 L 520 282 L 520 296 L 560 296 Q 575 286 600 290 L 600 330 Z" fill="#E3A99B"/>
+<rect x="0" y="328" width="600" height="60" fill="#D99586"/>
+<g fill="#C6806F"><rect x="20" y="342" width="14" height="22"/><rect x="50" y="342" width="14" height="22"/><rect x="80" y="342" width="14" height="22"/><rect x="110" y="342" width="14" height="22"/><rect x="140" y="342" width="14" height="22"/><rect x="440" y="342" width="14" height="22"/><rect x="470" y="342" width="14" height="22"/><rect x="500" y="342" width="14" height="22"/><rect x="530" y="342" width="14" height="22"/><rect x="560" y="342" width="14" height="22"/></g>
+<path d="M 226 392 Q 268 330 287 220 L 294 110 L 306 110 L 313 220 Q 332 330 374 392 L 344 392 Q 322 352 300 346 Q 278 352 256 392 Z" fill="#3D3A5C"/>
+<rect x="246" y="312" width="108" height="10" fill="#3D3A5C"/>
+<rect x="274" y="236" width="52" height="8" fill="#3D3A5C"/>
+<rect x="289" y="160" width="22" height="6" fill="#3D3A5C"/>
+<rect x="297" y="66" width="6" height="46" fill="#3D3A5C"/>
+<g stroke="#F4A28C" stroke-width="2" opacity="0.6"><line x1="266" y1="306" x2="300" y2="250"/><line x1="334" y1="306" x2="300" y2="250"/><line x1="286" y1="230" x2="300" y2="172"/><line x1="314" y1="230" x2="300" y2="172"/></g>
+<rect x="0" y="388" width="600" height="56" fill="#7FA6B8"/>
+<g stroke="#B9D3DE" stroke-width="3" stroke-linecap="round"><line x1="60" y1="408" x2="110" y2="408"/><line x1="200" y1="420" x2="260" y2="420"/><line x1="380" y1="410" x2="430" y2="410"/><line x1="500" y1="426" x2="560" y2="426"/></g>
+<g fill="#4F6B4A"><circle cx="60" cy="378" r="30"/><circle cx="110" cy="384" r="24"/><circle cx="500" cy="384" r="24"/><circle cx="548" cy="376" r="32"/></g>
+</svg>
+<rect x="0" y="444" width="600" height="5" fill="#F4A28C"/>
+<text x="300" y="542.3" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="100" letter-spacing="2.0" fill="#FFF1E8">PARIS</text>
+<text x="300" y="582.2" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="22" letter-spacing="4.8" fill="#F4A28C">FRANCE · CITY OF LIGHT</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<defs><clipPath id="bk-b"><ellipse cx="0" cy="0" rx="58" ry="40"/></clipPath></defs>
+<rect width="600" height="600" fill="#F2A81D"/>
+<g transform="translate(306 232) scale(1.6)">
+<ellipse cx="-14" cy="-44" rx="24" ry="38" transform="rotate(-25 -14 -44)" fill="#FFFFFF" stroke="#2B2118" stroke-width="5"/>
+<ellipse cx="18" cy="-44" rx="22" ry="34" transform="rotate(22 18 -44)" fill="#FFFFFF" stroke="#2B2118" stroke-width="5"/>
+<path d="M 56 -7 L 80 0 L 56 7 Z" fill="#2B2118"/>
+<ellipse cx="0" cy="0" rx="58" ry="40" fill="#FFF6E5"/>
+<g clip-path="url(#bk-b)"><rect x="-16" y="-50" width="16" height="100" fill="#2B2118"/><rect x="16" y="-50" width="16" height="100" fill="#2B2118"/></g>
+<ellipse cx="0" cy="0" rx="58" ry="40" fill="none" stroke="#2B2118" stroke-width="5"/>
+<circle cx="-62" cy="0" r="26" fill="#2B2118"/>
+<path d="M -82 -22 L -85 -50 L -73 -37 L -62 -56 L -51 -37 L -39 -50 L -42 -22 Z" fill="#2B2118" stroke="#FFF6E5" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="-62" cy="-33" r="3.5" fill="#FFF6E5"/>
+<circle cx="-70" cy="-4" r="5" fill="#FFF6E5"/>
+<path d="M -78 10 Q -70 17 -62 10" fill="none" stroke="#FFF6E5" stroke-width="3" stroke-linecap="round"/>
+</g>
+<text x="302" y="436" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="80" letter-spacing="4" fill="#2B2118">QUEEN BEE</text>
+<text x="303" y="500" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="18" letter-spacing="7" fill="#2B2118">OF THE HIVE</text>
+</svg>

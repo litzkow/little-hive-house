@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#151515"/>
+<path d="M 236 320 L 236 190 Q 236 112 300 112 Q 364 112 364 190 L 364 320 q -10.7 -18 -21.3 0 t -21.3 0 t -21.3 0 t -21.3 0 t -21.3 0 t -21.5 0 Z" fill="#F6EFE0"/>
+<g fill="#151515"><ellipse cx="278" cy="196" rx="9" ry="14"/><ellipse cx="322" cy="196" rx="9" ry="14"/><ellipse cx="300" cy="244" rx="10" ry="14"/></g>
+<g fill="none" stroke="#E8833A" stroke-width="4" stroke-linecap="round"><path d="M 120 130 q 14 -14 28 0 q 14 -14 28 0"/><path d="M 430 190 q 12 -12 24 0 q 12 -12 24 0"/></g>
+<text x="306" y="512" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="176" letter-spacing="12" fill="#E8833A">BOO!</text>
+</svg>

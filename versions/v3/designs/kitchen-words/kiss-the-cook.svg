@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#161616"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#F4F0E8" stroke-width="2"/>
+<g fill="none" stroke="#F4F0E8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<rect x="290" y="62" width="20" height="68" rx="9"/>
+<path d="M 300 130 Q 244 192 300 256 Q 356 192 300 130"/>
+<path d="M 300 130 Q 268 192 300 256 Q 332 192 300 130"/>
+<line x1="300" y1="130" x2="300" y2="256"/>
+</g>
+<path d="M 210 186 C 192 174 196 160 206 162 Q 209 163 210 167 Q 211 163 214 162 C 224 160 228 174 210 186 Z" fill="#F4F0E8"/>
+<path d="M 390 210 C 372 198 376 184 386 186 Q 389 187 390 191 Q 391 187 394 186 C 404 184 408 198 390 210 Z" fill="#F4F0E8"/>
+<text x="303" y="412" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="8" fill="#F4F0E8">KISS</text>
+<text x="300" y="500" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="72" fill="#F4F0E8">the cook</text>
+</svg>

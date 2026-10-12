@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F7E3C3"/>
+<defs><clipPath id="gv-sun"><circle cx="300" cy="190" r="120"/></clipPath></defs><g clip-path="url(#gv-sun)"><rect x="180" y="70.0" width="240" height="30.5" fill="#FFC93C"/><rect x="180" y="100.0" width="240" height="30.5" fill="#FFC93C"/><rect x="180" y="130.0" width="240" height="30.5" fill="#FFA94D"/><rect x="180" y="160.0" width="240" height="30.5" fill="#FFA94D"/><rect x="180" y="190.0" width="240" height="30.5" fill="#FF6F59"/><rect x="180" y="220.0" width="240" height="30.5" fill="#FF6F59"/><rect x="180" y="250.0" width="240" height="30.5" fill="#FF8FB1"/><rect x="180" y="280.0" width="240" height="30.5" fill="#FF8FB1"/><rect x="180" y="213.4" width="240" height="6.6" fill="#F7E3C3"/><rect x="180" y="243.4" width="240" height="6.6" fill="#F7E3C3"/><rect x="180" y="273.4" width="240" height="6.6" fill="#F7E3C3"/><rect x="180" y="303.4" width="240" height="6.6" fill="#F7E3C3"/></g>
+<rect x="150" y="300" width="300" height="12" fill="#163A5C"/>
+<text x="300" y="420" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="96" fill="#163A5C">good vibes</text>
+<text x="308" y="512" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="120" letter-spacing="16" fill="#FF6F59">ONLY</text>
+</svg>

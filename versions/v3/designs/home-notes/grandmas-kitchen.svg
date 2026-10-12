@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F6EDE0"/>
+<g fill="none" stroke="#3A2E2A" stroke-width="5" stroke-linejoin="round"><rect x="210" y="150" width="180" height="40" rx="18"/><rect x="166" y="162" width="44" height="16" rx="8"/><rect x="390" y="162" width="44" height="16" rx="8"/></g>
+<path d="M 300 128 C 270 108 276 86 292 90 Q 298 92 300 98 Q 302 92 308 90 C 324 86 330 108 300 128 Z" fill="#C2343A"/>
+<text x="300" y="336" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="88" fill="#3A2E2A">Grandma's</text>
+<text x="305" y="466" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="140" letter-spacing="10" fill="#3A2E2A">KITCHEN</text>
+<text x="303" y="520" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="16" letter-spacing="6" fill="#3A2E2A">MADE WITH LOVE</text>
+</svg>

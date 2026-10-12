@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#BFE3CF"/>
+<rect x="250" y="104" width="12" height="44" rx="3" fill="#F6EFE0"/><path d="M 256 76 Q 268 92 256 102 Q 244 92 256 76 Z" fill="#E9B949"/><rect x="294" y="104" width="12" height="44" rx="3" fill="#F2A6B4"/><path d="M 300 76 Q 312 92 300 102 Q 288 92 300 76 Z" fill="#E9B949"/><rect x="338" y="104" width="12" height="44" rx="3" fill="#F6EFE0"/><path d="M 344 76 Q 356 92 344 102 Q 332 92 344 76 Z" fill="#E9B949"/>
+<rect x="200" y="148" width="200" height="130" rx="12" fill="#C2343A"/>
+<path d="M 200 172 q 12.5 20 25 0 t 25 0 t 25 0 t 25 0 t 25 0 t 25 0 t 25 0 t 25 0 L 400 160 Q 400 148 388 148 L 212 148 Q 200 148 200 160 Z" fill="#F6EFE0"/>
+<rect x="240" y="214" width="12" height="4" rx="2" fill="#E9B949" transform="rotate(30 240 214)"/><rect x="290" y="230" width="12" height="4" rx="2" fill="#F6EFE0" transform="rotate(-20 290 230)"/><rect x="340" y="210" width="12" height="4" rx="2" fill="#F2A6B4" transform="rotate(60 340 210)"/><rect x="370" y="236" width="12" height="4" rx="2" fill="#E9B949" transform="rotate(-40 370 236)"/><rect x="226" y="248" width="12" height="4" rx="2" fill="#F2A6B4" transform="rotate(10 226 248)"/><rect x="316" y="252" width="12" height="4" rx="2" fill="#F6EFE0" transform="rotate(40 316 252)"/>
+<rect x="180" y="278" width="240" height="12" rx="6" fill="#1F2F4D"/>
+<text x="300" y="412" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="96" fill="#1F2F4D">happy</text>
+<text x="305" y="516" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="130" letter-spacing="10" fill="#C2343A">BIRTHDAY</text>
+</svg>

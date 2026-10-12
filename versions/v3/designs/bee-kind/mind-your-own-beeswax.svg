@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#2B2118"/>
+<path d="M 0 0 L 600 0 L 600 64 Q 580 64 576 90 Q 572 128 556 128 Q 540 128 538 94 Q 535 70 500 70 Q 470 72 466 110 Q 461 168 440 168 Q 420 168 417 110 Q 414 72 380 72 L 300 74 Q 270 74 266 98 Q 262 126 248 126 Q 234 126 232 98 Q 228 72 200 72 L 150 70 Q 120 70 116 118 Q 112 188 92 188 Q 72 188 69 118 Q 66 66 40 66 L 0 66 Z" fill="#F2A81D"/>
+<text x="300" y="316" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="46" fill="#FFF6E5">mind your own</text>
+<text x="302" y="428" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="92" letter-spacing="2" fill="#F2A81D">BEESWAX</text>
+<polygon points="274,494 286.1,501 286.1,515 274,522 261.9,515 261.9,501" fill="#F2A81D"/>
+<polygon points="300,494 312.1,501 312.1,515 300,522 287.9,515 287.9,501" fill="#F9D88A"/>
+<polygon points="326,494 338.1,501 338.1,515 326,522 313.9,515 313.9,501" fill="#F2A81D"/>
+</svg>

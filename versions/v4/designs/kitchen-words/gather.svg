@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#F4F0E8"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#161616" stroke-width="2"/>
+<text x="304" y="222" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="160" letter-spacing="8" fill="#161616">GATHER</text>
+<line x1="150" y1="258" x2="226" y2="258" stroke="#161616" stroke-width="2"/>
+<line x1="374" y1="258" x2="450" y2="258" stroke="#161616" stroke-width="2"/>
+<text x="303" y="265" text-anchor="middle" font-family="'DM Mono', ui-monospace, monospace" font-weight="500" font-size="20" letter-spacing="6" fill="#161616">AROUND</text>
+<text x="300" y="326" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="50" fill="#161616">the table</text>
+<g fill="none" stroke="#161616" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<line x1="160" y1="450" x2="440" y2="450"/>
+<line x1="184" y1="450" x2="184" y2="520"/>
+<line x1="416" y1="450" x2="416" y2="520"/>
+<ellipse cx="236" cy="440" rx="32" ry="7"/>
+<ellipse cx="364" cy="440" rx="32" ry="7"/>
+<path d="M 290 446 L 288 420 Q 288 410 300 410 Q 312 410 312 420 L 310 446 Z"/>
+<path d="M 300 410 L 300 376"/>
+<path d="M 300 396 Q 286 386 282 372"/>
+<path d="M 300 388 Q 314 380 318 366"/>
+</g>
+</svg>
