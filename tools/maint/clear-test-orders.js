@@ -2,11 +2,10 @@
 /* Deletes orders paid in Stripe TEST mode (session ids cs_test_..., or never paid), their print sheets, and resets the
    order counter so the first real order is LHH-1001. Run by .github/workflows/maint.yml (needs functions/node_modules).
    DRY_RUN=1 only lists what it would delete. */
-const path = require("path");
-const fnRequire = require("module").createRequire(path.join(__dirname, "../../functions/package.json"));
-const { initializeApp } = fnRequire("firebase-admin/app");
-const { getFirestore } = fnRequire("firebase-admin/firestore");
-const { getStorage } = fnRequire("firebase-admin/storage");
+process.on("uncaughtException", (e) => { console.log(`::error title=clear-test-orders::${String(e && (e.stack || e.message) || e).replace(/\n/g, "%0A").slice(0, 1500)}`); process.exit(1); });
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getStorage } = require("firebase-admin/storage");
 
 const project = process.env.PROJECT || "little-hive-house";
 initializeApp({ projectId: project, storageBucket: process.env.BUCKET || `${project}.firebasestorage.app` });
