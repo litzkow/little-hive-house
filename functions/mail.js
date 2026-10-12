@@ -112,11 +112,28 @@ function baseData(kind, to, data) {
   return out;
 }
 
+/* Resend takes attachments as base64; it allows 40 MB per email, we stay well under (the print sheet links instead). */
+const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+function encodeAttachments(list) {
+  const out = [];
+  for (const a of Array.isArray(list) ? list : []) {
+    if (!a || !a.content) continue;
+    const content = Buffer.isBuffer(a.content) ? a.content : Buffer.from(String(a.content), "base64");
+    if (!content.length) continue;
+    if (content.length > MAX_ATTACHMENT_BYTES) { console.warn(`[mail] attachment ${a.filename} is ${content.length} bytes, over the limit; skipped`); continue; }
+    const item = { filename: String(a.filename || "attachment").replace(/[^\w.() -]+/g, "-").slice(0, 120), content: content.toString("base64") };
+    if (a.contentType) item.content_type = a.contentType;
+    out.push(item);
+  }
+  return out;
+}
+
 /**
- * send({to, kind, data, replyTo, required}) -> {id} | {skipped:true, reason}
+ * send({to, kind, data, replyTo, required, attachments}) -> {id} | {skipped:true, reason}
+ * attachments: [{filename, content: Buffer | base64 string, contentType?}] (each at most MAX_ATTACHMENT_BYTES).
  * Never throws for a missing key or a Resend failure unless `required` (then an AppError the admin sees).
  */
-async function send({ to, kind, data = {}, replyTo, required = false, fetchImpl }) {
+async function send({ to, kind, data = {}, replyTo, required = false, fetchImpl, attachments }) {
   const key = env("RESEND_API_KEY");
   if (!to) return { skipped: true, reason: "no recipient" };
   if (!key) {
@@ -137,6 +154,8 @@ async function send({ to, kind, data = {}, replyTo, required = false, fetchImpl 
   if (replyTo || msg.replyTo) payload.reply_to = replyTo || msg.replyTo;
   if (msg.headers && typeof msg.headers === "object") payload.headers = msg.headers;
   else if (d.unsubscribeUrl && MARKETING.has(kind)) payload.headers = { "List-Unsubscribe": `<${d.unsubscribeUrl}>` };
+  const files = encodeAttachments(attachments);
+  if (files.length) payload.attachments = files;
   try {
     const res = await (fetchImpl || fetch)("https://api.resend.com/emails", {
       method: "POST",
@@ -153,4 +172,4 @@ async function send({ to, kind, data = {}, replyTo, required = false, fetchImpl 
   }
 }
 
-module.exports = { send, fallbackRender, unsubscribeToken, checkUnsubscribeToken, unsubscribeUrl, MARKETING, mailAdmin };
+module.exports = { send, fallbackRender, unsubscribeToken, checkUnsubscribeToken, unsubscribeUrl, MARKETING, mailAdmin, MAX_ATTACHMENT_BYTES, encodeAttachments };

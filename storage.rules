@@ -1,5 +1,5 @@
 rules_version = '2';
-// Customer photos: uploads/{uid}/{packId}/{n}.{jpg|png|heic|webp}
+// Customer photos: uploads/{uid}/{packId}/{n}.{jpg|png|heic|webp}; print sheets: orders/{orderId}/print-sheet.pdf (server only)
 // Only the signed-in owner (anonymous guests too) may upload, images only, up to 25 MB. Admins may read and delete.
 service firebase.storage {
   match /b/{bucket}/o {
@@ -14,6 +14,10 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
       allow delete: if isAdmin();
     }
+
+    // Print-ready PDFs made by the server for each paid order (orders/{orderId}/print-sheet.pdf): private.
+    // Admins get a short-lived link from the adminPrintSheet callable; nobody reads or writes here from a browser.
+    match /orders/{orderId}/{file=**} { allow read, write: if false; }
 
     match /{allPaths=**} { allow read, write: if false; }
   }

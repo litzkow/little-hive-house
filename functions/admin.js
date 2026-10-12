@@ -415,6 +415,36 @@ async function adminPhotoUrls(data, auth) {
   return { packs: out };
 }
 
+/* ---------- the print-ready PDF (printsheet.js) ---------- */
+/**
+ * adminPrintSheet({orderId, rebuild?}) -> {url, expiresAt, rebuilt, printSheet}
+ * Returns a short-lived link to orders/<id>/print-sheet.pdf; makes (or remakes, with rebuild) the PDF first when needed.
+ */
+async function adminPrintSheet(data, auth) {
+  U.requireAdmin(auth);
+  const printsheet = require("./printsheet");
+  const { ref, id, order } = await loadOrder(data && data.orderId);
+  if (order.status === "pending") fail("failed-precondition", "This order hasn't been paid yet, so there is nothing to print.");
+  const rebuild = !!(data && data.rebuild);
+  let meta = order.printSheet && order.printSheet.path ? order.printSheet : null;
+  let exists = false;
+  if (meta && !rebuild) {
+    try { exists = (await deps.bucket().file(meta.path).exists())[0] === true; } catch (err) { exists = false; }
+  }
+  let rebuilt = false;
+  if (!exists) {
+    try {
+      meta = (await printsheet.generateForOrder(ref, id, order, { by: U.who(auth) })).meta;
+    } catch (err) {
+      console.error("[adminPrintSheet] build failed", id, err);
+      fail("unavailable", `The print sheet could not be made (${(err && err.message) || "unknown error"}). Try again in a minute, or use the photo ZIP under More.`);
+    }
+    rebuilt = true;
+  }
+  const link = await printsheet.downloadUrl(meta.path, printsheet.fileName(order));
+  return { ok: true, url: link.url, expiresAt: link.expiresAt, signed: link.signed, rebuilt, printSheet: meta };
+}
+
 /* ---------- reviews ---------- */
 async function adminModerateReview(data, auth) {
   U.requireAdmin(auth);
@@ -431,6 +461,6 @@ async function adminModerateReview(data, auth) {
 
 module.exports = {
   claimAdmin, adminSetStatus, adminShip, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
-  adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview,
+  adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet,
   DEFAULT_SETTINGS, promoView, deliverOrder,
 };

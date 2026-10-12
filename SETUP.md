@@ -96,9 +96,20 @@ SHIPPO_API_KEY=
 8. **Actions** → **Deploy store backend (Firebase)** → **Run workflow**. Espere ficar verde (uns 5 minutos).
 9. Se a primeira vez der erro de permissão, espere 5 minutos e rode de novo (o Google demora para liberar as permissões novas).
 
+## 4a. A folha de impressão chega sozinha (PDF)
+
+Quando um pedido é pago, o servidor monta o PDF pronto para imprimir (12 ímãs por folha carta, marcas de corte, última
+página = romaneio) e manda junto com o e-mail "New order" (anexo, quando tem menos de 8 MB). No Admin, o pedido tem o
+botão **Print sheet (PDF)** (abre em outra aba, funciona no iPhone) e **Rebuild** para montar de novo. Não precisa configurar
+nada: o `tools/setup-gcp.sh` já dá à conta das funções o papel *Service Account Token Creator*, usado para gerar o link
+temporário (1 h). Se o link temporário falhar, o Admin usa um link com token, como o das fotos.
+
+Fotos HEIC do iPhone podem não abrir no servidor: nesse caso o quadradinho sai com o aviso "could not be read" e a página
+"Before you print" do PDF explica o que fazer (baixar a foto pelo ZIP em **More** e imprimir à mão).
+
 ## 4b. Fotos dos clientes no Admin (CORS do Storage, uma vez só)
 
-Sem isso, o botão **Download all (.zip)** do Admin não consegue baixar as fotos.
+Sem isso, o botão **Download the photos (.zip)** (em **More**, na seção *Print this order*) não consegue baixar as fotos.
 
 1. Firebase → **Storage** → copie o nome do bucket que aparece no topo (algo como `little-hive-house.firebasestorage.app`, sem o `gs://`).
 2. Abra https://console.cloud.google.com com a conta da loja e escolha o projeto da loja no topo.

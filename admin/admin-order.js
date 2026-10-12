@@ -1,5 +1,6 @@
 /* Little Hive House admin: one order. Fulfil (production → ship → delivered), refunds, status, emails, notes,
-   the customer's photos drawn inside their frames, the photo ZIP for tools/print_sheet.py and the packing slip. */
+   the customer's photos drawn inside their frames, the print-ready PDF the server makes (adminPrintSheet), the packing
+   slip, and under "More" the old photo ZIP + tools/print_sheet.py command. */
 (function () {
   'use strict';
   var A = window.LHHAdmin, S = A.S, R = A.R, h = A.h, ACT = A.ACT;
@@ -343,7 +344,7 @@
         return '<li>' + thumb(it) + '<div><h3>Photo magnets · ' + R.num(it.packSize) + '-pack' + (qty > 1 ? ' × ' + qty : '') + '</h3><p class="d">' + esc(fillNote) + '</p></div>' +
           '<div class="p"><b>' + money(R.itemPrice(it)) + '</b></div>' +
           '<div class="pack"><div class="pack-head"><span class="small muted">' + (packs.length > 1 ? 'Pack ' + (pi + 1) + ' · ' : '') + 'Each photo with the frame the customer picked</span>' +
-          (pi === 0 ? '<button class="btn btn-ghost btn-sm" data-act="zipPhotos">' + icon('download') + 'Download all (.zip)</button>' : '') + '</div>' +
+          '</div>' +
           (it.notes ? '<p class="quote small" style="margin-bottom:12px">' + esc(it.notes) + '</p>' : '') +
           '<div class="photos">' + grid + '</div></div></li>';
       }
@@ -366,25 +367,83 @@
       '<tr class="total"><td>Total paid</td><td>' + money(p.total) + '</td></tr>' +
       (refunded ? '<tr class="ref"><td>Refunded</td><td>−' + money(refunded) + '</td></tr><tr><td><b>Net</b></td><td><b>' + money(p.total - refunded) + '</b></td></tr>' : '') + '</table></section>';
   }
+  /* the print-ready PDF the server makes when the order is paid (functions/printsheet.js): sheets of 12 + the packing slip */
+  function printableMagnets(o) {
+    return (o.items || []).reduce(function (n, it) {
+      var qty = it.qty == null ? 1 : R.num(it.qty);
+      if (it.kind === 'design') return n + Math.max(1, qty);
+      if (it.kind === 'photos') return n + (R.num(it.packSize) * Math.max(1, qty) || (it.photos || []).length);
+      return n;
+    }, 0);
+  }
+  function sheetStatus(o) {
+    var ps = o.printSheet;
+    if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
+    if (!ps.path) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
+    var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
+    return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of 12 + the packing slip' +
+      (ps.bytes ? ' · ' + (R.num(ps.bytes) / 1048576).toFixed(1) + ' MB' : '') + '</span>' +
+      (w ? '<span class="small neg"> · ' + h.plural(w, 'thing') + ' to check on the “Before you print” page</span>' : '');
+  }
   function printCard(o) {
-    var mags = R.magnetsOf(o), sheets = Math.max(1, Math.ceil(mags / 12)), hasPhotos = photoItems(o).length > 0;
+    var mags = R.magnetsOf(o), tiles = printableMagnets(o), sheets = Math.ceil(tiles / 12), hasPhotos = photoItems(o).length > 0;
     var designs = designArgs(o).length, special = (o.items || []).filter(function (it) { return it.kind === 'package' || it.kind === 'custom'; });
     var cmd = printCommand(o);
     var steps = [];
-    if (hasPhotos) steps.push('<b>Download the photos.</b> <button class="linkish" data-act="zipPhotos">Download all (.zip)</button> and unzip it in <b>Downloads</b>. It has every photo plus <code>' + esc(folderOf(o)) + '.json</code>, the frame and caption for each magnet.');
+    steps.push('<b>Open the print sheet</b> (button above) and print it on glossy photo paper, US Letter, at <b>100% / “Actual size”</b> (never “Fit to page”). ' +
+      'Cut on the crop marks: each tile is 2.5 in, the 2 in magnet face plus the paper that wraps the edge.' +
+      (tiles ? ' ' + h.plural(tiles, 'magnet') + ' on ' + h.plural(sheets, 'sheet') + '.' : ' Nothing to print from this order: the artwork is made by hand.'));
     if (special.length) steps.push('<b>Design the custom artwork.</b> ' + special.map(function (it) { return esc(it.title || 'Custom order'); }).join(', ') +
-      ' — made from the details the customer emails you. ' + (hasPhotos || designs ? 'Save each design as an image and add it to the command below with <code>@none</code> (e.g. <code>~/Downloads/art.png@none</code>).'
-        : 'Export it as <b>' + esc(folderOf(o)) + '-art.png</b> (square, 600 px or bigger) into Downloads.'));
-    if (true) steps.push('<b>Make the print sheet.</b> Open Terminal in the <b>little-hive-house</b> folder and paste:<code class="code">' + esc(cmd) +
+      ' — made from the details the customer emails you. Print it with the Terminal tool under More (<code>--copies</code> prints one artwork per magnet).');
+    steps.push('<b>Pack it.</b> The last page of the PDF is the packing slip' + (o.giftMessage ? ' with the gift message' : '') + ': pop it in the envelope. ' +
+      '<button class="linkish" data-act="slip">Print the slip on its own</button> if you need another.');
+    var more = '<details class="panel" id="print-more"><summary>More: the photos as a ZIP and the Terminal tool</summary><div class="stack">' +
+      '<p class="small muted">The old way, if the PDF ever fails or you want to edit a photo first.</p>' +
+      (hasPhotos ? '<p class="small"><button class="btn btn-ghost btn-sm" data-act="zipPhotos">' + icon('download') + 'Download the photos (.zip)</button> ' +
+        '<span class="muted">Every photo plus <code>' + esc(folderOf(o)) + '.json</code>, the frame and caption for each magnet. Unzip it in <b>Downloads</b>.</span></p>' : '') +
+      '<p class="small">Then, in Terminal, in the <b>little-hive-house</b> folder:</p><code class="code">' + esc(cmd) +
       '<button class="icon-btn" type="button" data-act="copy" data-copy="' + esc(cmd.replace(/ \\\n {2}/g, ' ')) + '" aria-label="Copy command">' + icon('copy') + '</button></code>' +
-      '<span class="small muted">It saves <b>' + esc(folderOf(o)) + '.pdf</b> on your Desktop: about ' + h.plural(sheets, 'sheet') + ', 12 magnets per sheet.' +
-      (!hasPhotos && !designs ? ' <code>--copies</code> prints the artwork once per magnet; change it if the order mixes designs.' : '') + '</span>');
-    steps.push('<b>Print at 100%.</b> US Letter, “Actual size” (not “Fit to page”). Cut on the crop marks: each tile is 2.5 in, the 2 in face plus the paper that wraps the edge.');
-    steps.push('<b>Pack it.</b> <button class="linkish" data-act="slip">Print the packing slip</button>' + (o.giftMessage ? ' (it includes the gift message)' : '') + ' and pop it in the envelope.');
-    return '<section class="card"><div class="card-head"><div><h2>Print this order</h2><p class="sub">' + h.plural(mags, 'magnet') + ' · about ' + h.plural(sheets, 'sheet') + '</p></div>' +
-      '<button class="btn btn-ghost btn-sm" data-act="slip">' + icon('print') + 'Packing slip</button></div><ol class="steps-n">' +
-      steps.map(function (s) { return '<li><div>' + s + '</div></li>'; }).join('') + '</ol></section>';
+      '<span class="small muted">It saves <b>' + esc(folderOf(o)) + '.pdf</b> on your Desktop.' + (!hasPhotos && !designs ? ' Change <code>--copies</code> if the order mixes designs.' : '') + '</span></div></details>';
+    return '<section class="card tint"><div class="card-head"><div><h2>Print this order</h2><p class="sub">' + h.plural(mags, 'magnet') + (tiles !== mags ? ' · ' + tiles + ' on the sheets' : '') + '</p></div>' +
+      '<button class="btn btn-ghost btn-sm" data-act="slip">' + icon('print') + 'Packing slip</button></div>' +
+      '<div class="row wrap" style="gap:10px;margin-bottom:8px"><button class="btn btn-honey" data-act="printSheet">' + icon('print') + 'Print sheet (PDF)</button>' +
+      '<button class="btn btn-ghost btn-sm" data-act="printSheet" data-rebuild="1" title="Make the PDF again from the photos and designs">' + icon('refresh') + 'Rebuild</button></div>' +
+      '<p class="sheet-status" id="sheet-status" style="margin:0 0 14px">' + sheetStatus(o) + '</p>' +
+      '<ol class="steps-n">' + steps.map(function (s) { return '<li><div>' + s + '</div></li>'; }).join('') + '</ol>' + more + '</section>';
   }
+  /* Opens the PDF in a new tab. The tab is opened right away (synchronously, in the tap) so iPhone Safari doesn't block it,
+     then pointed at the signed link when the server answers. */
+  ACT.printSheet = function (btn) {
+    var o = current; if (!o) return;
+    var rebuild = btn.getAttribute('data-rebuild') === '1';
+    var openLink = function (url) { return '<a class="btn btn-honey" href="' + esc(url) + '" target="_blank" rel="noopener">' + icon('external') + 'Open the PDF</a>'; };
+    var go = function (openTab) {
+      var tab = null;
+      if (openTab) {
+        try { tab = window.open('about:blank', '_blank'); } catch (e) { tab = null; }
+        if (tab && tab.document) { try { tab.document.title = 'Print sheet…'; tab.document.body.innerHTML = '<p style="font:16px -apple-system,system-ui,sans-serif;padding:24px">Getting the print sheet… this can take a minute for big orders.</p>'; } catch (e) { /* ignore */ } }
+      }
+      h.busy(btn, true, rebuild ? 'Rebuilding…' : 'Opening…');
+      h.call('adminPrintSheet', { orderId: o.id, rebuild: rebuild }).then(function (res) {
+        h.busy(btn, false);
+        if (!res || !res.url) throw new Error('No link came back.');
+        if (tab && !tab.closed) tab.location.href = res.url;
+        else h.dialog({ title: 'Print sheet ready', html: '<p class="small muted">' + h.plural(R.num(res.printSheet && res.printSheet.sheets), 'sheet') + ' of 12 magnets plus the packing slip. The link works for about an hour.</p><p>' + openLink(res.url) + '</p>', ok: false, cancel: 'Close' });
+        return h.refreshOrder(o.id).then(function () {
+          var st = document.getElementById('sheet-status'), fresh = h.findOrder(o.id);
+          if (st && fresh) { current = fresh; st.innerHTML = sheetStatus(fresh); }
+          if (res.rebuilt) h.toast('Print sheet made: ' + h.plural(R.num(res.printSheet && res.printSheet.sheets), 'sheet'));
+        });
+      }).catch(function (e) {
+        h.busy(btn, false);
+        if (tab && !tab.closed) { try { tab.close(); } catch (x) { /* ignore */ } }
+        h.toast('Couldn’t get the print sheet: ' + h.friendlyError(e), true);
+      });
+    };
+    if (!rebuild) return go(true);
+    h.dialog({ title: 'Rebuild the print sheet?', html: '<p>The PDF is made again from the customer’s photos and the designs (about a minute for big orders).</p>', ok: 'Rebuild' })
+      .then(function (ok) { if (ok) go(false); });
+  };
   function customerCard(o) {
     var lines = addressLines(o.shipping), ph = o.shipping && o.shipping.phone;
     var others = S.orders.filter(function (x) { return R.isSale(x) && R.customerKey(x) === R.customerKey(o); });

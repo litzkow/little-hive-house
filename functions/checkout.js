@@ -8,6 +8,8 @@ const mail = require("./mail");
 const { priceCart, allocate, dollars, cents } = require("./pricing");
 const O = require("./orders");
 const U = require("./util");
+let printsheetMod = null;
+const printsheet = () => (printsheetMod = printsheetMod || require("./printsheet"));   // lazy: only paid orders need it
 
 /* Sales tax: Stripe Tax computes it from the shipping address and adds it on top of our prices.
    STRIPE_TAX=off turns it off; otherwise we ask for it and fall back to no tax if Stripe Tax isn't set up yet. */
@@ -256,8 +258,13 @@ async function completeCheckout(session) {
   if (result.newlyPaid && after) {
     const data = { order: O.emailOrder(orderId, after) };
     const sent = await mail.send({ to: after.email, kind: "order_confirmation", data });
-    await mail.send({ to: mailAdmin(), kind: "admin_new_order", data, replyTo: after.email || undefined });
     if (!sent.skipped) await ref.update({ "emails.confirmation": nowIso() }).catch(() => {});
+    // the print-ready PDF for the owners: saved on the order and attached to the new-order alert (never blocks the order)
+    const ps = await printsheet().tryGenerate(ref, orderId, after);
+    const attach = !!(ps && ps.pdf.length <= mail.MAX_ATTACHMENT_BYTES);
+    const adminData = { ...data, printSheet: ps ? { ...ps.meta, attached: attach } : null };
+    await mail.send({ to: mailAdmin(), kind: "admin_new_order", data: adminData, replyTo: after.email || undefined,
+      attachments: attach ? [{ filename: printsheet().fileName(after), content: ps.pdf, contentType: "application/pdf" }] : undefined });
     if (after.marketing && after.email) {
       await db.collection("subscribers").doc(U.emailKey(after.email))
         .set({ email: after.email, at: nowIso(), source: "checkout" }, { merge: true }).catch(() => {});

@@ -12,6 +12,7 @@ const CALLABLES = [
   "submitReview", "unsubscribe", "myOrders", "myOrder", "sendVerifyEmail",
   "claimAdmin", "adminSetStatus", "adminShip", "adminMarkDelivered", "adminRefund", "adminAddNote", "adminResendEmail",
   "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview",
+  "adminPrintSheet",
 ];
 const HTTP = ["stripeWebhook"];
 const SCHEDULED = ["deliveredFollowUp", "trackShipments"];
@@ -81,6 +82,15 @@ test("customer callables need a real (not anonymous) account", async () => {
       (e) => e instanceof HttpsError && e.code === "unauthenticated", `${n} anonymous`);
   }
   assert.equal(idx.trackShipments.__opts.schedule, "every 2 hours");
+});
+
+test("the functions that render the print-ready PDF get 1 GiB and time to do it", () => {
+  const idx = loadIndex();
+  assert.equal(idx.adminPrintSheet.__opts.memory, "1GiB");
+  assert.equal(idx.adminPrintSheet.__opts.timeoutSeconds, 300);
+  assert.equal(idx.stripeWebhook.__opts.memory, "1GiB");
+  assert.equal(idx.stripeWebhook.__opts.timeoutSeconds, 300);
+  assert.equal(idx.orderBySession.__opts.memory, "1GiB");
 });
 
 test("missing env gives a clear failed-precondition error, not a crash", async () => {

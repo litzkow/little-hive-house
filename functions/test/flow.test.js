@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const { FakeDB, FakeAuth, FakeBucket, fakeNet } = require("./fakes");
 const deps = require("../deps");
 const { signPayload } = require("../stripe");
+const printsheet = require("../printsheet");
 
 const ENV = {
   STRIPE_SECRET_KEY: "sk_test_x", STRIPE_WEBHOOK_SECRET: "whsec_x", RESEND_API_KEY: "re_x", ADMIN_EMAILS: "owner@lhh.com, karina@lhh.com",
@@ -16,6 +17,11 @@ function setup() {
   const db = new FakeDB(), auth = new FakeAuth(), bucket = new FakeBucket(), net = fakeNet();
   deps.set({ db, auth, bucket, getDownloadURL: async (f) => `https://dl.example/${f.name}` });
   globalThis.fetch = net.fetch;
+  // sharp/pdfkit are not installed here: a stand-in renderer that still exercises the save / attach / link path
+  printsheet.setBuilder(async (orderId, order) => {
+    const plan = printsheet.planTiles(order);
+    return { pdf: Buffer.from(`%PDF-1.5 fake ${orderId} ${plan.tiles.length}`), pages: plan.sheets + 1, sheets: plan.sheets, tiles: plan.tiles.length, warnings: [] };
+  });
   const S = { sessions: {}, refunds: [], n: 0 };
   net.handlers["POST /v1/checkout/sessions"] = (p) => {
     const id = `cs_test_${++S.n}`;

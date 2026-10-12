@@ -119,14 +119,32 @@ class FakeAuth {
 }
 
 class FakeBucket {
-  constructor() { this.files = new Map(); this.name = "test-bucket"; }
+  constructor() { this.files = new Map(); this.name = "test-bucket"; this.signed = []; }
   file(path) {
     const self = this;
     return {
       name: path,
       async exists() { return [self.files.has(path)]; },
-      async getMetadata() { return [{ metadata: (self.files.get(path) || {}).metadata || {} }]; },
+      async getMetadata() { const f = self.files.get(path) || {}; return [{ metadata: f.metadata || {}, contentType: f.contentType, size: f.data ? f.data.length : 0 }]; },
       async setMetadata(m) { const f = self.files.get(path) || {}; f.metadata = { ...(f.metadata || {}), ...(m.metadata || {}) }; self.files.set(path, f); },
+      async save(data, opts = {}) {
+        const f = self.files.get(path) || {};
+        f.data = Buffer.isBuffer(data) ? data : Buffer.from(String(data));
+        f.contentType = opts.contentType || f.contentType;
+        if (opts.metadata) f.metadata = { ...(f.metadata || {}), ...(opts.metadata.metadata || {}), cacheControl: opts.metadata.cacheControl };
+        self.files.set(path, f);
+      },
+      async download() {
+        const f = self.files.get(path);
+        if (!f || !f.data) { const e = new Error(`No such object: ${path}`); e.code = 404; throw e; }
+        return [f.data];
+      },
+      async delete() { self.files.delete(path); },
+      async getSignedUrl(opts) {
+        if (self.noSigning) throw new Error("fake: cannot sign (no IAM signBlob)");
+        self.signed.push({ path, opts });
+        return [`https://storage.googleapis.com/${self.name}/${encodeURIComponent(path)}?X-Goog-Signature=fake&expires=${opts.expires}`];
+      },
     };
   }
 }

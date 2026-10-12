@@ -74,7 +74,7 @@ const SAMPLES = {
   verify_email: { email: "karina@example.com", name: "Karina Vargas", link: "https://little-hive-house.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=xyz789&apiKey=key&continueUrl=https%3A%2F%2Flittlehivehouse.com%2Faccount.html%3Fverified%3D1&lang=en" },
   password_reset: { email: "karina@example.com", name: "Karina", link: "https://little-hive-house.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=abc123XYZ&apiKey=key&lang=en", expiresMinutes: 60 },
   abandoned_checkout: { order: { ...small, status: "pending", items: order.items.slice(0, 3), pricing: { subtotal: 20, bundleDiscount: 3, shipping: 4.95, total: 21.95, currency: "usd" } }, unsubscribeUrl: unsub },
-  admin_new_order: { order },
+  admin_new_order: { order, printSheet: { path: "orders/Xq7Lp2mN4vR8/print-sheet.pdf", pages: 3, sheets: 2, tiles: 15, bytes: 2400000, at: "2026-10-11T15:21:00Z", warnings: [], attached: true } },
   admin_dispute: { order: { ...order, status: "shipped" }, dispute: { id: "dp_1Abc", amount: 98.64, reason: "product_not_received", status: "needs_response", evidenceDueBy: "2026-10-28T23:59:00Z" } },
   admin_delivery_check: {
     now: "2026-10-30T12:00:00Z",

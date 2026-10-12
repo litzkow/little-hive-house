@@ -44,7 +44,8 @@ function callable(name, mod, fnName, opts = {}) {
 /* ---------- public ---------- */
 exports.createCheckout = callable("createCheckout", checkout, null, { timeoutSeconds: 60, memory: "256MiB" });
 exports.trackOrder = callable("trackOrder", checkout);
-exports.orderBySession = callable("orderBySession", checkout);
+// orderBySession may confirm the payment itself (before the webhook) and then builds the print sheet: give it room
+exports.orderBySession = callable("orderBySession", checkout, null, { timeoutSeconds: 120, memory: "1GiB" });
 exports.subscribe = callable("subscribe", pub);
 exports.unsubscribe = callable("unsubscribe", pub);
 exports.contact = callable("contact", pub);
@@ -72,9 +73,11 @@ exports.adminListPromos = callable("adminListPromos", admin);
 exports.adminSaveSettings = callable("adminSaveSettings", admin);
 exports.adminPhotoUrls = callable("adminPhotoUrls", admin);
 exports.adminModerateReview = callable("adminModerateReview", admin);
+// builds the print-ready PDF (sharp + pdfkit) on demand: more memory and time than the other callables
+exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
 
-/* ---------- Stripe webhook (HTTP) ---------- */
-exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 120, maxInstances: 10 }, async (req, res) => {
+/* ---------- Stripe webhook (HTTP): marks orders paid and renders their print sheet (1 GiB, 300 s for the PDF) ---------- */
+exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 300, memory: "1GiB", maxInstances: 10 }, async (req, res) => {
   if (req.method !== "POST") { res.set("Allow", "POST").status(405).send("Method not allowed"); return; }
   try {
     const out = await webhook().handleWebhook(req.rawBody, req.get("stripe-signature"));

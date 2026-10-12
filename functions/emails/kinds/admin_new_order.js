@@ -16,14 +16,23 @@ module.exports = function adminNewOrder(data, { L }) {
   const promo = order.pricing && order.pricing.promo;
   const fee = order.stripe && F.num(order.stripe.fee) ? F.money(order.stripe.fee, cur) : "";
   const kinds = O.items(order).map((i) => i.kind);
+  // the print-ready PDF made by functions/printsheet.js: attached when small enough, otherwise one tap away in the admin
+  const ps = data.printSheet && typeof data.printSheet === "object" ? data.printSheet : null;
+  const sheets = ps ? F.num(ps.sheets) : 0;
+  const printLine = !ps ? (count ? "The print sheet could not be made automatically: open the order in the admin and tap “Print sheet (PDF)” to try again, or use the photo ZIP." : "")
+    : ps.attached ? `Print sheet attached (${F.plural(sheets, "sheet")}, 12 magnets each, plus the packing slip): print on glossy photo paper at 100% / “actual size” and cut on the marks.`
+      : `Print sheet ready (${F.plural(sheets, "sheet")}): it was too big to attach, so open the order in the admin and tap “Print sheet (PDF)”.`;
+  const warn = ps && Array.isArray(ps.warnings) && ps.warnings.length ? `Check the “Before you print” page in the PDF: ${F.line(ps.warnings[0], 200)}` : "";
   const todo = [
+    printLine,
+    warn,
     kinds.includes("package") ? "Package in this order: email the customer for their artwork and details, then send a proof." : "",
-    photos ? `Download the ${F.plural(photos, "customer photo")} from the order page.` : "",
-    order.giftMessage ? "Gift order: include the gift message card." : "",
+    photos && !ps ? `Download the ${F.plural(photos, "customer photo")} from the order page.` : "",
+    order.giftMessage ? "Gift order: the gift message is on the packing slip page." : "",
   ].filter(Boolean);
 
   return {
-    subject: `New order ${num} · ${total} · ${F.plural(count, "magnet")}`,
+    subject: `New order ${num} · ${total} · ${F.plural(count, "magnet")}${ps && ps.attached ? " · print sheet attached" : ""}`,
     preheader: `${F.line(order.name, 60) || F.line(order.email, 80)} · ${F.plural(O.items(order).length, "item")}${photos ? ` · ${F.plural(photos, "photo")}` : ""}${ad.lines.length ? ` · ships to ${F.line(order.shipping && order.shipping.address && order.shipping.address.state, 20) || "?"}` : ""}`,
     audience: "admin",
     blocks: [

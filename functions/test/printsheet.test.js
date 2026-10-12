@@ -1,0 +1,379 @@
+"use strict";
+/* The print-ready PDF: layout math (a port of tools/print_sheet.py), the caption port (tools/frames.py caption_svg),
+   email attachments, and the paid-order path (save to Storage, printSheet on the order, attach to the admin email,
+   adminPrintSheet link) with a stand-in renderer, since sharp/pdfkit are not installed here. */
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("fs");
+const path = require("path");
+const { FakeDB, FakeAuth, FakeBucket, fakeNet } = require("./fakes");
+const deps = require("../deps");
+const P = require("../printsheet");
+const FM = require("../fontmetrics");
+const mail = require("../mail");
+
+const FRAMES = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(__dirname, "../../assets/frames/frames.json"), "utf8")).map((f) => [f.id, f]));
+const ENV = { STRIPE_SECRET_KEY: "sk_test_x", RESEND_API_KEY: "re_x", ADMIN_EMAILS: "owner@lhh.com", SITE_URL: "https://littlehivehouse.com", MAIL_ADMIN: "support@littlehivehouse.com" };
+const ADMIN = { uid: "admin1", token: { admin: true, email: "owner@lhh.com" } };
+
+const fakeBuilder = (extra = {}) => async (orderId, order) => {
+  const plan = P.planTiles(order);
+  return { pdf: Buffer.from(`%PDF-1.5 fake ${orderId} ${plan.tiles.length} tiles`), pages: plan.sheets + 1, sheets: plan.sheets, tiles: plan.tiles.length, warnings: [], ...extra };
+};
+
+function setup(builder = fakeBuilder()) {
+  Object.assign(process.env, ENV);
+  const db = new FakeDB(), auth = new FakeAuth(), bucket = new FakeBucket(), net = fakeNet();
+  deps.set({ db, auth, bucket, getDownloadURL: async () => null });
+  globalThis.fetch = net.fetch;
+  P.setBuilder(builder);
+  return { db, auth, bucket, net };
+}
+
+const ORDER = {
+  number: "LHH-1042", status: "pending", email: "ana@example.com", name: "", uid: null,
+  items: [
+    { kind: "design", id: "places/new-york", title: "New York", collection: "places", qty: 3, unit: 5 },
+    { kind: "design", id: "fall/cozy-season", title: "Cozy Season", collection: "fall", qty: 1, unit: 5 },
+    { kind: "photos", packSize: 9, qty: 1, price: 25, notes: "make them bright", photos: [
+      { path: "uploads/u1/p1/1.jpg", frame: "polaroid", caption: "Summer 2026" },
+      { path: "uploads/u1/p1/2.heic", frame: "none", caption: "" },
+      { path: "uploads/u1/p1/3.png", frame: "stamp", caption: "with love" },
+      { path: "uploads/u1/p1/4.jpg", frame: "wedding", caption: "Ana & Leo · 06.14.26" },
+    ] },
+    { kind: "package", id: "teams-12", title: "Teams · 12", size: 12, price: 30, qty: 1 },
+  ],
+  pricing: { subtotal: 75, bundleDiscount: 3, volumePct: 10, volumeDiscount: 7.2, promo: null, shipping: 0, total: 64.8, currency: "usd" },
+  shipping: null, giftMessage: "Happy birthday, Leo!", notes: "Please ship before the 20th.", marketing: false,
+  stripe: { sessionId: "cs_test_1", paymentIntent: null, customer: null, fee: null }, fulfillment: null, refunds: [], refundedTotal: 0,
+  adminNotes: [], timeline: [{ at: "2026-10-11T12:00:00.000Z", status: "pending", text: "Checkout started." }],
+  emails: { confirmation: null, shipped: null, delivered: null, refund: [] }, source: "site", createdAt: "2026-10-11T12:00:00.000Z", paidAt: null,
+};
+const SESSION = {
+  id: "cs_test_1", payment_status: "paid", client_reference_id: null, amount_total: 6480, customer: "cus_1",
+  customer_details: { email: "ana@example.com", name: "Ana Souza", address: { country: "US" } },
+  shipping_details: { name: "Ana Souza", address: { line1: "1 Main St", line2: "Apt 4", city: "Atlanta", state: "GA", postal_code: "30301", country: "US" } },
+  total_details: { amount_discount: 0, amount_tax: 0 }, payment_intent: { id: "pi_1", latest_charge: { balance_transaction: { fee: 218 } } },
+};
+
+/* ---------------------------------------------------------------- layout math */
+test("geometry: US Letter, 12 tiles of 2.5 in, same numbers as tools/print_sheet.py", () => {
+  assert.equal(P.DPI, 300);
+  assert.equal(P.TILE_PX, 750);
+  assert.equal(P.TILE_PT, 180);
+  assert.deepEqual(P.PAGE_PT, { w: 612, h: 792 });
+  assert.equal(P.MARGIN_X, 36);
+  assert.equal(P.MARGIN_Y, 36);
+  const pt = P.tilePositions("pt");
+  assert.equal(pt.length, 12);
+  assert.deepEqual(pt[0], { i: 0, col: 0, row: 0, x: 36, y: 36, size: 180 });
+  assert.deepEqual(pt[5], { i: 5, col: 2, row: 1, x: 36 + 360, y: 36 + 180, size: 180 });
+  assert.deepEqual(pt[11], { i: 11, col: 2, row: 3, x: 396, y: 576, size: 180 });
+  assert.equal(pt[11].x + 180, 612 - 36, "the grid is centred horizontally");
+  assert.equal(pt[11].y + 180, 792 - 36, "and vertically");
+  // in pixels at 300 dpi: print_sheet.py puts the grid at (150, 150) on a 2550 x 3300 page
+  const px = P.tilePositions("px");
+  assert.deepEqual([px[0].x, px[0].y, px[0].size], [150, 150, 750]);
+  assert.deepEqual([px[11].x, px[11].y], [150 + 2 * 750, 150 + 3 * 750]);
+});
+
+test("crop marks sit on the outer grid lines, 15 px off the grid and 45 px long (in points)", () => {
+  const marks = P.cropMarks();
+  assert.equal(marks.length, 2 * (P.COLS + 1) + 2 * (P.ROWS + 1));
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  const topLeft = marks.find((m) => near(m.x1, 36) && near(m.x2, 36) && m.y2 < 36);
+  assert.ok(topLeft);
+  assert.ok(near(topLeft.y2, 36 - 3.6) && near(topLeft.y1, 36 - 3.6 - 10.8));
+  const rightBottom = marks.find((m) => near(m.y1, 756) && near(m.y2, 756) && m.x1 > 396 + 180);
+  assert.ok(rightBottom);
+  assert.ok(near(rightBottom.x1, 576 + 3.6) && near(rightBottom.x2, 576 + 3.6 + 10.8));
+  for (const m of marks) assert.ok(m.x1 >= 0 && m.x2 <= 612 && m.y1 >= 0 && m.y2 <= 792, "marks stay on the page");
+  // no mark crosses into a tile
+  for (const m of marks) assert.ok(m.x2 <= 36 || m.x1 >= 576 || m.y2 <= 36 || m.y1 >= 756);
+});
+
+test("page count: 12 per sheet", () => {
+  assert.deepEqual([0, 1, 11, 12, 13, 24, 25, 50].map(P.pageCount), [0, 1, 1, 1, 2, 2, 3, 5]);
+});
+
+test("fill: a pack with fewer photos than magnets repeats them in order (print_sheet.py --order, admin photoPlan)", () => {
+  assert.deepEqual(P.fillIndexes(9, 4), [0, 1, 2, 3, 0, 1, 2, 3, 0]);
+  assert.deepEqual(P.fillIndexes(4, 4), [0, 1, 2, 3]);
+  assert.deepEqual(P.fillIndexes(3, 5), [0, 1, 2], "more photos than magnets: the first ones");
+  assert.deepEqual(P.fillIndexes(5, 0), []);
+  assert.deepEqual(P.fillIndexes(0, 3), []);
+});
+
+test("planTiles: designs x qty, photo packs filled x qty, packages and custom items only on the slip", () => {
+  const plan = P.planTiles(ORDER);
+  assert.equal(plan.tiles.length, 3 + 1 + 9);
+  assert.equal(plan.sheets, 2);
+  assert.equal(plan.truncated, false);
+  assert.deepEqual(plan.tiles.slice(0, 3).map((t) => t.key), ["design:places/new-york", "design:places/new-york", "design:places/new-york"]);
+  assert.deepEqual(plan.tiles[0], { kind: "design", id: "places/new-york", collection: "places", slug: "new-york", title: "New York", key: "design:places/new-york" });
+  const photos = plan.tiles.filter((t) => t.kind === "photo");
+  assert.deepEqual(photos.map((t) => t.n), [1, 2, 3, 4, 1, 2, 3, 4, 1]);
+  assert.equal(photos[0].frame, "instant", "frame aliases are resolved (polaroid -> instant)");
+  assert.equal(photos[0].caption, "Summer 2026");
+  assert.equal(photos[0].pack, 1);
+  assert.equal(photos[4].key, photos[0].key, "repeated photos share a key, so the artwork is rendered once");
+  assert.deepEqual(plan.skipped.map((s) => [s.kind, s.size]), [["package", 12]]);
+  // placed on pages
+  const placed = P.placeTiles(plan.tiles);
+  assert.deepEqual([placed[0].page, placed[0].slot, placed[11].page, placed[11].slot, placed[12].page, placed[12].slot], [0, 0, 0, 11, 1, 0]);
+});
+
+test("planTiles: qty multiplies photo packs, photos without a file are skipped, a pack with no files is listed as skipped", () => {
+  const two = P.planTiles({ items: [{ kind: "photos", packSize: 4, qty: 2, photos: [{ path: "uploads/u/p/1.jpg", frame: "none" }, { path: "", frame: "none" }, { frame: "none" }] }] });
+  assert.equal(two.tiles.length, 8);
+  assert.ok(two.tiles.every((t) => t.path === "uploads/u/p/1.jpg"));
+  const none = P.planTiles({ items: [{ kind: "photos", packSize: 4, photos: [] }, { kind: "custom", title: "Wedding favours", amount: 120, magnets: 40 }] });
+  assert.equal(none.tiles.length, 0);
+  assert.equal(none.sheets, 0);
+  assert.deepEqual(none.skipped.map((s) => s.kind), ["photos", "custom"]);
+  assert.deepEqual(P.planTiles(null).tiles, []);
+  assert.deepEqual(P.planTiles({ items: [{ kind: "design", id: "x/y", qty: 0 }] }).tiles.length, 1, "qty 0 still prints one");
+});
+
+test("planTiles caps at MAX_TILES and says so", () => {
+  const plan = P.planTiles({ items: [{ kind: "design", id: "a/b", qty: 700 }] });
+  assert.equal(plan.tiles.length, P.MAX_TILES);
+  assert.equal(plan.truncated, true);
+  assert.equal(plan.total, 700);
+});
+
+test("windowPx: the frame window scaled 600 -> 750 and rounded to whole pixels", () => {
+  assert.deepEqual(P.windowPx(FRAMES.none), { x: 0, y: 0, w: 750, h: 750 });
+  assert.deepEqual(P.windowPx(FRAMES.white), { x: 125, y: 125, w: 500, h: 500 });
+  const inst = P.windowPx(FRAMES.instant);   // [94, 90, 412, 344]
+  assert.deepEqual(inst, { x: 118, y: 113, w: 515, h: 430 });
+  assert.ok(inst.x + inst.w <= 750 && inst.y + inst.h <= 750);
+  const hex = P.windowPx(FRAMES.honeycomb);  // fractional window
+  assert.ok(hex.w > 0 && hex.h > 0 && hex.x + hex.w <= 750 && hex.y + hex.h <= 750);
+});
+
+test("packing slip rows, address lines and the magnet count", () => {
+  const order = { ...ORDER, shipping: { name: "Ana Souza", phone: "", address: { line1: "1 Main St", line2: "Apt 4", city: "Atlanta", state: "GA", postal_code: "30301", country: "US" } } };
+  assert.deepEqual(P.addressLines(order.shipping), ["Ana Souza", "1 Main St", "Apt 4", "Atlanta, GA 30301"]);
+  assert.deepEqual(P.addressLines({ name: "Léa", address: { line1: "10 Rue", city: "Montréal", state: "QC", postal_code: "H2X", country: "CA" } }), ["Léa", "10 Rue", "Montréal, QC H2X", "CA"]);
+  assert.deepEqual(P.addressLines(null), []);
+  assert.equal(P.magnetCount(order), 3 + 1 + 9 + 12);
+  const rows = P.slipRows(order, FRAMES);
+  assert.equal(rows.length, 4);
+  assert.deepEqual([rows[0].qty, rows[0].title, rows[0].sub], [3, "New York", "Places · 2 × 2 in magnet"]);
+  assert.equal(rows[2].title, "Photo magnets, 9-pack");
+  assert.match(rows[2].sub, /9 magnets from 4 photos/);
+  assert.deepEqual(rows[2].lines, ["1. Instant photo · “Summer 2026” ×3", "2. No border ×2", "3. Postage stamp · “WITH LOVE” ×2", "4. Linen & gold leaf · “Ana & Leo · 06.14.26” ×2"]);
+  assert.deepEqual([rows[3].qty, rows[3].sub], [1, "12 custom magnets · artwork by email"]);
+  assert.equal(P.fileName(order), "LHH-1042-print-sheet.pdf");
+  assert.equal(P.storagePath("abc"), "orders/abc/print-sheet.pdf");
+  assert.equal(P.fmtDate("2026-10-11T12:00:00.000Z"), "Oct 11, 2026");
+});
+
+/* ---------------------------------------------------------------- captions with real font metrics */
+test("font metrics read from the bundled TTFs match the Python tool (fontTools) to the hundredth", () => {
+  assert.equal(FM.measure("Summer 2026", "serif", 46).toFixed(2), "292.01");
+  assert.equal(FM.measure("WITH LOVE", "jos", 30, 4).toFixed(2), "211.19");
+  for (const k of Object.keys(FM.FONTS)) {
+    const m = FM.metrics(k);
+    assert.ok(m.unitsPerEm >= 1000, k);
+    assert.ok(FM.measure("Hello", k, 40) > 50 && FM.measure("Hello", k, 40) < 200, k);
+    assert.ok(FM.measure("Hello", k, 40) < FM.measure("Hello there", k, 40), `${k}: longer is wider`);
+  }
+  assert.ok(FM.measure("\u{1F41D}", "serif", 40) === 20, "a glyph the font lacks counts half an em, like common.py");
+});
+
+test("captionSvg is a faithful port of tools/frames.py caption_svg (same output for the same input)", () => {
+  assert.equal(FM.captionSvg(FRAMES.instant, "Summer 2026"),
+    '<text x="300" y="494" text-anchor="middle" font-family="\'Playfair Display\', Georgia, serif" font-style="italic" font-weight="700" font-size="46" fill="#2D3A6B" transform="rotate(-2 300 494)">Summer 2026</text>');
+  // upper-cased, cut to the frame's max (20), shrunk to fit 330 units with letter-spacing 4 (the x shifts by ls/2)
+  assert.equal(FM.captionSvg(FRAMES.stamp, "with love and a very long caption here"),
+    '<text x="302" y="494" text-anchor="middle" font-family="\'Josefin Sans\', sans-serif" font-weight="700" font-size="19" letter-spacing="4" fill="#FBF5EA">WITH LOVE AND A VERY</text>');
+  // the kicker comes first
+  assert.equal(FM.captionSvg(FRAMES.postcard, "Lisbon"),
+    '<text x="302.5" y="452" text-anchor="middle" font-family="\'Josefin Sans\', sans-serif" font-weight="700" font-size="17" letter-spacing="5" fill="#B8432F">GREETINGS FROM</text>' +
+    '<text x="300" y="498" text-anchor="middle" font-family="\'DM Serif Display\', Georgia, serif" font-size="46" fill="#1F4E8C">Lisbon</text>');
+  assert.equal(FM.captionSvg(FRAMES.sports, "Mia #12"),
+    '<text x="301.5" y="508" text-anchor="middle" font-family="\'Bebas Neue\', Impact, sans-serif" font-size="64" letter-spacing="3" fill="#FFFFFF">MIA #12</text>');
+  assert.equal(FM.captionSvg(FRAMES.white, "anything"), "", "frames without a caption draw nothing");
+  assert.equal(FM.captionSvg(FRAMES.instant, "   "), "");
+  assert.match(FM.captionSvg(FRAMES.wedding, 'Ana & Leo <3 "forever"'), /Ana &amp; Leo &lt;3 &quot;forever&quot;/);
+});
+
+test("caption fitting never goes below the frame's minimum size and always fits otherwise", () => {
+  for (const f of Object.values(FRAMES).filter((x) => x.caption)) {
+    const c = f.caption;
+    const long = "W".repeat(c.max || 40);
+    const svg = FM.captionSvg(f, long);
+    const sizeOf = (markup) => Number(markup.match(/font-size="(\d+)"/g).pop().match(/\d+/)[0]);   // the caption is the last <text>
+    const size = sizeOf(svg);
+    assert.ok(size >= c.min && size <= c.size, `${f.id}: ${size} within [${c.min}, ${c.size}]`);
+    const w = FM.measure(FM.captionText(f, long), c.font, size, c.ls || 0);
+    assert.ok(size === c.min || w <= c.w, `${f.id}: fits or is at the minimum`);
+    const short = FM.captionSvg(f, "Hi");
+    assert.equal(sizeOf(short), c.size, `${f.id}: short captions keep the full size`);
+  }
+  assert.equal(FM.captionText(FRAMES.stamp, "  hello world, this is long  "), "HELLO WORLD, THIS IS");
+});
+
+test("overlay and placeholder SVGs are 750 px canvases over the frames' 600-unit viewBox", () => {
+  const o = P.overlaySvg("<g id=\"frame\"/>", "<text>cap</text>");
+  assert.match(o, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*width="750" height="750" viewBox="0 0 600 600">/);
+  assert.match(o, /<g id="frame"\/><text>cap<\/text><\/svg>$/);
+  const ph = P.placeholderSvg(["Photo 3 could not be read", "a & b"]);
+  assert.match(ph, /width="750" height="750"/);
+  assert.match(ph, /a &amp; b/);
+  assert.match(ph, /font-family="Jost/);
+});
+
+test("ensureFontconfig points librsvg at functions/fonts through a filled-in fonts.conf in the temp dir", () => {
+  P.ensureFontconfig();
+  const file = process.env.FONTCONFIG_FILE;
+  assert.ok(file && fs.existsSync(file), "fonts.conf written");
+  const conf = fs.readFileSync(file, "utf8");
+  assert.ok(conf.includes(`<dir>${FM.FONTS_DIR}</dir>`));
+  assert.ok(!conf.includes("@FONTS_DIR@") && !conf.includes("@CACHE_DIR@"));
+  assert.equal(path.dirname(file), process.env.FONTCONFIG_PATH);
+  for (const f of Object.values(FM.FONTS)) assert.ok(fs.existsSync(path.join(FM.FONTS_DIR, f.file)), f.file);
+});
+
+/* ---------------------------------------------------------------- email attachments */
+test("mail.send attaches files to the Resend payload as base64, skipping anything over the limit", async () => {
+  const { net } = setup();
+  const pdf = Buffer.from("%PDF-1.5 hello");
+  assert.deepEqual(mail.encodeAttachments([{ filename: "LHH-1 print/sheet.pdf", content: pdf, contentType: "application/pdf" }, { filename: "big.pdf", content: Buffer.alloc(mail.MAX_ATTACHMENT_BYTES + 1) }, null, { filename: "empty" }]),
+    [{ filename: "LHH-1 print-sheet.pdf", content: pdf.toString("base64"), content_type: "application/pdf" }]);
+  assert.deepEqual(mail.encodeAttachments([{ filename: "x.txt", content: Buffer.from("hi").toString("base64") }]), [{ filename: "x.txt", content: "aGk=" }], "base64 strings pass through");
+  await mail.send({ to: "support@littlehivehouse.com", kind: "admin_new_order", data: { order: { number: "LHH-9", items: [] } }, attachments: [{ filename: "a.pdf", content: pdf }] });
+  assert.equal(net.emails.length, 1);
+  assert.deepEqual(net.emails[0].attachments, [{ filename: "a.pdf", content: pdf.toString("base64") }]);
+  await mail.send({ to: "ana@example.com", kind: "order_confirmation", data: { order: { number: "LHH-9", items: [] } } });
+  assert.equal(net.emails[1].attachments, undefined, "no attachments key when there are none");
+});
+
+/* ---------------------------------------------------------------- the paid-order path */
+test("a newly paid order gets its PDF in Storage, printSheet on the order and the PDF attached to the admin email", async () => {
+  const { db, bucket, net } = setup();
+  const checkout = require("../checkout");
+  await db.collection("orders").doc("ord1").set(ORDER);
+  const res = await checkout.completeCheckout({ ...SESSION, client_reference_id: "ord1" });
+  assert.equal(res.newlyPaid, true);
+  const o = db.get("orders/ord1");
+  assert.equal(o.status, "paid");
+  assert.equal(o.printSheet.path, "orders/ord1/print-sheet.pdf");
+  assert.equal(o.printSheet.tiles, 13);
+  assert.equal(o.printSheet.sheets, 2);
+  assert.equal(o.printSheet.pages, 3);
+  assert.ok(o.printSheet.at && o.printSheet.bytes > 0);
+  const f = bucket.files.get("orders/ord1/print-sheet.pdf");
+  assert.ok(f, "saved in the bucket");
+  assert.equal(f.contentType, "application/pdf");
+  assert.equal(f.data.toString(), "%PDF-1.5 fake ord1 13 tiles");
+  assert.equal(f.metadata.orderId, "ord1");
+  assert.deepEqual(net.emails.map((e) => e.to[0]), ["ana@example.com", "support@littlehivehouse.com"]);
+  assert.equal(net.emails[0].attachments, undefined, "the customer never gets the print sheet");
+  const adminMail = net.emails[1];
+  assert.deepEqual(adminMail.attachments, [{ filename: "LHH-1001-print-sheet.pdf", content: f.data.toString("base64"), content_type: "application/pdf" }]);
+  assert.match(adminMail.subject, /print sheet attached/);
+  assert.match(adminMail.text, /Print sheet attached \(2 sheets/);
+  assert.match(adminMail.text, /100%/);
+  assert.doesNotMatch(adminMail.text, /Download the 4 customer photos/, "no need to download photos by hand any more");
+  // paying twice does not rebuild or re-send
+  const again = await checkout.completeCheckout({ ...SESSION, client_reference_id: "ord1" });
+  assert.equal(again.newlyPaid, false);
+  assert.equal(net.emails.length, 2);
+});
+
+test("a PDF over the attachment limit is linked instead of attached; a renderer failure never blocks the order", async () => {
+  const big = setup(fakeBuilder({ pdf: Buffer.alloc(mail.MAX_ATTACHMENT_BYTES + 10, 1) }));
+  const checkout = require("../checkout");
+  await big.db.collection("orders").doc("ord2").set(ORDER);
+  await checkout.completeCheckout({ ...SESSION, id: "cs_2", client_reference_id: "ord2" });
+  assert.equal(big.db.get("orders/ord2").printSheet.path, "orders/ord2/print-sheet.pdf");
+  assert.equal(big.net.emails[1].attachments, undefined);
+  assert.match(big.net.emails[1].text, /too big to attach/);
+  assert.doesNotMatch(big.net.emails[1].subject, /attached/);
+
+  const broken = setup(async () => { throw new Error("sharp exploded"); });
+  await broken.db.collection("orders").doc("ord3").set(ORDER);
+  const res = await checkout.completeCheckout({ ...SESSION, id: "cs_3", client_reference_id: "ord3" });
+  assert.equal(res.newlyPaid, true);
+  const o = broken.db.get("orders/ord3");
+  assert.equal(o.status, "paid");
+  assert.equal(o.number, "LHH-1001");
+  assert.equal(o.printSheet.path, null);
+  assert.match(o.printSheet.error, /sharp exploded/);
+  assert.equal(broken.net.emails.length, 2, "both emails still go out");
+  assert.match(broken.net.emails[1].text, /could not be made automatically/);
+  assert.ok(!broken.bucket.files.has("orders/ord3/print-sheet.pdf"));
+});
+
+test("a paid payment-link (custom) order gets a slip-only PDF", async () => {
+  const { db, net } = setup();
+  const checkout = require("../checkout");
+  const custom = { ...ORDER, number: null, items: [{ kind: "custom", title: "Wedding favours", amount: 120, magnets: 40 }], source: "payment_link",
+    stripe: { sessionId: null, paymentIntent: null, customer: null, fee: null, paymentLink: "plink_1", paymentLinkUrl: "https://buy.stripe.com/x" } };
+  await db.collection("orders").doc("ord4").set(custom);
+  const res = await checkout.completeCheckout({ ...SESSION, id: "cs_4", client_reference_id: null, metadata: {}, payment_link: "plink_1" });
+  assert.equal(res.orderId, "ord4");
+  const o = db.get("orders/ord4");
+  assert.deepEqual([o.printSheet.tiles, o.printSheet.sheets, o.printSheet.pages], [0, 0, 1]);
+  assert.equal(net.emails[1].attachments.length, 1);
+});
+
+test("adminPrintSheet: admins only, paid orders only, returns a short-lived signed link, rebuilds on demand or when the file is gone", async () => {
+  const { db, bucket } = setup();
+  const checkout = require("../checkout"), admin = require("../admin");
+  await db.collection("orders").doc("ord5").set(ORDER);
+  await checkout.completeCheckout({ ...SESSION, id: "cs_5", client_reference_id: "ord5" });
+  const first = db.get("orders/ord5").printSheet;
+
+  await assert.rejects(admin.adminPrintSheet({ orderId: "ord5" }, null), (e) => e.code === "unauthenticated");
+  await assert.rejects(admin.adminPrintSheet({ orderId: "ord5" }, { uid: "u", token: { email: "x@y.com" } }), (e) => e.code === "permission-denied");
+  await assert.rejects(admin.adminPrintSheet({ orderId: "nope" }, ADMIN), (e) => e.code === "not-found");
+  await db.collection("orders").doc("pend").set({ ...ORDER, status: "pending" });
+  await assert.rejects(admin.adminPrintSheet({ orderId: "pend" }, ADMIN), (e) => e.code === "failed-precondition");
+
+  const r1 = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
+  assert.equal(r1.rebuilt, false);
+  assert.equal(r1.signed, true);
+  assert.match(r1.url, /^https:\/\/storage\.googleapis\.com\/test-bucket\/orders%2Ford5%2Fprint-sheet\.pdf\?X-Goog-Signature=/);
+  assert.ok(Date.parse(r1.expiresAt) - Date.now() <= 60 * 60 * 1000 + 5000);
+  const signed = bucket.signed[bucket.signed.length - 1];
+  assert.equal(signed.opts.action, "read");
+  assert.equal(signed.opts.version, "v4");
+  assert.match(signed.opts.responseDisposition, /inline; filename="LHH-1001-print-sheet\.pdf"/);
+  assert.equal(r1.printSheet.at, first.at, "no rebuild when the file is there");
+
+  await new Promise((r) => setTimeout(r, 5));
+  const r2 = await admin.adminPrintSheet({ orderId: "ord5", rebuild: true }, ADMIN);
+  assert.equal(r2.rebuilt, true);
+  assert.notEqual(r2.printSheet.at, first.at);
+  assert.equal(db.get("orders/ord5").printSheet.by, "owner@lhh.com");
+
+  bucket.files.delete("orders/ord5/print-sheet.pdf");
+  const r3 = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
+  assert.equal(r3.rebuilt, true, "missing file: made again");
+  assert.ok(bucket.files.has("orders/ord5/print-sheet.pdf"));
+
+  // when the runtime can't sign (no IAM signBlob), fall back to a download-token link rather than failing
+  bucket.noSigning = true;
+  const r4 = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
+  assert.equal(r4.signed, false);
+  assert.match(r4.url, /^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/test-bucket\/o\/orders%2Ford5%2Fprint-sheet\.pdf\?alt=media&token=/);
+  const r5 = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
+  assert.equal(r5.url, r4.url, "the token is kept, not minted again");
+
+  // a renderer failure is a clear error for the admin
+  P.setBuilder(async () => { throw new Error("no sharp here"); });
+  await assert.rejects(admin.adminPrintSheet({ orderId: "ord5", rebuild: true }, ADMIN), (e) => e.code === "unavailable" && /no sharp here/.test(e.message));
+});
+
+test("buildPrintSheet without sharp/pdfkit installed fails cleanly (the real renderer is only loaded on use)", async () => {
+  P.setBuilder(null);
+  let hasSharp = true;
+  try { require.resolve("sharp"); } catch (e) { hasSharp = false; }
+  if (hasSharp) return;   // CI with node_modules: covered after deploy
+  await assert.rejects(P.buildPrintSheet("x", { items: [{ kind: "design", id: "places/new-york", qty: 1 }] }, { fetchImpl: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }) }),
+    (e) => e.code === "MODULE_NOT_FOUND");
+});
