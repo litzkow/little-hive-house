@@ -197,12 +197,15 @@
       'th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7A6A58;background:#FBF6EC}td.n,th.n{text-align:right;white-space:nowrap}' +
       'tr.sum td{font-weight:700;border-top:2px solid #2B2118}.neg{color:#B23A2A}.why{display:block;font-size:11px;color:#7A6A58}' +
       '.bar{position:sticky;top:0;background:#FFF6E5;border:1px solid #EADFCB;border-radius:12px;padding:12px 14px;margin:-8px 0 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}' +
-      '.bar button{font:600 15px inherit;background:#F2A81D;border:0;border-radius:999px;padding:10px 18px;cursor:pointer}' +
+      '.bar button{font:600 15px -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#2B2118;background:#F2A81D;border:0;border-radius:999px;padding:10px 18px;cursor:pointer}' +
+      '.bar .back{background:#fff;border:1.5px solid #2B2118}' +
+      '@media (max-width:640px){body{margin:14px;font-size:12px}th,td{padding:5px 4px}th{font-size:9.5px;letter-spacing:.02em}h1{font-size:19px}header img{width:38px;height:38px}}' +
       '.wide{overflow-x:auto}@media print{.bar{display:none}body{margin:0}h2{break-after:avoid}tr{break-inside:avoid}}';
     var logo = location.origin + '/assets/favicon.svg';
     w.document.open();
     w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>' + css + '</style></head><body>' +
-      '<div class="bar"><button onclick="print()">Save as PDF / Print</button><span>On iPhone: tap the button, then the Share icon, then <b>Save to Files</b>.</span></div>' +
+      '<div class="bar"><button class="back" onclick="goBack()">&larr; Back</button><button onclick="print()">Save as PDF / Print</button><span>On iPhone: tap Save as PDF / Print, then the Share icon, then <b>Save to Files</b>.</span></div>' +
+      '<script>function goBack(){try{window.close()}catch(e){}setTimeout(function(){location.href=' + JSON.stringify(location.origin + '/admin/') + '},250)}<\/script>' +
       '<header><img src="' + logo + '" alt=""><div><h1>' + esc(title) + '</h1><p class="sub">' + esc(sub) + ' · Little Hive House · made ' + esc(fmtDate(Date.now())) + '</p></div></header>' +
       body + '</body></html>');
     w.document.close();

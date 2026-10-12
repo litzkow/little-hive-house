@@ -5,7 +5,7 @@
    Network first, cache only as a fallback, so a new admin version shows up on the next open. */
 'use strict';
 
-var CACHE = 'hive-admin-shell-v1';
+var CACHE = 'hive-admin-shell-v2';
 var SHELL = ['./', 'index.html', 'admin.css', 'reports.js', 'zip.js', 'admin.js', 'admin-order.js', 'admin-more.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', '../assets/favicon.svg'];
 
