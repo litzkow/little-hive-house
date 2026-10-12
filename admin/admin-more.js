@@ -94,7 +94,7 @@
       }).join('') + '</select></label>' +
       '<div class="seg" role="group" aria-label="Period"><button type="button" data-act="rscope" data-scope="month" aria-pressed="' + (u.scope === 'month') + '">Month</button>' +
       '<button type="button" data-act="rscope" data-scope="year" aria-pressed="' + (u.scope === 'year') + '">12 months</button></div>' +
-      '<button class="btn btn-ghost btn-sm" data-act="reportCsv">' + icon('download') + 'CSV</button>') +
+      '<button class="btn btn-ghost btn-sm" data-act="reportPdf">' + icon('download') + 'PDF</button>') +
       '<div class="tiles">' +
       h.tile('Net sales', h.signedMoney(m.netSales), delta(m.netSales, prev && prev.netSales, true) || h.plural(m.orders, 'order'), true) +
       h.tile('Profit', '<span class="' + (m.profit < 0 ? 'neg' : '') + '">' + h.signedMoney(m.profit) + '</span>', m.margin == null ? 'No sales' : h.pct(m.margin) + ' margin · ROI ' + h.pct(m.roi)) +
@@ -128,7 +128,7 @@
       (top.collections.length ? h.hbars(top.collections.map(function (c) {
         return { label: c.special ? c.title : h.colName(c.key), sub: money(c.revenue) + ' before discounts', value: c.qty, valueText: h.int(c.qty) };
       })) : '<div class="empty">Nothing sold in this period.</div>') + '</section></div>' +
-      '<section class="card flush gap-top"><div class="card-head"><div><h2>Month by month</h2><p class="sub">Swipe sideways on a phone</p></div><button class="btn btn-ghost btn-sm" data-act="reportCsv">' + icon('download') + 'CSV</button></div>' +
+      '<section class="card flush gap-top"><div class="card-head"><div><h2>Month by month</h2><p class="sub">Swipe sideways on a phone</p></div><button class="btn btn-ghost btn-sm" data-act="reportPdf">' + icon('download') + 'PDF</button></div>' +
       '<div class="table-wrap"><table class="t compact sticky-first"><thead><tr><th>Month</th>' + REPORT_COLS.map(function (c) { return '<th class="num">' + esc(c[0]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.slice().reverse().map(function (x) {
         return '<tr' + (x.key === u.month ? ' class="sel"' : '') + '><td><a class="ord" href="#reports?month=' + x.key + '">' + esc(R.monthLabel(x.key, true)) + '</a></td>' + REPORT_COLS.map(function (c) {
@@ -154,6 +154,36 @@
     }[reason] || '';
   }
   ACT.rscope = function (el) { S.ui.reports.scope = el.getAttribute('data-scope') === 'year' ? 'year' : 'month'; var y = scrollY; h.route(); scrollTo(0, y); };
+  ACT.reportPdf = function () {
+    var u = S.ui.reports, rows = R.monthly(S.orders, S.settings, u.month, 12);
+    var m = u.scope === 'year' ? R.totalsOf(rows) : rows[rows.length - 1];
+    var period = u.scope === 'year' ? R.monthLabel(R.shiftMonth(u.month, -11), true) + ' – ' + R.monthLabel(u.month, true) : R.monthLabel(u.month, true);
+    var range = u.scope === 'year' ? { from: R.monthRange(R.shiftMonth(u.month, -11)).from, to: R.monthRange(u.month).to } : R.monthRange(u.month);
+    var pl = [
+      ['Gross sales', m.grossSales], ['Discounts', -m.discounts], ['Shipping charged', m.shippingCharged], ['Refunds', -m.refunds],
+      ['Net sales', m.netSales, 'sum'], ['Stripe fees', -m.stripeFees], ['Stripe Tax fees', -m.stripeTaxFees], ['Shipping labels', -m.labels],
+      ['Product costs', -m.productCosts], ['Fixed costs', -m.fixedCosts], ['Profit', m.profit, 'sum'],
+      ['Set aside for income tax (' + m.incomeTaxPct + '%)', -m.incomeTaxReserve], ['Yours to keep', m.profitAfterTax, 'sum']
+    ];
+    var plHtml = '<table><tbody>' + pl.map(function (x) { return '<tr' + (x[2] ? ' class="sum"' : '') + '><td>' + h.esc(x[0]) + '</td><td class="n' + (x[1] < 0 ? ' neg' : '') + '">' + h.signedMoney(x[1]) + '</td></tr>'; }).join('') + '</tbody></table>';
+    var states = Object.keys(m.taxByState || {}).filter(function (k) { return Math.abs(m.taxByState[k]) >= 0.005; }).map(function (k) { return { st: k === '?' ? 'Unknown' : k, amt: m.taxByState[k] }; });
+    var reasons = R.refundsByReason(S.orders, range);
+    var body = '<p><b>' + h.int(m.orders) + '</b> orders · <b>' + h.int(m.magnets) + '</b> magnets · margin ' + h.pct(m.margin) + ' · ROI ' + h.pct(m.roi) + '</p>' +
+      '<h2>Where the money went</h2>' + plHtml +
+      '<h2>Sales tax (not your money)</h2>' + h.pdfTable(states, [['State', 'st'], ['Owed', 'amt', 'money']], { st: 'Total owed to the state', amt: m.taxOwed }) +
+      '<h2>Refunds by reason</h2>' + h.pdfTable(reasons, [['Reason', 'label'], ['Refunds', 'count', 'int'], ['Amount', 'amount', 'money']]) +
+      '<h2>Month by month</h2>' + h.pdfTable(rows, [['Month', function (r) { return R.monthLabel(r.key, true); }], ['Orders', 'orders', 'int'], ['Net sales', 'netSales', 'money'],
+        ['Costs', 'costs', 'money'], ['Profit', 'profit', 'signed'], ['Margin', 'margin', 'pct'], ['Sales tax owed', 'taxOwed', 'money'], ['Refunds', 'refunds', 'money']]);
+    h.printDoc('Sales report', period, body);
+  };
+  ACT.custPdf = function () {
+    h.printDoc('Customers', h.plural(R.customers(S.orders).length, 'customer'), h.pdfTable(R.customers(S.orders), [['Name', 'name'], ['Email', 'email'], ['City', 'city'],
+      ['Orders', 'orders', 'int'], ['Spent', 'spent', 'money'], ['Refunded', 'refunded', 'money'], ['Last order', function (c) { return h.fmtDate(c.last); }], ['Repeat', function (c) { return c.repeat ? 'yes' : ''; }]]));
+  };
+  ACT.subPdf = function () {
+    var list = (S.subscribers || []).filter(function (s) { return s.email && !s.unsubscribed; });
+    h.printDoc('Subscribers', h.plural(list.length, 'subscriber'), h.pdfTable(list, [['Email', 'email'], ['Source', 'source'], ['Joined', function (s) { return h.fmtDate(R.toMs(s.at || s.createdAt)); }]]));
+  };
   ACT.reportCsv = function () {
     var u = S.ui.reports, rows = R.monthly(S.orders, S.settings, u.month, 12);
     var cols = [['Month', 'key']].concat(REPORT_COLS.map(function (c) { return [c[0] + (c[2] === 'pct' ? ' %' : ''), c[1]]; }));
@@ -166,7 +196,7 @@
     var all = R.customers(S.orders), u = S.ui.customers;
     var repeat = all.filter(function (c) { return c.repeat; }).length;
     var spent = all.reduce(function (a, c) { return a + c.spent; }, 0);
-    var html = head('Customers', 'Customers', 'Everyone who has paid for an order', '<button class="btn btn-ghost btn-sm" data-act="custCsv">' + icon('download') + 'Export CSV</button>') +
+    var html = head('Customers', 'Customers', 'Everyone who has paid for an order', '<button class="btn btn-ghost btn-sm" data-act="custPdf">' + icon('download') + 'PDF</button>') +
       '<div class="tiles">' + h.tile('Customers', h.int(all.length), '', true) + h.tile('Came back', h.int(repeat), all.length ? h.pct(repeat / all.length * 100) + ' ordered more than once' : '') +
       h.tile('Average spent', money(all.length ? spent / all.length : 0), 'per customer, after refunds') + '</div>' +
       '<div class="filters"><label class="search"><span class="sr">Search customers</span>' + icon('search') + '<input class="input" type="search" id="c-q" placeholder="Search by name, email or city" value="' + esc(u.q) + '"></label></div>' +
@@ -410,12 +440,12 @@
     var month = all.filter(function (s) { var t = R.toMs(s.at || s.createdAt); return t >= mk.from && t < mk.to; }).length;
     var sources = {};
     all.forEach(function (s) { var k = s.source || 'site'; sources[k] = (sources[k] || 0) + 1; });
-    var html = head('Subscribers', 'Subscribers', 'People who asked for news and deals', '<button class="btn btn-ghost btn-sm" data-act="subCsv">' + icon('download') + 'Export CSV</button>') + errBox('subscribers') +
+    var html = head('Subscribers', 'Subscribers', 'People who asked for news and deals', '<button class="btn btn-ghost btn-sm" data-act="subPdf">' + icon('download') + 'PDF</button> <button class="btn btn-ghost btn-sm" data-act="subCsv">' + icon('download') + 'For email tools (CSV)</button>') + errBox('subscribers') +
       '<div class="tiles">' + h.tile('Subscribers', h.int(all.length), gone ? h.int(gone) + ' unsubscribed (not listed)' : '', true) + h.tile('New this month', h.int(month), '') +
       h.tile('Top source', esc(Object.keys(sources).sort(function (a, b) { return sources[b] - sources[a]; })[0] || '—'), '') + '</div>' +
       '<div class="filters"><label class="search"><span class="sr">Search</span>' + icon('search') + '<input class="input" type="search" id="s-q" placeholder="Search emails" value="' + esc(u.q) + '"></label></div>' +
       '<section class="card flush" id="s-list"></section>' +
-      '<p class="tiny faint gap-top">Export the CSV and import it in your email tool (Mailchimp, Kit…). Every marketing email must include the unsubscribe link.</p>';
+      '<p class="tiny faint gap-top">PDF is a list to read or print. The CSV file is only for importing these emails into an email tool (Mailchimp, Kit…). Every marketing email must include the unsubscribe link.</p>';
     return {
       title: 'Subscribers', html: html, after: function () {
         var draw = function () {

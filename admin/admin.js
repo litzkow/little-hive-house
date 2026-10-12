@@ -186,6 +186,49 @@
     downloadBlob(new Blob(['﻿' + R.toCSV(rows, cols)], { type: 'text/csv;charset=utf-8' }), name);
     toast('Downloaded ' + name);
   }
+  /* PDF: a clean printable page in a new tab; Print > Save as PDF (iPhone: Print, then Share > Save to Files) */
+  function printDoc(title, sub, body) {
+    var w = window.open('', '_blank');
+    if (!w) { toast('Your browser blocked the new tab. Allow pop-ups for this page and try again.', true); return; }
+    var css = 'body{font:13px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#2B2118;margin:28px;background:#fff}' +
+      'header{display:flex;align-items:center;gap:14px;border-bottom:2px solid #F2A81D;padding-bottom:12px;margin-bottom:18px}' +
+      'header img{width:46px;height:46px}h1{font-size:22px;margin:0}h2{font-size:16px;margin:22px 0 8px}.sub{color:#7A6A58;margin:2px 0 0}' +
+      'table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #EADFCB;vertical-align:top}' +
+      'th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7A6A58;background:#FBF6EC}td.n,th.n{text-align:right;white-space:nowrap}' +
+      'tr.sum td{font-weight:700;border-top:2px solid #2B2118}.neg{color:#B23A2A}.why{display:block;font-size:11px;color:#7A6A58}' +
+      '.bar{position:sticky;top:0;background:#FFF6E5;border:1px solid #EADFCB;border-radius:12px;padding:12px 14px;margin:-8px 0 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}' +
+      '.bar button{font:600 15px inherit;background:#F2A81D;border:0;border-radius:999px;padding:10px 18px;cursor:pointer}' +
+      '.wide{overflow-x:auto}@media print{.bar{display:none}body{margin:0}h2{break-after:avoid}tr{break-inside:avoid}}';
+    var logo = location.origin + '/assets/favicon.svg';
+    w.document.open();
+    w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>' + css + '</style></head><body>' +
+      '<div class="bar"><button onclick="print()">Save as PDF / Print</button><span>On iPhone: tap the button, then the Share icon, then <b>Save to Files</b>.</span></div>' +
+      '<header><img src="' + logo + '" alt=""><div><h1>' + esc(title) + '</h1><p class="sub">' + esc(sub) + ' · Little Hive House · made ' + esc(fmtDate(Date.now())) + '</p></div></header>' +
+      body + '</body></html>');
+    w.document.close();
+    setTimeout(function () { try { w.focus(); w.print(); } catch (e) { /* the button is there */ } }, 600);
+  }
+  /* cols: [label, key or fn(row), kind] with kind 'money' | 'int' | 'pct' | 'signed' | '' */
+  function pdfTable(rows, cols, sumRow) {
+    var cell = function (v, kind) {
+      if (v == null || v === '') return '';
+      if (kind === 'money') return money(v);
+      if (kind === 'signed') return signedMoney(v);
+      if (kind === 'int') return int(v);
+      if (kind === 'pct') return pct(v);
+      return esc(v);
+    };
+    var num = function (k) { return k && k !== ''; };
+    var tr = function (r, cls) {
+      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' + cols.map(function (c) {
+        var v = typeof c[1] === 'function' ? c[1](r) : r[c[1]];
+        return '<td' + (num(c[2]) ? ' class="n"' : '') + '>' + cell(v, c[2]) + '</td>';
+      }).join('') + '</tr>';
+    };
+    return '<div class="wide"><table><thead><tr>' + cols.map(function (c) { return '<th' + (num(c[2]) ? ' class="n"' : '') + '>' + esc(c[0]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      (rows.length ? rows.map(function (r) { return tr(r); }).join('') : '<tr><td colspan="' + cols.length + '">Nothing here yet.</td></tr>') +
+      (sumRow ? tr(sumRow, 'sum') : '') + '</tbody></table></div>';
+  }
   function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
   /* a small promise-based dialog */
@@ -734,7 +777,7 @@
     if (!u.tab) u.tab = counts.to_fulfil ? 'to_fulfil' : 'all';
     var html = '<div class="page-head"><div><p class="eyebrow">Orders</p><h1>Orders</h1></div><div class="actions">' +
       '<button class="btn btn-ghost btn-sm" type="button" data-act="refresh">' + icon('refresh') + 'Refresh</button>' +
-      '<button class="btn btn-ghost btn-sm" type="button" data-act="ordersCsv">' + icon('download') + 'Export CSV</button></div></div>' +
+      '<button class="btn btn-ghost btn-sm" type="button" data-act="ordersPdf">' + icon('download') + 'PDF</button></div></div>' +
       '<nav class="tabs" aria-label="Order status">' + TABS.map(function (t) {
         return '<a href="#orders?tab=' + t[0] + '"' + (u.tab === t[0] ? ' aria-current="true"' : '') + '>' + t[1] + '<span class="n">' + int(counts[t[0]]) + '</span></a>';
       }).join('') + '</nav>' +
@@ -801,6 +844,19 @@
       });
     });
   };
+  ACT.ordersPdf = function () {
+    var list = filteredOrders();
+    var tot = { order: 'Total', mags: 0, total: 0, refunded: 0 };
+    list.forEach(function (o) { tot.mags += R.magnetsOf(o); tot.total += R.pricing(o).total; tot.refunded += R.refundedTotal(o); });
+    printDoc('Orders', h_tabName() + ' · ' + plural(list.length, 'order'), pdfTable(list, [
+      ['Order', function (o) { return o.order || orderNo(o); }], ['Date', function (o) { return o.order ? '' : fmtDate(R.orderDate(o) || R.toMs(o.createdAt)); }],
+      ['Customer', function (o) { return o.order ? '' : custName(o); }], ['Status', function (o) { return o.order ? '' : STAGE_LABEL[R.stage(o)]; }],
+      ['Items', function (o) { return o.order ? '' : itemsSummary(o); }], ['Magnets', function (o) { return o.order ? o.mags : R.magnetsOf(o); }, 'int'],
+      ['Total', function (o) { return o.order ? o.total : R.pricing(o).total; }, 'money'], ['Refunded', function (o) { return o.order ? o.refunded : R.refundedTotal(o); }, 'money'],
+      ['Tracking', function (o) { return o.order ? '' : (o.fulfillment || {}).tracking || ''; }]
+    ], tot));
+  };
+  function h_tabName() { var t = S.ui.orders.tab || 'all'; return t.charAt(0).toUpperCase() + t.slice(1).replace(/_/g, ' '); }
   ACT.ordersCsv = function () {
     var list = filteredOrders();
     var a = function (o) { return (o.shipping && o.shipping.address) || {}; };
@@ -820,7 +876,7 @@
 
   window.LHHAdmin = { parseHash: parseHash, S: S, VIEWS: VIEWS, ACT: ACT, R: R, h: { esc: esc, money: money, moneyShort: moneyShort, signedMoney: signedMoney, pct: pct, int: int, plural: plural,
     fmtDate: fmtDate, fmtDT: fmtDT, ago: ago, days: days, colName: colName, custName: custName, orderNo: orderNo, findOrder: findOrder, qs: qs, icon: icon, chip: chip,
-    toast: toast, friendlyError: friendlyError, busy: busy, copyText: copyText, downloadBlob: downloadBlob, downloadCSV: downloadCSV, today: today, dialog: dialog,
+    toast: toast, friendlyError: friendlyError, busy: busy, copyText: copyText, downloadBlob: downloadBlob, downloadCSV: downloadCSV, printDoc: printDoc, pdfTable: pdfTable, today: today, dialog: dialog,
     call: call, refreshOrder: refreshOrder, loadOrders: loadOrders, loadCol: loadCol, loadSettings: loadSettings, loadFrames: loadFrames, chart: chart, hbars: hbars, tile: tile,
     orderTable: orderTable, itemsSummary: itemsSummary, carrierName: carrierName, updateBadges: updateBadges, route: route,
     CARRIERS: CARRIERS, TRACK_URL: TRACK_URL, STATUSES: STATUSES, STAGE_LABEL: STAGE_LABEL, EMAIL_KINDS: EMAIL_KINDS, FRAMES_URL: FRAMES_URL, ART_URL: ART_URL,
