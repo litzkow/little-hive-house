@@ -525,7 +525,8 @@
     ['messages', 'Customer messages', 'The contact form.'],
     ['quotes', 'Big order requests', 'Weddings, businesses, parties.'],
     ['disputes', 'Payment disputes', 'A customer disputed a charge (there is a deadline).'],
-    ['delivery', 'Delivery checks', 'Parcels that look stuck or late.']
+    ['delivery', 'Delivery checks', 'Parcels that look stuck or late.'],
+    ['taxes', 'Sales tax reminder', 'On the 12th: last month’s Georgia return, due the 20th.']
   ];
   var notif = { state: 'loading', prefs: null, sub: null, key: null, err: '' };
   function pushSupported() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }

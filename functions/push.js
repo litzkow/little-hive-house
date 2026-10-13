@@ -17,9 +17,9 @@ const U = require("./util");
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
   admin_new_order: "orders", admin_contact: "messages", admin_quote: "quotes", admin_dispute: "disputes",
-  admin_delivery_check: "delivery", admin_payment_hold: "payments", push_test: null,
+  admin_delivery_check: "delivery", admin_payment_hold: "payments", admin_sales_tax: "taxes", push_test: null,
 };
-const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery"];
+const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
 const COLL = "adminPush";
 
 let injectedSender = null;
@@ -118,6 +118,12 @@ function message(kind, data) {
       const h = Math.max(1, Math.round(Number(d.hoursLeft) || 0));
       const left = h >= 36 ? `${Math.round(h / 24)} dias` : h >= 20 ? "1 dia" : `${h} horas`;
       return { title: "⏳ Reserva do cartão vencendo", body: `${num}: vence em ${left}. Envie o pedido ou toque em "Charge now".`, url: orderUrl(id), tag: `hold-${id}`, urgency: "high" };
+    }
+    case "admin_sales_tax": {
+      const p = d.period || {}, s = d.summary || {};
+      const zero = !(Number(s.gaSales) > 0) && !(Number(s.gaTax) > 0);
+      return { title: `🧾 Sales tax de ${p.label || "o mês passado"}`, body: zero ? `Declarar zerado até ${p.dueLabel || "dia 20"} (sem vendas na Georgia).` : `Declarar ${money(s.gaTax)} de imposto até ${p.dueLabel || "dia 20"}. Passo a passo no e-mail.`,
+        url: "/admin/#reports", tag: `sales-tax-${p.year}-${p.month}`, urgency: "normal" };
     }
     case "push_test":
       return { title: "🐝 Notificações ativadas", body: "É assim que os avisos da Little Hive House vão chegar neste aparelho.", url: "/admin/#settings", tag: "push-test", urgency: "normal" };

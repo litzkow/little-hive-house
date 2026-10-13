@@ -99,6 +99,11 @@ exports.trackShipments = onSchedule({ region: REGION, schedule: "every 2 hours",
   await scheduled().backfillFees().catch((err) => console.warn("[backfillFees] failed", err.message));
 });
 
+/* ---------- monthly: Georgia sales tax return reminder (due the 20th) ---------- */
+exports.salesTaxReminder = onSchedule({ region: REGION, schedule: "0 9 12 * *", timeZone: "America/New_York" }, async () => {
+  await require("./salestax").salesTaxReminder();
+});
+
 /* ---------- daily ---------- */
 exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09:00", timeZone: "America/New_York" }, async () => {
   await scheduled().deliveredFollowUp();

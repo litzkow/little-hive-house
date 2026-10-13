@@ -302,3 +302,43 @@ test("push: VAPID keys made once and kept server-side; subscribe, prefs, test, u
   assert.equal(r.subscribed, false);
   assert.equal((await push.adminPush({ action: "status", endpoint: sub.endpoint }, ADMIN)).subscribed, false);
 });
+
+test("sales tax reminder: last month's Georgia numbers (charged in the month), zero months too", async () => {
+  const ctx = setup();
+  phone(ctx.db, "thiago");
+  const st = require("../salestax");
+  const now = Date.parse("2026-12-12T14:00:00Z");
+  const p = st.previousMonth(now);
+  assert.equal(p.label, "novembro de 2026");
+  assert.equal(p.due, "2026-12-21", "the 20th is a Sunday: due Monday");
+  assert.equal(new Date(p.start).toISOString(), "2026-11-01T04:00:00.000Z");
+  assert.equal(new Date(p.end).toISOString(), "2026-12-01T05:00:00.000Z");
+  const ga = { country: "US", state: "GA" }, fl = { country: "US", state: "FL" };
+  const put = (id, o) => ctx.db._set(`orders/${id}`, { status: "paid", number: id, refunds: [], ...o });
+  put("a", { paidAt: "2026-11-03T15:00:00Z", payment: { state: "captured", capturedAt: "2026-11-05T15:00:00Z" }, pricing: { total: 23.18, tax: 1.68, taxState: "GA" }, shipping: { address: ga } });
+  put("b", { paidAt: "2026-10-28T15:00:00Z", payment: { state: "captured", capturedAt: "2026-11-02T15:00:00Z" }, pricing: { total: 10.6, tax: 0.6, taxState: "GA" }, shipping: { address: ga },
+    refunds: [{ amount: 5.3, at: "2026-11-20T15:00:00Z", status: "succeeded" }] });
+  put("c", { paidAt: "2026-11-10T15:00:00Z", payment: { state: "captured", capturedAt: "2026-11-11T15:00:00Z" }, pricing: { total: 14.95, tax: 0 }, shipping: { address: fl } });
+  put("d", { paidAt: "2026-11-28T15:00:00Z", payment: { state: "authorized" }, pricing: { total: 30, tax: 2 }, shipping: { address: ga } });
+  put("e", { paidAt: "2026-11-27T15:00:00Z", payment: { state: "captured", capturedAt: "2026-12-01T06:00:00Z" }, pricing: { total: 30, tax: 2 }, shipping: { address: ga } });
+  put("f", { paidAt: "2026-11-09T15:00:00Z", status: "canceled", payment: { state: "released" }, pricing: { total: 30, tax: 2 }, shipping: { address: ga } });
+  const r = await st.salesTaxReminder(now);
+  assert.equal(r.orders, 3);
+  assert.equal(r.gaOrders, 2);
+  assert.equal(r.gaSales, 31.5);
+  assert.equal(r.gaTax, 2.28);
+  assert.equal(r.otherSales, 14.95);
+  assert.equal(r.sales, 46.45);
+  assert.equal(r.refunds, 5.3);
+  assert.equal(r.gaRefundedTax, 0.3);
+  const mailOut = ctx.net.emails.pop();
+  assert.equal(mailOut.subject, "Sales tax de novembro de 2026: declarar $2.28 até 21 de dezembro");
+  assert.match(mailOut.text, /Stripe › Tax › Reports/);
+  assert.equal(ctx.pushed.pop().payload.title, "🧾 Sales tax de novembro de 2026");
+
+  // a month without sales: file a zero return
+  const z = await st.salesTaxReminder(Date.parse("2026-11-12T14:00:00Z"));
+  assert.equal(z.gaSales, 0);
+  assert.match(ctx.net.emails.pop().subject, /outubro de 2026: declarar zerado até 20 de novembro/);
+  assert.match(ctx.pushed.pop().payload.body, /zerado/);
+});
