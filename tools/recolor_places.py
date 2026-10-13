@@ -6,7 +6,7 @@ Works on the finished SVG (no need to re-run the painters): every colour in the 
 nearest first-version colour, keeping the painting's own light and shade), then the band, the thin
 rule and the two lines of text get the new light band colours.
 
-  python3 tools/recolor_places.py <slug> [<slug>...] [--band cream|soft] [--out DIR]
+  python3 tools/recolor_places.py <slug> [<slug>...] [--band <name>] [--out DIR]
 Without --out the SVG in designs/places/ is replaced (the original is kept once as designs/places/_painted/<slug>.svg)."""
 import argparse
 import math
@@ -84,15 +84,18 @@ def _lab(L, C, H):
 _PAL = [_lab(*hex_to_oklch(h)) for h in OLD]
 
 
-def soften(hexc):
-    """Keep the light and shade of the painting, move every colour onto the first-version palette."""
+def soften(hexc, warm_shade=False):
+    """Keep the light and shade of the painting, move every colour onto the first-version palette.
+    warm_shade: dark violets become warm rock shadow instead of teal (desert scenes: no water where there is none)."""
     L, C, H = hex_to_oklch(hexc)
     if C < 0.015:                                        # whites, greys, near-blacks stay (warmed a hair)
         return oklch_to_hex(L, C, 70 if C < 0.004 else H)
     # dusk purples and violets do not exist in the old posters: light ones become peach/cream sky,
     # dark ones the old teal-slate
-    if 265 <= H or H < 5:
-        H = 62 if L > 0.62 else 215
+    if 265 <= H < 335 and C < 0.035:                     # greyish lavender (stone, monuments, mist) -> warm grey
+        return oklch_to_hex(L, C * 0.5, 75)
+    if 265 <= H < 335:                                   # (pinks, 335-20, stay pink: cherry blossoms)
+        H = 62 if L > 0.62 else (35 if warm_shade else 215)
     elif 240 <= H < 265:
         H = 225
     _, a, b = _lab(L, C, H)
@@ -102,23 +105,39 @@ def soften(hexc):
     return oklch_to_hex(L2, math.hypot(a2, b2), math.degrees(math.atan2(b2, a2)) % 360)
 
 
-BANDS = {   # name band: (band, rule, name, subtitle)
+BANDS = {   # light name bands: (band, rule, name, subtitle)
     "cream": ("#F7ECDC", "#E9B48A", "#4A2E24", "#B5653D"),
     "peach": ("#F4D2B4", "#E39A6C", "#4A2E24", "#9E4E2E"),
+    "sand": ("#F1E2C6", "#D9B27E", "#4A3424", "#93673A"),
+    "butter": ("#F7E4AE", "#E2B85A", "#4A3620", "#94702A"),
+    "blush": ("#F4D4CE", "#DE958A", "#4E2A2A", "#A04A44"),
     "sage": ("#D3DCC4", "#9DB08A", "#2F3B2C", "#5E7350"),
+    "aqua": ("#CDE6E2", "#86BDB6", "#21403E", "#3F7A73"),
     "greyblue": ("#C8D7DE", "#8FAAB8", "#24343E", "#4E6E80"),
 }
 
-HEX = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b")
+# each place gets the light band that suits its picture
+BAND_FOR = {
+    "grand-canyon": "peach", "atlanta": "sage", "new-york": "peach", "statue-of-liberty": "greyblue",
+    "san-francisco": "blush", "yellowstone": "butter", "chicago": "greyblue", "washington-dc": "blush",
+    "savannah": "sage", "honolulu": "aqua", "boston": "sand", "st-augustine": "butter", "philadelphia": "sand",
+    "yosemite": "sage", "napa-valley": "butter", "big-sur": "aqua", "rocky-mountains": "greyblue",
+    "cape-cod": "sand", "san-antonio": "peach", "sedona": "peach", "monument-valley": "sand",
+    "cape-canaveral": "greyblue", "san-diego": "aqua",
+}
+# desert / canyon scenes: their violet shadows are rock, not water
+WARM_SHADE = {"grand-canyon", "sedona", "monument-valley"}
+
+HEX = re.compile(r"#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})(?![\w-])")   # colours only, never url(#ids) like #dcb-sky
 
 
-def recolor(svg, band):
+def recolor(svg, band, warm_shade=False):
     head, rest = svg.split("\n", 1)
     rest = re.sub(r'^<rect width="600" height="600" fill="#[0-9A-Fa-f]+"/>', "", rest, count=1)
     i = rest.rfind("</svg>", 0, rest.rfind("</svg>"))          # end of the nested scene
     scene, tail = rest[:i], rest[i:]
     cache = {}
-    scene = HEX.sub(lambda m: cache.setdefault(m.group(0).upper(), soften(m.group(0))), scene)
+    scene = HEX.sub(lambda m: cache.setdefault(m.group(0).upper(), soften(m.group(0), warm_shade)), scene)
     bg, rule, namec, subc = BANDS[band]
     tail = re.sub(r'(<rect x="0" y="\d+" width="600" height="5" fill=")#[0-9A-Fa-f]+', r"\g<1>" + rule, tail, count=1)
     texts = list(re.finditer(r'(<text [^>]*fill=")(#[0-9A-Fa-f]+)', tail))
@@ -130,14 +149,15 @@ def recolor(svg, band):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("slugs", nargs="+")
-    ap.add_argument("--band", default="cream", choices=list(BANDS))
+    ap.add_argument("--band", choices=list(BANDS), help="default: the place's own band (BAND_FOR)")
     ap.add_argument("--out")
     a = ap.parse_args()
     for slug in a.slugs:
         src = KEEP / f"{slug}.svg" if (KEEP / f"{slug}.svg").exists() else PLACES / f"{slug}.svg"
-        svg = recolor(src.read_text(encoding="utf-8"), a.band)
+        band = a.band or BAND_FOR.get(slug, "peach")
+        svg = recolor(src.read_text(encoding="utf-8"), band, slug in WARM_SHADE)
         if a.out:
-            out = pathlib.Path(a.out) / f"{slug}-{a.band}.svg"
+            out = pathlib.Path(a.out) / f"{slug}.svg"
         else:
             KEEP.mkdir(exist_ok=True)
             if not (KEEP / f"{slug}.svg").exists():
