@@ -193,7 +193,9 @@ def ferris_wheel(cx, cy, R, deck):
         out.append(f'<path d="M {gx:.1f} {gy:.1f} L {gx:.1f} {gy + 3:.1f}" stroke="{steel_d}" stroke-width="1.2"/>'
                    f'<rect x="{gx - 3.6:.1f}" y="{gy + 3:.1f}" width="7.2" height="6.4" rx="1.6" fill="{c}"/>'
                    f'<rect x="{gx - 3.6:.1f}" y="{gy + 3:.1f}" width="2.4" height="6.4" rx="1" fill="#FFF1DE" opacity="0.5"/>'
-                   f'<rect x="{gx - 3.6:.1f}" y="{gy + 3:.1f}" width="7.2" height="1.8" rx="0.9" fill="#FFF7EA" opacity="0.85"/>')
+                   f'<rect x="{gx + 1.4:.1f}" y="{gy + 3:.1f}" width="2.2" height="6.4" rx="1" fill="#3A2A22" opacity="0.18"/>'
+                   f'<rect x="{gx - 4.2:.1f}" y="{gy + 2.2:.1f}" width="8.4" height="2" rx="1" fill="#FFF7EA"/>'
+                   f'<rect x="{gx - 2.6:.1f}" y="{gy + 5.4:.1f}" width="5.2" height="1.8" fill="#3A4A58" opacity="0.45"/>')
     # front A-frame legs and hub
     for dx in (-0.5, 0.5):
         x2 = cx + dx * R * 1.1
@@ -236,6 +238,98 @@ def coaster(x0, x1, deck_at, profile, seed):
     out.append(f'<polyline points="{P(profile)}" fill="none" stroke="#FF7A59" stroke-width="2.8" stroke-linejoin="round"/>')
     out.append(f'<polyline points="{P([(x, y - 0.9) for x, y in profile])}" fill="none" stroke="#FFC9A8" stroke-width="0.9" stroke-linejoin="round" opacity="0.9"/>')
     return "".join(out)
+
+
+def coaster3d(deck, depth, seed):
+    """The pier's steel coaster as a closed circuit standing on the deck: plan (s along the pier, d across it 0 near
+    .. 1 far) with a track height h, projected onto the slightly-seen-from-above deck. Back runs first, then the
+    white lattice trestles, then the front runs; a lift hill on the back straight, rolling camelbacks in front."""
+    ctrl = [(508, 0.15, 7), (524, 0.45, 9), (514, 0.85, 12), (494, 0.9, 30), (474, 0.9, 50), (466, 0.9, 54), (456, 0.9, 44),
+            (440, 0.9, 16), (420, 0.88, 12), (392, 0.8, 18), (378, 0.5, 24), (388, 0.18, 26), (406, 0.1, 30), (420, 0.1, 20),
+            (434, 0.1, 9), (450, 0.1, 22), (464, 0.1, 25), (480, 0.1, 10), (494, 0.12, 15)]
+    n = len(ctrl)
+    pts = []
+    for i in range(n):           # closed Catmull-Rom spline through the control points
+        p0, p1, p2, p3 = ctrl[i - 1], ctrl[i], ctrl[(i + 1) % n], ctrl[(i + 2) % n]
+        for k in range(10):
+            t = k / 10
+            pts.append(tuple(0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t ** 3)
+                             for a, b, c, d in zip(p0, p1, p2, p3)))
+
+    def proj(s_, d_, h_):
+        return s_ - d_ * 3, deck(s_) - depth(s_) * d_ - h_
+
+    scr = [proj(*q) for q in pts]
+    base = [proj(s_, d_, 0) for s_, d_, _ in pts]
+    out = []
+    # deck footprint shadow of the ride
+    out.append(f'<ellipse cx="452" cy="{deck(452) - depth(452) * 0.5:.1f}" rx="76" ry="3" fill="#8A6A55" opacity="0.25"/>')
+
+    def track(sel, dim):
+        segs, cur = [], []
+        for i in range(len(scr) + 1):
+            j = i % len(scr)
+            if sel(pts[j][1]):
+                cur.append(scr[j])
+            elif cur:
+                segs.append(cur); cur = []
+        if cur:
+            segs.append(cur)
+        o = []
+        for sg in segs:
+            if len(sg) < 2:
+                continue
+            o.append(f'<polyline points="{P([(x, y + 2.4) for x, y in sg])}" fill="none" stroke="{"#B8664A" if dim else "#B5452E"}" stroke-width="2"/>')
+            o.append(f'<polyline points="{P(sg)}" fill="none" stroke="{"#F0907A" if dim else "#F0573E"}" stroke-width="2.8"/>')
+            o.append(f'<polyline points="{P([(x, y - 1) for x, y in sg])}" fill="none" stroke="#FFC9A8" stroke-width="0.9" opacity="{0.5 if dim else 0.85}"/>')
+        return "".join(o)
+
+    def supports(sel, col, lit_col, op):
+        o, br = [], []
+        prev = None
+        for i in range(0, len(pts), 3):
+            s_, d_, h_ = pts[i]
+            if not sel(d_) or h_ < 3:
+                prev = None
+                continue
+            (x, y), (bx, by) = scr[i], base[i]
+            o.append(f'<path d="M {x:.1f} {y + 2:.1f} L {bx:.1f} {by:.1f}"/>')
+            if prev is not None and h_ > 12:
+                (px, py), (pbx, pby) = prev
+                # X bracing between neighbouring columns (lattice trestle)
+                mid = by - (by - y) * 0.5
+                pmid = pby - (pby - py) * 0.5
+                br.append(f'<path d="M {px:.1f} {py + 3:.1f} L {bx:.1f} {mid:.1f} M {x:.1f} {y + 3:.1f} L {pbx:.1f} {pmid:.1f} M {pbx:.1f} {pmid:.1f} L {bx:.1f} {by - 1:.1f}"/>')
+            prev = ((x, y), (bx, by))
+        return (f'<g stroke="{col}" stroke-width="1.7" opacity="{op}">{"".join(o)}</g>'
+                f'<g stroke="{lit_col}" stroke-width="0.8" opacity="{op * 0.8}">{"".join(br)}</g>')
+
+    back = lambda d_: d_ >= 0.5
+    front = lambda d_: d_ < 0.5
+    out.append(supports(back, "#D9D6CF", "#C2BDB4", 0.85))
+    out.append(track(back, True))
+    # lift-hill chain walk
+    lift = [scr[i] for i, (s_, d_, h_) in enumerate(pts) if d_ >= 0.85 and 470 < s_ < 512]
+    if len(lift) > 1:
+        out.append(f'<polyline points="{P([(x, y + 1.2) for x, y in lift])}" fill="none" stroke="#7A7A80" stroke-width="0.8" stroke-dasharray="1.4 1.2"/>')
+    out.append(supports(front, "#F4F1EA", "#D6D1C6", 1.0))
+    # horizontal ledgers tying the near trestle bents together at mid height
+    led = []
+    for frac in (0.45,):
+        cur = []
+        for i in range(0, len(pts), 3):
+            s_, d_, h_ = pts[i]
+            if d_ < 0.5 and h_ >= 12:
+                (x, y), (bx, by) = scr[i], base[i]
+                cur.append((x, by - (by - y) * frac))
+            elif cur:
+                led.append(cur); cur = []
+        if cur:
+            led.append(cur)
+    out.append("".join(f'<polyline points="{P(c)}" fill="none" stroke="#E2DDD2" stroke-width="1"/>' for c in led if len(c) > 1))
+    out.append(track(front, False))
+    # lit sides of the near columns (sun from the left)
+    return "".join(out), pts, scr
 
 
 def train(line, xs, cols):
@@ -369,7 +463,6 @@ def los_angeles():
         d = (HZ - py_)
         ex = px_ + d * rnd.uniform(1.0, 1.5)
         g.append(f'<path d="M {px_:.1f} {py_:.1f} Q {px_ + d * 0.35:.1f} {py_ + d * 0.45:.1f} {ex:.1f} {HZ + 4} L {px_ + d * 0.2:.1f} {HZ + 4} Q {px_ + d * 0.12:.1f} {py_ + d * 0.5:.1f} {px_:.1f} {py_:.1f} Z" fill="#8FA7B2" opacity="0.3"/>')
-        g.append(f'<path d="M {px_ - 1:.1f} {py_ + 1:.1f} q {-d * 0.2:.1f} {d * 0.4:.1f} {-d * 0.5:.1f} {d * 0.8:.1f}" stroke="#F8E2C4" stroke-width="1.6" opacity="0.45"/>')
     out.append(f'<clipPath id="{cid}"><polygon points="{P(far + [(610, HZ + 2), (-10, HZ + 2)])}"/></clipPath><g clip-path="url(#{cid})" fill="none">' + "".join(g) + "</g>")
     out.append(f'<polyline points="{P(far)}" fill="none" stroke="#FBE6CB" stroke-width="1.4" opacity="0.7"/>')
     # nearer foothills / Pacific Palisades bluffs on the right reaching down to the sea
@@ -436,6 +529,7 @@ def los_angeles():
         pil.append(f'<rect x="{x:.1f}" y="{y0:.1f}" width="{w * 0.4:.1f}" height="{y1 - y0:.1f}" fill="#E2B58A" opacity="0.8"/>')
         if y1 < shore(x) - 2:
             refl.append(f'<path d="M {x + w / 2:.1f} {y1 + 1:.1f} q 1.5 {(4 + 8 * t):.1f} -0.5 {(8 + 14 * t):.1f}" stroke="#4E6C70" stroke-width="{w * 0.8:.1f}" opacity="0.35"/>')
+            refl.append(f'<ellipse cx="{x + w / 2:.1f}" cy="{y1:.1f}" rx="{w * 1.6 + 1:.1f}" ry="0.9" fill="#E9F6F4" opacity="0.7"/>')
         x += 6 + 10 * t
     # cross bracing between bents
     br = []
@@ -450,6 +544,10 @@ def los_angeles():
     out.append(f'<g stroke="#7A604E" stroke-width="0.9" opacity="0.55" fill="none">{"".join(br)}</g>')
     out.append("".join(pil))
 
+    def depth(x):
+        return 3 + 6 * (x - xl) / (xr - xl)
+    out.append(poly([(xl, deck(xl) - depth(xl)), (640, deck(640) - depth(640)), (640, deck(640)), (xl, deck(xl))], "#D8B48C"))
+    out.append(f'<path d="M {xl} {deck(xl) - depth(xl):.1f} L 640 {deck(640) - depth(640):.1f}" stroke="#F7E6CC" stroke-width="1" opacity="0.8"/>')
     # buildings along the pier (carousel house near the shore, arcades, the little cafe at the far end)
     out.append(pier_house(158, 22, deck(169), 9, "#F7E1C8", "#C65F37", 1, roof_h=4))
     out.append(pier_house(470, 26, deck(483), 15, "#F9DDB0", "#C65F37", 3, roof_h=6))
@@ -457,19 +555,20 @@ def los_angeles():
     out.append(pier_house(500, 24, deck(512), 12, "#F6CBA4", "#B5573A", 5, roof_h=5))
 
     # coaster and wheel
-    def deck_top(x):
-        return deck(x)
-    prof = [(366, deck(366) - 3), (378, 262), (392, 232), (398, 229), (404, 233), (420, 268), (430, 274), (442, 252), (452, 246), (462, 252),
-            (476, 270), (486, 264), (496, 258), (506, 262), (516, 276), (526, deck(526) - 4)]
-    # smooth the profile
-    sm = []
-    for (x1, y1), (x2, y2) in zip(prof, prof[1:]):
-        for i in range(6):
-            t = i / 6
-            sm.append((x1 + (x2 - x1) * t, y1 + (y2 - y1) * (3 * t * t - 2 * t * t * t)))
-    sm.append(prof[-1])
-    out.append(coaster(366, 526, deck_top, sm, 7))
-    out.append(train(sm, [446, 455, 464, 473], ["#F6C453", "#2E8FA6", "#FF7A59", "#F6C453"]))
+    cst, cpts, cscr = coaster3d(deck, depth, 7)
+    out.append(cst)
+    # the little train cresting the front camelback, cars following the track tangent
+    idx = min(range(len(cpts)), key=lambda i: abs(cpts[i][0] - 452) + (50 if cpts[i][1] > 0.5 else 0))
+    cols = ["#F6C453", "#2E8FA6", "#FF7A59", "#F6C453"]
+    for k, c in enumerate(cols):
+        i = (idx - k * 3) % len(cscr)
+        (x, y), (x2, y2) = cscr[i], cscr[(i + 1) % len(cscr)]
+        ang = math.degrees(math.atan2(y2 - y, x2 - x))
+        if abs(ang) > 90:
+            ang -= 180 * (1 if ang > 0 else -1)
+        out.append(f'<g transform="translate({x:.1f} {y - 1.2:.1f}) rotate({ang:.1f})"><rect x="-3.4" y="-5" width="6.8" height="5" rx="1.3" fill="{c}"/>'
+                   f'<rect x="-3.4" y="-5" width="6.8" height="1.5" rx="0.7" fill="#FFF1DE" opacity="0.6"/>'
+                   f'<circle cx="-0.6" cy="-6.6" r="1.4" fill="{["#3A2A22", "#5B4A33", "#7E3B2C", "#3A2A22"][k]}"/></g>')
     WX, WY, WR = 316, 206, 66
     out.append(ferris_wheel(WX, WY, WR, deck(WX) - 1))
 

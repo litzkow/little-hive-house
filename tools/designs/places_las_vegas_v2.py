@@ -16,6 +16,7 @@ import sys
 from paint import P, dots, glow, lg, mist, rg, ridge_poly, rough, streaks, y_on
 from places_painted import Cam
 from common import SERIF_IT, MONO, measure, fit_size
+import re
 import poster as PM
 from poster import ANTON
 import figures as F
@@ -78,7 +79,7 @@ def tube(p0, p1, p2, w0, w1, n=10, off=0.0):
 # ---------------------------------------------------------------- sky
 def sky():
     out = [defs(
-        lg(f"{U}-sky", [(0, "#9ED3DF"), (0.22, "#C3E5E6"), (0.46, "#F4EEDC"), (0.66, "#FBE2BC"), (0.84, "#F8CDA4"), (1, "#F2BE96")], 0, 40, 0, 312, units="userSpaceOnUse"),
+        lg(f"{U}-sky", [(0, "#6FB2C6"), (0.22, "#A9D2D4"), (0.44, "#F2D9B4"), (0.64, "#F4BE86"), (0.84, "#EE9E66"), (1, "#E58C58")], 0, 40, 0, 312, units="userSpaceOnUse"),
         rg(f"{U}-sunh", [(0, "#FFF4D2", 0.95), (0.25, "#FFE2A6", 0.6), (0.6, "#FBD49A", 0.22), (1, "#FBD49A", 0)]),
     )]
     out.append(f'<rect width="600" height="444" fill="url(#{U}-sky)"/>')
@@ -100,7 +101,7 @@ def sky():
         out.append(f'<g fill="#FFF8EA" opacity="0.85">' + "".join(lit) + "</g>")
     # the low sun
     out.append(glow(SUN[0], SUN[1], 70, "#FFF1C4", f"{U}-sg", 0.9))
-    out.append(f'<circle cx="{SUN[0]}" cy="{SUN[1]}" r="23" fill="#FFE9A8"/><circle cx="{SUN[0] - 2}" cy="{SUN[1] - 2}" r="19" fill="#FFF6D8"/>')
+    out.append(f'<circle cx="{SUN[0]}" cy="{SUN[1]}" r="23" fill="#FFE3A0"/><circle cx="{SUN[0] - 3}" cy="{SUN[1] - 3}" r="15" fill="#FFEDBA" opacity="0.7"/>')
     # a pair of ravens riding the warm air, top right
     out.append('<g fill="none" stroke="#6A4A3A" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">'
                '<path d="M 452 122 q 6 -5 12 0 q 6 -5 12 0"/><path d="M 486 108 q 4 -3.4 8 0 q 4 -3.4 8 0"/></g>')
@@ -129,7 +130,7 @@ def mountains():
     g.append(f'<polygon points="{P([(96, 196), (118, 202), (146, 214), (176, 226), (214, 238), (250, 252), (290, 266), (290, 300), (130, 300)])}" fill="#FFD8AE" opacity="0.28"/>')
     out.append(f'<g clip-path="url(#{cid})">' + "".join(g) + "</g>")
     out.append(f'<polyline points="{P([p for p in line if p[0] > 92])}" fill="none" stroke="#FFE6C2" stroke-width="1.6" opacity="0.75"/>')
-    out.append(mist(160, 290, 260, 26, "#FBE0C2", f"{U}-mh1", 0.7))
+    out.append(mist(160, 290, 260, 26, "#F6C79A", f"{U}-mh1", 0.32))
     # low desert ranges to the east, mostly behind the sign
     pl, _ = ridge_poly([(300, 300), (360, 290), (420, 284), (470, 288), (520, 280), (560, 286), (610, 292)], 13, base=312, amp=3, fill=f"url(#{U}-east)")
     out.append(pl)
@@ -146,7 +147,7 @@ def mountains():
     out.append(f'<clipPath id="{cid}"><polygon points="{P(shape)}"/></clipPath><g clip-path="url(#{cid})">' + "".join(bands)
                + streaks(30, 15, (-10, 266, 200, 310), ["#B8583A", "#F8D6B4"], w=(0.8, 2), length=(4, 14), opacity=(0.2, 0.45), slant=0.3) + "</g>")
     out.append(f'<polyline points="{P(rl[:12])}" fill="none" stroke="#FFE2BE" stroke-width="1.4" opacity="0.7"/>')
-    out.append(mist(260, 308, 360, 10, "#FCE4C6", f"{U}-mh2", 0.55))
+    out.append(mist(260, 308, 360, 10, "#F4C292", f"{U}-mh2", 0.3))
     return "\n".join(out)
 
 
@@ -175,7 +176,7 @@ def tower_face(x0, x1, top, base, lit, shade, side_w, side_right, bands=None, ba
 
 def skyline():
     base = 312
-    out = [defs(lg(f"{U}-skyhz", [(0, "#FBE2C2", 0), (0.6, "#FBE2C2", 0.2), (1, "#FCE6CC", 0.6)], 0, 160, 0, 312, units="userSpaceOnUse"))]
+    out = [defs(lg(f"{U}-skyhz", [(0, "#F4C292", 0), (0.6, "#F4C292", 0.08), (1, "#F2BE8C", 0.28)], 0, 160, 0, 312, units="userSpaceOnUse"))]
     # far blocks near the vanishing point
     for x0, x1, top, col in ((150, 160, 286, "#E8CDB8"), (160, 168, 292, "#EAD3BE"), (172, 180, 290, "#E6CBB8"), (186, 196, 282, "#ECD4BC")):
         out.append(f'<rect x="{x0}" y="{top}" width="{x1 - x0}" height="{base - top}" fill="{col}"/>')
@@ -610,7 +611,7 @@ def vintage_car(x, base, w):
 
 # ---------------------------------------------------------------- assemble
 def las_vegas():
-    out = [sky(), mountains(), skyline(), ground()]
+    out = [sky(), mountains(), _grade(skyline(), 0.88), ground()]   # the Strip a step stronger out of the haze
     sx, gy = 405, 395
     # the convertible on its way to the Strip
     cx_, cb = C(1.9, 0, 21)
@@ -640,6 +641,27 @@ def las_vegas():
     return "\n".join(out)
 
 
+# ---------------------------------------------------------------- golden-hour grade (owners: "a bit darker, more orange")
+_HEX = re.compile(r"#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})(?![\w-])")
+
+
+def _grade(svg, dark=0.92):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+    from recolor_places import hex_to_oklch, oklch_to_hex
+    cache = {}
+
+    def g(m):
+        L, C, H = hex_to_oklch(m.group(0))
+        if C < 0.012:                       # whites/greys: warm them slightly, keep the sign's white
+            return oklch_to_hex(L * 0.97, C + 0.012, 70)
+        if 20 <= H <= 110:                  # sand, peach, gold -> deeper orange
+            H = H + (55 - H) * 0.35
+            C = C * 1.25
+        L = L * dark
+        return oklch_to_hex(L, C, H)
+    return _HEX.sub(lambda m: cache.setdefault(m.group(0).upper(), g(m)), svg)
+
+
 def _save(collection, slug, body):
     OUT.mkdir(parents=True, exist_ok=True)
     svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">\n' + body.strip() + "\n</svg>\n"
@@ -653,7 +675,7 @@ def _save(collection, slug, body):
 
 def build():
     PM.save = _save
-    PM.poster("places", "las-vegas", "LAS VEGAS", "NEVADA · USA", las_vegas(), "#F1E2C6", "#D9B27E", "#4A3424", "#93673A")
+    PM.poster("places", "las-vegas", "LAS VEGAS", "NEVADA · USA", _grade(las_vegas()), "#F1E2C6", "#D9B27E", "#4A3424", "#93673A")
 
 
 if __name__ == "__main__":
