@@ -144,6 +144,12 @@ jobs:
             exit 1
           fi
 
+      - name: Stripe webhook listens to every event the store handles
+        if: steps.check.outputs.ready == 'true'
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: node tools/maint/stripe-webhook-events.js
+
       - name: Clean up secrets
         if: always()
         run: rm -f functions/.env "$RUNNER_TEMP/sa.json"

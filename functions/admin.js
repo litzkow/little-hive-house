@@ -11,7 +11,8 @@ const U = require("./util");
 const { syncRefunds, sendRefundEmail } = require("./webhook");
 const { dollars } = require("./pricing");
 const { trackerFor } = require("./tracking");
-const { TAX_GOODS, taxWanted, isTaxSetupError } = require("./checkout");
+const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = require("./checkout");
+const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25 };
 
@@ -97,6 +98,10 @@ async function adminShip(data, auth) {
     if (!Number.isFinite(labelCost) || labelCost < 0 || labelCost > 1000) fail("invalid-argument", "Label cost must be a number like 4.50.");
     labelCost = Math.round(labelCost * 100) / 100;
   }
+  // charge on ship: the card is charged first; if Stripe refuses, the order is not marked shipped
+  const cur = (await ref.get()).data();
+  let charged = { charged: false };
+  if (payments.isHeld(cur) && ["paid", "in_production", "shipped"].includes(cur.status)) charged = await payments.captureOrder(ref, id, cur, { by: U.who(auth) });
   const after = await mutate(ref, (o) => {
     if (!["paid", "in_production", "partially_refunded", "shipped"].includes(o.status)) {
       fail("failed-precondition", `An order that is "${O.STATUS_LABELS[o.status]}" can't be shipped.`);
@@ -122,7 +127,17 @@ async function adminShip(data, auth) {
   order.fulfillment.autoUpdates = autoUpdates;
   const sent = await mail.send({ to: after.email, kind: "shipped", data: { order } });
   if (!sent.skipped) await ref.update({ "emails.shipped": nowIso() }).catch(() => {});
-  return { ok: true, emailed: !sent.skipped, url, autoTracking: autoUpdates };
+  return { ok: true, emailed: !sent.skipped, url, autoTracking: autoUpdates, charged: charged.charged, chargedAmount: charged.amount || 0 };
+}
+
+/* ---------- charge on ship: "Charge now" ---------- */
+async function adminCapture(data, auth) {
+  U.requireAdmin(auth);
+  need("STRIPE_SECRET_KEY");
+  const { ref, id, order } = await loadOrder(data && data.orderId);
+  if (!payments.isHeld(order)) fail("failed-precondition", order.payment && order.payment.state === "expired" ? payments.EXPIRED_MSG : "This order has already been charged.");
+  const r = await payments.captureOrder(ref, id, order, { by: U.who(auth) });
+  return { ok: true, charged: r.charged, amount: r.amount || 0 };
 }
 
 /**
@@ -170,6 +185,12 @@ async function adminRefund(data, auth) {
   try { check = O.checkRefund(order, data && data.amount, reason); } catch (e) { fail("failed-precondition", e.message); }
   const pi = order.stripe && order.stripe.paymentIntent;
   if (!pi) fail("failed-precondition", "This order has no Stripe payment to refund.");
+  if (payments.isHeld(order)) {
+    // not charged yet: a full refund just releases the card hold; part of it would need a charge first
+    if (!check.full) fail("failed-precondition", "This order hasn't been charged yet. Refund the full amount to cancel it (the card hold is released), or tap \"Charge now\" first and then refund part of it.");
+    const r = await payments.releaseHold(ref, id, order, { by: U.who(auth), reason, note });
+    return { ok: true, released: true, amount: dollars(check.amountCents), refundedTotal: 0, status: "canceled", emailed: r.emailed };
+  }
   const already = Math.round((order.refundedTotal || 0) * 100);
   let refund;
   try {
@@ -274,7 +295,8 @@ async function adminCreatePaymentLink(data, auth) {
       return stripe.request("POST", "/payment_links", {
         line_items: [{ price: price.id, quantity: 1 }],
         metadata: { orderId: ref.id },
-        payment_intent_data: { metadata: { orderId: ref.id }, description: `Little Hive House: ${title}`.slice(0, 900) },
+        payment_intent_data: { metadata: { orderId: ref.id }, description: `Little Hive House: ${title}`.slice(0, 900), ...(chargeOnShip() ? { capture_method: "manual" } : {}) },
+        ...(chargeOnShip() ? { custom_text: { submit: { message: HOLD_TEXT } } } : {}),
         shipping_address_collection: { allowed_countries: ["US", "CA"] },
         ...(tax ? { automatic_tax: { enabled: true } } : {}),
         restrictions: { completed_sessions: { limit: 1 } },
@@ -460,7 +482,7 @@ async function adminModerateReview(data, auth) {
 }
 
 module.exports = {
-  claimAdmin, adminSetStatus, adminShip, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
+  claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
   adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet,
   DEFAULT_SETTINGS, promoView, deliverOrder,
 };

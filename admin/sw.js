@@ -2,10 +2,11 @@
    It caches ONLY the app shell listed below (the page, its CSS and scripts, icons, manifest). Everything else, and in
    particular all order data (Firestore, Cloud Functions, customer photos in Storage), goes straight to the network and
    is never stored: cross-origin requests and anything not on the list are not even looked at.
-   Network first, cache only as a fallback, so a new admin version shows up on the next open. */
+   Network first, cache only as a fallback, so a new admin version shows up on the next open.
+   It also shows the owners' notifications (Web Push from functions/push.js: new orders, messages, card holds…). */
 'use strict';
 
-var CACHE = 'hive-admin-shell-v3';
+var CACHE = 'hive-admin-shell-v4';
 var SHELL = ['./', 'index.html', 'admin.css', 'reports.js', 'zip.js', 'admin.js', 'admin-order.js', 'admin-more.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', '../assets/favicon.svg'];
 
@@ -52,6 +53,35 @@ self.addEventListener('fetch', function (event) {
     return res;
   }).catch(function () {
     return caches.match(key).then(function (hit) { return hit || Response.error(); });
+  }));
+});
+
+/* ---------- notifications ---------- */
+self.addEventListener('push', function (event) {
+  var d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { body: event.data ? event.data.text() : '' }; }
+  var scope = (self.registration && self.registration.scope) || self.location.href;
+  var opts = {
+    body: d.body || '', icon: new URL('icons/icon-192.png', scope).href, badge: new URL('icons/icon-192.png', scope).href,
+    data: { url: d.url || scope }, timestamp: Date.now(),
+  };
+  if (d.tag) { opts.tag = d.tag; opts.renotify = true; }
+  event.waitUntil(self.registration.showNotification(d.title || 'Little Hive House', opts));
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var scope = (self.registration && self.registration.scope) || self.location.href;
+  var target = new URL((event.notification.data && event.notification.data.url) || scope, scope).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i];
+      if (c.url.indexOf(scope) === 0 && 'focus' in c) {
+        c.postMessage({ type: 'hive-open', url: target });   /* the open app switches screens itself (index.html) */
+        return c.focus();
+      }
+    }
+    return self.clients.openWindow ? self.clients.openWindow(target) : null;
   }));
 });
 

@@ -664,6 +664,12 @@
     var abandoned = S.orders.filter(function (o) { return R.isAbandoned(o) && days(R.toMs(o.createdAt)) <= 7; });
     var pendingReviews = (S.reviews || []).filter(function (r) { return (r.status || 'pending') === 'pending'; });
     var todo = [];
+    /* charge on ship: holds that end within 2 days (ship it or "Charge now" before then) */
+    var holds = S.orders.filter(function (o) {
+      var t = R.toMs(o.payment && o.payment.state === 'authorized' && o.payment.captureBefore);
+      return t && t - Date.now() < 48 * 3600000 && ['to_fulfil', 'in_production'].indexOf(R.stage(o)) >= 0;
+    });
+    if (holds.length) todo.push([holds.length === 1 ? '#order/' + encodeURIComponent(holds[0].id) : '#orders?tab=to_fulfil', holds.length, plural(holds.length, 'card hold') + ' ending soon', 'Ship it or tap “Charge now” before the hold ends', false]);
     if (waiting.length) todo.push(['#orders?tab=to_fulfil', waiting.length, plural(waiting.length, 'order') + ' to make', days(oldest) ? 'Oldest is waiting ' + plural(days(oldest), 'day') : 'All paid today', false]);
     if (prod.length) todo.push(['#orders?tab=in_production', prod.length, plural(prod.length, 'order') + ' in production', 'Ship them when they’re packed', false]);
     if (late.length) todo.push(['#orders?tab=shipped', late.length, plural(late.length, 'parcel') + ' shipped 10+ days ago', 'Check tracking and mark delivered', false]);

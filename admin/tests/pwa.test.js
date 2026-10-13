@@ -50,7 +50,7 @@ function loadSW() {
   const fetched = [];
   const caches = {
     open: async () => ({ put: async (k, v) => { store.set(String(k), v); } }),
-    keys: async () => ['hive-admin-shell-v0', 'hive-admin-shell-v3', 'someone-else'],
+    keys: async () => ['hive-admin-shell-v0', 'hive-admin-shell-v4', 'someone-else'],
     delete: async (k) => { store.set('deleted:' + k, true); return true; },
     match: async (k) => store.get(String(k)),
   };
@@ -120,6 +120,43 @@ test('offline: the cached shell is served; old shell caches are removed on activ
   handlers.activate({ waitUntil: (p) => { done = p; } });
   await done;
   assert.ok(store.get('deleted:hive-admin-shell-v0'));
-  assert.ok(!store.get('deleted:hive-admin-shell-v3'), 'current cache kept');
+  assert.ok(!store.get('deleted:hive-admin-shell-v4'), 'current cache kept');
   assert.ok(!store.get('deleted:someone-else'), 'other caches untouched');
 });
+
+test('notifications: a push shows the notification; tapping it opens that screen in the app', async () => {
+  const { handlers } = loadSWWith();
+  const shown = [];
+  global.__sw.self.registration.showNotification = async (title, opts) => { shown.push({ title, opts }); };
+  let done;
+  handlers.push({ data: { json: () => ({ title: '🛒 Novo pedido LHH-1001', body: '$14.95 · 2 ímãs', url: '/admin/#order/abc', tag: 'order-abc' }) }, waitUntil: (p) => { done = p; } });
+  await done;
+  assert.equal(shown[0].title, '🛒 Novo pedido LHH-1001');
+  assert.equal(shown[0].opts.body, '$14.95 · 2 ímãs');
+  assert.equal(shown[0].opts.tag, 'order-abc');
+  assert.equal(shown[0].opts.data.url, '/admin/#order/abc');
+  // the app is open: it gets a message and focus; closed: a new window opens
+  const posted = [];
+  let focused = false, opened = null;
+  global.__sw.self.clients.matchAll = async () => [{ url: 'https://littlehivehouse.com/admin/#home', postMessage: (m) => posted.push(m), focus: async () => { focused = true; } }];
+  global.__sw.self.clients.openWindow = async (u) => { opened = u; };
+  let closed = false;
+  handlers.notificationclick({ notification: { data: { url: '/admin/#order/abc' }, close: () => { closed = true; } }, waitUntil: (p) => { done = p; } });
+  await done;
+  assert.ok(closed && focused);
+  assert.equal(JSON.stringify(posted), JSON.stringify([{ type: 'hive-open', url: 'https://littlehivehouse.com/admin/#order/abc' }]));
+  global.__sw.self.clients.matchAll = async () => [];
+  handlers.notificationclick({ notification: { data: { url: '/admin/#messages' }, close: () => {} }, waitUntil: (p) => { done = p; } });
+  await done;
+  assert.equal(opened, 'https://littlehivehouse.com/admin/#messages');
+});
+
+function loadSWWith() {
+  const handlers = {};
+  const scope = 'https://littlehivehouse.com/admin/';
+  const self = { location: new URL(scope + 'sw.js'), registration: { scope }, addEventListener: (t, fn) => { handlers[t] = fn; },
+    skipWaiting: async () => {}, clients: { claim: async () => {} } };
+  global.__sw = { self };
+  vm.runInNewContext(read('sw.js'), { self, caches: {}, URL, Promise, console, fetch: async () => ({}), Response: {}, Date }, { filename: 'sw.js' });
+  return { handlers };
+}

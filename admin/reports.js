@@ -80,6 +80,8 @@
   function orderDate(o) { return toMs(o.paidAt) || toMs(o.createdAt); }
   function isSale(o) {
     if (!o) return false;
+    /* charge on ship: a card hold that was released or ran out was never charged, so it is not a sale */
+    if (o.payment && (o.payment.state === 'released' || o.payment.state === 'expired')) return false;
     if (SALE_STATUSES.indexOf(o.status) >= 0) return true;
     return o.status === 'canceled' && !!toMs(o.paidAt);
   }

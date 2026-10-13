@@ -11,7 +11,8 @@ const STATUS_LABELS = {
   delivered: "Delivered", canceled: "Canceled", refunded: "Refunded", partially_refunded: "Partially refunded",
 };
 const TIMELINE_TEXT = {
-  pending: "Checkout started.", paid: "Payment received. Thank you!", in_production: "We are printing and pressing your magnets.",
+  pending: "Checkout started.", paid: "Payment received. Thank you!",
+  authorized: "Order received. Your card is charged when your order ships.", charged: "Payment charged.", in_production: "We are printing and pressing your magnets.",
   shipped: "Your order is on its way.", delivered: "Delivered. Enjoy your magnets!", canceled: "This order was canceled.",
   refunded: "This order was refunded.", partially_refunded: "Part of this order was refunded.",
 };
@@ -259,6 +260,7 @@ function emailOrder(id, o) {
     status: o.status, statusLabel: STATUS_LABELS[o.status] || o.status,
     items: emailItems(o), pricing: o.pricing || {}, shipping: o.shipping || null, giftMessage: o.giftMessage || "",
     notes: o.notes || "", createdAt: o.createdAt || null, paidAt: o.paidAt || null, refundedTotal: o.refundedTotal || 0,
+    payment: o.payment ? { state: o.payment.state || "", captureBefore: o.payment.captureBefore || null } : null,
     fulfillment: { carrier: f.carrier || "", carrierName: (CARRIERS[f.carrier] || CARRIERS.other).name, tracking: f.tracking || "",
       url: f.url || "", shippedAt: f.shippedAt || null, deliveredAt: f.deliveredAt || null, ...trackingFields(f) },
     links: {

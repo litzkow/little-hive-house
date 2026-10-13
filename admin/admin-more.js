@@ -489,10 +489,11 @@
       '<div><section class="card"><div class="card-head"><h2>Admin access</h2></div><p class="small">Signed in as <b>' + esc(S.user.email) + '</b>.</p>' +
       '<p class="small muted" style="margin-top:8px">Admins are the emails in <code>ADMIN_EMAILS</code> (see SETUP.md). A new admin signs up on the shop’s account page, opens this page and taps “Activate admin access”.</p>' +
       '<div class="row gap-top"><button class="btn btn-ghost btn-sm" data-act="theme">' + esc(themeText()) + '</button><button class="btn btn-ghost btn-sm" data-act="signout">' + icon('logout') + 'Sign out</button></div></section>' +
-      installCard() +
+      notifCard() + installCard() +
       '<section class="card"><div class="card-head"><h2>Printing</h2></div><p class="small muted">Print sheets are made on the computer with <code>python3 tools/print_sheet.py</code>. Every order page shows the exact command, and its photo ZIP includes the frame list the tool reads.</p></section></div></div>';
     return {
       title: 'Settings', html: html, after: function () {
+        loadNotif();
         var f = $('#set-form');
         f.addEventListener('input', function () {
           var mc = Number(f.magnetUnitCost.value) || 0, pk = Number(f.packagingCost.value) || 0;
@@ -517,6 +518,117 @@
       }
     };
   };
+  /* ---------- phone notifications (Web Push: functions/push.js -> sw.js) ---------- */
+  var NOTIF_KINDS = [
+    ['orders', 'New orders', 'Every paid order, with the total.'],
+    ['payments', 'Card holds', 'A card hold ends in 2 days, or ended before it was charged.'],
+    ['messages', 'Customer messages', 'The contact form.'],
+    ['quotes', 'Big order requests', 'Weddings, businesses, parties.'],
+    ['disputes', 'Payment disputes', 'A customer disputed a charge (there is a deadline).'],
+    ['delivery', 'Delivery checks', 'Parcels that look stuck or late.']
+  ];
+  var notif = { state: 'loading', prefs: null, sub: null, key: null, err: '' };
+  function pushSupported() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  function isIOS() { return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function deviceName() {
+    var ua = navigator.userAgent;
+    return /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Browser';
+  }
+  function b64ToBytes(s) {
+    var b = atob(String(s).replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+    var out = new Uint8Array(b.length);
+    for (var i = 0; i < b.length; i++) out[i] = b.charCodeAt(i);
+    return out;
+  }
+  function notifBody() {
+    if (!pushSupported()) {
+      if (isIOS() && !isInstalled()) return '<p class="small">On iPhone, notifications work in the <b>Hive Admin app</b>. Add it to your home screen first (steps below), open it from there, sign in and come back to Settings.</p>';
+      return '<p class="small muted">This browser can’t show notifications. Use the Hive Admin app on your phone, or Chrome / Safari on a computer.</p>';
+    }
+    if (notif.state === 'loading') return '<p class="small muted">Checking this device…</p>';
+    if (Notification.permission === 'denied') {
+      return '<p class="small">Notifications are blocked for Hive Admin on this device. ' + (isIOS() ? 'Open the iPhone <b>Settings › Notifications › Hive Admin</b> and turn on <b>Allow Notifications</b>, then come back here.' : 'Allow them in the browser’s site settings, then come back here.') + '</p>';
+    }
+    if (notif.state !== 'on') {
+      return '<p class="small">Get a notification on this ' + esc(deviceName()) + ' when an order comes in, a customer writes, a card hold is ending and more. Each phone turns it on once.</p>' +
+        (notif.err ? '<p class="err">' + esc(notif.err) + '</p>' : '') +
+        '<div class="row gap-top"><button class="btn btn-honey btn-sm" data-act="notifOn">' + icon('check') + 'Turn on notifications</button></div>';
+    }
+    return '<p class="small">' + icon('check') + ' Notifications are on for this ' + esc(deviceName()) + '. Choose what you want to hear about:</p>' +
+      '<div class="stack gap-top" id="notif-kinds">' + NOTIF_KINDS.map(function (k) {
+        return '<label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" data-notif="' + k[0] + '"' + (!notif.prefs || notif.prefs[k[0]] !== false ? ' checked' : '') + ' style="margin-top:3px">' +
+          '<span><b>' + esc(k[1]) + '</b><br><span class="small muted">' + esc(k[2]) + '</span></span></label>';
+      }).join('') + '</div>' +
+      (notif.err ? '<p class="err">' + esc(notif.err) + '</p>' : '') +
+      '<div class="row gap-top"><button class="btn btn-ghost btn-sm" data-act="notifTest">Send a test</button><button class="btn btn-ghost btn-sm" data-act="notifOff">Turn off on this device</button></div>';
+  }
+  function notifCard() { return '<section class="card" id="notif-card"><div class="card-head"><h2>Notifications</h2></div><div id="notif-body">' + notifBody() + '</div></section>'; }
+  function paintNotif() {
+    var b = document.getElementById('notif-body');
+    if (!b) return;
+    b.innerHTML = notifBody();
+    Array.prototype.forEach.call(b.querySelectorAll('input[data-notif]'), function (cb) {
+      cb.addEventListener('change', function () {
+        var prefs = {};
+        Array.prototype.forEach.call(b.querySelectorAll('input[data-notif]'), function (x) { prefs[x.getAttribute('data-notif')] = x.checked; });
+        h.call('adminPush', { action: 'subscribe', subscription: notif.sub.toJSON(), prefs: prefs, device: deviceName() })
+          .then(function (r) { notif.prefs = r.prefs; h.toast('Saved.'); })
+          .catch(function (e) { cb.checked = !cb.checked; h.toast(h.friendlyError(e), true); });
+      });
+    });
+  }
+  function loadNotif() {
+    if (!pushSupported()) return;
+    navigator.serviceWorker.ready.then(function (reg) {
+      return Promise.all([reg.pushManager.getSubscription(), notif.key ? notif.key : h.call('adminPush', { action: 'key' }).then(function (r) { return r.publicKey; })]);
+    }).then(function (got) {
+      notif.sub = got[0]; notif.key = got[1];
+      if (!notif.sub) { notif.state = 'off'; paintNotif(); return; }
+      return h.call('adminPush', { action: 'status', endpoint: notif.sub.endpoint }).then(function (r) {
+        notif.state = r.subscribed && Notification.permission === 'granted' ? 'on' : 'off'; notif.prefs = r.prefs; paintNotif();
+      });
+    }).catch(function (e) { notif.state = 'off'; notif.err = h.friendlyError(e); paintNotif(); });
+  }
+  ACT.notifOn = function (btn) {
+    notif.err = '';
+    /* iPhone asks for permission only straight from the tap, so this comes first */
+    var ask = Notification.requestPermission();
+    h.busy(btn, true, 'Turning on…');
+    Promise.resolve(ask).then(function (perm) {
+      if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Notifications were not allowed.' : 'Tap Allow when the phone asks.');
+      return navigator.serviceWorker.ready;
+    }).then(function (reg) {
+      var key = notif.key ? Promise.resolve(notif.key) : h.call('adminPush', { action: 'key' }).then(function (r) { return (notif.key = r.publicKey); });
+      return key.then(function (k) {
+        return reg.pushManager.getSubscription().then(function (old) {
+          return old || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(k) });
+        });
+      });
+    }).then(function (sub) {
+      notif.sub = sub;
+      return h.call('adminPush', { action: 'subscribe', subscription: sub.toJSON(), device: deviceName() });
+    }).then(function (r) {
+      notif.state = 'on'; notif.prefs = r.prefs; paintNotif();
+      return h.call('adminPush', { action: 'test', endpoint: notif.sub.endpoint }).then(function () { h.toast('Notifications are on. A test is on its way.'); }, function () { h.toast('Notifications are on.'); });
+    }).catch(function (e) {
+      h.busy(btn, false); notif.err = e && e.message && !e.code ? e.message : h.friendlyError(e); paintNotif();
+    });
+  };
+  ACT.notifTest = function (btn) {
+    h.busy(btn, true, 'Sending…');
+    h.call('adminPush', { action: 'test', endpoint: notif.sub && notif.sub.endpoint })
+      .then(function () { h.busy(btn, false); h.toast('Sent. It should pop up in a few seconds.'); })
+      .catch(function (e) { h.busy(btn, false); h.toast(h.friendlyError(e), true); });
+  };
+  ACT.notifOff = function (btn) {
+    h.busy(btn, true, 'Turning off…');
+    var sub = notif.sub;
+    h.call('adminPush', { action: 'unsubscribe', endpoint: sub && sub.endpoint })
+      .then(function () { return sub ? sub.unsubscribe() : null; })
+      .then(function () { notif.state = 'off'; notif.sub = null; paintNotif(); h.toast('Notifications are off on this device.'); })
+      .catch(function (e) { h.busy(btn, false); h.toast(h.friendlyError(e), true); });
+  };
+
   /* "Install on your phone": the admin is a PWA (manifest.webmanifest + sw.js) */
   function isInstalled() {
     try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch (e) { return false; }

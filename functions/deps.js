@@ -18,6 +18,8 @@ function ensureApp() {
 module.exports = {
   set(fakes) { injected = fakes; },
   reset() { injected = null; },
+  /** True when a database is there to use: test fakes are injected, or we run inside Cloud Functions. */
+  available() { return !!(injected && injected.db) || !!process.env.K_SERVICE || !!process.env.FUNCTION_TARGET; },
   db() {
     if (injected && injected.db) return injected.db;
     const db = require("firebase-admin/firestore").getFirestore(ensureApp());

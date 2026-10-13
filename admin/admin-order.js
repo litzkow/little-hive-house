@@ -17,6 +17,22 @@
   }
 
   /* ---------------------------------------------------------------- frames + photos */
+  /* charge on ship: the card is only held until the order ships (or "Charge now") */
+  function held(o) { return !!(o.payment && o.payment.state === 'authorized'); }
+  function holdEnds(o) { return R.toMs(o.payment && o.payment.captureBefore); }
+  function holdText(o) {
+    var t = holdEnds(o);
+    if (!t) return 'Card held, not charged yet.';
+    var hrs = (t - Date.now()) / 3600000;
+    var left = hrs <= 0 ? 'ended' : hrs < 20 ? 'ends in ' + Math.max(1, Math.round(hrs)) + ' hours' : 'ends in ' + h.plural(Math.round(hrs / 24), 'day');
+    return 'Card held, not charged yet. The hold ' + left + ' (' + h.fmtDT(t) + ').';
+  }
+  function holdBox(o) {
+    if (!held(o)) return '';
+    var urgent = holdEnds(o) && holdEnds(o) - Date.now() < 48 * 3600000;
+    return '<div class="callout' + (urgent ? '' : ' calm') + '">' + icon('info') + '<div><p class="small"><b>' + esc(holdText(o)) + '</b> Marking it shipped charges ' + money(R.pricing(o).total) +
+      '. Shipping later than that? Charge it now.</p><div class="row gap-top"><button class="btn btn-sm' + (urgent ? ' btn-honey' : ' btn-ghost') + '" data-act="capture">Charge now</button></div></div></div>';
+  }
   function frameOf(id) {
     id = h.FRAME_ALIASES[id] || id || 'none';
     return (S.frames && S.frames[id]) || (S.frames && S.frames.none) || { id: 'none', name: 'No border', window: [0, 0, 600, 600], caption: null };
@@ -282,7 +298,7 @@
       '<label class="field"><span>Tracking number</span><input class="input" name="tracking" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="9400 1000 0000 0000 0000 00" value="' + esc(again ? f.tracking || '' : '') + '"></label>' +
       '<label class="field" id="ship-url"' + (carrier === 'other' ? '' : ' hidden') + '><span>Tracking link</span><input class="input" name="url" type="url" placeholder="https://" value="' + esc(again ? f.url || '' : '') + '"></label>' +
       '<p class="err" id="ship-err" hidden></p>' +
-      '<div class="row between"><span class="small muted">' + (again ? 'Saving sends the shipped email again with the new tracking.' : 'The customer gets the “Your order shipped” email with tracking.') + '</span>' +
+      '<div class="row between"><span class="small muted">' + (again ? 'Saving sends the shipped email again with the new tracking.' : (held(o) ? 'Their card is charged ' + money(R.pricing(o).total) + ' and they get the “Your order shipped” email with tracking.' : 'The customer gets the “Your order shipped” email with tracking.')) + '</span>' +
       '<button class="btn btn-honey" type="submit">' + icon('truck') + (again ? 'Update tracking' : 'Mark as shipped') + '</button></div></form>';
   }
   function fulfilCard(o) {
@@ -299,16 +315,20 @@
         '<p class="small">Nothing to make. If they write to you, you can send them a <a href="#links' + h.qs({ email: o.email, title: 'Order ' + h.orderNo(o), amount: R.pricing(o).total }) + '">payment link</a>.</p>' +
         (o.email ? '<div class="row gap-top"><a class="btn btn-ghost btn-sm" href="mailto:' + esc(o.email) + '">' + icon('mail') + 'Email ' + esc(o.email) + '</a></div>' : '') + '</section>';
     }
-    if (st === 'canceled') return '<section class="card">' + head('Canceled', 'This order was canceled. Nothing to make or ship.') + '</section>';
+    if (st === 'canceled' && o.payment && o.payment.state === 'expired') {
+      return '<section class="card tint">' + head('Card hold ended', 'It wasn’t shipped or charged in time, so nothing was charged and the order was canceled.') +
+        '<p class="small">Still want to make it? Send ' + esc(h.custName(o)) + ' a <a href="#links' + h.qs({ email: o.email, title: 'Order ' + h.orderNo(o), amount: R.pricing(o).total }) + '">payment link</a> for ' + money(R.pricing(o).total) + '. When they pay, it becomes a new order.</p></section>';
+    }
+    if (st === 'canceled') return '<section class="card">' + head('Canceled', o.payment && o.payment.state === 'released' ? 'Canceled before it was charged: the card hold was released, nothing was charged.' : 'This order was canceled. Nothing to make or ship.') + '</section>';
     if (st === 'refunded') return '<section class="card">' + head('Fully refunded', 'Nothing left to do.') + (R.wasShipped(o) ? trackBox(o) : '') + '</section>';
     if (st === 'to_fulfil') {
       return '<section class="card tint"><div class="card-head"><div><h2>Make &amp; ship</h2><p class="sub">Paid ' + esc(h.ago(R.orderDate(o))) + ' · ' + h.plural(R.magnetsOf(o), 'magnet') + '</p></div>' +
-        '<button class="btn btn-sm" data-act="startProd">Start production</button></div>' +
+        '<button class="btn btn-sm" data-act="startProd">Start production</button></div>' + holdBox(o) +
         '<details class="panel" open><summary>Ready to ship? Add tracking</summary><div>' + shipForm(o) + '</div></details></section>';
     }
     if (st === 'in_production') {
       var since = (o.timeline || []).filter(function (t) { return t.status === 'in_production'; }).pop();
-      return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Add the tracking number when the parcel is ready.') + shipForm(o) + '</section>';
+      return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Add the tracking number when the parcel is ready.') + holdBox(o) + shipForm(o) + '</section>';
     }
     if (st === 'shipped') {
       return '<section class="card">' + head('On its way', R.toMs(f.shippedAt) ? 'Shipped ' + esc(h.ago(f.shippedAt)) : '') + trackBox(o) + liveBox(o) +
@@ -463,8 +483,10 @@
     var link = st.paymentIntent ? 'https://dashboard.stripe.com/payments/' + encodeURIComponent(st.paymentIntent) : '';
     var refunds = R.refundsOf(o);
     var html = '<section class="card"><div class="card-head"><h2>Payment</h2>' + (link ? '<a class="btn btn-ghost btn-sm" href="' + esc(link) + '" target="_blank" rel="noopener">Stripe ' + icon('external') + '</a>' : '') + '</div>' +
-      '<dl class="kv"><dt>Paid</dt><dd>' + money(p.total) + (R.toMs(o.paidAt) ? ' <span class="muted small">· ' + esc(h.fmtDT(o.paidAt)) + '</span>' : '') + '</dd>' +
-      (o.status !== 'pending' ? '<dt>Stripe fee</dt><dd>' + money(fee.amount) + (fee.estimated ? ' <span class="muted small">(estimate)</span>' : '') + '</dd>' : '') +
+      '<dl class="kv">' + (held(o) ? '<dt>Held</dt><dd>' + money(p.total) + ' <span class="muted small">· not charged yet</span></dd>'
+        : o.payment && (o.payment.state === 'released' || o.payment.state === 'expired') ? '<dt>Charged</dt><dd>$0.00 <span class="muted small">· ' + (o.payment.state === 'released' ? 'hold released' : 'hold ended') + '</span></dd>'
+        : '<dt>Paid</dt><dd>' + money(p.total) + (R.toMs(o.paidAt) ? ' <span class="muted small">· ' + esc(h.fmtDT(o.payment && o.payment.capturedAt || o.paidAt)) + '</span>' : '') + '</dd>') +
+      (o.status !== 'pending' && !(o.payment && /released|expired/.test(o.payment.state)) ? '<dt>Stripe fee</dt><dd>' + money(fee.amount) + (fee.estimated ? ' <span class="muted small">(estimate)</span>' : '') + '</dd>' : '') +
       (refunded ? '<dt>Refunded</dt><dd class="neg">−' + money(refunded) + '</dd>' : '') +
       (o.pricing && o.pricing.promo && o.pricing.promo.code ? '<dt>Code</dt><dd><span class="badge quiet">' + esc(o.pricing.promo.code) + '</span></dd>' : '') +
       (o.dispute || st.dispute ? '<dt>Dispute</dt><dd class="neg"><b>Customer opened a dispute.</b> Answer it in Stripe.</dd>' : '') + '</dl>';
@@ -474,7 +496,19 @@
           '<small>' + esc(h.fmtDT(r.at)) + (r.by ? ' · ' + esc(r.by) : '') + '</small></li>';
       }).join('') + '</ul></div>';
     }
-    if (left > 0 && R.isSale(o)) {
+    if (held(o)) {
+      html += '<p class="small muted gap-top">' + esc(holdText(o)) + '</p><div class="row gap-top"><button class="btn btn-ghost btn-sm" data-act="capture">Charge now</button></div>';
+    }
+    if (left > 0 && R.isSale(o) && held(o)) {
+      html += '<details class="panel" id="refund-panel"><summary>Cancel order…</summary><div><form class="stack" id="refund-form" novalidate>' +
+        '<p class="small">Not charged yet: canceling releases the hold on their card, so they are never charged. They get an email.</p>' +
+        '<input type="hidden" name="amount" value="' + left.toFixed(2) + '">' +
+        '<label class="field"><span>Reason</span><select class="input" name="reason"><option value="">Choose a reason…</option>' +
+        R.REASONS.map(function (r) { return '<option value="' + r[0] + '">' + esc(r[1]) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="field"><span>Note <span class="hint">(goes in their email)</span></span><textarea class="input" name="note" rows="2"></textarea></label>' +
+        '<p class="err" id="refund-err" hidden></p>' +
+        '<button class="btn btn-danger" type="submit">Review cancel</button></form></div></details>';
+    } else if (left > 0 && R.isSale(o)) {
       html += '<details class="panel" id="refund-panel"><summary>Refund…</summary><div><form class="stack" id="refund-form" novalidate>' +
         '<div class="seg" role="group" aria-label="Refund type"><button type="button" aria-pressed="true" data-act="refundMode" data-mode="full">Full · ' + money(left) + '</button>' +
         '<button type="button" aria-pressed="false" data-act="refundMode" data-mode="partial">Partial</button></div>' +
@@ -581,7 +615,7 @@
         if (cost === '' || isNaN(Number(cost)) || Number(cost) < 0) { err.textContent = 'Type what the label cost (0 if it was free).'; err.hidden = false; return; }
         var data = { orderId: o.id, carrier: sf.carrier.value, tracking: tracking, labelCost: Math.round(Number(cost) * 100) / 100 };
         if (sf.carrier.value === 'other') data.url = url;
-        run(sf.querySelector('button[type=submit]'), 'adminShip', data, 'Marked shipped. The customer got the tracking email.').catch(function () {});
+        run(sf.querySelector('button[type=submit]'), 'adminShip', data, held(o) ? 'Card charged ' + money(R.pricing(o).total) + ' and marked shipped. The customer got the tracking email.' : 'Marked shipped. The customer got the tracking email.').catch(function () {});
       });
     }
     var rf = document.getElementById('refund-form');
@@ -595,6 +629,15 @@
         if (amount > left + 0.001) { err.textContent = 'That’s more than what’s left to refund (' + money(left) + ').'; err.hidden = false; return; }
         if (!rf.reason.value) { err.textContent = 'Pick a reason.'; err.hidden = false; rf.reason.focus(); return; }
         var full = Math.abs(amount - left) < 0.005;
+        if (held(o)) {
+          h.dialog({ title: 'Cancel this order?', danger: true, ok: 'Yes, cancel and release the hold',
+            html: '<p>' + esc(h.orderNo(o)) + ' for <b>' + esc(h.custName(o)) + '</b>. Their card was never charged: the ' + money(amount) + ' hold is released and they get an email. This can’t be undone.</p>'
+          }).then(function (ok) {
+            if (!ok) return;
+            run(rf.querySelector('button[type=submit]'), 'adminRefund', { orderId: o.id, amount: amount, reason: rf.reason.value, note: rf.note.value.trim() }, 'Order canceled. Nothing was charged; the customer was emailed.').catch(function () {});
+          });
+          return;
+        }
         h.dialog({
           title: full ? 'Refund the whole order?' : 'Refund part of the order?', danger: true, ok: 'Yes, refund ' + money(amount),
           html: '<p class="big">' + money(amount) + '</p><p>to <b>' + esc(h.custName(o)) + '</b> (' + esc(o.email || '') + ') for ' + esc(h.orderNo(o)) + '. Reason: <b>' + esc(R.REASON_LABEL[rf.reason.value]) + '</b>.</p>' +
@@ -622,6 +665,16 @@
       });
     });
   }
+  ACT.capture = function (el) {
+    var o = current;
+    if (!o) return;
+    h.dialog({ title: 'Charge the card now?', ok: 'Charge ' + money(R.pricing(o).total),
+      html: '<p>' + esc(h.orderNo(o)) + ': charge <b>' + money(R.pricing(o).total) + '</b> to ' + esc(h.custName(o)) + '’s card now, before shipping. Use it for orders that will take longer than the hold (big orders: right after they approve the proof).</p>'
+    }).then(function (ok) {
+      if (!ok) return;
+      run(el, 'adminCapture', { orderId: o.id }, 'Card charged ' + money(R.pricing(o).total) + '.').catch(function () {});
+    });
+  };
   ACT.refundMode = function (el) {
     var f = document.getElementById('refund-form'), full = el.getAttribute('data-mode') === 'full';
     Array.prototype.forEach.call(el.parentNode.children, function (b) { b.setAttribute('aria-pressed', String(b === el)); });

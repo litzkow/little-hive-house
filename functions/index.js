@@ -20,6 +20,8 @@ const webhook = lazy("./webhook");
 const scheduled = lazy("./scheduled");
 const customer = lazy("./customer");
 const tracking = lazy("./tracking");
+const payments = lazy("./payments");
+const push = lazy("./push");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -63,6 +65,8 @@ exports.sendVerifyEmail = callable("sendVerifyEmail", customer);
 exports.claimAdmin = callable("claimAdmin", admin);
 exports.adminSetStatus = callable("adminSetStatus", admin);
 exports.adminShip = callable("adminShip", admin);
+exports.adminCapture = callable("adminCapture", admin);
+exports.adminPush = callable("adminPush", push);
 exports.adminMarkDelivered = callable("adminMarkDelivered", admin);
 exports.adminRefund = callable("adminRefund", admin);
 exports.adminAddNote = callable("adminAddNote", admin);
@@ -91,6 +95,7 @@ exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 300, memory:
 /* ---------- automatic delivery tracking: every 2 hours (tracking.js) ---------- */
 exports.trackShipments = onSchedule({ region: REGION, schedule: "every 2 hours", timeZone: "America/New_York", timeoutSeconds: 300, memory: "256MiB" }, async () => {
   await tracking().trackShipments();
+  await payments().checkHolds().catch((err) => console.warn("[checkHolds] failed", err.message));
   await scheduled().backfillFees().catch((err) => console.warn("[backfillFees] failed", err.message));
 });
 

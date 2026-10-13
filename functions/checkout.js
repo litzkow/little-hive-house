@@ -16,6 +16,12 @@ const printsheet = () => (printsheetMod = printsheetMod || require("./printsheet
 const TAX_GOODS = "txcd_99999999";      // General - Tangible Goods
 const TAX_SHIPPING = "txcd_92010001";   // Shipping
 function taxWanted() { return String(env("STRIPE_TAX") || "").toLowerCase() !== "off"; }
+
+/* Charge on ship (the owners' choice, Oct 2026): checkout only authorizes the card ("capture_method: manual"); the money
+   is captured when the order is marked shipped or with "Charge now" (payments.js). CAPTURE=now switches back to
+   charging at checkout. Card holds last about 7 days; payments.checkHolds() warns the owners before they end. */
+function chargeOnShip() { return String(env("CAPTURE") || "").toLowerCase() !== "now"; }
+const HOLD_TEXT = "Your card is authorized now and charged only when your order ships.";
 function isTaxSetupError(err) {
   if (!err || !(err.status >= 400 && err.status < 500)) return false;
   return /tax/i.test(`${err.message || ""} ${err.code || ""} ${err.param || ""}`);
@@ -66,7 +72,8 @@ function sessionParams({ orderId, priced, email, tax = false }) {
     allow_promotion_codes: true,
     client_reference_id: orderId,
     metadata: { orderId },
-    payment_intent_data: { metadata: { orderId }, description: "Little Hive House order" },
+    payment_intent_data: { metadata: { orderId }, description: "Little Hive House order", ...(chargeOnShip() ? { capture_method: "manual" } : {}) },
+    ...(chargeOnShip() ? { custom_text: { submit: { message: HOLD_TEXT } } } : {}),
     success_url: `${base}/thank-you.html?order=${orderId}&session={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/shop.html?checkout=canceled`,
   };
@@ -140,6 +147,12 @@ async function createCheckout(data, auth) {
 }
 
 /* ---------- payment confirmed ---------- */
+/** When the card hold ends (ISO), from the expanded PaymentIntent's charge, or null. */
+function captureBefore(pi) {
+  const ch = pi && typeof pi.latest_charge === "object" ? pi.latest_charge : null;
+  const t = ch && ch.payment_method_details && ch.payment_method_details.card && ch.payment_method_details.card.capture_before;
+  return Number.isFinite(t) ? new Date(t * 1000).toISOString() : null;
+}
 async function retrieveSession(id) {
   return stripe.request("GET", `/checkout/sessions/${encodeURIComponent(id)}`,
     { expand: ["total_details.breakdown", "payment_intent.latest_charge.balance_transaction"] });
@@ -202,7 +215,10 @@ async function findOrderIdForSession(session) {
 async function completeCheckout(session) {
   const orderId = await findOrderIdForSession(session);
   if (!orderId) { console.warn("[checkout] no order for session", session.id); return { orderId: null, newlyPaid: false }; }
-  const paid = session.payment_status === "paid" || session.payment_status === "no_payment_required";
+  const piObj = session.payment_intent && typeof session.payment_intent === "object" ? session.payment_intent : null;
+  // charge on ship: Checkout says "unpaid" but the card is authorized (the PaymentIntent waits for capture)
+  const authorized = session.payment_status === "unpaid" && !!piObj && piObj.status === "requires_capture";
+  const paid = authorized || session.payment_status === "paid" || session.payment_status === "no_payment_required";
   const db = deps.db();
   const ref = db.collection("orders").doc(orderId);
   if (!paid) {
@@ -210,8 +226,9 @@ async function completeCheckout(session) {
     return { orderId, status: "pending", newlyPaid: false };
   }
   const promo = await promoFromSession(session);
-  const fee = feeFromSession(session);
+  const fee = authorized ? null : feeFromSession(session);
   const ship = addressFromSession(session);
+  const holdUntil = authorized ? captureBefore(piObj) : null;
   const pi = session.payment_intent;
   const piId = pi && typeof pi === "object" ? pi.id : pi || null;
   const email = ((session.customer_details && session.customer_details.email) || session.customer_email || "").toLowerCase();
@@ -244,10 +261,12 @@ async function completeCheckout(session) {
     }
     const update = {
       status: "paid", number: O.formatOrderNumber(n), paidAt: at, updatedAt: at,
+      payment: authorized ? { state: "authorized", authorizedAt: at, captureBefore: holdUntil || new Date(Date.parse(at) + 7 * 86400000).toISOString() }
+        : { state: "captured", capturedAt: at },
       email: o.email || email, name: ship.name || o.name || "",
       shipping: ship, pricing, adminNotes: notes,
       stripe: { ...(o.stripe || {}), sessionId: session.id, paymentIntent: piId, customer: session.customer || null, fee },
-      timeline: (o.timeline || []).concat([{ at, status: "paid", text: O.TIMELINE_TEXT.paid }]),
+      timeline: (o.timeline || []).concat([{ at, status: "paid", text: authorized ? O.TIMELINE_TEXT.authorized : O.TIMELINE_TEXT.paid }]),
     };
     tx.set(cRef, { orderNumber: n }, { merge: true });
     tx.update(ref, update);
@@ -314,4 +333,4 @@ async function trackOrder(data, auth, rawRequest) {
   return O.publicOrderView(doc.id, doc.data());
 }
 
-module.exports = { TAX_GOODS, TAX_SHIPPING, taxWanted, isTaxSetupError, createCheckout, completeCheckout, orderBySession, trackOrder, retrieveSession, sessionParams, stripeLineItems, PHOTO_PATH, addressFromSession, feeFromSession };
+module.exports = { chargeOnShip, HOLD_TEXT, captureBefore, TAX_GOODS, TAX_SHIPPING, taxWanted, isTaxSetupError, createCheckout, completeCheckout, orderBySession, trackOrder, retrieveSession, sessionParams, stripeLineItems, PHOTO_PATH, addressFromSession, feeFromSession };

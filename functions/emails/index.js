@@ -18,6 +18,7 @@ const KINDS = {
   abandoned_checkout: require("./kinds/abandoned_checkout"),
   admin_new_order: require("./kinds/admin_new_order"),
   admin_dispute: require("./kinds/admin_dispute"),
+  admin_payment_hold: require("./kinds/admin_payment_hold"),
   admin_delivery_check: require("./kinds/admin_delivery_check"),
   contact_autoreply: require("./kinds/contact_autoreply"),
   admin_contact: require("./kinds/admin_contact"),

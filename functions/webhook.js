@@ -1,5 +1,6 @@
 "use strict";
-/* stripeWebhook (HTTP): checkout.session.completed / .expired, charge.refunded, charge.dispute.created.
+/* stripeWebhook (HTTP): checkout.session.completed / .expired, charge.refunded, charge.dispute.created, and for charge on
+   ship charge.captured / payment_intent.canceled (payments.js).
    Every event is processed once (stripeEvents/{eventId}); each handler is also idempotent on its own. */
 
 const { env, mailAdmin, nowIso } = require("./config");
@@ -11,7 +12,7 @@ const { completeCheckout, retrieveSession } = require("./checkout");
 const { dollars } = require("./pricing");
 
 const HANDLED = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.expired",
-  "charge.refunded", "charge.dispute.created"]);
+  "charge.refunded", "charge.dispute.created", "charge.captured", "payment_intent.canceled"]);
 const STALE_LOCK_MS = 5 * 60 * 1000;
 
 async function orderByPaymentIntent(pi) {
@@ -152,6 +153,8 @@ async function dispatch(event) {
     case "checkout.session.expired": return onExpired(obj);
     case "charge.refunded": return onRefunded(obj);
     case "charge.dispute.created": return onDispute(obj);
+    case "charge.captured": return require("./payments").onCaptured(obj);
+    case "payment_intent.canceled": return require("./payments").onCanceled(obj);
     default: return { ignored: true };
   }
 }

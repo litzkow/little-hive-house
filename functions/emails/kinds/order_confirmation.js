@@ -15,12 +15,13 @@ module.exports = function orderConfirmation(data, { L }) {
   const placed = F.fmtDate(order.paidAt || order.createdAt);
   // Guests (uid === null) have no account page; the backend may omit uid, then both buttons show.
   const viewUrl = order.uid === null || !id ? "" : L.order(id);
+  const held = !!(order.payment && order.payment.state === "authorized");     // charge on ship
 
   const next = [
     hasPackage
       ? { title: "We send you a proof", body: "Within 1 business day we'll email you to collect your names, date, logo or photos, then send a proof to approve before anything is printed." }
       : { title: "We make them by hand", body: hasPhotos ? "We print your photos, frame them and press every magnet by hand. That takes 3 to 5 business days." : "We print and press every magnet by hand. That takes 3 to 5 business days." },
-    { title: "We ship them to you", body: "You'll get an email with your tracking number the moment they leave the hive." },
+    { title: "We ship them to you", body: held ? "Your card is charged when your order ships, and you get an email with your tracking number the moment it leaves the hive." : "You'll get an email with your tracking number the moment they leave the hive." },
     { title: "Fridge time", body: "Unwrap, stick, smile. Tag us on Instagram if you share a photo, we love seeing them." },
   ];
 
@@ -41,6 +42,7 @@ module.exports = function orderConfirmation(data, { L }) {
       Lay.h2("Your order"),
       O.itemList(order, L),
       O.totals(order),
+      held ? Lay.p(["Your card is authorized for this amount but not charged yet. We charge it only when your order ships."], { muted: true, small: true }) : null,
       O.giftMessage(order.giftMessage),
       Lay.columns(cols),
       order.notes ? Lay.p([{ b: "Your note to us: " }, F.line(order.notes, 400)], { muted: true, small: true }) : null,

@@ -10,7 +10,7 @@ const Module = require("module");
 const CALLABLES = [
   "createCheckout", "trackOrder", "orderBySession", "subscribe", "contact", "requestQuote", "sendPasswordReset", "welcome",
   "submitReview", "unsubscribe", "myOrders", "myOrder", "sendVerifyEmail",
-  "claimAdmin", "adminSetStatus", "adminShip", "adminMarkDelivered", "adminRefund", "adminAddNote", "adminResendEmail",
+  "claimAdmin", "adminSetStatus", "adminShip", "adminCapture", "adminPush", "adminMarkDelivered", "adminRefund", "adminAddNote", "adminResendEmail",
   "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview",
   "adminPrintSheet",
 ];

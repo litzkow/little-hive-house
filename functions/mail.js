@@ -56,6 +56,7 @@ const SUBJECTS = {
   admin_new_order: (d) => `New order ${(d.order && d.order.number) || ""}`,
   admin_dispute: (d) => `Dispute opened on order ${(d.order && d.order.number) || ""}`,
   admin_delivery_check: (d) => `${(d.orders || []).length} shipped orders not marked delivered`,
+  admin_payment_hold: (d) => d.mode === "expired" ? `Card hold expired on order ${(d.order && d.order.number) || ""}` : `Ship or charge order ${(d.order && d.order.number) || ""} soon: the card hold ends`,
   contact_autoreply: () => "We got your message",
   admin_contact: (d) => `New message: ${(d.contact && d.contact.topic) || "contact form"}`,
   admin_quote: (d) => `Big order request from ${d.name || "a customer"}`,
@@ -134,6 +135,8 @@ function encodeAttachments(list) {
  * Never throws for a missing key or a Resend failure unless `required` (then an AppError the admin sees).
  */
 async function send({ to, kind, data = {}, replyTo, required = false, fetchImpl, attachments }) {
+  // every alert to the shop also goes to the owners' phones (push.js); it never throws and doesn't need Resend
+  if (/^admin_/.test(String(kind)) && require("./deps").available()) await require("./push").notifyAdmins(kind, data);
   const key = env("RESEND_API_KEY");
   if (!to) return { skipped: true, reason: "no recipient" };
   if (!key) {

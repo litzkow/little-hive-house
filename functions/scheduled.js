@@ -51,6 +51,7 @@ async function backfillFees(limit = 40) {
     const o = d.data();
     const pi = o.stripe && o.stripe.paymentIntent;
     if (!pi || o.status === "pending" || o.status === "canceled") continue;
+    if (o.payment && o.payment.state === "authorized") continue;   // not charged yet: no fee until it ships
     try {
       const p = await stripe.request("GET", `/payment_intents/${encodeURIComponent(pi)}`, { expand: ["latest_charge.balance_transaction"] });
       const bt = p && p.latest_charge && p.latest_charge.balance_transaction;
