@@ -9,7 +9,7 @@ import re
 
 import datetime
 
-from catalog import BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, PRICE, SEASONAL, SEASONS, VOLUME, title_for
+from catalog import ALL_COLLECTIONS, BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, PRICE, SEASONAL, SEASONS, VOLUME, title_for
 BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
 PARENT = {ch: g for g in GROUPS for ch in g["children"]}
 
@@ -31,7 +31,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "16"
+VERSION = "17"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -490,7 +490,7 @@ def page_home():
           <p class="eyebrow">Shop by collection</p>
           <h2>Find your kind of magnet</h2>
         </div>
-        <p>Travel posters, black and white skylines, seasonal favorites, star signs, birth flowers and more. {deal()} {vol_badge()}</p>
+        <p>Travel posters, black and white skylines, seasonal favorites, star signs, great paintings and more. {deal()} {vol_badge()}</p>
       </div>
       <ul class="col-grid">
 {cards}
@@ -1039,7 +1039,7 @@ def export_store_catalog():
     frames = _json.loads((ROOT / "assets" / "frames" / "frames.json").read_text(encoding="utf-8"))
     cat = {
         "designs": {f'{c["slug"]}/{s}': {"title": title_for(c, s), "collection": c["slug"], "collectionName": c["name"], "price": PRICE}
-                    for c in COLLECTIONS for s in c["order"]},
+                    for c in ALL_COLLECTIONS for s in c["order"]},   # archive too: old carts and orders keep working
         "packs": {str(n): {"size": n, "price": p, "title": f"Custom photo magnets (pack of {n})"} for n, p in STORE_PHOTO_PACKS},
         "packages": {f'{ids.get(key) or title.split()[0].lower()}-{n}': {"title": f"{title}, {n} magnets", "group": ids.get(key) or title.split()[0].lower(),
                                                                          "size": n, "price": p}
@@ -1080,6 +1080,17 @@ def write_sitemap():
           f"Sitemap: {site}sitemap.xml\n")
 
 
+def write_archived_redirects():
+    """Collections taken off the site (kept in the archive) answer old links with a redirect to all collections."""
+    shown = {c["slug"] for c in COLLECTIONS} | {g["slug"] for g in GROUPS}
+    for c in ALL_COLLECTIONS:
+        if c["slug"] not in shown:
+            write(f"collections/{c['slug']}.html", '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+                  '<meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=./">'
+                  '<link rel="canonical" href="https://littlehivehouse.com/collections/"><title>Little Hive House</title></head>'
+                  '<body><a href="./">See all collections</a></body></html>\n')
+
+
 if __name__ == "__main__":
     page_home()
     page_shop()
@@ -1096,6 +1107,7 @@ if __name__ == "__main__":
     import store_pages
     store_pages.build(_sys.modules[__name__])
     export_store_catalog()   # store backend prices -> functions/catalog.json
+    write_archived_redirects()
     write_sitemap()          # sitemap.xml + robots.txt for Google
     import admin_icons       # admin/icons/*.png for the installable admin (only drawn when missing)
     admin_icons.main()

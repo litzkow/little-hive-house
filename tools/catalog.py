@@ -397,41 +397,41 @@ GROUPS = [
 # The home page spotlight changes with the calendar. (start MM-DD, end MM-DD), first match wins.
 SEASONS = [
     ("12-26", "01-03", "Cheers to a new year", "New Year", "Start the year with a little sparkle on the fridge.", "holidays",
-     [("holidays", "happy-new-year"), ("holidays", "cheers"), ("christmas", "winter-wonder"), ("holidays", "happy-holidays")], ("#1D2B44", "#F6EFE0", "#E2B857")),
+     [("holidays", "happy-new-year"), ("holidays", "cheers"), ("christmas", "merry-and-bright-classic"), ("night-sky", "to-the-moon-and-back")], ("#1D2B44", "#F6EFE0", "#E2B857")),
     ("01-04", "02-14", "Little love notes", "Valentine's Day", "Sweet little magnets for the people you love, from XOXO to Bee Mine.", "holidays",
-     [("holidays", "be-my-valentine"), ("holidays", "sweet-on-you"), ("holidays", "xoxo"), ("holidays", "happy-galentines")], ("#F4C7C3", "#3A2E2A", "#C2343A")),
-    ("02-15", "03-17", "Feeling lucky", "St. Patrick's Day", "A little green for March, plus favorites to brighten the end of winter.", "holidays",
-     [("holidays", "lucky"), ("holidays", "pot-of-gold"), ("world", "dublin"), ("places", "boston")], ("#2E7D4F", "#F6EFE0", "#F3D27A")),
+     [("holidays", "be-my-valentine"), ("holidays", "xoxo"), ("holidays", "happy-galentines"), ("bee-kind", "bee-mine-classic")], ("#F4C7C3", "#3A2E2A", "#C2343A")),
+    ("02-15", "03-17", "Dreaming of somewhere warm", "Late winter", "Beat the last cold weeks with a little sunshine on the fridge.", "world",
+     [("world", "santorini"), ("places", "honolulu"), ("world", "rio-de-janeiro"), ("places", "san-diego")], ("#2E7D4F", "#F6EFE0", "#F3D27A")),
     ("03-18", "04-20", "Hello, spring", "Easter & spring", "Bunnies, daisies and daffodils for the first warm days.", "holidays",
-     [("holidays", "hoppy-easter"), ("holidays", "happy-easter"), ("holidays", "earth-day-every-day"), ("birth-flowers", "march-daffodil")], ("#E8E1F5", "#2B2118", "#7A5BB5")),
+     [("holidays", "happy-easter"), ("bee-kind", "bee-happy-classic"), ("great-masters", "almond-blossoms"), ("great-masters", "irises")], ("#E8E1F5", "#2B2118", "#7A5BB5")),
     ("04-21", "05-11", "For the best mom ever", "Mother's Day", "Small, thoughtful gifts for moms, grandmas and everyone who mothers us.", "holidays",
-     [("holidays", "best-mom-ever"), ("holidays", "mom-youre-the-best"), ("holidays", "thank-you-teacher"), ("birth-flowers", "may-lily-of-the-valley")], ("#F8D7DD", "#3A2E2A", "#C2343A")),
-    ("05-12", "05-31", "Congrats, grads", "Graduation season", "Cheer on the class of the year with a little something for the fridge.", "holidays",
-     [("holidays", "congrats-grad"), ("holidays", "worth-the-hassle"), ("holidays", "just-married"), ("holidays", "welcome-baby")], ("#F6EFE0", "#1F2F4D", "#C2343A")),
+     [("holidays", "best-mom-ever"), ("furry-friends", "dog-mom-classic"), ("holidays", "thank-you-teacher"), ("great-masters", "water-lilies")], ("#F8D7DD", "#3A2E2A", "#C2343A")),
+    ("05-12", "05-31", "Big days, little thank-yous", "Graduations & weddings", "For the teachers, the newlyweds and every big day worth a toast.", "holidays",
+     [("holidays", "thank-you-teacher"), ("holidays", "just-married"), ("holidays", "cheers"), ("bee-kind", "bee-brave-classic")], ("#F6EFE0", "#1F2F4D", "#C2343A")),
     ("06-01", "06-21", "For the best dad ever", "Father's Day", "Coffee, naps and dad jokes: the essentials.", "holidays",
-     [("holidays", "best-dad-ever"), ("holidays", "reel-cool-dad"), ("kitchen-words", "but-first-coffee"), ("places", "grand-teton")], ("#1F2F4D", "#F6EFE0", "#E9B949")),
+     [("holidays", "reel-cool-dad"), ("bumper-stickers", "running-on-dad-jokes"), ("kitchen-words", "but-first-coffee-classic"), ("bumper-stickers", "gone-fishing")], ("#1F2F4D", "#F6EFE0", "#E9B949")),
     ("06-22", "07-04", "Land of the free", "4th of July", "Stars, stripes and the American places we love.", "holidays",
-     [("holidays", "happy-4th"), ("holidays", "red-white-and-blue"), ("places", "statue-of-liberty"), ("places", "washington-dc")], ("#F6EFE0", "#1F2F4D", "#B23A3A")),
+     [("americana", "land-of-the-free"), ("places", "statue-of-liberty"), ("places", "washington-dc"), ("americana", "small-town-big-heart")], ("#F6EFE0", "#1F2F4D", "#B23A3A")),
     ("07-05", "08-31", "Endless summer", "Summer", "Bright, beachy magnets for long days and salty hair.", "summer",
-     [("summer", "endless-summer"), ("summer", "one-in-a-melon"), ("summer", "float-on"), ("summer", "aloha")], ("#FF6F59", "#FFFFFF", "#FFC93C")),
+     [("summer", "salty-air-sandy-hair-classic"), ("summer", "lifes-a-beach-classic"), ("summer", "vitamin-sea-classic"), ("summer", "beach-please")], ("#FF6F59", "#FFFFFF", "#FFC93C")),
     ("09-01", "10-14", "Hello, fall", "Fall", "Pumpkins, falling leaves and sweater weather. Our coziest collection is here.", "fall",
-     [("fall", "cozy-season"), ("fall", "pumpkin-patch"), ("fall", "whooo-loves-fall"), ("fall", "cat-nap-season")], ("#4A2F1E", "#F6EDE0", "#D9A23B")),
+     [("fall", "pumpkin-spice-classic"), ("fall", "falling-for-you-classic"), ("fall", "hello-fall"), ("fall", "pumpkin-patch")], ("#4A2F1E", "#F6EDE0", "#D9A23B")),
     ("10-15", "10-31", "Spooky season is here", "Halloween", "Ghosts, bats and black cats. Spooky, never scary.", "halloween",
-     [("halloween", "purrfectly-spooky"), ("halloween", "whooos-there"), ("halloween", "witch-way"), ("halloween", "just-chillin")], ("#151515", "#F6EFE0", "#E8833A")),
+     [("halloween", "witch-please-classic"), ("halloween", "stay-spooky-classic"), ("halloween", "happy-halloween"), ("halloween", "whooos-there")], ("#151515", "#F6EFE0", "#E8833A")),
     ("11-01", "11-27", "Gather & give thanks", "Thanksgiving", "Cozy magnets for the table, the hosts and the people we are thankful for.", "fall",
-     [("fall", "gather-together"), ("fall", "harvest"), ("fall", "save-room-for-pie"), ("fall", "give-thanks")], ("#B4532A", "#F6EDE0", "#F3D27A")),
+     [("fall", "give-thanks"), ("fall", "pumpkin-patch"), ("fall", "happy-fall-yall"), ("kitchen-words", "eat-well-laugh-often-love-much")], ("#B4532A", "#F6EDE0", "#F3D27A")),
     ("11-28", "12-25", "Merry little magnets", "Christmas", "Stocking stuffers and gift toppers for the merriest time of the year.", "christmas",
-     [("christmas", "home-for-christmas"), ("christmas", "merry-christmas"), ("christmas", "let-it-snow"), ("christmas", "seasons-greetings")], ("#1E4D3A", "#F6EFE0", "#E9B949")),
+     [("christmas", "merry-and-bright-classic"), ("christmas", "naughty-or-nice-classic"), ("christmas", "home-for-christmas"), ("christmas", "merry-christmas")], ("#1E4D3A", "#F6EFE0", "#E9B949")),
 ]
 
 # Gift guide cards on the home page: (title, line, link inside the site)
 GIFTS = [
     ("For coffee lovers", "Coffee first, everything else later.", "shop.html?q=coffee"),
     ("For travelers", "Their favorite places, near and far.", "collections/world.html"),
-    ("Birthday gifts", "Their star sign or their birth flower.", "collections/birth-flowers.html"),
+    ("Birthday gifts", "Their star sign, in gold and starlight.", "collections/night-sky.html"),
     ("For pet people", "Dog moms, cat ladies and rescuers.", "collections/furry-friends.html"),
-    ("For the kitchen", "Bless this mess and taco Tuesdays.", "collections/kitchen-words.html"),
-    ("Brazilian at heart", "Saudade, cafuné and café com leite.", "collections/brasil.html"),
+    ("For the kitchen", "Bless this mess, but first, coffee.", "collections/kitchen-words.html"),
+    ("Brazilian at heart", "Saudade, cafuné and pão de queijo.", "collections/brasil.html"),
 ]
 
 FEATURED = [("world", "japan"), ("ink-cities", "atlanta"), ("bee-kind", "bee-kind"), ("bumper-stickers", "i-brake-for-coffee"),
@@ -445,3 +445,28 @@ def title_for(col, slug):
         month, flower = slug.split("-", 1)
         return f"{month.title()} · {flower.replace('-', ' ').title()}"
     return slug.replace("-", " ").title()
+
+
+# ---- curation: the site shows only the owners' selection (tools/curation.py); everything else stays archived ----
+import copy as _copy  # noqa: E402
+
+from curation import CLASSICS, HERITAGE, SHOWN, VITRINE  # noqa: E402
+
+ALL_COLLECTIONS = _copy.deepcopy(COLLECTIONS)   # the full archive (also first-version "classic" designs), for old orders
+for (_c, _s), (_oc, _os, _t) in CLASSICS.items():
+    _col = next(c for c in ALL_COLLECTIONS if c["slug"] == _c)
+    _col["titles"][_s] = _t
+    if _s not in _col["order"]:
+        _col["order"].append(_s)
+
+COLLECTIONS = []
+for _slug, _order in SHOWN.items():
+    _col = _copy.deepcopy(next(c for c in ALL_COLLECTIONS if c["slug"] == _slug))
+    _missing = [s for s in _order if s not in _col["order"]]
+    assert not _missing, f"curation: {_slug} has no {_missing}"
+    _col["order"] = list(_order)
+    COLLECTIONS.append(_col)
+DISPLAY = list(SHOWN)
+GROUPS[0]["children"] = list(HERITAGE)
+FEATURED = list(VITRINE)
+SEASONAL = {k: v for k, v in SEASONAL.items() if k in SHOWN}

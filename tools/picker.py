@@ -10,7 +10,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-from catalog import COLLECTIONS, title_for  # noqa: E402
+from catalog import ALL_COLLECTIONS as COLLECTIONS, title_for  # noqa: E402
 
 BY = {c["slug"]: c for c in COLLECTIONS}
 

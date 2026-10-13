@@ -312,6 +312,30 @@
    "collectionName": "USA Places",
    "price": 5
   },
+  "places/grand-canyon-classic": {
+   "title": "Grand Canyon Classic",
+   "collection": "places",
+   "collectionName": "USA Places",
+   "price": 5
+  },
+  "places/new-york-classic": {
+   "title": "New York Classic",
+   "collection": "places",
+   "collectionName": "USA Places",
+   "price": 5
+  },
+  "places/san-francisco-classic": {
+   "title": "San Francisco Classic",
+   "collection": "places",
+   "collectionName": "USA Places",
+   "price": 5
+  },
+  "places/miami-beach-classic": {
+   "title": "Miami Beach",
+   "collection": "places",
+   "collectionName": "USA Places",
+   "price": 5
+  },
   "world/paris": {
    "title": "Paris",
    "collection": "world",
@@ -638,6 +662,12 @@
   },
   "world/dubai": {
    "title": "Dubai",
+   "collection": "world",
+   "collectionName": "World Places",
+   "price": 5
+  },
+  "world/rio-classic": {
+   "title": "Rio de Janeiro Classic",
    "collection": "world",
    "collectionName": "World Places",
    "price": 5
@@ -1182,6 +1212,18 @@
    "collectionName": "Fall",
    "price": 5
   },
+  "fall/pumpkin-spice-classic": {
+   "title": "Pumpkin Spice & Everything Nice",
+   "collection": "fall",
+   "collectionName": "Fall",
+   "price": 5
+  },
+  "fall/falling-for-you-classic": {
+   "title": "Falling for You",
+   "collection": "fall",
+   "collectionName": "Fall",
+   "price": 5
+  },
   "halloween/purrfectly-spooky": {
    "title": "Purrfectly Spooky",
    "collection": "halloween",
@@ -1358,6 +1400,18 @@
   },
   "halloween/ghouls-night-out": {
    "title": "Ghouls' Night Out",
+   "collection": "halloween",
+   "collectionName": "Halloween",
+   "price": 5
+  },
+  "halloween/witch-please-classic": {
+   "title": "Witch Please",
+   "collection": "halloween",
+   "collectionName": "Halloween",
+   "price": 5
+  },
+  "halloween/stay-spooky-classic": {
+   "title": "Stay Spooky",
    "collection": "halloween",
    "collectionName": "Halloween",
    "price": 5
@@ -1722,6 +1776,36 @@
    "collectionName": "Furry Friends",
    "price": 5
   },
+  "furry-friends/dog-mom-classic": {
+   "title": "Dog Mom",
+   "collection": "furry-friends",
+   "collectionName": "Furry Friends",
+   "price": 5
+  },
+  "furry-friends/cat-mom-classic": {
+   "title": "Cat Mom",
+   "collection": "furry-friends",
+   "collectionName": "Furry Friends",
+   "price": 5
+  },
+  "furry-friends/crazy-cat-lady-classic": {
+   "title": "Crazy Cat Lady",
+   "collection": "furry-friends",
+   "collectionName": "Furry Friends",
+   "price": 5
+  },
+  "furry-friends/who-rescued-who-classic": {
+   "title": "Who Rescued Who?",
+   "collection": "furry-friends",
+   "collectionName": "Furry Friends",
+   "price": 5
+  },
+  "furry-friends/adopt-dont-shop-classic": {
+   "title": "Adopt, Don't Shop",
+   "collection": "furry-friends",
+   "collectionName": "Furry Friends",
+   "price": 5
+  },
   "kitchen-words/kitchen-closed": {
    "title": "Kitchen Closed, This Chick Has Had It",
    "collection": "kitchen-words",
@@ -1897,6 +1981,30 @@
    "price": 5
   },
   "kitchen-words/stay-cozy": {
+   "title": "Stay Cozy",
+   "collection": "kitchen-words",
+   "collectionName": "Kitchen Words",
+   "price": 5
+  },
+  "kitchen-words/bless-this-mess-classic": {
+   "title": "Bless This Mess",
+   "collection": "kitchen-words",
+   "collectionName": "Kitchen Words",
+   "price": 5
+  },
+  "kitchen-words/but-first-coffee-classic": {
+   "title": "But First, Coffee",
+   "collection": "kitchen-words",
+   "collectionName": "Kitchen Words",
+   "price": 5
+  },
+  "kitchen-words/home-sweet-home-classic": {
+   "title": "Home Sweet Home",
+   "collection": "kitchen-words",
+   "collectionName": "Kitchen Words",
+   "price": 5
+  },
+  "kitchen-words/stay-cozy-classic": {
    "title": "Stay Cozy",
    "collection": "kitchen-words",
    "collectionName": "Kitchen Words",
@@ -3702,6 +3810,18 @@
    "collectionName": "Brasil",
    "price": 5
   },
+  "brasil/saudade-classic": {
+   "title": "Saudade",
+   "collection": "brasil",
+   "collectionName": "Brasil",
+   "price": 5
+  },
+  "brasil/cafune-classic": {
+   "title": "Cafuné",
+   "collection": "brasil",
+   "collectionName": "Brasil",
+   "price": 5
+  },
   "greece/ftou-ftou": {
    "title": "Ftou, Ftou!",
    "collection": "greece",
@@ -4778,6 +4898,60 @@
   },
   "bee-kind/save-the-bees": {
    "title": "Save the Bees",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/bee-kind-classic": {
+   "title": "Bee Kind",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/queen-bee-classic": {
+   "title": "Queen Bee",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/bee-happy-classic": {
+   "title": "Bee Happy",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/hive-sweet-hive-classic": {
+   "title": "Hive Sweet Hive",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/bee-mine-classic": {
+   "title": "Bee Mine",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/bee-brave-classic": {
+   "title": "Bee Brave",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/busy-bee-classic": {
+   "title": "Busy Bee",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/sweet-as-honey-classic": {
+   "title": "Sweet as Honey",
+   "collection": "bee-kind",
+   "collectionName": "Bee Kind",
+   "price": 5
+  },
+  "bee-kind/bees-knees-classic": {
+   "title": "The Bee's Knees",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
@@ -6120,6 +6294,18 @@
    "collectionName": "Christmas",
    "price": 5
   },
+  "christmas/naughty-or-nice-classic": {
+   "title": "Naughty or Nice",
+   "collection": "christmas",
+   "collectionName": "Christmas",
+   "price": 5
+  },
+  "christmas/merry-and-bright-classic": {
+   "title": "Merry & Bright",
+   "collection": "christmas",
+   "collectionName": "Christmas",
+   "price": 5
+  },
   "summer/aloha": {
    "title": "Aloha",
    "collection": "summer",
@@ -6296,6 +6482,24 @@
   },
   "summer/sandy-toes-sun-kissed-nose": {
    "title": "Sandy Toes, Sun-Kissed Nose",
+   "collection": "summer",
+   "collectionName": "Summer",
+   "price": 5
+  },
+  "summer/salty-air-sandy-hair-classic": {
+   "title": "Salty Air, Sandy Hair",
+   "collection": "summer",
+   "collectionName": "Summer",
+   "price": 5
+  },
+  "summer/lifes-a-beach-classic": {
+   "title": "Life's a Beach",
+   "collection": "summer",
+   "collectionName": "Summer",
+   "price": 5
+  },
+  "summer/vitamin-sea-classic": {
+   "title": "Vitamin Sea Classic",
    "collection": "summer",
    "collectionName": "Summer",
    "price": 5

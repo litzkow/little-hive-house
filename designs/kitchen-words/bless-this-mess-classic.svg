@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<rect width="600" height="600" fill="#161616"/>
+<rect x="30" y="30" width="540" height="540" rx="4" fill="none" stroke="#F4F0E8" stroke-width="2"/>
+<text x="300" y="215" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-style="italic" font-weight="700" font-size="104" fill="#F4F0E8">bless</text>
+<line x1="140" y1="268" x2="236" y2="268" stroke="#F4F0E8" stroke-width="2"/>
+<line x1="364" y1="268" x2="460" y2="268" stroke="#F4F0E8" stroke-width="2"/>
+<text x="304" y="276" text-anchor="middle" font-family="'DM Mono', monospace" font-weight="500" font-size="22" letter-spacing="8" fill="#F4F0E8">THIS</text>
+<text x="300" y="462" text-anchor="middle" font-family="'Bebas Neue', Impact, sans-serif" font-size="210" letter-spacing="6" fill="#F4F0E8">MESS</text>
+<path d="M 300 524 C 270 504 276 482 292 486 Q 298 488 300 494 Q 302 488 308 486 C 324 482 330 504 300 524 Z" fill="#F4F0E8"/>
+</svg>

@@ -20,7 +20,7 @@ def page(path, title, desc, active, body, scripts=(), noindex=False, prefix=""):
     if noindex:
         h = h.replace("</head>", NOINDEX, 1)
     if "orders.js" in scripts:   # collection names for order items (orders keep the collection slug)
-        cols = json.dumps({c["slug"]: c["name"] for c in B.COLLECTIONS}, separators=(",", ":"), ensure_ascii=False)
+        cols = json.dumps({c["slug"]: c["name"] for c in B.ALL_COLLECTIONS}, separators=(",", ":"), ensure_ascii=False)
         body += f"<script>window.LHH_COLS={cols};</script>\n"
     B.write(path, h + B.header(pg, active) + body + B.footer(pg) + B.chrome_end(pg, tuple(scripts)))
 
