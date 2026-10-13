@@ -48,7 +48,7 @@ CLASSICS = {
 # Collections in the order the site shows them, each with its designs in display order.
 SHOWN = {
     "places": ["grand-canyon-classic", "atlanta", "new-york-classic", "statue-of-liberty", "san-francisco-classic",
-               "miami-beach-classic", "new-york", "san-francisco", "yellowstone", "grand-canyon", "chicago",
+               "miami-beach-classic", "los-angeles", "las-vegas", "new-york", "san-francisco", "yellowstone", "grand-canyon", "chicago",
                "washington-dc", "savannah", "honolulu", "boston", "st-augustine", "philadelphia", "yosemite",
                "napa-valley", "big-sur", "rocky-mountains", "cape-cod", "san-antonio", "sedona", "monument-valley",
                "cape-canaveral", "san-diego"],
