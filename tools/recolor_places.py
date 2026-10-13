@@ -1,8 +1,9 @@
-"""Repaints the painted USA Places posters in the first-version palette the owners prefer: soft peach, sage, grey-blue
-and cream, lighter shadows, and a light name band instead of the dark one.
+"""Repaints the painted USA Places posters in the first-version palette the owners prefer: peach and cream skies, teal,
+sage, terracotta, coral and gold, and a light name band instead of the dark one.
 
 Works on the finished SVG (no need to re-run the painters): every colour in the scene is moved in OKLCH space
-(lifted, softened, dusk purples turned to peach in the light and to grey-blue in the shade), then the band, the thin
+(dusk purples turned to peach in the light and teal-slate in the shade, then each colour pulled onto the
+nearest first-version colour, keeping the painting's own light and shade), then the band, the thin
 rule and the two lines of text get the new light band colours.
 
   python3 tools/recolor_places.py <slug> [<slug>...] [--band cream|soft] [--out DIR]
@@ -63,23 +64,42 @@ def _toward(h, target, k):
 
 
 # ---------------------------------------------------------------- the first-version look
+# Colours of the first-version USA posters (versions/v3/designs/places): warm creams and peach skies, pale aqua,
+# teal water, sage and olive greens, terracotta, coral, golden sun. No dusk purples.
+OLD = """4A3A2A 4F5D34 4F93A3 5A2E2A 7E3B2C A9502F C65F37 D27447 D9864F E6995F E9925A EFC198 F4A15A F8E6CC F9DDB0
+1E9AB0 2F7A4F 3BB8C4 4DC2CC 6A7C4E 7C8F5C 95A86E F6C453 F6E2B8 FF7A59 FFB45C FFE6BE FFF1DE 155C6B 1A8F96 1F7A5C
+2BB3B0 2E8C6C 5B4A33 8A6A4A 9A7A58 E6CB98 FF6F61 FF8A6E FFD25E FFE1C7 FFF2DE 2D4A5C 3D6F8E 3F8573 4F9783 5E8A52
+5FA996 7FA36B 86AECA A8957F B3A28C BFAE98 CDBDA8 E06C4B E7B9A6 F2A784 F4EDE4 F7D7C4 F7E9DD 12613F 1E7FA0 1F5B45
+245A4E 2E6B5E 3D8A77 3F8B6B 4A3826 4E9C79 6B4E35 7CC6D8 EDA978 F2E9DA FBD38B FF8A5B FFD23F FFF1D0 1E3D4F 2F6E86
+6E8F6A 7FB1C4 8FA97F 9E3420 A99F94 C8452C CFE3E8 F5C26B 1E2B25 1F3B2D 23402F 2B3B2E 33583F 3F6A4A 7C9B74 A7BC9F
+C3E5E6 C6D4BC E4D1B4 E5CFA8 EE8A4E F2B48A F6CBA4 FAF2E4 FBE2A2 134B5A 2B4A55 2E8FA6 2F6B4F 3C7B5B 6F9A55 7CC4D2
+A9DBE6 B08D57 B8352A D9442F E3E8EA EFD8AA F4E8D4 FFD36E FFE9A8 23314F 5A3E36 86A872 9AA6B2 C9D1DA D6D0C4 DCE8F2
+E8E1D2 E8E2D6""".split()
+
+
+def _lab(L, C, H):
+    return L, C * math.cos(math.radians(H)), C * math.sin(math.radians(H))
+
+
+_PAL = [_lab(*hex_to_oklch(h)) for h in OLD]
+
+
 def soften(hexc):
+    """Keep the light and shade of the painting, move every colour onto the first-version palette."""
     L, C, H = hex_to_oklch(hexc)
-    if C < 0.02:                                   # greys, whites, near-blacks: lift and warm a touch
-        L2 = 0.30 + 0.70 * L if L < 0.5 else L
-        return oklch_to_hex(min(L2, 0.985), C + 0.008, 60 if C < 0.005 else H)
-    # dusk purples / magentas: light ones go peach, dark ones go grey-blue (the old skies and waters)
-    if 255 <= H or H < 12:
-        H = _toward(H, 50 if L > 0.6 else 222, 0.9)
-        C = C * 0.8
-    elif 200 <= H < 255:                                   # blues -> the old soft grey-blue
-        H = _toward(H, 218, 0.7)
-        C = C * 0.75
-    # lift the darks (the old posters had no deep shadows), soften the chroma
-    L2 = 0.32 + 0.68 * L
-    L2 = L2 + (0.9 - L2) * 0.15 if L2 < 0.9 else L2
-    C2 = C * (0.78 if L2 > 0.7 else 0.66)
-    return oklch_to_hex(min(L2, 0.985), C2, H)
+    if C < 0.015:                                        # whites, greys, near-blacks stay (warmed a hair)
+        return oklch_to_hex(L, C, 70 if C < 0.004 else H)
+    # dusk purples and violets do not exist in the old posters: light ones become peach/cream sky,
+    # dark ones the old teal-slate
+    if 265 <= H or H < 5:
+        H = 62 if L > 0.62 else 215
+    elif 240 <= H < 265:
+        H = 225
+    _, a, b = _lab(L, C, H)
+    near = min(_PAL, key=lambda p: 0.35 * (p[0] - L) ** 2 + (p[1] - a) ** 2 + (p[2] - b) ** 2)
+    L2 = L * 0.85 + near[0] * 0.15
+    a2, b2 = a * 0.25 + near[1] * 0.75, b * 0.25 + near[2] * 0.75
+    return oklch_to_hex(L2, math.hypot(a2, b2), math.degrees(math.atan2(b2, a2)) % 360)
 
 
 BANDS = {   # name band: (band, rule, name, subtitle)
