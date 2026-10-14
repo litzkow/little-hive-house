@@ -10,7 +10,7 @@ window.LHH_FIREBASE = {
   storageBucket: "little-hive-house.firebasestorage.app",
   messagingSenderId: "752604920358",
   appId: "1:752604920358:web:39215f4d500467ab72c4e7",
-  // false = the store stays "opening soon" for customers until the backend (Stripe, emails) is deployed.
+  // true since 14 Oct 2026: the store is open (Stripe live). false = "opening soon" for customers again.
   // The admin page still connects, so the owners can sign in and activate admin access first.
-  live: false
+  live: true
 };
