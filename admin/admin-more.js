@@ -440,7 +440,7 @@
     var month = all.filter(function (s) { var t = R.toMs(s.at || s.createdAt); return t >= mk.from && t < mk.to; }).length;
     var sources = {};
     all.forEach(function (s) { var k = s.source || 'site'; sources[k] = (sources[k] || 0) + 1; });
-    var html = head('Subscribers', 'Subscribers', 'People who asked for news and deals', '<button class="btn btn-ghost btn-sm" data-act="subPdf">' + icon('download') + 'PDF</button> <button class="btn btn-ghost btn-sm" data-act="subCsv">' + icon('download') + 'For email tools (CSV)</button>') + errBox('subscribers') +
+    var html = head('Subscribers', 'Subscribers', 'People who asked for news and deals', '<a class="btn btn-honey btn-sm" href="#newsletter">' + icon('mail') + 'Write an email</a> <button class="btn btn-ghost btn-sm" data-act="subPdf">' + icon('download') + 'PDF</button> <button class="btn btn-ghost btn-sm" data-act="subCsv">' + icon('download') + 'For email tools (CSV)</button>') + errBox('subscribers') +
       '<div class="tiles">' + h.tile('Subscribers', h.int(all.length), gone ? h.int(gone) + ' unsubscribed (not listed)' : '', true) + h.tile('New this month', h.int(month), '') +
       h.tile('Top source', esc(Object.keys(sources).sort(function (a, b) { return sources[b] - sources[a]; })[0] || '—'), '') + '</div>' +
       '<div class="filters"><label class="search"><span class="sr">Search</span>' + icon('search') + '<input class="input" type="search" id="s-q" placeholder="Search emails" value="' + esc(u.q) + '"></label></div>' +
@@ -462,6 +462,120 @@
   ACT.subCsv = function () {
     h.downloadCSV((S.subscribers || []).filter(function (s) { return s.email && !s.unsubscribed; }), [['Email', 'email'], ['Source', 'source'],
       ['Joined', function (s) { var t = R.toMs(s.at || s.createdAt); return t ? new Date(t).toISOString().slice(0, 10) : ''; }]], 'subscribers-' + h.today() + '.csv');
+  };
+
+  /* ====================================================================== EMAIL SUBSCRIBERS (functions/newsletter.js) */
+  var NL_TEMPLATES = [
+    { key: 'hello', name: 'Still here', subject: 'A little hello from the hive', eyebrow: 'From the hive', title: 'Still pressing magnets, one by one',
+      body: 'It has been a little while, so we wanted to say hi! We are still here, printing, pressing and packing every magnet by hand.\n\nThere are new designs in the shop, and you can turn your own photos into magnets now, with a frame and a caption if you like.',
+      gallery: 'designs', button: { label: 'Visit the shop', href: 'https://littlehivehouse.com/shop.html' } },
+    { key: 'new', name: 'New designs', subject: 'Fresh from the hive: new magnets', eyebrow: 'New this month', title: 'New designs for your fridge',
+      body: 'We have been busy painting! Here are a few of the newest magnets in the shop.\n\nMix any 3 designs for $12, and add photo magnets to the same order.',
+      gallery: 'designs', button: { label: 'See the new designs', href: 'https://littlehivehouse.com/shop.html' } },
+    { key: 'photos', name: 'Photo magnets', subject: 'Your favorite photos, on the fridge', eyebrow: 'Photo magnets', title: 'Turn your photos into magnets',
+      body: 'Weddings, grandkids, pets, trips: upload your favorite pictures, pick a frame, add a caption, and we print and press them by hand.\n\nPacks start at 4 magnets for $14.',
+      gallery: 'photos', button: { label: 'Make photo magnets', href: 'https://littlehivehouse.com/photo-magnets.html' } },
+    { key: 'deadline', name: 'Holiday deadline', subject: 'Order by December 12 for Christmas', eyebrow: 'Holiday shipping', title: 'Magnets in time for Christmas',
+      body: 'Every magnet is made by hand, so we need a few days for each order. To get yours before Christmas, please order by December 12.\n\nPhoto magnets make a sweet gift for grandparents, and they fit in any stocking.',
+      gallery: 'photos', button: { label: 'Shop holiday gifts', href: 'https://littlehivehouse.com/shop.html' } },
+    { key: 'promo', name: 'Discount code', subject: 'A little thank-you: a discount this week', eyebrow: 'Just for our list', title: 'A little thank-you for being here',
+      body: 'Thank you for being part of our little hive. Here is a discount code for this week, on everything in the shop.',
+      gallery: 'designs', promo: { code: '', text: 'Enter it at checkout. Valid this week.' }, button: { label: 'Shop now', href: 'https://littlehivehouse.com/shop.html' } }
+  ];
+  function nlNewId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function nlFrom(t) {
+    return { id: nlNewId(), subject: t.subject, preheader: '', eyebrow: t.eyebrow, title: t.title, body: t.body, gallery: t.gallery,
+      designs: [], promo: t.promo ? { code: t.promo.code, text: t.promo.text } : { code: '', text: '' }, button: { label: t.button.label, href: t.button.href } };
+  }
+  function nlCampaign(c) {
+    return { subject: c.subject, preheader: c.preheader, eyebrow: c.eyebrow, title: c.title, body: c.body, gallery: c.gallery,
+      designs: String(c.designsText || '').split(/[\s,]+/).filter(Boolean), promo: c.promo && c.promo.code ? c.promo : null, button: c.button };
+  }
+  V.newsletter = function () {
+    if (!S.ui.newsletter) S.ui.newsletter = nlFrom(NL_TEMPLATES[0]);
+    var c = S.ui.newsletter;
+    var field = function (name, label, value, hint, attrs) {
+      return '<label class="field"><span>' + esc(label) + '</span><input class="input" name="' + name + '" value="' + esc(value || '') + '"' + (attrs || '') + '>' + (hint ? '<span class="hint">' + esc(hint) + '</span>' : '') + '</label>';
+    };
+    var html = head('Subscribers', 'Email subscribers', 'Write a short email to everyone on your list') +
+      '<div class="cols"><div><section class="card"><div class="card-head"><h2>Start from</h2></div><div class="row wrap" style="gap:8px">' +
+      NL_TEMPLATES.map(function (t) { return '<button class="btn btn-ghost btn-sm" data-act="nlTemplate" data-key="' + t.key + '">' + esc(t.name) + '</button>'; }).join('') + '</div></section>' +
+      '<section class="card"><form class="stack" id="nl-form" novalidate>' +
+      field('subject', 'Subject', c.subject, 'What people see in their inbox. Short and friendly.', ' maxlength="120"') +
+      field('preheader', 'Preview line (optional)', c.preheader, 'The grey line next to the subject in most inboxes.', ' maxlength="160"') +
+      field('eyebrow', 'Small label above the title', c.eyebrow, '', ' maxlength="40"') +
+      field('nltitle', 'Title', c.title, '', ' maxlength="120"') +
+      '<label class="field"><span>Message</span><textarea class="input" name="body" rows="7" maxlength="4000">' + esc(c.body) + '</textarea><span class="hint">Leave an empty line between paragraphs.</span></label>' +
+      '<label class="field"><span>Pictures</span><select class="input" name="gallery">' +
+      [['designs', 'Three of our designs'], ['photos', 'Photo magnet examples'], ['none', 'No pictures']].map(function (o) { return '<option value="' + o[0] + '"' + (c.gallery === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' +
+      field('designsText', 'Which designs (optional)', c.designsText, 'Up to 3, like places/las-vegas, fall/apple-picking. Empty = our favorites.') +
+      field('promoCode', 'Discount code (optional)', c.promo && c.promo.code, 'Must already exist in Discounts. Leave empty for none.', ' maxlength="40" style="text-transform:uppercase"') +
+      field('promoText', 'Line under the code', c.promo && c.promo.text, '', ' maxlength="140"') +
+      field('btnLabel', 'Button', c.button && c.button.label, '', ' maxlength="40"') +
+      field('btnHref', 'Button link', c.button && c.button.href, 'A page of littlehivehouse.com.', ' maxlength="300"') +
+      '<p class="err" id="nl-err" hidden></p>' +
+      '<div class="row wrap end" style="gap:8px"><button class="btn btn-ghost" type="button" data-act="nlPreview">Preview</button>' +
+      '<button class="btn btn-ghost" type="button" data-act="nlTest">Send a test to me</button>' +
+      '<button class="btn btn-honey" type="button" data-act="nlSend">Send to subscribers</button></div></form></section></div>' +
+      '<div><section class="card"><div class="card-head"><h2>Preview</h2><span class="small muted" id="nl-count"></span></div><div id="nl-preview"><p class="small muted">Tap Preview to see the email as subscribers will.</p></div></section>' +
+      '<section class="card"><div class="card-head"><h2>Sent before</h2></div><div id="nl-history"><p class="small muted">Loading…</p></div></section>' +
+      '<p class="tiny faint">Every email includes an unsubscribe link and the shop’s mailing address, as US law (CAN-SPAM) requires. Once or twice a month is plenty.</p></div></div>';
+    return {
+      title: 'Email subscribers', html: html, after: function () {
+        var f = $('#nl-form');
+        f.addEventListener('input', function () {
+          c.subject = f.subject.value; c.preheader = f.preheader.value; c.eyebrow = f.eyebrow.value; c.title = f.nltitle.value; c.body = f.body.value;
+          c.gallery = f.gallery.value; c.designsText = f.designsText.value; c.promo = { code: f.promoCode.value.trim().toUpperCase(), text: f.promoText.value };
+          c.button = { label: f.btnLabel.value, href: f.btnHref.value };
+        });
+        h.call('adminNewsletter', { action: 'list' }).then(function (res) {
+          var list = (res && res.campaigns) || [];
+          $('#nl-history').innerHTML = list.length ? '<ul class="plain">' + list.map(function (x) {
+            return '<li class="small"><b>' + esc(x.subject) + '</b><br><span class="muted">' + esc(h.fmtDate(x.sentAt || x.createdAt)) + ' · ' + h.plural(R.num(x.sent), 'email') + (x.failed ? ' · ' + x.failed + ' failed' : '') + '</span></li>';
+          }).join('') + '</ul>' : '<p class="small muted">Nothing sent yet.</p>';
+        }).catch(function (e) { $('#nl-history').innerHTML = '<p class="small err">' + esc(h.friendlyError(e)) + '</p>'; });
+      }
+    };
+  };
+  function nlErr(msg) { var e = $('#nl-err'); if (!e) return; e.textContent = msg || ''; e.hidden = !msg; }
+  ACT.nlTemplate = function (btn) {
+    var t = NL_TEMPLATES.find(function (x) { return x.key === btn.getAttribute('data-key'); });
+    if (t) { S.ui.newsletter = nlFrom(t); h.route(); }
+  };
+  ACT.nlPreview = function (btn) {
+    nlErr(''); h.busy(btn, true, 'Loading…');
+    h.call('adminNewsletter', { action: 'preview', campaign: nlCampaign(S.ui.newsletter) }).then(function (res) {
+      h.busy(btn, false);
+      var fr = document.createElement('iframe');
+      fr.className = 'mail-preview'; fr.setAttribute('title', 'Email preview'); fr.setAttribute('sandbox', '');
+      fr.srcdoc = res.html;
+      var box = $('#nl-preview'); box.innerHTML = ''; box.appendChild(fr);
+      $('#nl-count').textContent = h.plural(R.num(res.count), 'subscriber') + ' will get it';
+      if (!res.postal) nlErr('Before sending to subscribers, the shop’s mailing address must be set (MAIL_POSTAL_ADDRESS in GitHub). US law asks for it in every marketing email; a PO Box works. Tests to yourself work now.');
+      if (window.innerWidth < 900) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function (e) { h.busy(btn, false); nlErr(h.friendlyError(e)); });
+  };
+  ACT.nlTest = function (btn) {
+    nlErr(''); h.busy(btn, true, 'Sending…');
+    h.call('adminNewsletter', { action: 'test', campaign: nlCampaign(S.ui.newsletter) }).then(function (res) {
+      h.busy(btn, false); h.toast('Test sent to ' + res.to);
+    }).catch(function (e) { h.busy(btn, false); nlErr(h.friendlyError(e)); });
+  };
+  ACT.nlSend = function (btn) {
+    nlErr('');
+    var c = S.ui.newsletter;
+    h.call('adminNewsletter', { action: 'preview', campaign: nlCampaign(c) }).then(function (res) {
+      return h.dialog({ title: 'Send this email?', ok: 'Send to ' + h.plural(R.num(res.count), 'subscriber'),
+        html: '<p><b>' + esc(res.subject) + '</b></p><p class="small muted">It goes out right away and can’t be undone. Did you send yourself a test first?</p>' });
+    }).then(function (ok) {
+      if (!ok) return;
+      h.busy(btn, true, 'Sending…');
+      return h.call('adminNewsletter', { action: 'send', campaign: nlCampaign(c), campaignId: c.id, confirm: 'SEND' }).then(function (res) {
+        h.busy(btn, false);
+        h.toast('Sent to ' + h.plural(R.num(res.sent), 'subscriber') + (res.failed ? ' (' + res.failed + ' failed)' : ''));
+        S.ui.newsletter = null; h.route();
+      });
+    }).catch(function (e) { h.busy(btn, false); nlErr(h.friendlyError(e)); });
   };
 
   /* ====================================================================== SETTINGS */

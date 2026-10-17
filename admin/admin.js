@@ -40,7 +40,7 @@
     reviews: null, messages: null, quotes: null, subscribers: null, promos: null, frames: null,
     photoUrls: {}, shellReady: false,
     ui: { orders: { tab: null, q: '', range: 'any', from: '', to: '', sel: {}, limit: 50 }, reports: { month: null, scope: 'month' },
-          customers: { q: '' }, subscribers: { q: '' }, reviews: 'pending', messages: 'messages' }
+          customers: { q: '' }, subscribers: { q: '' }, reviews: 'pending', messages: 'messages', newsletter: null }
   };
   var charts = [];
 
@@ -434,7 +434,7 @@
   var NAV = [
     ['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['customers', 'Customers', 'customers'], ['reports', 'Reports', 'reports'],
     ['sep'], ['discounts', 'Discounts', 'discounts'], ['links', 'Payment links', 'links'], ['reviews', 'Reviews', 'reviews'],
-    ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['sep'], ['settings', 'Settings', 'settings']
+    ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail'], ['sep'], ['settings', 'Settings', 'settings']
   ];
   function navHTML() {
     return NAV.map(function (n) {

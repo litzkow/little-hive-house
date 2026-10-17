@@ -502,7 +502,8 @@ function drawSlip(doc, F, { order, frames, skipped, date }) {
   doc.moveTo(M, y).lineTo(M + W, y).lineWidth(1).strokeColor("#F2A81D").stroke();
   y += 14;
   doc.font(F.head).fontSize(14).fillColor("#2B2118").text("Thank you for shopping small!", M, y, { width: W });
-  doc.font(F.body).fontSize(10.5).fillColor("#6B5A48").text("Made by hand with love by Karina & Thiago. Tag us when your fridge looks sweet.", M, doc.y + 2, { width: W });
+  doc.font(F.body).fontSize(10.5).fillColor("#6B5A48").text("Thank you for supporting our little family business. Every magnet in this package was printed, pressed and packed " +
+    "by hand, at home, one small batch at a time. Love how they turned out? A review or a photo of your fridge helps a small shop more than you know.", M, doc.y + 2, { width: W });
 }
 
 function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }

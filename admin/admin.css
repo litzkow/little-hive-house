@@ -500,3 +500,5 @@ dialog.modal .big { font-size: 34px; font-weight: 600; font-variant-numeric: tab
 .input-unit .input { max-width: 120px; }
 #print-form .check { align-items: flex-start; }
 #print-form .check .hint { display: block; margin-top: 2px; }
+.mail-preview { width: 100%; height: 640px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }

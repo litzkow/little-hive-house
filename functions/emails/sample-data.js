@@ -98,6 +98,11 @@ const SAMPLES = {
   admin_quote: { name: "Ana Souza", email: "ana@example.com", occasion: "Weddings", quantity: 120, date: "2027-05-14", message: "Save the dates with our engagement photo, sage green and gold." },
   payment_link: { name: "Ana Souza", email: "ana@example.com", title: "120 wedding save-the-date magnets", amount: 198, url: "https://checkout.stripe.com/c/pay/cs_test_abc", note: "Includes custom design, one proof round and free shipping.", expiresAt: "2026-10-31T00:00:00Z" },
   newsletter_welcome: { email: "karina@example.com", unsubscribeUrl: unsub, promo: { code: "HELLO10", percentOff: 10 } },
+  newsletter: { unsubscribeUrl: unsub, campaign: { subject: "Fresh from the hive: new magnets", preheader: "Twelve new travel posters and a little thank-you.",
+    eyebrow: "New this month", title: "Twelve new places for your fridge",
+    body: "We spent the month painting new travel posters: Los Angeles, Las Vegas and ten more.\n\nAs a thank-you for being on our list, here is 10% off this week.",
+    gallery: "designs", designs: ["places/los-angeles", "places/las-vegas", "places/grand-canyon"], promo: { code: "HIVE10", text: "10% off until Sunday." },
+    button: { label: "See the new designs", href: "https://littlehivehouse.com/collections/places.html" } } },
 };
 
 // Nasty input for escaping tests: every user-controlled string carries markup.

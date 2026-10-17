@@ -27,9 +27,10 @@ const KINDS = {
   admin_quote: require("./kinds/admin_quote"),
   payment_link: require("./kinds/payment_link"),
   newsletter_welcome: require("./kinds/newsletter_welcome"),
+  newsletter: require("./kinds/newsletter"),
 };
 /** Kinds that are marketing (need consent + unsubscribe link). */
-const MARKETING = new Set(["abandoned_checkout", "newsletter_welcome"]);
+const MARKETING = new Set(["abandoned_checkout", "newsletter_welcome", "newsletter"]);
 
 /** Accepts the nested shapes the backend sends ({contact}, {quote}, {paymentLink}) as well as flat data. */
 function normalize(kind, d) {

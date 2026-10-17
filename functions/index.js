@@ -22,6 +22,7 @@ const customer = lazy("./customer");
 const tracking = lazy("./tracking");
 const payments = lazy("./payments");
 const push = lazy("./push");
+const newsletter = lazy("./newsletter");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -78,6 +79,8 @@ exports.adminSaveSettings = callable("adminSaveSettings", admin);
 // makes small copies of the customer photos for the order page (sharp): more memory than the other callables
 exports.adminPhotoUrls = callable("adminPhotoUrls", admin, null, { timeoutSeconds: 120, memory: "1GiB" });
 exports.adminModerateReview = callable("adminModerateReview", admin);
+// emails to the subscribers (newsletter.js): a send can take a few minutes for a big list
+exports.adminNewsletter = callable("adminNewsletter", newsletter, null, { timeoutSeconds: 540, memory: "512MiB" });
 // builds the print-ready PDF (sharp + pdfkit) on demand: more memory and time than the other callables
 exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
 

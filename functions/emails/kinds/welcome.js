@@ -15,7 +15,7 @@ module.exports = function welcome(data, { L }) {
       Lay.hero({
         eyebrow: "Welcome",
         title: first ? `Welcome to the hive, ${first}!` : "Welcome to the hive!",
-        lead: ["We're Karina and Thiago, and we make every magnet by hand, one little batch at a time. We're so glad you're here."],
+        lead: ["We're a small family business, and we make every magnet by hand, one little batch at a time. We're so glad you're here."],
       }),
       promo ? Lay.p([{ b: "A welcome gift: " }, `${off} your first order${promo.expiresAt ? `, until ${F.fmtDate(promo.expiresAt)}` : ""}.`], { pad: "0 0 12px" }) : null,
       promo ? Lay.code(F.line(promo.code, 30), ["Enter it at checkout."]) : null,

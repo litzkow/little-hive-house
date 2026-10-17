@@ -11,7 +11,7 @@ const CALLABLES = [
   "createCheckout", "trackOrder", "orderBySession", "subscribe", "contact", "requestQuote", "sendPasswordReset", "welcome",
   "submitReview", "unsubscribe", "myOrders", "myOrder", "sendVerifyEmail",
   "claimAdmin", "adminSetStatus", "adminShip", "adminCapture", "adminPush", "adminMarkDelivered", "adminRefund", "adminAddNote", "adminResendEmail",
-  "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview",
+  "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview", "adminNewsletter",
   "adminPrintSheet",
 ];
 const HTTP = ["stripeWebhook"];

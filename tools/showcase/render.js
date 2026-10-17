@@ -12,6 +12,7 @@ const P = require(path.join(ROOT, "functions", "printsheet.js"));
 const sharp = require("sharp");
 const SRC = process.argv[2];
 const OUT = path.join(ROOT, "assets", "showcase");
+const MAIL = path.join(ROOT, "assets", "email", "thumbs", "showcase");
 const LIST = require("./list.json");
 
 const fetchImpl = async (url) => {
@@ -21,6 +22,7 @@ const fetchImpl = async (url) => {
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
+  fs.mkdirSync(MAIL, { recursive: true });
   const ctx = P._internal.makeContext({ items: [{ kind: "photos" }] }, { fetchImpl, readPhoto: async (p) => fs.readFileSync(path.join(SRC, p)), cut: 2, enhance: true });
   ctx.frames = await P._internal.loadFrames(ctx);
   for (const occ of LIST) {
@@ -29,7 +31,10 @@ const fetchImpl = async (url) => {
       const meta = await sharp(tile).metadata();
       const e = Math.round((meta.width - 600) / 2);
       const out = path.join(OUT, `${occ.id}-${i + 1}.webp`);
-      await sharp(tile).extract({ left: e, top: e, width: 600, height: 600 }).resize(480, 480, { kernel: "lanczos3" }).webp({ quality: 82 }).toFile(out);
+      const face = await sharp(tile).extract({ left: e, top: e, width: 600, height: 600 }).toBuffer();
+      await sharp(face).resize(480, 480, { kernel: "lanczos3" }).webp({ quality: 82 }).toFile(out);
+      // a JPG for emails (newsletter "Photo magnet examples"): assets/email/thumbs/showcase/<occasion>-<n>.jpg
+      await sharp(face).resize(320, 320, { kernel: "lanczos3" }).jpeg({ quality: 84, mozjpeg: true }).toFile(path.join(MAIL, `${occ.id}-${i + 1}.jpg`));
       console.log(out, ctx.warnings.splice(0).join(" "));
     }
   }

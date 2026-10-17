@@ -20,12 +20,13 @@
      quote_received, admin_quote: {name, email, phone, occasion, package, quantity, date, message, quote:{same}}
      payment_link:      {order, paymentLink:{url, title, amount, note}}
      newsletter_welcome:{email}   (+ unsubscribeUrl)
+     newsletter:        {campaign:{subject, preheader, eyebrow, title, body, gallery, designs, promo, button}}   (+ unsubscribeUrl)
 */
 
 const crypto = require("crypto");
 const { env, siteUrl, mailFrom, mailAdmin, AppError } = require("./config");
 
-const MARKETING = new Set(["welcome", "abandoned_checkout", "newsletter_welcome"]);
+const MARKETING = new Set(["welcome", "abandoned_checkout", "newsletter_welcome", "newsletter"]);
 
 let renderer = null;
 function getRenderer() {
@@ -176,4 +177,15 @@ async function send({ to, kind, data = {}, replyTo, required = false, fetchImpl,
   }
 }
 
-module.exports = { send, fallbackRender, unsubscribeToken, checkUnsubscribeToken, unsubscribeUrl, MARKETING, mailAdmin, MAX_ATTACHMENT_BYTES, encodeAttachments };
+/** The Resend payload for one email without sending it (newsletter.js sends campaigns in batches of 100). */
+function compose({ to, kind, data = {} }) {
+  const d = baseData(kind, to, data);
+  const msg = getRenderer()(kind, d);
+  if (!msg || !msg.subject || !(msg.html || msg.text)) throw new Error("render returned no subject/body");
+  const payload = { from: mailFrom(), to: Array.isArray(to) ? to : [to], subject: msg.subject, html: msg.html, text: msg.text };
+  if (msg.headers && typeof msg.headers === "object") payload.headers = msg.headers;
+  else if (d.unsubscribeUrl && MARKETING.has(kind)) payload.headers = { "List-Unsubscribe": `<${d.unsubscribeUrl}>` };
+  return payload;
+}
+
+module.exports = { send, compose, fallbackRender, unsubscribeToken, checkUnsubscribeToken, unsubscribeUrl, MARKETING, mailAdmin, MAX_ATTACHMENT_BYTES, encodeAttachments };

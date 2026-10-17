@@ -142,7 +142,7 @@ def card(c, x0, y0):
     c.setFillColor(INK)
     c.drawString(x0 + m + 0.24 * IN, y0 + m + 0.52 * IN, "With love,")
     c.setFont("Caveat", 21)
-    c.drawString(x0 + m + 0.24 * IN, y0 + m + 0.25 * IN, "Karina & Thiago")
+    c.drawString(x0 + m + 0.24 * IN, y0 + m + 0.25 * IN, "the Little Hive family")
 
 
 def cut_marks(c):

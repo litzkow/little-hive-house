@@ -267,7 +267,7 @@
       }).join('') + '</tbody></table>' +
       '<p style="margin-top:10px">' + h.plural(R.magnetsOf(o), 'magnet') + ' in this order.</p>' +
       (o.giftMessage ? '<div class="gift">' + esc(o.giftMessage) + '</div>' : '') +
-      '<div class="thanks"><b>Thank you for shopping small!</b>Made by hand with love by Karina &amp; Thiago. Tag us when your fridge looks sweet.</div>';
+      '<div class="thanks"><b>Thank you for shopping small!</b>Made by hand with love by our little family. Tag us when your fridge looks sweet.</div>';
     document.body.classList.add('printing-slip');
     var done = function () { document.body.classList.remove('printing-slip'); window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done);
