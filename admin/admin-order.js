@@ -423,10 +423,10 @@
     var ps = o.printSheet;
     if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
     if (!ps.path && !ps.slipPath) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
-    if (ps.v !== 2) return '<span class="small muted">Made with the old layout (12 per sheet). Tapping a button makes the new one (9 per sheet).</span>';
+    if (ps.v !== 3) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (9 per sheet, white border around each picture).</span>';
     var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
     return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of 9' +
-      (ps.cut ? ' · pieces ' + Number(ps.cut).toFixed(2) + ' in' : '') + (ps.enhance === false ? ' · photos as uploaded' : ps.enhance ? ' · photos touched up' : '') + '</span>' +
+      (ps.image ? ' · pictures ' + Number(ps.image).toFixed(2) + ' in' : '') + (ps.enhance === false ? ' · photos as uploaded' : ps.enhance ? ' · photos touched up' : '') + '</span>' +
       (w ? '<span class="small neg"> · ' + h.plural(w, 'thing') + ' to check on the “Before you print” page</span>' : '');
   }
   function printCard(o) {
@@ -435,7 +435,7 @@
     var cmd = printCommand(o);
     var steps = [];
     steps.push('<b>Magnets PDF</b> on glossy photo paper, US Letter. In the printer app pick the paper type <b>Glossy photo paper</b>, quality <b>Best</b>, size <b>100% / “Actual size”</b> (never “Fit to page”), no borderless. ' +
-      'Centre each piece in the square punch, using the thin grey line.' +
+      'Each picture has white paper around it for the edge: centre the picture in the punch.' +
       (tiles ? ' ' + h.plural(tiles, 'magnet') + ' on ' + h.plural(sheets, 'sheet') + '.' : ' Nothing to print from this order: the artwork is made by hand.'));
     if (special.length) steps.push('<b>Design the custom artwork.</b> ' + special.map(function (it) { return esc(it.title || 'Custom order'); }).join(', ') +
       ' — made from the details the customer emails you. Print it with the Terminal tool under More (<code>--copies</code> prints one artwork per magnet).');

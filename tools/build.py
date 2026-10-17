@@ -249,7 +249,12 @@ def season_attr(col):
 def col_card(pg, col):
     if "children" in col:
         kids = group_kids(col)
-        fan = "".join(f'<span class="m">{pg.svg(k["slug"], k["order"][0], cls="fan-svg")}</span>' for k in kids[:3])
+        # three magnets in the fan even when the group has only two collections: take turns between them
+        picks, depth = [], 0
+        while len(picks) < 3 and depth < 3:
+            picks += [(k["slug"], k["order"][depth]) for k in kids if depth < len(k["order"])]
+            depth += 1
+        fan = "".join(f'<span class="m">{pg.svg(c, sl, cls="fan-svg")}</span>' for c, sl in picks[:3])
         n = sum(len(k["order"]) for k in kids)
         return f"""<li><a class="col-card" href="{pg.p}collections/{col["slug"]}.html">
   <div class="fan" aria-hidden="true">{fan}</div>

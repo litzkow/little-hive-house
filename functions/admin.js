@@ -15,7 +15,7 @@ const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = requi
 const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25,
-  printCutIn: 2.45, printEnhance: 1 };   // Settings › Printing: the square punch's paper size (inches) and the photo touch-up (1 on, 0 off)
+  printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -392,6 +392,7 @@ async function adminSaveSettings(data, auth) {
     const n = Number(s[k]);
     if (!Number.isFinite(n) || n < 0 || n > 100000) fail("invalid-argument", `"${k}" must be a number of 0 or more.`);
     if (k === "printCutIn" && (n < 2.1 || n > 2.55)) fail("invalid-argument", "The punch size should be between 2.10 and 2.55 inches (measure a piece the punch cut).");
+    if (k === "printImageIn" && (n < 2 || n > 2.3)) fail("invalid-argument", "The picture size should be between 2.00 and 2.30 inches.");
     if (k === "printEnhance" && n !== 0 && n !== 1) fail("invalid-argument", "The photo touch-up is on (1) or off (0).");
     out[k] = Math.round(n * 10000) / 10000;
   }
@@ -485,8 +486,8 @@ async function adminPrintSheet(data, auth) {
   const rebuild = !!(data && data.rebuild);
   const which = data && data.which === "slip" ? "slip" : "sheet";
   const pathOf = (m) => (m ? (which === "slip" ? m.slipPath : m.path) : null);
-  // PDFs made before the 9-per-sheet layout (no v: 2) are made again
-  let meta = order.printSheet && order.printSheet.v === 2 && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
+  // PDFs made with an older layout (v under 3) are made again
+  let meta = order.printSheet && order.printSheet.v === 3 && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
   let exists = false;
   if (meta && !rebuild && pathOf(meta)) {
     try { exists = (await deps.bucket().file(pathOf(meta)).exists())[0] === true; } catch (err) { exists = false; }

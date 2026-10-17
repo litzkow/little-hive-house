@@ -28,11 +28,11 @@ const FM = require("./fontmetrics");
 const Crop = require("./crop");
 
 /* ---------- geometry ----------
-   Each magnet is a square piece of paper cut with the square punch (the cut size, about 2.4 in for a 2 x 2 in
-   magnet: the 2 in face plus the paper that wraps around the edge). The artwork / photo fills the 2 in face exactly
-   (what the customer saw on the site), and its edges are stretched outwards to the cut line plus a little bleed, so
-   the wrapped edge is coloured and a slightly off-centre cut never shows white. 9 pieces per page (3 x 3), with white
-   space between them for the punch and a thin grey guide line around each piece. */
+   Each magnet is a piece of paper cut with the punch (the cut size, about 2.45 in for a 2 x 2 in magnet: the face
+   plus the paper that wraps around the edge). The artwork / photo is printed a hair bigger than the 2 in face
+   (IMAGE_IN, so the rounded edge of the face is covered too), centred in its piece, and the rest of the piece is
+   plain white paper that wraps around the sides, like the punch makers' own samples. 9 pieces per page (3 x 3),
+   with white space between them. */
 const DPI = 300;
 const COLS = 3, ROWS = 3, PER_PAGE = COLS * ROWS;
 const FACE_IN = 2;                                   // the visible magnet face
@@ -40,7 +40,8 @@ const FACE_PX = FACE_IN * DPI;                       // 600
 const CUT_IN = 2.45;                                 // default paper size of the octagonal punch (Settings › Printing): a little big on purpose,
                                                      // the face stays 2 in either way and a larger piece only adds coloured edge
 const CUT_MIN = 2.1, CUT_MAX = 2.55;
-const BLEED_IN = 0.04;                               // the art runs this far past the cut line
+const IMAGE_IN = 2.08;                               // default printed size of each photo / design (Settings › Printing)
+const IMAGE_MIN = 2.0, IMAGE_MAX = 2.3;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
 const SVG_UNITS = 600;                               // the frames' coordinate system = the 2 in face
@@ -56,18 +57,23 @@ function cutSize(v) {
   const n = Number(v);
   return Number.isFinite(n) && n >= CUT_MIN && n <= CUT_MAX ? n : CUT_IN;
 }
+/** A valid printed image size in inches (falls back to the default). */
+function imageSize(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= IMAGE_MIN && n <= IMAGE_MAX ? n : IMAGE_IN;
+}
 /**
- * Everything about the sheet for a cut size: points for the PDF, pixels for the artwork.
- * {cut, face, bleed, gap, cutPt, artPt, artPx, extPx, gapPt, left, top}
+ * Everything about the sheet for a cut size and image size: points for the PDF, pixels for the artwork.
+ * {cut, image, face, gap, cutPt, artPt, artPx, gapPt, left, top}
  */
-function geometry(cutIn) {
+function geometry(cutIn, imageIn) {
   const cut = cutSize(cutIn);
-  const extPx = Math.round(((cut - FACE_IN) / 2 + BLEED_IN) * DPI);   // pixels added on each side of the 600 px face
-  const artPx = FACE_PX + 2 * extPx;
+  const image = Math.min(imageSize(imageIn), cut);
+  const artPx = Math.round(image * DPI);
   const gap = Math.min(0.5, (8.5 - 2 * SIDE_IN - COLS * cut) / (COLS - 1));
   const cutPt = cut * 72, gapPt = gap * 72, artPt = artPx / DPI * 72;
   const gridW = COLS * cutPt + (COLS - 1) * gapPt, gridH = ROWS * cutPt + (ROWS - 1) * gapPt;
-  return { cut, face: FACE_IN, bleed: BLEED_IN, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, extPx, gapPt: r6(gapPt),
+  return { cut, image: r6(artPx / DPI), face: FACE_IN, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, gapPt: r6(gapPt),
     left: r6((PAGE_PT.w - gridW) / 2), top: r6((PAGE_PT.h - gridH) / 2 + 6) };
 }
 
@@ -81,11 +87,11 @@ const frameId = (id) => { const k = String(id || "none").trim(); return ALIASES[
 function pageCount(n) { return n > 0 ? Math.ceil(n / PER_PAGE) : 0; }
 
 /**
- * The 9 pieces of a sheet, in points: {i, col, row, x, y, size} is the cut square (where the punch cuts),
- * art {x, y, size} is the printed image (the cut square plus the bleed), face {x, y, size} the 2 in magnet face.
+ * The 9 pieces of a sheet, in points: {i, col, row, x, y, size} is the piece the punch cuts, art {x, y, size} the
+ * printed image centred in it (white paper around), face {x, y, size} the 2 in magnet face.
  */
-function tilePositions(cutIn) {
-  const g = geometry(cutIn);
+function tilePositions(cutIn, imageIn) {
+  const g = geometry(cutIn, imageIn);
   const b = (g.artPt - g.cutPt) / 2, f = (g.cutPt - FACE_IN * 72) / 2;
   const out = [];
   for (let i = 0; i < PER_PAGE; i++) {
@@ -311,9 +317,9 @@ async function enhancePhoto(sharp, img) {
     .linear(p.contrast, p.offset).sharpen({ sigma: p.sharpen }).raw().toBuffer({ resolveWithObject: true });
 }
 
-/** The 600 px face -> the printed piece: the edges are stretched (or mirrored, for a plain photo) out to the cut line + bleed. */
-async function withBleed(sharp, faceJpeg, ext, mode) {
-  return sharp(faceJpeg).extend({ top: ext, bottom: ext, left: ext, right: ext, extendWith: mode === "mirror" ? "mirror" : "copy" }).jpeg(JPEG).toBuffer();
+/** The 600 px face -> the printed image (IMAGE_IN, a hair bigger than the face so its rounded edge is covered). */
+async function toPrint(sharp, faceJpeg, px) {
+  return px === FACE_PX ? faceJpeg : sharp(faceJpeg).resize(px, px, { fit: "fill", kernel: "lanczos3" }).jpeg(JPEG).toBuffer();
 }
 
 /* ---------- rendering tiles (sharp) ---------- */
@@ -329,7 +335,7 @@ async function renderDesign(tile, ctx) {
     ctx.warn(`Design "${tile.title}" (${tile.id}) could not be fetched from the site: ${err.message}. Its tile is a placeholder.`);
     face = await sharp(Buffer.from(placeholderSvg(["Missing artwork", tile.title, tile.id]))).jpeg(JPEG).toBuffer();
   }
-  return withBleed(sharp, face, ctx.geo.extPx, "copy");
+  return toPrint(sharp, face, ctx.geo.artPx);
 }
 
 async function renderPhoto(tile, ctx) {
@@ -360,7 +366,7 @@ async function renderPhoto(tile, ctx) {
       ? `${label} is an iPhone HEIC file, which the print server can't open. Its tile is a placeholder: open “Original photo” on the order page, save it as a JPG and print it by hand.`
       : `${label} could not be read (${err.message}). Its tile is a placeholder: download the photo from the admin and print it by hand.`);
     const ph = await sharp(Buffer.from(placeholderSvg([`${label} could not be read`, "Download it from the admin", "and print it by hand", path.basename(tile.path)]))).jpeg(JPEG).toBuffer();
-    return withBleed(sharp, ph, ctx.geo.extPx, "copy");
+    return toPrint(sharp, ph, ctx.geo.artPx);
   }
   const layers = [photoLayer];
   const captionMarkup = FM.captionSvg(f, tile.caption);
@@ -370,7 +376,7 @@ async function renderPhoto(tile, ctx) {
   }
   if (inner || captionMarkup) layers.push({ input: Buffer.from(overlaySvg(inner, captionMarkup)), left: 0, top: 0 });
   const face = await sharp({ create: { width: FACE_PX, height: FACE_PX, channels: 3, background: "#FFFFFF" } }).composite(layers).jpeg(JPEG).toBuffer();
-  return withBleed(sharp, face, ctx.geo.extPx, inner || captionMarkup ? "copy" : "mirror");
+  return toPrint(sharp, face, ctx.geo.artPx);
 }
 
 async function pool(items, n, fn) {
@@ -400,16 +406,14 @@ function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo }) {
   doc.font(F.body).fontSize(7.5).fillColor("#2B2118");
   doc.text(left, L, 18, { width: 250, lineBreak: false, ellipsis: true });
   doc.text(right, PAGE_PT.w / 2, 18, { width: PAGE_PT.w / 2 - L, align: "right", lineBreak: false });
-  const slots = tilePositions(geo.cut);
-  doc.lineWidth(0.35).strokeColor("#B5B5B5");
+  const slots = tilePositions(geo.cut, geo.image);
   for (const t of placed) {
     const img = images.get(t.key);
     const a = slots[t.slot].art;
     if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
-    doc.rect(a.x, a.y, a.size, a.size).stroke();          // thin guide just outside the cut: centre it in the punch
   }
   doc.font(F.body).fontSize(6.5).fillColor("#8A7A66");
-  doc.text(`${placed.length} of ${PER_PAGE} magnets · each piece ${geo.cut.toFixed(2)} in (the ${FACE_IN} in face plus the edge that wraps) · centre each one in the square punch`,
+  doc.text(`${placed.length} of ${PER_PAGE} magnets · each picture ${geo.image.toFixed(2)} in with white paper around it for the edge · centre the picture in the punch`,
     L, PAGE_PT.h - 26, { width: PAGE_PT.w - 2 * L, align: "center", lineBreak: false });
 }
 
@@ -549,10 +553,10 @@ async function printSettings() {
   try {
     const snap = await deps.db().collection("settings").doc("store").get();
     const s = snap.exists ? snap.data() : {};
-    return { cut: cutSize(s.printCutIn), enhance: s.printEnhance === undefined ? true : Number(s.printEnhance) !== 0 };
+    return { cut: cutSize(s.printCutIn), image: imageSize(s.printImageIn), enhance: s.printEnhance === undefined ? true : Number(s.printEnhance) !== 0 };
   } catch (err) {
     console.warn("[printsheet] settings could not be read; using the defaults", err && err.message);
-    return { cut: CUT_IN, enhance: true };
+    return { cut: CUT_IN, image: IMAGE_IN, enhance: true };
   }
 }
 
@@ -568,7 +572,7 @@ function makeContext(order, opts) {
       return buf;
     }),
     frames: null,
-    geo: geometry(opts.cut),
+    geo: geometry(opts.cut, opts.image),
     enhance: opts.enhance !== false,
   };
   return ctx;
@@ -590,7 +594,7 @@ async function buildPrintSheetDetailed(orderId, order, opts = {}) {
     images.set(t.key, await (t.kind === "design" ? renderDesign(t, ctx) : renderPhoto(t, ctx)));
   });
   const out = await assemblePdf({ order, plan, images, warnings: ctx.warnings, frames: ctx.frames, geo: ctx.geo });
-  return { ...out, sheets: plan.sheets, tiles: plan.tiles.length, cut: ctx.geo.cut, enhance: ctx.enhance, warnings: ctx.warnings.slice(0, 10) };
+  return { ...out, sheets: plan.sheets, tiles: plan.tiles.length, cut: ctx.geo.cut, image: ctx.geo.image, enhance: ctx.enhance, warnings: ctx.warnings.slice(0, 10) };
 }
 
 /** buildPrintSheet(orderId, order) -> Buffer (the magnets PDF). */
@@ -609,20 +613,20 @@ async function savePdf(bucket, p, buf, order, orderId, by, which) {
 
 /**
  * Builds the PDFs, saves them at orders/<orderId>/print-sheet.pdf (magnets) and packing-slip.pdf, and writes
- * order.printSheet {path, slipPath, pages, slipPages, sheets, tiles, cut, enhance, bytes, slipBytes, at, by, warnings}.
+ * order.printSheet {path, slipPath, pages, slipPages, sheets, tiles, cut, image, enhance, bytes, slipBytes, at, by, warnings}.
  * Throws on failure (callers that must not block an order use tryGenerate). Returns {pdf, slip, meta}.
  */
 async function generateForOrder(ref, orderId, order, { by = "system" } = {}) {
   const t0 = Date.now();
   const settings = await printSettings();
-  const out = await builder(orderId, order, { cut: settings.cut, enhance: settings.enhance });
+  const out = await builder(orderId, order, { cut: settings.cut, image: settings.image, enhance: settings.enhance });
   const bucket = deps.bucket();
   const p = out.pdf ? storagePath(orderId) : null, sp = storagePath(orderId, "slip");
   if (out.pdf) await savePdf(bucket, p, out.pdf, order, orderId, by, "sheet");
   if (out.slip) await savePdf(bucket, sp, out.slip, order, orderId, by, "slip");
   const meta = { path: p, slipPath: out.slip ? sp : null, pages: out.pages, slipPages: out.slipPages || 0, sheets: out.sheets, tiles: out.tiles,
-    cut: out.cut || settings.cut, enhance: out.enhance !== undefined ? out.enhance : settings.enhance,
-    bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: 2 };
+    cut: out.cut || settings.cut, image: out.image || settings.image, enhance: out.enhance !== undefined ? out.enhance : settings.enhance,
+    bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: 3 };
   if (ref) await ref.update({ printSheet: meta, updatedAt: nowIso() }).catch((err) => console.warn("[printsheet] could not save printSheet on the order", err && err.message));
   console.log(`[printsheet] ${order.number || orderId}: ${out.tiles} tiles, ${out.pages} pages + slip, ${((meta.bytes + meta.slipBytes) / 1048576).toFixed(1)} MB in ${meta.ms} ms`);
   return { pdf: out.pdf, slip: out.slip, meta };
@@ -665,8 +669,8 @@ async function downloadUrl(p, filename) {
 }
 
 module.exports = {
-  DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, CUT_IN, CUT_MIN, CUT_MAX, BLEED_IN, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
-  pageCount, geometry, cutSize, tilePositions, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
+  DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, CUT_IN, CUT_MIN, CUT_MAX, IMAGE_IN, IMAGE_MIN, IMAGE_MAX, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
+  pageCount, geometry, cutSize, imageSize, tilePositions, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,
   _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp },   // for diagnostics / visual checks

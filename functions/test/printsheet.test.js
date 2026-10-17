@@ -58,30 +58,32 @@ const SESSION = {
 };
 
 /* ---------------------------------------------------------------- layout math */
-test("geometry: US Letter, 9 pieces of the punch size, the 2 in face in the middle, white space between", () => {
+test("geometry: US Letter, 9 pieces of the punch size, the picture a hair over 2 in, centred with white paper around", () => {
   assert.equal(P.DPI, 300);
   assert.equal(P.PER_PAGE, 9);
   assert.equal(P.FACE_PX, 600);
   assert.deepEqual(P.PAGE_PT, { w: 612, h: 792 });
-  const g = P.geometry(2.4);
+  const g = P.geometry(2.4, 2.08);
   assert.equal(g.cut, 2.4);
-  assert.equal(g.extPx, 72, "0.2 in wrap + 0.04 in bleed on each side = 72 px");
-  assert.equal(g.artPx, 744);
+  assert.equal(g.image, 2.08);
+  assert.equal(g.artPx, 624);
   assert.equal(g.gap, 0.35);
   const near = (a, b) => Math.abs(a - b) < 1e-6;
-  const pt = P.tilePositions(2.4);
+  const pt = P.tilePositions(2.4, 2.08);
   assert.equal(pt.length, 9);
-  assert.ok(near(pt[0].size, 172.8) && near(pt[0].art.size, 178.56) && near(pt[0].face.size, 144));
-  // centred left to right
-  assert.ok(near(pt[0].x, 612 - (pt[2].x + pt[2].size)));
-  // the gap between pieces, and the face centred in its piece
+  assert.ok(near(pt[0].size, 172.8) && near(pt[0].art.size, 149.76) && near(pt[0].face.size, 144));
+  assert.ok(near(pt[0].x, 612 - (pt[2].x + pt[2].size)), "centred left to right");
   assert.ok(near(pt[1].x - (pt[0].x + pt[0].size), 0.35 * 72));
-  assert.ok(near(pt[4].face.x - pt[4].x, 0.2 * 72) && near(pt[4].art.x, pt[4].x - 0.04 * 72));
-  // everything stays on the page with room for the printer's own margin
+  // the picture is centred in its piece, with white paper all around (0.16 in each side here)
+  assert.ok(near(pt[4].art.x - pt[4].x, 0.16 * 72) && near(pt[4].art.y - pt[4].y, 0.16 * 72));
   for (const t of pt) assert.ok(t.art.x >= 0.25 * 72 && t.art.x + t.art.size <= 612 - 0.25 * 72 && t.art.y >= 36 && t.art.y + t.art.size <= 792 - 36);
-  // pieces never touch
-  assert.ok(pt[1].art.x > pt[0].art.x + pt[0].art.size + 10);
-  assert.ok(pt[3].art.y > pt[0].art.y + pt[0].art.size + 10);
+  // white between two pictures: the gap plus the white of both pieces
+  assert.ok(near(pt[1].art.x - (pt[0].art.x + pt[0].art.size), (0.35 + 2 * 0.16) * 72));
+  // defaults and limits
+  assert.equal(P.imageSize(undefined), 2.08);
+  assert.equal(P.imageSize(2.2), 2.2);
+  assert.equal(P.imageSize(5), 2.08);
+  assert.equal(P.geometry(2.1, 2.3).image, 2.1, "never bigger than the piece");
 });
 
 test("the punch size: any measured size from 2.10 to 2.55 in, anything else falls back to 2.45", () => {
@@ -94,7 +96,6 @@ test("the punch size: any measured size from 2.10 to 2.55 in, anything else fall
   for (const g of [big, small]) {
     const pt = P.tilePositions(g.cut);
     assert.ok(pt[2].art.x + pt[2].art.size < 612 && pt[0].art.x > 0);
-    assert.equal((g.artPx - 600) % 2, 0);
   }
 });
 
@@ -284,7 +285,8 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.slipPath, "orders/ord1/packing-slip.pdf");
   assert.equal(o.printSheet.cut, 2.45, "the default punch size");
   assert.equal(o.printSheet.enhance, true);
-  assert.equal(o.printSheet.v, 2);
+  assert.equal(o.printSheet.v, 3);
+  assert.equal(o.printSheet.image, 2.08);
   assert.ok(o.printSheet.at && o.printSheet.bytes > 0 && o.printSheet.slipBytes > 0);
   const slip = bucket.files.get("orders/ord1/packing-slip.pdf");
   assert.equal(slip.data.toString(), "%PDF-1.5 fake slip ord1");
@@ -383,7 +385,7 @@ test("adminPrintSheet: admins only, paid orders only, returns a short-lived sign
   await db.collection("orders").doc("ord5").update({ printSheet: { ...first, v: undefined } });
   const old = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
   assert.equal(old.rebuilt, true);
-  assert.equal(db.get("orders/ord5").printSheet.v, 2);
+  assert.equal(db.get("orders/ord5").printSheet.v, 3);
 
   await new Promise((r) => setTimeout(r, 5));
   const r2 = await admin.adminPrintSheet({ orderId: "ord5", rebuild: true }, ADMIN);
