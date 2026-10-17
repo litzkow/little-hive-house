@@ -181,7 +181,7 @@
   $('me-mkt').addEventListener('change', function () {
     var mk = $('me-mkt'), msg = $('me-msg');
     mk.disabled = true;
-    S.saveProfile({ marketing: mk.checked }).then(function () {
+    S.call('setMarketing', { on: mk.checked }).catch(function () { return S.saveProfile({ marketing: mk.checked }); }).then(function () {
       mk.disabled = false; say(msg, mk.checked ? 'You’re on the list for new designs and offers. You can turn this off anytime.' : 'Done. We won’t send you marketing emails. Order emails still arrive.', 'ok');
     }).catch(function (er) { mk.disabled = false; mk.checked = !mk.checked; say(msg, S.message(er), 'err'); });
   });

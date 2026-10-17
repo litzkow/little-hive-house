@@ -289,7 +289,7 @@ async function completeCheckout(session) {
       attachments: attach ? files : undefined });
     if (after.marketing && after.email) {
       await db.collection("subscribers").doc(U.emailKey(after.email))
-        .set({ email: after.email, at: nowIso(), source: "checkout" }, { merge: true }).catch(() => {});
+        .set({ email: after.email, at: nowIso(), source: "checkout", unsubscribed: false }, { merge: true }).catch(() => {});
     }
   }
   return result;

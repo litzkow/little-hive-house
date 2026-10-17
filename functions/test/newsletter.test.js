@@ -123,3 +123,19 @@ test("autoNewsletter: sends once a day, tells the owners, respects off and the p
   assert.match(net.emails[net.emails.length - 1].subject, /não foi enviado/);
   process.env.MAIL_POSTAL_ADDRESS = "PO Box 1, Carrollton, GA 30117";
 });
+
+test("opting out: the account switch and the unsubscribe link both keep someone off the list", async () => {
+  const { db } = setup();
+  const pub = require("../public");
+  const mail = require("../mail");
+  const user = { uid: "u1", token: { email: "ana@example.com", firebase: { sign_in_provider: "password" } } };
+  await pub.setMarketing({ on: true }, user);
+  assert.deepEqual(await N.recipients(), ["ana@example.com"]);
+  await pub.setMarketing({ on: false }, user);
+  assert.deepEqual(await N.recipients(), []);
+  assert.equal(db.get("users/u1").marketing, false);
+  await assert.rejects(pub.setMarketing({ on: true }, { uid: "anon", token: { firebase: { sign_in_provider: "anonymous" } } }), (e) => e.code === "unauthenticated");
+  await pub.setMarketing({ on: true }, user);
+  await pub.unsubscribe({ e: "ana@example.com", t: mail.unsubscribeToken("ana@example.com") });
+  assert.deepEqual(await N.recipients(), []);
+});

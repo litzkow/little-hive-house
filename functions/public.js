@@ -182,4 +182,21 @@ async function submitReview(data, auth) {
   return { ok: true, id, status: "pending" };
 }
 
-module.exports = { subscribe, unsubscribe, contact, requestQuote, sendPasswordReset, welcome, submitReview };
+/**
+ * setMarketing({on}) for a signed-in customer (account page "Email me new designs and offers"): turns their subscriber
+ * entry on or off, so the newsletter (newsletter.js recipients) follows the switch. Order emails are never affected.
+ */
+async function setMarketing(data, auth) {
+  U.requireAccount(auth);
+  const email = String((auth.token && auth.token.email) || "").trim();
+  if (!email) fail("failed-precondition", "Your account has no email address.");
+  const on = !!(data && data.on);
+  const db = deps.db();
+  const ref = db.collection("subscribers").doc(U.emailKey(email));
+  if (on) await ref.set({ email, at: nowIso(), source: "account", unsubscribed: false }, { merge: true });
+  else await ref.set({ email, unsubscribed: true, unsubscribedAt: nowIso() }, { merge: true });
+  await db.collection("users").doc(auth.uid).set({ marketing: on }, { merge: true });
+  return { ok: true, on };
+}
+
+module.exports = { subscribe, unsubscribe, contact, requestQuote, sendPasswordReset, welcome, submitReview, setMarketing };

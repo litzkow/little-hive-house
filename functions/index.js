@@ -51,6 +51,7 @@ exports.trackOrder = callable("trackOrder", checkout);
 exports.orderBySession = callable("orderBySession", checkout, null, { timeoutSeconds: 120, memory: "1GiB" });
 exports.subscribe = callable("subscribe", pub);
 exports.unsubscribe = callable("unsubscribe", pub);
+exports.setMarketing = callable("setMarketing", pub);
 exports.contact = callable("contact", pub);
 exports.requestQuote = callable("requestQuote", pub);
 exports.sendPasswordReset = callable("sendPasswordReset", pub);
