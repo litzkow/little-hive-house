@@ -28,6 +28,7 @@ const KINDS = {
   payment_link: require("./kinds/payment_link"),
   newsletter_welcome: require("./kinds/newsletter_welcome"),
   newsletter: require("./kinds/newsletter"),
+  admin_newsletter: require("./kinds/admin_newsletter"),
 };
 /** Kinds that are marketing (need consent + unsubscribe link). */
 const MARKETING = new Set(["abandoned_checkout", "newsletter_welcome", "newsletter"]);

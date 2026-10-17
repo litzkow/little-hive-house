@@ -17,7 +17,7 @@ const U = require("./util");
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
   admin_new_order: "orders", admin_contact: "messages", admin_quote: "quotes", admin_dispute: "disputes",
-  admin_delivery_check: "delivery", admin_payment_hold: "payments", admin_sales_tax: "taxes", push_test: null,
+  admin_delivery_check: "delivery", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", push_test: null,
 };
 const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
 const COLL = "adminPush";
@@ -89,6 +89,10 @@ function message(kind, data) {
       return { title: `🛒 Novo pedido ${num}`.trim(), body: [money(total), m ? `${m} ${m === 1 ? "ímã" : "ímãs"}` : "", clip(o.name, 40)].filter(Boolean).join(" · "),
         url: orderUrl(id), tag: `order-${id || num}`, urgency: "high" };
     }
+    case "admin_newsletter":
+      return d.mode === "blocked"
+        ? { title: "📬 E-mail automático não saiu", body: "Falta o endereço postal da loja (obrigatório nos e-mails de propaganda).", url: "/admin/#newsletter", tag: "newsletter-blocked", urgency: "normal" }
+        : { title: "📬 E-mail para os inscritos enviado", body: `${d.sent || 0} inscritos · ${clip(d.subject, 80)}`, url: "/admin/#newsletter", tag: `newsletter-${Date.now()}`, urgency: "low" };
     case "admin_contact": {
       const c = d.contact || d;
       return { title: "💬 Mensagem de cliente", body: `${firstName(c.name) || "Alguém"}: ${clip(c.message, 120)}`, url: "/admin/#messages", tag: `msg-${d.messageId || Date.now()}`, urgency: "normal" };

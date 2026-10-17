@@ -6642,6 +6642,190 @@
   "freeShippingAt": 35,
   "currency": "usd"
  },
+ "seasons": [
+  {
+   "start": "12-26",
+   "end": "01-03",
+   "title": "Cheers to a new year",
+   "label": "New Year",
+   "blurb": "Start the year with a little sparkle on the fridge.",
+   "collection": "holidays",
+   "picks": [
+    "holidays/happy-new-year",
+    "holidays/cheers",
+    "christmas/merry-and-bright-classic",
+    "night-sky/to-the-moon-and-back"
+   ]
+  },
+  {
+   "start": "01-04",
+   "end": "02-14",
+   "title": "Little love notes",
+   "label": "Valentine's Day",
+   "blurb": "Sweet little magnets for the people you love, from XOXO to Bee Mine.",
+   "collection": "holidays",
+   "picks": [
+    "holidays/be-my-valentine",
+    "holidays/xoxo",
+    "holidays/happy-galentines",
+    "bee-kind/bee-mine-classic"
+   ]
+  },
+  {
+   "start": "02-15",
+   "end": "03-17",
+   "title": "Dreaming of somewhere warm",
+   "label": "Late winter",
+   "blurb": "Beat the last cold weeks with a little sunshine on the fridge.",
+   "collection": "world",
+   "picks": [
+    "world/santorini",
+    "places/honolulu",
+    "world/rio-de-janeiro",
+    "places/san-diego"
+   ]
+  },
+  {
+   "start": "03-18",
+   "end": "04-20",
+   "title": "Hello, spring",
+   "label": "Easter & spring",
+   "blurb": "Bunnies, daisies and daffodils for the first warm days.",
+   "collection": "holidays",
+   "picks": [
+    "holidays/happy-easter",
+    "bee-kind/bee-happy-classic",
+    "great-masters/almond-blossoms",
+    "great-masters/irises"
+   ]
+  },
+  {
+   "start": "04-21",
+   "end": "05-11",
+   "title": "For the best mom ever",
+   "label": "Mother's Day",
+   "blurb": "Small, thoughtful gifts for moms, grandmas and everyone who mothers us.",
+   "collection": "holidays",
+   "picks": [
+    "holidays/best-mom-ever",
+    "furry-friends/dog-mom-classic",
+    "holidays/thank-you-teacher",
+    "great-masters/water-lilies"
+   ]
+  },
+  {
+   "start": "05-12",
+   "end": "05-31",
+   "title": "Big days, little thank-yous",
+   "label": "Graduations & weddings",
+   "blurb": "For the teachers, the newlyweds and every big day worth a toast.",
+   "collection": "holidays",
+   "picks": [
+    "holidays/thank-you-teacher",
+    "holidays/just-married",
+    "holidays/cheers",
+    "bee-kind/bee-brave-classic"
+   ]
+  },
+  {
+   "start": "06-01",
+   "end": "06-21",
+   "title": "For the best dad ever",
+   "label": "Father's Day",
+   "blurb": "Coffee, naps and dad jokes: the essentials.",
+   "collection": "holidays",
+   "picks": [
+    "holidays/reel-cool-dad",
+    "bumper-stickers/running-on-dad-jokes",
+    "kitchen-words/but-first-coffee-classic",
+    "bumper-stickers/gone-fishing"
+   ]
+  },
+  {
+   "start": "06-22",
+   "end": "07-04",
+   "title": "Land of the free",
+   "label": "4th of July",
+   "blurb": "Stars, stripes and the American places we love.",
+   "collection": "holidays",
+   "picks": [
+    "americana/land-of-the-free",
+    "places/statue-of-liberty",
+    "places/washington-dc",
+    "americana/small-town-big-heart"
+   ]
+  },
+  {
+   "start": "07-05",
+   "end": "08-31",
+   "title": "Endless summer",
+   "label": "Summer",
+   "blurb": "Bright, beachy magnets for long days and salty hair.",
+   "collection": "summer",
+   "picks": [
+    "summer/salty-air-sandy-hair-classic",
+    "summer/lifes-a-beach-classic",
+    "summer/vitamin-sea-classic",
+    "summer/beach-please"
+   ]
+  },
+  {
+   "start": "09-01",
+   "end": "10-14",
+   "title": "Hello, fall",
+   "label": "Fall",
+   "blurb": "Pumpkins, falling leaves and sweater weather. Our coziest collection is here.",
+   "collection": "fall",
+   "picks": [
+    "fall/pumpkin-spice-classic",
+    "fall/falling-for-you-classic",
+    "fall/hello-fall",
+    "fall/pumpkin-patch"
+   ]
+  },
+  {
+   "start": "10-15",
+   "end": "10-31",
+   "title": "Spooky season is here",
+   "label": "Halloween",
+   "blurb": "Ghosts, bats and black cats. Spooky, never scary.",
+   "collection": "halloween",
+   "picks": [
+    "halloween/witch-please-classic",
+    "halloween/stay-spooky-classic",
+    "halloween/happy-halloween",
+    "halloween/whooos-there"
+   ]
+  },
+  {
+   "start": "11-01",
+   "end": "11-27",
+   "title": "Gather & give thanks",
+   "label": "Thanksgiving",
+   "blurb": "Cozy magnets for the table, the hosts and the people we are thankful for.",
+   "collection": "fall",
+   "picks": [
+    "fall/give-thanks",
+    "fall/pumpkin-patch",
+    "fall/happy-fall-yall",
+    "kitchen-words/eat-well-laugh-often-love-much"
+   ]
+  },
+  {
+   "start": "11-28",
+   "end": "12-25",
+   "title": "Merry little magnets",
+   "label": "Christmas",
+   "blurb": "Stocking stuffers and gift toppers for the merriest time of the year.",
+   "collection": "christmas",
+   "picks": [
+    "christmas/merry-and-bright-classic",
+    "christmas/naughty-or-nice-classic",
+    "christmas/home-for-christmas",
+    "christmas/merry-christmas"
+   ]
+  }
+ ],
  "frames": {
   "none": {
    "name": "Full photo",

@@ -81,3 +81,45 @@ test("a discount code must be an active Stripe promotion code", async () => {
   assert.equal(ok.sent, true);
   assert.match(net.emails[0].html, /HIVE10/);
 });
+
+test("automatic campaign: the 1st shows the season's designs (fresh ones first), the 15th photo magnet ideas; Christmas deadline in time", () => {
+  const seasons = require("../catalog.json").seasons;
+  const oct1 = N.autoCampaign(Date.parse("2026-10-01T14:00:00Z"), { seasons, recentDesigns: [] });
+  assert.equal(oct1.gallery, "designs");
+  assert.equal(oct1.eyebrow, "Fall");
+  assert.equal(oct1.designs.length, 3);
+  assert.match(oct1.button.href, /collections\/fall\.html$/);
+  const again = N.autoCampaign(Date.parse("2026-10-01T14:00:00Z"), { seasons, recentDesigns: oct1.designs.slice(0, 2) });
+  assert.ok(!again.designs.slice(0, 1).some((d) => oct1.designs.slice(0, 2).includes(d)), "designs sent lately go last");
+  const oct15 = N.autoCampaign(Date.parse("2026-10-15T14:00:00Z"), { seasons });
+  assert.equal(oct15.gallery, "photos");
+  assert.match(oct15.button.href, /photo-magnets\.html\?frame=fall#custom$/);
+  const dec1 = N.autoCampaign(Date.parse("2026-12-01T15:00:00Z"), { seasons });
+  assert.equal(dec1.eyebrow, "Christmas");
+  assert.match(dec1.body, /order by December 12/);
+  const jan1 = N.autoCampaign(Date.parse("2027-01-01T15:00:00Z"), { seasons });
+  assert.equal(jan1.eyebrow, "New Year", "a season across the new year");
+  for (const c of [oct1, oct15, dec1, jan1]) assert.doesNotThrow(() => N.clean(c));
+});
+
+test("autoNewsletter: sends once a day, tells the owners, respects off and the postal address", async () => {
+  const { db, net } = setup();
+  for (let i = 0; i < 3; i++) await db.collection("subscribers").doc(`s${i}`).set({ email: `p${i}@example.com` });
+  const when = Date.parse("2026-11-01T14:00:00Z");
+  const r = await N.autoNewsletter(when, { pause: 0 });
+  assert.equal(r.sent, 3);
+  assert.equal(db.get("campaigns/auto-2026-11-01").by, "automatic");
+  const note = net.emails.find((m) => !Array.isArray(m) && m.to[0] === "support@littlehivehouse.com");
+  assert.match(note.subject, /enviado para 3 inscritos/);
+  assert.deepEqual(await N.autoNewsletter(when, { pause: 0 }), { skipped: "already sent" });
+  await db.collection("settings").doc("store").set({ autoNewsletter: 0 });
+  assert.deepEqual(await N.autoNewsletter(Date.parse("2026-11-15T15:00:00Z"), { pause: 0 }), { skipped: "turned off" });
+  await db.collection("settings").doc("store").set({ autoNewsletter: 1 });
+  process.env.MAIL_POSTAL_ADDRESS = "";
+  const before = net.emails.length;
+  assert.deepEqual(await N.autoNewsletter(Date.parse("2026-11-15T15:00:00Z"), { pause: 0 }), { skipped: "no postal address" });
+  assert.deepEqual(await N.autoNewsletter(Date.parse("2026-11-16T15:00:00Z"), { pause: 0 }), { skipped: "no postal address" });
+  assert.equal(net.emails.length, before + 1, "the owners hear about it once a month");
+  assert.match(net.emails[net.emails.length - 1].subject, /não foi enviado/);
+  process.env.MAIL_POSTAL_ADDRESS = "PO Box 1, Carrollton, GA 30117";
+});

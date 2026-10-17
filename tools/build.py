@@ -1146,6 +1146,10 @@ def export_store_catalog():
         "rules": {"designPrice": PRICE, "bundle": {"size": BUNDLE[0], "price": BUNDLE[1]},
                   "volume": [{"min": n, "pct": pct} for n, pct in VOLUME], "shipping": STORE_SHIPPING,
                   "freeShippingAt": STORE_FREE_SHIP_AT, "currency": "usd"},
+        # the calendar of the home page spotlight, for the automatic emails to subscribers (functions/newsletter.js)
+        "seasons": [{"start": a, "end": b, "title": t, "label": lab, "blurb": bl, "collection": col,
+                     "picks": [f"{c}/{sl}" for c, sl in picks if any(x["slug"] == c and sl in x["order"] for x in COLLECTIONS)]}
+                    for a, b, t, lab, bl, col, picks, _ in SEASONS],
         "frames": {f["id"]: {"name": f["name"], "captionMax": (f.get("caption") or {}).get("max", 0),
                              "captionStyles": sorted(((f.get("caption") or {}).get("styles") or {}).keys())} for f in frames},
     }

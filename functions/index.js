@@ -97,6 +97,12 @@ exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 300, memory:
 });
 
 /* ---------- automatic delivery tracking: every 2 hours (tracking.js) ---------- */
+// the 1st and 15th, 10 am: the automatic email to the subscribers (newsletter.js autoNewsletter)
+exports.autoNewsletter = onSchedule({ region: REGION, schedule: "0 10 1,15 * *", timeZone: "America/New_York", timeoutSeconds: 540, memory: "512MiB" }, async () => {
+  const r = await newsletter().autoNewsletter();
+  console.log("[autoNewsletter]", JSON.stringify(r));
+});
+
 exports.trackShipments = onSchedule({ region: REGION, schedule: "every 2 hours", timeZone: "America/New_York", timeoutSeconds: 300, memory: "256MiB" }, async () => {
   await tracking().trackShipments();
   await payments().checkHolds().catch((err) => console.warn("[checkHolds] failed", err.message));

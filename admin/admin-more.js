@@ -497,7 +497,12 @@
     var field = function (name, label, value, hint, attrs) {
       return '<label class="field"><span>' + esc(label) + '</span><input class="input" name="' + name + '" value="' + esc(value || '') + '"' + (attrs || '') + '>' + (hint ? '<span class="hint">' + esc(hint) + '</span>' : '') + '</label>';
     };
-    var html = head('Subscribers', 'Email subscribers', 'Write a short email to everyone on your list') +
+    var auto = Number(S.settings.autoNewsletter) !== 0;
+    var html = head('Subscribers', 'Email subscribers', 'Automatic emails to everyone on your list, and extra ones when you want') +
+      '<section class="card tint"><div class="card-head"><h2>Automatic emails</h2></div>' +
+      '<label class="check"><input type="checkbox" id="nl-auto"' + (auto ? ' checked' : '') + '> <span><b>Send by themselves, twice a month</b></span></label>' +
+      '<p class="small muted" style="margin-top:6px">The 1st: the designs of the season (Halloween, Christmas, Valentine’s…). The 15th: photo magnet ideas for the month. ' +
+      'You get a note on your phone when one goes out. Nothing to do. The form below is only for an extra email, if you ever want one.</p></section>' +
       '<div class="cols"><div><section class="card"><div class="card-head"><h2>Start from</h2></div><div class="row wrap" style="gap:8px">' +
       NL_TEMPLATES.map(function (t) { return '<button class="btn btn-ghost btn-sm" data-act="nlTemplate" data-key="' + t.key + '">' + esc(t.name) + '</button>'; }).join('') + '</div></section>' +
       '<section class="card"><form class="stack" id="nl-form" novalidate>' +
@@ -522,6 +527,14 @@
       '<p class="tiny faint">Every email includes an unsubscribe link and the shop’s mailing address, as US law (CAN-SPAM) requires. Once or twice a month is plenty.</p></div></div>';
     return {
       title: 'Email subscribers', html: html, after: function () {
+        var t = $('#nl-auto');
+        t.addEventListener('change', function () {
+          var v = t.checked ? 1 : 0;
+          h.call('adminSaveSettings', { autoNewsletter: v }).then(function () {
+            S.settings = R.settingsWithDefaults(Object.assign({}, S.settings, { autoNewsletter: v }));
+            h.toast(v ? 'Automatic emails are on.' : 'Automatic emails are off.');
+          }).catch(function (e) { t.checked = !t.checked; h.toast(h.friendlyError(e), true); });
+        });
         var f = $('#nl-form');
         f.addEventListener('input', function () {
           c.subject = f.subject.value; c.preheader = f.preheader.value; c.eyebrow = f.eyebrow.value; c.title = f.nltitle.value; c.body = f.body.value;

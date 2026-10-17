@@ -58,6 +58,7 @@ const SUBJECTS = {
   admin_dispute: (d) => `Dispute opened on order ${(d.order && d.order.number) || ""}`,
   admin_delivery_check: (d) => `${(d.orders || []).length} shipped orders not marked delivered`,
   admin_sales_tax: (d) => `Sales tax de ${(d.period && d.period.label) || "o mês passado"}: declarar até ${(d.period && d.period.dueLabel) || "dia 20"}`,
+  admin_newsletter: (d) => d.mode === "blocked" ? "E-mail automático não foi enviado" : `E-mail automático enviado para ${d.sent || 0} inscritos`,
   admin_payment_hold: (d) => d.mode === "expired" ? `Card hold expired on order ${(d.order && d.order.number) || ""}` : `Ship or charge order ${(d.order && d.order.number) || ""} soon: the card hold ends`,
   contact_autoreply: () => "We got your message",
   admin_contact: (d) => `New message: ${(d.contact && d.contact.topic) || "contact form"}`,
