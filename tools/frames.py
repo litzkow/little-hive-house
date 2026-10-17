@@ -21,7 +21,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "designs"))
-from common import SERIF_IT, DMS, CINZEL, JOS, BEBAS, JOST, MONO, esc, fit_size, bee  # noqa: E402
+from common import SERIF_IT, DMS, CINZEL, JOS, BEBAS, JOST, MONO, CAVEAT, DANCING, CORMORANT, esc, fit_size, bee  # noqa: E402
 from gouache import blob, wash, strokes, ink, smooth_closed, smooth_open, maple_leaf, oak, acorn  # noqa: E402
 import frame_art as A  # noqa: E402
 from frame_art import f1, lgrad, rgrad, GOLD, GOLD_SOFT  # noqa: E402
@@ -38,6 +38,9 @@ FONTS = {
     "bebas": (BEBAS, "'Bebas Neue', Impact, sans-serif", "normal", 400),
     "jost": (JOST, "Jost, sans-serif", "normal", 500),
     "mono": (MONO, "'DM Mono', ui-monospace, monospace", "normal", 500),
+    "caveat": (CAVEAT, "Caveat, cursive", "normal", 600),
+    "dancing": (DANCING, "'Dancing Script', cursive", "normal", 600),
+    "cormorant": (CORMORANT, "'Cormorant Garamond', Georgia, serif", "italic", 600),
 }
 
 
@@ -62,6 +65,10 @@ def win_d(shape, x, y, w, h, r=0, grow=0):
     if shape == "circle":
         cx, cy, R = x + w / 2, y + h / 2, w / 2 + grow
         return f"M {f1(cx - R)} {f1(cy)} A {f1(R)} {f1(R)} 0 1 0 {f1(cx + R)} {f1(cy)} A {f1(R)} {f1(R)} 0 1 0 {f1(cx - R)} {f1(cy)} Z"
+    if shape == "arch":
+        x0, y0, w0, h0 = x - grow, y - grow, w + 2 * grow, h + 2 * grow
+        r = w0 / 2
+        return f"M {f1(x0)} {f1(y0 + h0)} V {f1(y0 + r)} A {f1(r)} {f1(r)} 0 0 1 {f1(x0 + w0)} {f1(y0 + r)} V {f1(y0 + h0)} Z"
     if shape == "hex":
         cx, cy = x + w / 2, y + h / 2
         return poly_d(hex_pts(cx, cy, w / 2 + grow / math.cos(math.radians(30))))

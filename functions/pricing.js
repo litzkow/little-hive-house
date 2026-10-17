@@ -108,6 +108,8 @@ function priceCart(cart, catalog = loadCatalog()) {
         const max = f && f.captionMax ? f.captionMax : 0;
         const caption = max ? str(p && p.caption, max) : "";
         const out = { path: str(p && p.path, 300), frame, caption };
+        const styles = (f && Array.isArray(f.captionStyles)) ? f.captionStyles : [];
+        if (caption && p && typeof p.capStyle === "string" && styles.includes(p.capStyle)) out.capStyle = p.capStyle;   // the lettering picked
         const crop = Crop.clean(p && p.crop);                 // where the customer moved / zoomed the photo
         if (crop) out.crop = crop;
         const w = Math.round(Number(p && p.w)), h = Math.round(Number(p && p.h));

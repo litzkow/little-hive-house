@@ -143,8 +143,9 @@ function planTiles(order) {
         const p = photos[j];
         const frame = frameId(p.frame), caption = String(p.caption || "").trim();
         const crop = Crop.clean(p.crop);
-        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop,
-          key: `photo:${p.path}|${frame}|${caption}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}` });
+        const capStyle = typeof p.capStyle === "string" && p.capStyle ? p.capStyle : null;
+        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle,
+          key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}` });
       });
     } else if (it.kind === "package") {
       skipped.push({ kind: "package", title: it.title || it.id || "Package", qty, size: toInt(it.size) * qty });
@@ -199,7 +200,7 @@ function slipRows(order, frames = {}) {
       const size = toInt(it.packSize) * qty || photos.length;
       const lines = photos.map((p, j) => {
         const f = frameOf(p.frame);
-        const cap = FM.captionText(f || NONE_FRAME, p.caption);
+        const cap = FM.captionText(f || NONE_FRAME, p.caption, p.capStyle);
         const rep = photos.length && size > photos.length ? Math.floor(size / photos.length) + (j < size % photos.length ? 1 : 0) : 1;
         return `${j + 1}. ${f ? f.name : frameId(p.frame)}${cap ? ` · “${cap}”` : ""}${rep > 1 ? ` ×${rep}` : ""}`;
       });
@@ -369,7 +370,7 @@ async function renderPhoto(tile, ctx) {
     return toPrint(sharp, ph, ctx.geo.artPx);
   }
   const layers = [photoLayer];
-  const captionMarkup = FM.captionSvg(f, tile.caption);
+  const captionMarkup = FM.captionSvg(f, tile.caption, tile.capStyle);
   let inner = "";
   if (f.id !== "none") {
     try { inner = await frameInner(f.id, ctx); } catch (err) { ctx.warn(`${label}: the "${f.name || f.id}" frame could not be loaded (${err.message}); printed without it.`); }

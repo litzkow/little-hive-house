@@ -21,6 +21,10 @@ const FONTS = {
   bebas: { file: "BebasNeue-Regular.ttf", attrs: "font-family=\"'Bebas Neue', Impact, sans-serif\"", family: "Bebas Neue", style: "normal", weight: 400 },
   jost: { file: "Jost-Medium.ttf", attrs: "font-family=\"Jost, sans-serif\" font-weight=\"500\"", family: "Jost", style: "normal", weight: 500 },
   mono: { file: "DMMono-Medium.ttf", attrs: "font-family=\"'DM Mono', ui-monospace, monospace\" font-weight=\"500\"", family: "DM Mono", style: "normal", weight: 500 },
+  // caption styles (tools/frames_v2.py): handwritten, script, classic
+  caveat: { file: "Caveat-SemiBold.ttf", attrs: "font-family=\"Caveat, cursive\" font-weight=\"600\"", family: "Caveat", style: "normal", weight: 600 },
+  dancing: { file: "DancingScript-SemiBold.ttf", attrs: "font-family=\"'Dancing Script', cursive\" font-weight=\"600\"", family: "Dancing Script", style: "normal", weight: 600 },
+  cormorant: { file: "CormorantGaramond-SemiBoldItalic.ttf", attrs: "font-family=\"'Cormorant Garamond', Georgia, serif\" font-style=\"italic\" font-weight=\"600\"", family: "Cormorant Garamond", style: "italic", weight: 600 },
 };
 
 function fontFile(key) { return path.join(FONTS_DIR, (FONTS[key] || FONTS.jost).file); }
@@ -119,9 +123,17 @@ function fitSize(s, key, size, maxW, ls = 0) {
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const num = (v) => (Number.isInteger(v) ? String(v) : String(Number(v.toFixed(4))));
 
-/** The text a caption frame shows for the customer's input: trimmed, cut to the frame's max, upper-cased if the frame says so. */
-function captionText(frame, text) {
+/** The frame's caption in the lettering the customer picked (caption.styles, tools/frames_v2.py), or its default. */
+function captionOf(frame, style) {
   const c = frame && frame.caption;
+  if (!c) return null;
+  const st = style && c.styles && c.styles[style];
+  return st ? { ...c, ...st } : c;
+}
+
+/** The text a caption frame shows for the customer's input: trimmed, cut to the frame's max, upper-cased if the frame says so. */
+function captionText(frame, text, style) {
+  const c = captionOf(frame, style);
   if (!c) return "";
   const s = String(text || "").trim().slice(0, c.max || 40);
   return c.upper ? s.toUpperCase() : s;
@@ -131,9 +143,9 @@ function captionText(frame, text) {
  * Port of tools/frames.py caption_svg: the <text> element(s) for a caption, fitted to the frame's width with the
  * real font metrics. `text` is the raw customer caption (this applies trim/max/upper itself). "" when none.
  */
-function captionSvg(frame, text) {
-  const c = frame && frame.caption;
-  const s = captionText(frame, text);
+function captionSvg(frame, text, style) {
+  const c = captionOf(frame, style);
+  const s = captionText(frame, text, style);
   if (!c || !s) return "";
   const key = FONTS[c.font] ? c.font : "jost";
   const ls = Number(c.ls) || 0;
@@ -152,4 +164,4 @@ function captionSvg(frame, text) {
   return out;
 }
 
-module.exports = { FONTS, FONTS_DIR, fontFile, metrics, measure, fitSize, captionText, captionSvg, esc };
+module.exports = { FONTS, FONTS_DIR, fontFile, metrics, measure, fitSize, captionOf, captionText, captionSvg, esc };

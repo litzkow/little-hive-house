@@ -11,6 +11,10 @@ DMS = "font-family=\"'DM Serif Display', Georgia, serif\""
 CINZEL = "font-family=\"Cinzel, 'Times New Roman', serif\" font-weight=\"600\""
 JOS = "font-family=\"'Josefin Sans', sans-serif\" font-weight=\"700\""
 JOST = "font-family=\"Jost, sans-serif\" font-weight=\"500\""
+# caption styles for photo magnets (tools/frames_v2.py)
+CAVEAT = "font-family=\"Caveat, cursive\" font-weight=\"600\""
+DANCING = "font-family=\"'Dancing Script', cursive\" font-weight=\"600\""
+CORMORANT = "font-family=\"'Cormorant Garamond', Georgia, serif\" font-style=\"italic\" font-weight=\"600\""
 
 
 def save(collection, slug, body):
@@ -112,7 +116,9 @@ def mug(cx, top, ink, sw=5, fill="none", steam=True, heart_fill=None):
 FONT_DIR = pathlib.Path(__file__).resolve().parents[1] / "fonts"
 _FONT_FILES = {BEBAS: ("BebasNeue-Regular.ttf", None), MONO: ("DMMono-Medium.ttf", None),
                SERIF_IT: ("PlayfairDisplay-Italic[wght].ttf", 700), JOS: ("JosefinSans[wght].ttf", 700),
-               JOST: ("Jost[wght].ttf", 500), CINZEL: ("Cinzel[wght].ttf", 600), DMS: ("DMSerifDisplay-Regular.ttf", None)}
+               JOST: ("Jost[wght].ttf", 500), CINZEL: ("Cinzel[wght].ttf", 600), DMS: ("DMSerifDisplay-Regular.ttf", None),
+               CAVEAT: ("Caveat-SemiBold.ttf", None), DANCING: ("DancingScript-SemiBold.ttf", None),
+               CORMORANT: ("CormorantGaramond-SemiBoldItalic.ttf", None)}
 _cache = {}
 
 

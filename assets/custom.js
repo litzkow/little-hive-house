@@ -6,9 +6,11 @@
   var $ = function (id) { return document.getElementById(id); };
   var NS = 'http://www.w3.org/2000/svg';
   var DATA = window.LHH_FRAMES || { list: [], groups: [] };
-  var LIST = DATA.list || [];
+  var ALL = DATA.list || [];
   var FR = {};
-  LIST.forEach(function (f) { FR[f.id] = f; });
+  ALL.forEach(function (f) { FR[f.id] = f; });
+  /* frames of the first edition stay in the list (old carts still draw) but are not offered any more */
+  var LIST = ALL.filter(function (f) { return !f.hidden; });
   var BASE = window.LHH_FRAMES_BASE || 'assets/frames/';
   var MIN_PHOTO_PX = 600;
   var photos = [];
@@ -21,10 +23,18 @@
   function packSize() { return Number(document.querySelector('input[name="pack"]:checked').value); }
   function packPrice() { return Number(document.querySelector('input[name="pack"]:checked').getAttribute('data-price')); }
   function frameOf(p) { return FR[p.frame] || FR.none || { id: 'none', name: 'No border', window: [0, 0, 600, 600], caption: null }; }
-  function capText(f, s) {
-    if (!f.caption || !s) return '';
-    s = s.trim().slice(0, f.caption.max);
-    return f.caption.upper ? s.toUpperCase() : s;
+  /* the frame's caption in the lettering the customer picked (caption.styles: hand, script, classic, modern...) */
+  function capOf(f, key) {
+    var c = f.caption; if (!c) return null;
+    var st = key && c.styles && c.styles[key]; if (!st) return c;
+    var o = {}, k; for (k in c) o[k] = c[k]; for (k in st) o[k] = st[k];
+    return o;
+  }
+  function capText(f, s, key) {
+    var c = capOf(f, key);
+    if (!c || !s) return '';
+    s = s.trim().slice(0, c.max);
+    return c.upper ? s.toUpperCase() : s;
   }
 
   /* ---------- drawing one magnet: photo in the window, frame overlay on top, caption last ---------- */
@@ -65,14 +75,14 @@
       node('image', { href: p.url, x: w[0], y: w[1], width: w[2], height: w[3], preserveAspectRatio: 'xMidYMid slice' }, svg);
     }
     if (f.id !== 'none') node('image', { href: BASE + f.id + '.svg', x: 0, y: 0, width: 600, height: 600 }, svg);
-    var c = f.caption, s = capText(f, caption);
+    var c = capOf(f, p.capStyle), s = capText(f, caption, p.capStyle);
     if (c && s) {
       if (c.kicker) {
         var k = c.kicker;
         textNode(svg, k, k.text, c.x, k.y, k.size, k.ls || 0, k.family, k.style, k.weight, k.color, 0);
       }
       var t = textNode(svg, c, s, c.x, c.y, c.size, c.ls, c.family, c.style, c.weight, c.color, c.rot);
-      t.setAttribute('data-fit', '1');
+      t.setAttribute('data-fit', c.size + ' ' + c.min + ' ' + c.w);
     }
     return svg;
   }
@@ -80,9 +90,9 @@
   function fitIn(root) {
     var ts = (root || document).querySelectorAll('text[data-fit]');
     Array.prototype.forEach.call(ts, function (t) {
-      var svg = t.ownerSVGElement, id = svg && svg.getAttribute('data-frame');
-      var f = FR[id]; if (!f || !f.caption) return;
-      var c = f.caption, size = c.size;
+      var fit = String(t.getAttribute('data-fit')).split(' ').map(Number);
+      if (fit.length < 3 || !fit[0]) return;
+      var c = { size: fit[0], min: fit[1], w: fit[2] }, size = c.size;
       t.setAttribute('font-size', size);
       for (var i = 0; i < 4; i++) {
         var L; try { L = t.getComputedTextLength(); } catch (e) { return; }
@@ -98,7 +108,7 @@
 
   /* ---------- the photo grid ---------- */
   function describe(p, i) {
-    var f = frameOf(p), s = capText(f, p.caption);
+    var f = frameOf(p), s = capText(f, p.caption, p.capStyle);
     return 'Photo ' + (i + 1) + ': ' + f.name + ' frame' + (s ? ', caption ' + s : '') + (p.low ? ', low resolution' : '') + '. Choose frame';
   }
   function renderBuilder() {
@@ -155,7 +165,7 @@
   function addFiles(files) {
     Array.prototype.forEach.call(files, function (f) {
       if (f.type.indexOf('image/') !== 0) return;
-      var p = { name: f.name, url: URL.createObjectURL(f), blob: f, low: false, frame: defaultFrame, caption: '', crop: null, w: 0, h: 0 };
+      var p = { name: f.name, url: URL.createObjectURL(f), blob: f, low: false, frame: defaultFrame, caption: '', capStyle: null, crop: null, w: 0, h: 0 };
       photos.push(p);
       /* the size (upright, as the browser shows it) lets the customer move and zoom the photo;
          a 2 in magnet face is 600 px at 300 dpi, under that on the short side it prints soft */
@@ -213,7 +223,7 @@
   }
   function applyGroup() {
     document.querySelectorAll('#swatches .swatch, #swatches .sw-group').forEach(function (n) { n.hidden = !!group && n.getAttribute('data-group') !== group; });
-    document.querySelectorAll('.studio .chip').forEach(function (c) { c.setAttribute('aria-pressed', String(c.getAttribute('data-group') === group)); });
+    document.querySelectorAll('.studio .chip[data-group]').forEach(function (c) { c.setAttribute('aria-pressed', String(c.getAttribute('data-group') === group)); });
   }
   function updateStudio() {
     var p = photos[current], f = frameOf(p), n = photos.length;
@@ -223,7 +233,7 @@
     var mag = $('studio-mag'); mag.innerHTML = '';
     var big = draw(p, f, p.caption, 'big');
     big.setAttribute('role', 'img'); big.removeAttribute('aria-hidden');
-    big.setAttribute('aria-label', 'Preview of photo ' + (current + 1) + ' with the ' + f.name + ' frame' + (capText(f, p.caption) ? ' and the caption ' + capText(f, p.caption) : ''));
+    big.setAttribute('aria-label', 'Preview of photo ' + (current + 1) + ' with the ' + f.name + ' frame' + (capText(f, p.caption, p.capStyle) ? ' and the caption ' + capText(f, p.caption, p.capStyle) : ''));
     mag.appendChild(big); fitIn(mag);
     $('studio-fname').textContent = f.name;
     $('studio-blurb').textContent = f.blurb ? '· ' + f.blurb : '';
@@ -236,12 +246,29 @@
       if (capIn.value !== p.caption) capIn.value = p.caption;
       $('studio-cap-count').textContent = p.caption.length + '/' + f.caption.max;
       $('cap-all').hidden = !(n > 1 && p.caption.trim());
+      drawLettering(p, f);
     }
     var all = $('apply-all');
     all.hidden = n < 2;
     all.textContent = 'Apply this frame to all ' + n + ' photos';
     zoomIn.value = String(cropOf(p).z || 1);
     zoomIn.disabled = !p.w; $('adjust-reset').disabled = !p.w;
+  }
+  /* lettering for the caption: one chip per style the frame allows, each written in its own font */
+  function drawLettering(p, f) {
+    var box = $('cap-styles'), st = f.caption.styles || {}, keys = Object.keys(st);
+    box.innerHTML = '';
+    box.hidden = keys.length < 2;
+    var cur = capOf(f, p.capStyle) === f.caption ? f.caption.default : p.capStyle;
+    keys.forEach(function (k) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip letter';
+      b.textContent = st[k].name || k;
+      b.style.fontFamily = st[k].family; b.style.fontStyle = st[k].style; b.style.fontWeight = st[k].weight;
+      if (st[k].upper) { b.style.textTransform = 'uppercase'; b.style.letterSpacing = '.12em'; b.style.fontSize = '12px'; }
+      b.setAttribute('aria-pressed', String(k === cur));
+      b.onclick = function () { p.capStyle = k; updateStudio(); refreshThumb(current); clearTimeout(swTimer); swTimer = setTimeout(refreshSwatchCaptions, 150); };
+      box.appendChild(b);
+    });
   }
   function setFrame(id) {
     var p = photos[current];
@@ -276,7 +303,7 @@
   $('studio-done').onclick = closeStudio;
   $('studio-prev').onclick = function () { if (current > 0) openStudio(current - 1); };
   $('studio-next').onclick = function () { if (current < photos.length - 1) openStudio(current + 1); };
-  document.querySelectorAll('.studio .chip').forEach(function (c) {
+  document.querySelectorAll('.studio .chip[data-group]').forEach(function (c) {
     c.addEventListener('click', function () { group = c.getAttribute('data-group'); applyGroup(); });
   });
   capIn.addEventListener('input', function () {
@@ -292,8 +319,8 @@
     say(f.name + ' is now on all ' + photos.length + ' photos.');
   };
   $('cap-all').onclick = function () {
-    var s = photos[current].caption;
-    photos.forEach(function (q) { q.caption = s; });
+    var s = photos[current].caption, st = photos[current].capStyle || null;
+    photos.forEach(function (q) { q.caption = s; q.capStyle = st; });
     renderBuilder();
     say('Caption added to all ' + photos.length + ' photos. It prints on photos with a caption frame.');
   };
@@ -389,7 +416,7 @@
     var lines = photos.map(function (p, i) {
       var f = frameOf(p);
       return { n: i + 1, file: p.name, frame: f.id, frameName: f.name, caption: f.caption ? p.caption.trim().slice(0, f.caption.max) : '',
-               crop: p.crop || null, w: p.w || 0, h: p.h || 0,
+               crop: p.crop || null, w: p.w || 0, h: p.h || 0, capStyle: f.caption && capOf(f, p.capStyle) !== f.caption ? p.capStyle : null,
                blob: p.blob, url: p.url };  /* blob/url: uploaded at checkout (assets/checkout.js) */
     });
     var names = [];

@@ -37,15 +37,23 @@
     id = h.FRAME_ALIASES[id] || id || 'none';
     return (S.frames && S.frames[id]) || (S.frames && S.frames.none) || { id: 'none', name: 'No border', window: [0, 0, 600, 600], caption: null };
   }
-  function capText(f, s) {
-    if (!f.caption || !s) return '';
-    s = String(s).trim().slice(0, f.caption.max || 40);
-    return f.caption.upper ? s.toUpperCase() : s;
+  /* the caption in the lettering the customer picked (frames.json caption.styles), or the frame's default */
+  function capOf(f, key) {
+    var c = f.caption; if (!c) return null;
+    var st = key && c.styles && c.styles[key]; if (!st) return c;
+    var o = {}, k; for (k in c) o[k] = c[k]; for (k in st) o[k] = st[k];
+    return o;
+  }
+  function capText(f, s, key) {
+    var c = capOf(f, key);
+    if (!c || !s) return '';
+    s = String(s).trim().slice(0, c.max || 40);
+    return c.upper ? s.toUpperCase() : s;
   }
   function textEl(c, s, y, size, ls, fam, style, weight, color, rot, fit) {
     return '<text x="' + (c.x + (ls ? ls / 2 : 0)) + '" y="' + y + '" text-anchor="middle" font-family="' + esc(fam) + '" font-style="' + esc(style || 'normal') +
       '" font-weight="' + esc(weight || 400) + '" font-size="' + size + '" fill="' + esc(color) + '"' + (ls ? ' letter-spacing="' + ls + '"' : '') +
-      (rot ? ' transform="rotate(' + rot + ' ' + c.x + ' ' + y + ')"' : '') + (fit ? ' data-fit="1"' : '') + '>' + esc(s) + '</text>';
+      (rot ? ' transform="rotate(' + rot + ' ' + c.x + ' ' + y + ')"' : '') + (fit ? ' data-fit="' + c.size + ' ' + c.min + ' ' + c.w + '"' : '') + '>' + esc(s) + '</text>';
   }
   /* same drawing as the shop's photo builder (assets/custom.js) and tools/print_sheet.py: photo in the window, frame on top, caption last */
   /* where the customer moved / zoomed the photo (functions/crop.js region): the part of the photo that shows */
@@ -57,7 +65,7 @@
     return [cl(R.num(c.x) * W - rw / 2, 0, W - rw), cl(R.num(c.y) * H - rh / 2, 0, H - rh), rw, rh, W, H];
   }
   function magnetSVG(url, f, caption, p) {
-    var w = f.window, c = f.caption, s = capText(f, caption);
+    var key = p && p.capStyle, w = f.window, c = capOf(f, key), s = capText(f, caption, key);
     var out = '<svg viewBox="0 0 600 600" data-frame="' + esc(f.id) + '" aria-hidden="true" focusable="false">';
     if (f.id !== 'none') out += '<rect width="600" height="600" fill="#FFFFFF"/>';
     if (url && p && R.num(p.w) > 0 && R.num(p.h) > 0) {
@@ -77,9 +85,9 @@
   }
   function fitCaptions(root) {
     $$('text[data-fit]', root).forEach(function (t) {
-      var svg = t.ownerSVGElement, f = svg && S.frames && S.frames[svg.getAttribute('data-frame')];
-      if (!f || !f.caption) return;
-      var c = f.caption, size = c.size;
+      var fit = String(t.getAttribute('data-fit')).split(' ').map(Number);
+      if (fit.length < 3 || !fit[0]) return;
+      var c = { size: fit[0], min: fit[1], w: fit[2] }, size = c.size;
       t.setAttribute('font-size', size);
       for (var i = 0; i < 4; i++) {
         var L; try { L = t.getComputedTextLength(); } catch (e) { return; }
@@ -154,7 +162,7 @@
       (it.photos || []).forEach(function (p, j) {
         var url = urlFor(u, p, gi++);
         entries.push({ pack: pi, file: (packs.length > 1 ? 'pack' + (pi + 1) + '-' : '') + pad(j + 1) + '.' + extOf(p.path || url), url: url,
-                       frame: frameOf(p.frame).id, caption: capText(frameOf(p.frame), p.caption) ? String(p.caption).trim() : '' });
+                       frame: frameOf(p.frame).id, caption: capText(frameOf(p.frame), p.caption, p.capStyle) ? String(p.caption).trim() : '', capStyle: p.capStyle || null });
       });
     });
     var json = { order: o.number || o.id, count: 0, photos: [] };
@@ -242,7 +250,7 @@
       if (it.kind === 'photos') {
         var ph = it.photos || [], size = R.num(it.packSize) * R.num(it.qty || 1);
         return [R.num(it.qty || 1), 'Photo magnets, ' + R.num(it.packSize) + '-pack', '<ol class="slip-photos">' + ph.map(function (p, j) {
-          var f = frameOf(p.frame), c = capText(f, p.caption), rep = repeats(size, ph.length, j);
+          var f = frameOf(p.frame), c = capText(f, p.caption, p.capStyle), rep = repeats(size, ph.length, j);
           return '<li>' + esc(f.name) + (c ? ' · “' + esc(c) + '”' : '') + (rep > 1 ? ' <b>×' + rep + '</b>' : '') + '</li>';
         }).join('') + '</ol>'];
       }
@@ -376,8 +384,8 @@
         pi++;
         var photos = it.photos || [], size = R.num(it.packSize) * qty;
         var grid = photos.map(function (ph, j) {
-          var f = frameOf(ph.frame), c = capText(f, ph.caption), rep = repeats(size, photos.length, j);
-          var html = '<figure class="photo"><div class="mag" data-gi="' + (gi++) + '" data-pack="' + pi + '" data-j="' + j + '">' + magnetSVG('', f, ph.caption) +
+          var f = frameOf(ph.frame), c = capText(f, ph.caption, ph.capStyle), rep = repeats(size, photos.length, j);
+          var html = '<figure class="photo"><div class="mag" data-gi="' + (gi++) + '" data-pack="' + pi + '" data-j="' + j + '">' + magnetSVG('', f, ph.caption, ph) +
             '<span class="n">' + (j + 1) + (rep > 1 ? ' ×' + rep : '') + '</span></div>' +
             '<figcaption><b>' + esc(f.name) + '</b>' + (c ? '“' + esc(c) + '”' : (f.caption ? '<span class="faint">No caption</span>' : '')) + '</figcaption></figure>';
           return html;

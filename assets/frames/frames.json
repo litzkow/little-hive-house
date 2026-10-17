@@ -1,7 +1,7 @@
 [
  {
   "id": "none",
-  "name": "No border",
+  "name": "Full photo",
   "group": "Classic",
   "window": [
    0,
@@ -12,7 +12,1571 @@
   "shape": "rect",
   "radius": 0,
   "blurb": "Your photo fills the whole magnet",
-  "caption": null
+  "caption": null,
+  "v": 2
+ },
+ {
+  "id": "border",
+  "name": "Thin white border",
+  "group": "Classic",
+  "window": [
+   30,
+   30,
+   540,
+   540
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "A slim white edge, like a printed photo",
+  "caption": null,
+  "v": 2
+ },
+ {
+  "id": "gallery",
+  "name": "Gallery mat",
+  "group": "Classic",
+  "window": [
+   82,
+   82,
+   436,
+   436
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "A wide white mat with a fine rule, like a framed print",
+  "caption": null,
+  "v": 2
+ },
+ {
+  "id": "label",
+  "name": "Gallery with caption",
+  "group": "Classic",
+  "window": [
+   70,
+   62,
+   460,
+   400
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "White mat with a short caption underneath",
+  "caption": {
+   "x": 300,
+   "y": 536,
+   "w": 440,
+   "color": "#3B3632",
+   "rot": 0,
+   "max": 26,
+   "placeholder": "Lake house · 2026",
+   "label": "Caption",
+   "kicker": null,
+   "font": "jost",
+   "family": "Jost, sans-serif",
+   "style": "normal",
+   "weight": 500,
+   "size": 32,
+   "min": 18,
+   "upper": true,
+   "ls": 5.1,
+   "default": "modern",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 64,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 54,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 32,
+     "min": 18,
+     "upper": true,
+     "ls": 5.1,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "instant",
+  "name": "Instant print",
+  "group": "Classic",
+  "window": [
+   52,
+   50,
+   496,
+   414
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "A clean instant print with a caption in the thick bottom border",
+  "caption": {
+   "x": 300,
+   "y": 540,
+   "w": 460,
+   "color": "#2E3550",
+   "rot": -1.5,
+   "max": 22,
+   "placeholder": "Summer 2026",
+   "label": "Caption",
+   "kicker": null,
+   "font": "caveat",
+   "family": "Caveat, cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 66,
+   "min": 36,
+   "upper": false,
+   "ls": 0,
+   "default": "hand",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 66,
+     "min": 36,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 55,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 61,
+     "min": 34,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 33,
+     "min": 18,
+     "upper": true,
+     "ls": 5.3,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "band",
+  "name": "Name band",
+  "group": "Classic",
+  "window": [
+   0,
+   0,
+   600,
+   470
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Full photo with a cream name band, like our poster magnets",
+  "caption": {
+   "x": 300,
+   "y": 552,
+   "w": 480,
+   "color": "#3A2A1C",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "The Silvas · Lisbon",
+   "label": "Caption",
+   "kicker": null,
+   "font": "cormorant",
+   "family": "'Cormorant Garamond', Georgia, serif",
+   "style": "italic",
+   "weight": 600,
+   "size": 64,
+   "min": 35,
+   "upper": false,
+   "ls": 0,
+   "default": "classic",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 70,
+     "min": 38,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 64,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 35,
+     "min": 19,
+     "upper": true,
+     "ls": 5.6,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "arch",
+  "name": "Arch",
+  "group": "Modern",
+  "window": [
+   116,
+   50,
+   368,
+   420
+  ],
+  "shape": "arch",
+  "radius": 0,
+  "blurb": "Photo in a soft arch on warm sand",
+  "caption": {
+   "x": 300,
+   "y": 540,
+   "w": 440,
+   "color": "#5A4636",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "Our little one",
+   "label": "Caption",
+   "kicker": null,
+   "font": "dancing",
+   "family": "'Dancing Script', cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 54,
+   "min": 30,
+   "upper": false,
+   "ls": 0,
+   "default": "script",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 64,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 54,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 32,
+     "min": 18,
+     "upper": true,
+     "ls": 5.1,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "circle",
+  "name": "Circle",
+  "group": "Modern",
+  "window": [
+   130,
+   48,
+   340,
+   340
+  ],
+  "shape": "circle",
+  "radius": 0,
+  "blurb": "A round photo on soft sage",
+  "caption": {
+   "x": 300,
+   "y": 482,
+   "w": 460,
+   "color": "#3E4A3A",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "Bento",
+   "label": "Caption",
+   "kicker": null,
+   "font": "cormorant",
+   "family": "'Cormorant Garamond', Georgia, serif",
+   "style": "italic",
+   "weight": 600,
+   "size": 59,
+   "min": 32,
+   "upper": false,
+   "ls": 0,
+   "default": "classic",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 64,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 54,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 32,
+     "min": 18,
+     "upper": true,
+     "ls": 5.1,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "film",
+  "name": "Film frame",
+  "group": "Modern",
+  "window": [
+   44,
+   78,
+   512,
+   392
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "A 35 mm negative frame, sprockets and all",
+  "caption": {
+   "x": 300,
+   "y": 562,
+   "w": 420,
+   "color": "#E9A23B",
+   "rot": 0,
+   "max": 22,
+   "placeholder": "Golden hour",
+   "label": "Caption",
+   "kicker": null,
+   "font": "jost",
+   "family": "Jost, sans-serif",
+   "style": "normal",
+   "weight": 500,
+   "size": 30,
+   "min": 16,
+   "upper": true,
+   "ls": 4.8,
+   "default": "modern",
+   "styles": {
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 30,
+     "min": 16,
+     "upper": true,
+     "ls": 4.8,
+     "name": "Modern"
+    },
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 60,
+     "min": 33,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "datestamp",
+  "name": "Date stamp",
+  "group": "Modern",
+  "window": [
+   0,
+   0,
+   600,
+   600
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Full photo with an orange date in the corner, like an old film camera",
+  "caption": {
+   "x": 410,
+   "y": 552,
+   "w": 300,
+   "color": "#FF7A1A",
+   "rot": 0,
+   "max": 10,
+   "placeholder": "10 17 26",
+   "label": "Date",
+   "kicker": null,
+   "font": "mono",
+   "family": "'DM Mono', ui-monospace, monospace",
+   "style": "normal",
+   "weight": 500,
+   "size": 46,
+   "min": 25,
+   "upper": true,
+   "ls": 1.8,
+   "default": "mono",
+   "styles": {
+    "mono": {
+     "font": "mono",
+     "family": "'DM Mono', ui-monospace, monospace",
+     "style": "normal",
+     "weight": 500,
+     "size": 46,
+     "min": 25,
+     "upper": true,
+     "ls": 1.8,
+     "name": "Date stamp"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "postcard",
+  "name": "Postcard",
+  "group": "Modern",
+  "window": [
+   36,
+   36,
+   528,
+   420
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "A travel postcard with a little stamp and the place you visited",
+  "caption": {
+   "x": 300,
+   "y": 556,
+   "w": 470,
+   "color": "#22406E",
+   "rot": 0,
+   "max": 20,
+   "placeholder": "Lisbon",
+   "label": "Place",
+   "kicker": {
+    "text": "GREETINGS FROM",
+    "y": 496,
+    "size": 17,
+    "font": "jost",
+    "color": "#B4483C",
+    "ls": 4,
+    "family": "Jost, sans-serif",
+    "style": "normal",
+    "weight": 500
+   },
+   "font": "dancing",
+   "family": "'Dancing Script', cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 57,
+   "min": 31,
+   "upper": false,
+   "ls": 0,
+   "default": "script",
+   "styles": {
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 57,
+     "min": 31,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 63,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 68,
+     "min": 37,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 34,
+     "min": 19,
+     "upper": true,
+     "ls": 5.4,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "gold-cream",
+  "name": "Gold line",
+  "group": "Elegant",
+  "window": [
+   78,
+   70,
+   444,
+   392
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Ivory mat with a fine double gold line",
+  "caption": {
+   "x": 300,
+   "y": 538,
+   "w": 440,
+   "color": "#7A5A2A",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "Forever & always",
+   "label": "Caption",
+   "kicker": null,
+   "font": "cormorant",
+   "family": "'Cormorant Garamond', Georgia, serif",
+   "style": "italic",
+   "weight": 600,
+   "size": 61,
+   "min": 34,
+   "upper": false,
+   "ls": 0,
+   "default": "classic",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 66,
+     "min": 36,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 55,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 61,
+     "min": 34,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 33,
+     "min": 18,
+     "upper": true,
+     "ls": 5.3,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "wedding",
+  "name": "Wedding",
+  "group": "Elegant",
+  "window": [
+   84,
+   64,
+   432,
+   384
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Soft linen, a gold rule and little laurel sprigs for your names and date",
+  "caption": {
+   "x": 300,
+   "y": 532,
+   "w": 376,
+   "color": "#6E5326",
+   "rot": 0,
+   "max": 26,
+   "placeholder": "Ana & Leo · 06.14.26",
+   "label": "Names and date",
+   "kicker": null,
+   "font": "dancing",
+   "family": "'Dancing Script', cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 59,
+   "min": 32,
+   "upper": false,
+   "ls": 0,
+   "default": "script",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 70,
+     "min": 38,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 64,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 35,
+     "min": 19,
+     "upper": true,
+     "ls": 5.6,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "botanical",
+  "name": "Botanical",
+  "group": "Elegant",
+  "window": [
+   74,
+   70,
+   452,
+   392
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Cream mat with eucalyptus sprigs in two corners",
+  "caption": {
+   "x": 300,
+   "y": 540,
+   "w": 430,
+   "color": "#3F5244",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "Grandma's garden",
+   "label": "Caption",
+   "kicker": null,
+   "font": "cormorant",
+   "family": "'Cormorant Garamond', Georgia, serif",
+   "style": "italic",
+   "weight": 600,
+   "size": 59,
+   "min": 32,
+   "upper": false,
+   "ls": 0,
+   "default": "classic",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 64,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 54,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 32,
+     "min": 18,
+     "upper": true,
+     "ls": 5.1,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "deco",
+  "name": "Art deco",
+  "group": "Elegant",
+  "window": [
+   86,
+   82,
+   428,
+   380
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Deep navy with gold art deco corners",
+  "caption": {
+   "x": 300,
+   "y": 540,
+   "w": 420,
+   "color": "#D8B76E",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "The Roaring Twenties",
+   "label": "Caption",
+   "kicker": null,
+   "font": "jost",
+   "family": "Jost, sans-serif",
+   "style": "normal",
+   "weight": 500,
+   "size": 32,
+   "min": 18,
+   "upper": true,
+   "ls": 5.1,
+   "default": "modern",
+   "styles": {
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 32,
+     "min": 18,
+     "upper": true,
+     "ls": 5.1,
+     "name": "Modern"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 54,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "holly",
+  "name": "Holiday",
+  "group": "Seasonal & Holidays",
+  "window": [
+   70,
+   62,
+   460,
+   400
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Cream mat with a sprig of holly and a festive caption",
+  "caption": {
+   "x": 300,
+   "y": 538,
+   "w": 430,
+   "color": "#8E2A26",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "Merry Christmas 2026",
+   "label": "Caption",
+   "kicker": null,
+   "font": "dancing",
+   "family": "'Dancing Script', cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 55,
+   "min": 30,
+   "upper": false,
+   "ls": 0,
+   "default": "script",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 66,
+     "min": 36,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 55,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 61,
+     "min": 34,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 33,
+     "min": 18,
+     "upper": true,
+     "ls": 5.3,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "fall",
+  "name": "Autumn",
+  "group": "Seasonal & Holidays",
+  "window": [
+   70,
+   62,
+   460,
+   400
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Warm cream with a few falling leaves",
+  "caption": {
+   "x": 300,
+   "y": 538,
+   "w": 430,
+   "color": "#7A3E1E",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "Pumpkin patch 2026",
+   "label": "Caption",
+   "kicker": null,
+   "font": "caveat",
+   "family": "Caveat, cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 66,
+   "min": 36,
+   "upper": false,
+   "ls": 0,
+   "default": "hand",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 66,
+     "min": 36,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 55,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 61,
+     "min": 34,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 33,
+     "min": 18,
+     "upper": true,
+     "ls": 5.3,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "hearts",
+  "name": "Love",
+  "group": "Seasonal & Holidays",
+  "window": [
+   74,
+   66,
+   452,
+   392
+  ],
+  "shape": "rect",
+  "radius": 18,
+  "blurb": "Blush pink with tiny hearts, for Valentine's and anniversaries",
+  "caption": {
+   "x": 300,
+   "y": 534,
+   "w": 420,
+   "color": "#A23E52",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "Happy Valentine's Day",
+   "label": "Caption",
+   "kicker": null,
+   "font": "dancing",
+   "family": "'Dancing Script', cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 55,
+   "min": 30,
+   "upper": false,
+   "ls": 0,
+   "default": "script",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 66,
+     "min": 36,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 55,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 61,
+     "min": 34,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 33,
+     "min": 18,
+     "upper": true,
+     "ls": 5.3,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "snowflakes",
+  "name": "Winter",
+  "group": "Seasonal & Holidays",
+  "window": [
+   70,
+   62,
+   460,
+   400
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Icy blue with a few fine snowflakes",
+  "caption": {
+   "x": 300,
+   "y": 538,
+   "w": 430,
+   "color": "#2F4A6E",
+   "rot": 0,
+   "max": 24,
+   "placeholder": "First snow · 2026",
+   "label": "Caption",
+   "kicker": null,
+   "font": "cormorant",
+   "family": "'Cormorant Garamond', Georgia, serif",
+   "style": "italic",
+   "weight": 600,
+   "size": 61,
+   "min": 34,
+   "upper": false,
+   "ls": 0,
+   "default": "classic",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 66,
+     "min": 36,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 55,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 61,
+     "min": 34,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 33,
+     "min": 18,
+     "upper": true,
+     "ls": 5.3,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "birthday",
+  "name": "Birthday",
+  "group": "Kids & Fun",
+  "window": [
+   70,
+   62,
+   460,
+   400
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "White with soft confetti, for birthday parties",
+  "caption": {
+   "x": 300,
+   "y": 538,
+   "w": 440,
+   "color": "#3A2E5A",
+   "rot": 0,
+   "max": 22,
+   "placeholder": "Happy 5th, Mia!",
+   "label": "Caption",
+   "kicker": null,
+   "font": "caveat",
+   "family": "Caveat, cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 68,
+   "min": 37,
+   "upper": false,
+   "ls": 0,
+   "default": "hand",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 68,
+     "min": 37,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 57,
+     "min": 31,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 63,
+     "min": 35,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 34,
+     "min": 19,
+     "upper": true,
+     "ls": 5.4,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "baby",
+  "name": "Sweet dreams",
+  "group": "Kids & Fun",
+  "window": [
+   126,
+   52,
+   348,
+   404
+  ],
+  "shape": "arch",
+  "radius": 0,
+  "blurb": "Soft blue with a little moon and stars, for new babies",
+  "caption": {
+   "x": 300,
+   "y": 534,
+   "w": 440,
+   "color": "#5E6A8A",
+   "rot": 0,
+   "max": 22,
+   "placeholder": "Welcome, Olivia",
+   "label": "Name",
+   "kicker": null,
+   "font": "dancing",
+   "family": "'Dancing Script', cursive",
+   "style": "normal",
+   "weight": 600,
+   "size": 55,
+   "min": 30,
+   "upper": false,
+   "ls": 0,
+   "default": "script",
+   "styles": {
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 66,
+     "min": 36,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 55,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 61,
+     "min": 34,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 33,
+     "min": 18,
+     "upper": true,
+     "ls": 5.3,
+     "name": "Modern"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "graduation",
+  "name": "Graduation",
+  "group": "Kids & Fun",
+  "window": [
+   70,
+   62,
+   460,
+   400
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Navy and gold, for the big day",
+  "caption": {
+   "x": 300,
+   "y": 540,
+   "w": 440,
+   "color": "#E2C47E",
+   "rot": 0,
+   "max": 20,
+   "placeholder": "Class of 2026",
+   "label": "Caption",
+   "kicker": null,
+   "font": "jost",
+   "family": "Jost, sans-serif",
+   "style": "normal",
+   "weight": 500,
+   "size": 32,
+   "min": 18,
+   "upper": true,
+   "ls": 5.1,
+   "default": "modern",
+   "styles": {
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 32,
+     "min": 18,
+     "upper": true,
+     "ls": 5.1,
+     "name": "Modern"
+    },
+    "classic": {
+     "font": "cormorant",
+     "family": "'Cormorant Garamond', Georgia, serif",
+     "style": "italic",
+     "weight": 600,
+     "size": 59,
+     "min": 32,
+     "upper": false,
+     "ls": 0,
+     "name": "Classic"
+    },
+    "script": {
+     "font": "dancing",
+     "family": "'Dancing Script', cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 54,
+     "min": 30,
+     "upper": false,
+     "ls": 0,
+     "name": "Script"
+    }
+   }
+  },
+  "v": 2
+ },
+ {
+  "id": "sports",
+  "name": "Team",
+  "group": "Kids & Fun",
+  "window": [
+   0,
+   0,
+   600,
+   600
+  ],
+  "shape": "rect",
+  "radius": 0,
+  "blurb": "Full photo with a bold team band across the bottom",
+  "caption": {
+   "x": 300,
+   "y": 548,
+   "w": 480,
+   "color": "#FFFFFF",
+   "rot": 0,
+   "max": 18,
+   "placeholder": "Mia #12",
+   "label": "Name and number",
+   "kicker": null,
+   "font": "jost",
+   "family": "Jost, sans-serif",
+   "style": "normal",
+   "weight": 500,
+   "size": 42,
+   "min": 23,
+   "upper": true,
+   "ls": 6.7,
+   "default": "modern",
+   "styles": {
+    "modern": {
+     "font": "jost",
+     "family": "Jost, sans-serif",
+     "style": "normal",
+     "weight": 500,
+     "size": 42,
+     "min": 23,
+     "upper": true,
+     "ls": 6.7,
+     "name": "Modern"
+    },
+    "hand": {
+     "font": "caveat",
+     "family": "Caveat, cursive",
+     "style": "normal",
+     "weight": 600,
+     "size": 84,
+     "min": 46,
+     "upper": false,
+     "ls": 0,
+     "name": "Handwritten"
+    }
+   }
+  },
+  "v": 2
  },
  {
   "id": "white",
@@ -27,55 +1591,8 @@
   "shape": "rect",
   "radius": 0,
   "blurb": "Gallery-white mat with a hand-cut bevel",
-  "caption": null
- },
- {
-  "id": "instant",
-  "name": "Instant photo",
-  "group": "Classic",
-  "window": [
-   94,
-   90,
-   412,
-   344
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "The classic instant print, with a handwritten caption",
-  "caption": {
-   "x": 300,
-   "y": 494,
-   "w": 380,
-   "size": 46,
-   "min": 24,
-   "font": "serif",
-   "color": "#2D3A6B",
-   "upper": false,
-   "ls": 0,
-   "rot": -2,
-   "max": 22,
-   "placeholder": "Summer 2026",
-   "label": "Handwritten caption",
-   "kicker": null,
-   "family": "'Playfair Display', Georgia, serif",
-   "style": "italic",
-   "weight": 700
-  }
- },
- {
-  "id": "gallery",
-  "name": "Black gallery mat",
-  "group": "Classic",
-  "window": [
-   106,
-   106,
-   388,
-   388
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "Deep black mat with a bright white bevel",
-  "caption": null
+  "caption": null,
+  "hidden": true
  },
  {
   "id": "rounded",
@@ -90,22 +1607,8 @@
   "shape": "rect",
   "radius": 64,
   "blurb": "Soft sage with a cut-out arch and sunny shapes",
-  "caption": null
- },
- {
-  "id": "film",
-  "name": "Film strip",
-  "group": "Modern",
-  "window": [
-   82,
-   128,
-   436,
-   344
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "A frame cut from a roll of 35mm film",
-  "caption": null
+  "caption": null,
+  "hidden": true
  },
  {
   "id": "stamp",
@@ -138,50 +1641,8 @@
    "family": "'Josefin Sans', sans-serif",
    "style": "normal",
    "weight": 700
-  }
- },
- {
-  "id": "postcard",
-  "name": "Travel postcard",
-  "group": "Modern",
-  "window": [
-   98,
-   98,
-   404,
-   318
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "Airmail stripes, a little stamp and a postmark",
-  "caption": {
-   "x": 300,
-   "y": 498,
-   "w": 330,
-   "size": 46,
-   "min": 24,
-   "font": "dms",
-   "color": "#1F4E8C",
-   "upper": false,
-   "ls": 0,
-   "rot": 0,
-   "max": 20,
-   "placeholder": "Lisbon",
-   "label": "Place name",
-   "kicker": {
-    "text": "GREETINGS FROM",
-    "y": 452,
-    "size": 17,
-    "font": "jos",
-    "color": "#B8432F",
-    "ls": 5,
-    "family": "'Josefin Sans', sans-serif",
-    "style": "normal",
-    "weight": 700
-   },
-   "family": "'DM Serif Display', Georgia, serif",
-   "style": "normal",
-   "weight": 400
-  }
+  },
+  "hidden": true
  },
  {
   "id": "honeycomb",
@@ -196,22 +1657,8 @@
   "shape": "hex",
   "radius": 0,
   "blurb": "Our Little Hive House signature: painted honeycomb and a busy bee",
-  "caption": null
- },
- {
-  "id": "gold-cream",
-  "name": "Gold line on cream",
-  "group": "Elegant",
-  "window": [
-   110,
-   110,
-   380,
-   380
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "Fine double gold rule with filigree corners",
-  "caption": null
+  "caption": null,
+  "hidden": true
  },
  {
   "id": "lace",
@@ -226,7 +1673,8 @@
   "shape": "rect",
   "radius": 4,
   "blurb": "Heirloom white lace on dusty rose",
-  "caption": null
+  "caption": null,
+  "hidden": true
  },
  {
   "id": "floral",
@@ -241,7 +1689,8 @@
   "shape": "rect",
   "radius": 0,
   "blurb": "Hand-painted peonies and garden roses",
-  "caption": null
+  "caption": null,
+  "hidden": true
  },
  {
   "id": "eucalyptus",
@@ -256,40 +1705,8 @@
   "shape": "circle",
   "radius": 0,
   "blurb": "A painted silver-dollar eucalyptus wreath",
-  "caption": null
- },
- {
-  "id": "wedding",
-  "name": "Linen & gold leaf",
-  "group": "Elegant",
-  "window": [
-   100,
-   96,
-   400,
-   326
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "Ivory linen, torn gold leaf and your names",
-  "caption": {
-   "x": 300,
-   "y": 494,
-   "w": 360,
-   "size": 42,
-   "min": 22,
-   "font": "serif",
-   "color": "#8A6420",
-   "upper": false,
-   "ls": 0,
-   "rot": 0,
-   "max": 26,
-   "placeholder": "Ana & Leo · 06.14.26",
-   "label": "Names and date",
-   "kicker": null,
-   "family": "'Playfair Display', Georgia, serif",
-   "style": "italic",
-   "weight": 700
-  }
+  "caption": null,
+  "hidden": true
  },
  {
   "id": "ornate",
@@ -304,67 +1721,8 @@
   "shape": "rect",
   "radius": 0,
   "blurb": "Carved baroque gold frame with a linen liner",
-  "caption": null
- },
- {
-  "id": "fall",
-  "name": "Painted fall leaves",
-  "group": "Seasonal & Holidays",
-  "window": [
-   104,
-   104,
-   392,
-   392
-  ],
-  "shape": "rect",
-  "radius": 4,
-  "blurb": "Gouache maple, oak and acorns",
-  "caption": null
- },
- {
-  "id": "holly",
-  "name": "Christmas holly",
-  "group": "Seasonal & Holidays",
-  "window": [
-   104,
-   104,
-   392,
-   392
-  ],
-  "shape": "rect",
-  "radius": 4,
-  "blurb": "Painted holly, pine and red berries",
-  "caption": null
- },
- {
-  "id": "snowflakes",
-  "name": "Snowflakes",
-  "group": "Seasonal & Holidays",
-  "window": [
-   106,
-   106,
-   388,
-   388
-  ],
-  "shape": "rect",
-  "radius": 14,
-  "blurb": "Winter blue with hand-drawn snowflakes",
-  "caption": null
- },
- {
-  "id": "hearts",
-  "name": "Hearts & confetti",
-  "group": "Seasonal & Holidays",
-  "window": [
-   106,
-   106,
-   388,
-   388
-  ],
-  "shape": "rect",
-  "radius": 14,
-  "blurb": "Painted hearts and confetti on blush",
-  "caption": null
+  "caption": null,
+  "hidden": true
  },
  {
   "id": "tropical",
@@ -379,138 +1737,7 @@
   "shape": "rect",
   "radius": 6,
   "blurb": "Painted monstera, palms and hibiscus",
-  "caption": null
- },
- {
-  "id": "birthday",
-  "name": "Birthday balloons",
-  "group": "Kids & Fun",
-  "window": [
-   100,
-   140,
-   400,
-   290
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "Bunting, balloons and confetti for the big day",
-  "caption": {
-   "x": 280,
-   "y": 496,
-   "w": 300,
-   "size": 44,
-   "min": 22,
-   "font": "dms",
-   "color": "#3A2E6A",
-   "upper": false,
-   "ls": 0,
-   "rot": 0,
-   "max": 22,
-   "placeholder": "Happy 5th, Mia!",
-   "label": "Birthday message",
-   "kicker": null,
-   "family": "'DM Serif Display', Georgia, serif",
-   "style": "normal",
-   "weight": 400
-  }
- },
- {
-  "id": "baby",
-  "name": "Sweet dreams baby",
-  "group": "Kids & Fun",
-  "window": [
-   104,
-   100,
-   392,
-   318
-  ],
-  "shape": "rect",
-  "radius": 34,
-  "blurb": "Pastel sky, a sleepy moon, stars and clouds",
-  "caption": {
-   "x": 300,
-   "y": 492,
-   "w": 320,
-   "size": 44,
-   "min": 22,
-   "font": "serif",
-   "color": "#5A6A9A",
-   "upper": false,
-   "ls": 0,
-   "rot": 0,
-   "max": 22,
-   "placeholder": "Welcome, Olivia",
-   "label": "Baby's name",
-   "kicker": null,
-   "family": "'Playfair Display', Georgia, serif",
-   "style": "italic",
-   "weight": 700
-  }
- },
- {
-  "id": "sports",
-  "name": "Team spirit",
-  "group": "Kids & Fun",
-  "window": [
-   100,
-   100,
-   400,
-   314
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "Varsity stripes and stars, with a name and number",
-  "caption": {
-   "x": 300,
-   "y": 508,
-   "w": 400,
-   "size": 64,
-   "min": 28,
-   "font": "bebas",
-   "color": "#FFFFFF",
-   "upper": true,
-   "ls": 3,
-   "rot": 0,
-   "max": 18,
-   "placeholder": "Mia #12",
-   "label": "Name and number",
-   "kicker": null,
-   "family": "'Bebas Neue', Impact, sans-serif",
-   "style": "normal",
-   "weight": 400
-  }
- },
- {
-  "id": "graduation",
-  "name": "Graduation",
-  "group": "Kids & Fun",
-  "window": [
-   100,
-   100,
-   400,
-   314
-  ],
-  "shape": "rect",
-  "radius": 0,
-  "blurb": "Mortarboard, gold laurel and your year",
-  "caption": {
-   "x": 300,
-   "y": 490,
-   "w": 270,
-   "size": 44,
-   "min": 22,
-   "font": "serif",
-   "color": "#F2D589",
-   "upper": false,
-   "ls": 0,
-   "rot": 0,
-   "max": 20,
-   "placeholder": "Class of 2026",
-   "label": "Caption",
-   "kicker": null,
-   "family": "'Playfair Display', Georgia, serif",
-   "style": "italic",
-   "weight": 700
-  }
+  "caption": null,
+  "hidden": true
  }
 ]

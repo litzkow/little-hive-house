@@ -929,3 +929,6 @@ html.studio-open { overflow: hidden; }
 /* home: only the first collections (site.js has already moved the in-season ones up), then "See all collections" */
 .col-limit > li:nth-child(n+7) { display: none; }
 .see-all { display: flex; justify-content: center; margin-top: 22px; }
+/* photo builder: caption lettering chips */
+.cap-styles { position: static; padding: 4px 0 0; background: none; flex-wrap: wrap; gap: 6px; }
+.cap-styles .chip.letter { min-height: 36px; padding: 0 12px; font-size: 16px; }

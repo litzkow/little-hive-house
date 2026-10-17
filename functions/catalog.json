@@ -6644,100 +6644,255 @@
  },
  "frames": {
   "none": {
-   "name": "No border",
-   "captionMax": 0
+   "name": "Full photo",
+   "captionMax": 0,
+   "captionStyles": []
   },
-  "white": {
-   "name": "Crisp white mat",
-   "captionMax": 0
-  },
-  "instant": {
-   "name": "Instant photo",
-   "captionMax": 22
+  "border": {
+   "name": "Thin white border",
+   "captionMax": 0,
+   "captionStyles": []
   },
   "gallery": {
-   "name": "Black gallery mat",
-   "captionMax": 0
+   "name": "Gallery mat",
+   "captionMax": 0,
+   "captionStyles": []
   },
-  "rounded": {
-   "name": "Rounded modern",
-   "captionMax": 0
+  "label": {
+   "name": "Gallery with caption",
+   "captionMax": 26,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
+  },
+  "instant": {
+   "name": "Instant print",
+   "captionMax": 22,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
+  },
+  "band": {
+   "name": "Name band",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
+  },
+  "arch": {
+   "name": "Arch",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
+  },
+  "circle": {
+   "name": "Circle",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
   "film": {
-   "name": "Film strip",
-   "captionMax": 0
+   "name": "Film frame",
+   "captionMax": 22,
+   "captionStyles": [
+    "hand",
+    "modern"
+   ]
   },
-  "stamp": {
-   "name": "Postage stamp",
-   "captionMax": 20
+  "datestamp": {
+   "name": "Date stamp",
+   "captionMax": 10,
+   "captionStyles": [
+    "mono"
+   ]
   },
   "postcard": {
-   "name": "Travel postcard",
-   "captionMax": 20
-  },
-  "honeycomb": {
-   "name": "Honeycomb",
-   "captionMax": 0
+   "name": "Postcard",
+   "captionMax": 20,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
   "gold-cream": {
-   "name": "Gold line on cream",
-   "captionMax": 0
-  },
-  "lace": {
-   "name": "Scalloped lace",
-   "captionMax": 0
-  },
-  "floral": {
-   "name": "Watercolour peonies",
-   "captionMax": 0
-  },
-  "eucalyptus": {
-   "name": "Eucalyptus wreath",
-   "captionMax": 0
+   "name": "Gold line",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
   "wedding": {
-   "name": "Linen & gold leaf",
-   "captionMax": 26
+   "name": "Wedding",
+   "captionMax": 26,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
-  "ornate": {
-   "name": "Vintage ornate gold",
-   "captionMax": 0
+  "botanical": {
+   "name": "Botanical",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
-  "fall": {
-   "name": "Painted fall leaves",
-   "captionMax": 0
+  "deco": {
+   "name": "Art deco",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "modern",
+    "script"
+   ]
   },
   "holly": {
-   "name": "Christmas holly",
-   "captionMax": 0
+   "name": "Holiday",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
-  "snowflakes": {
-   "name": "Snowflakes",
-   "captionMax": 0
+  "fall": {
+   "name": "Autumn",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
   "hearts": {
-   "name": "Hearts & confetti",
-   "captionMax": 0
+   "name": "Love",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
-  "tropical": {
-   "name": "Tropical leaves",
-   "captionMax": 0
+  "snowflakes": {
+   "name": "Winter",
+   "captionMax": 24,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
   "birthday": {
-   "name": "Birthday balloons",
-   "captionMax": 22
+   "name": "Birthday",
+   "captionMax": 22,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
   "baby": {
-   "name": "Sweet dreams baby",
-   "captionMax": 22
-  },
-  "sports": {
-   "name": "Team spirit",
-   "captionMax": 18
+   "name": "Sweet dreams",
+   "captionMax": 22,
+   "captionStyles": [
+    "classic",
+    "hand",
+    "modern",
+    "script"
+   ]
   },
   "graduation": {
    "name": "Graduation",
-   "captionMax": 20
+   "captionMax": 20,
+   "captionStyles": [
+    "classic",
+    "modern",
+    "script"
+   ]
+  },
+  "sports": {
+   "name": "Team",
+   "captionMax": 18,
+   "captionStyles": [
+    "hand",
+    "modern"
+   ]
+  },
+  "white": {
+   "name": "Crisp white mat",
+   "captionMax": 0,
+   "captionStyles": []
+  },
+  "rounded": {
+   "name": "Rounded modern",
+   "captionMax": 0,
+   "captionStyles": []
+  },
+  "stamp": {
+   "name": "Postage stamp",
+   "captionMax": 20,
+   "captionStyles": []
+  },
+  "honeycomb": {
+   "name": "Honeycomb",
+   "captionMax": 0,
+   "captionStyles": []
+  },
+  "lace": {
+   "name": "Scalloped lace",
+   "captionMax": 0,
+   "captionStyles": []
+  },
+  "floral": {
+   "name": "Watercolour peonies",
+   "captionMax": 0,
+   "captionStyles": []
+  },
+  "eucalyptus": {
+   "name": "Eucalyptus wreath",
+   "captionMax": 0,
+   "captionStyles": []
+  },
+  "ornate": {
+   "name": "Vintage ornate gold",
+   "captionMax": 0,
+   "captionStyles": []
+  },
+  "tropical": {
+   "name": "Tropical leaves",
+   "captionMax": 0,
+   "captionStyles": []
   }
  }
 }

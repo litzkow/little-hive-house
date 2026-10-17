@@ -36,7 +36,8 @@ E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
          "&family=DM+Mono:wght@500&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700"
-         "&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700&display=swap")
+         "&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700"
+         "&family=Caveat:wght@600&family=Dancing+Script:wght@600&family=Cormorant+Garamond:ital,wght@1,600&display=swap")
 
 import raster  # noqa: E402
 raster.main()
@@ -852,10 +853,10 @@ def page_photo():
     _frames = _json.loads((ROOT / "assets" / "frames" / "frames.json").read_text(encoding="utf-8"))
     _groups = []
     for f in _frames:
-        if f["group"] not in _groups:
+        if not f.get("hidden") and f["group"] not in _groups:
             _groups.append(f["group"])
     # a few frames shown on a sample picture before any photo is added
-    teaser_ids = ["instant", "floral", "honeycomb", "holly", "gold-cream", "birthday"]
+    teaser_ids = ["instant", "wedding", "arch", "botanical", "postcard", "holly"]
     _by_id = {f["id"]: f for f in _frames}
     frame_teaser = "\n".join(
         f'            <li><span class="fprev"><svg viewBox="0 0 600 600" aria-hidden="true"><image href="{pg.p}assets/frames/sample.svg" '
@@ -955,6 +956,7 @@ def page_photo():
               <label class="label" for="studio-cap" id="studio-cap-label">Caption</label>
               <input type="text" id="studio-cap" maxlength="24" autocomplete="off" aria-describedby="studio-cap-help">
               <p class="cap-help" id="studio-cap-help"><span id="studio-cap-count">0/24</span> · Optional, leave empty for none</p>
+              <div class="chips cap-styles" id="cap-styles" role="group" aria-label="Lettering" hidden></div>
               <button type="button" class="linkish" id="cap-all" hidden>Use this caption on all photos</button>
             </div>
           </div>
@@ -1144,7 +1146,8 @@ def export_store_catalog():
         "rules": {"designPrice": PRICE, "bundle": {"size": BUNDLE[0], "price": BUNDLE[1]},
                   "volume": [{"min": n, "pct": pct} for n, pct in VOLUME], "shipping": STORE_SHIPPING,
                   "freeShippingAt": STORE_FREE_SHIP_AT, "currency": "usd"},
-        "frames": {f["id"]: {"name": f["name"], "captionMax": (f.get("caption") or {}).get("max", 0)} for f in frames},
+        "frames": {f["id"]: {"name": f["name"], "captionMax": (f.get("caption") or {}).get("max", 0),
+                             "captionStyles": sorted(((f.get("caption") or {}).get("styles") or {}).keys())} for f in frames},
     }
     out = ROOT / "functions" / "catalog.json"
     out.parent.mkdir(parents=True, exist_ok=True)

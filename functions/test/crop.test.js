@@ -51,3 +51,20 @@ test("the placement reaches the order (pricing) and the print plan, and a moved 
   assert.notEqual(plan.tiles[0].key, plan.tiles[1].key);
   assert.equal(plan.tiles[2].key, plan.tiles[0].key, "repeats still share the artwork");
 });
+
+test("the caption lettering reaches the order only when the frame offers it and there is a caption", () => {
+  const { priceCart } = require("../pricing");
+  const ph = priceCart([{ kind: "photos", packSize: 4, qty: 1, photos: [
+    { path: "a.jpg", frame: "instant", caption: "Summer", capStyle: "classic" },
+    { path: "b.jpg", frame: "instant", caption: "Summer", capStyle: "comic-sans" },
+    { path: "c.jpg", frame: "instant", caption: "", capStyle: "classic" },
+    { path: "d.jpg", frame: "border", caption: "x", capStyle: "classic" },
+  ] }]).items[0].photos;
+  assert.equal(ph[0].capStyle, "classic");
+  assert.equal(ph[1].capStyle, undefined);
+  assert.equal(ph[2].capStyle, undefined);
+  assert.equal(ph[3].capStyle, undefined);
+  const plan = P.planTiles({ items: [{ kind: "photos", packSize: 2, photos: [ph[0], { ...ph[0], capStyle: undefined }] }] });
+  assert.equal(plan.tiles[0].capStyle, "classic");
+  assert.notEqual(plan.tiles[0].key, plan.tiles[1].key);
+});

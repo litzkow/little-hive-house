@@ -14,7 +14,7 @@
    },
    {
     "file": "1555d152-image.jpg",
-    "frame": "white",
+    "frame": "border",
     "crop": {
      "x": 0.5,
      "y": 0.4,
@@ -24,6 +24,7 @@
    {
     "file": "31557e59-image.jpg",
     "frame": "gold-cream",
+    "caption": "Forever & always",
     "crop": {
      "x": 0.5,
      "y": 0.35,
@@ -42,7 +43,8 @@
    },
    {
     "file": "c0ddb996-image.jpg",
-    "frame": "none"
+    "frame": "band",
+    "caption": "Sunday lunch"
    },
    {
     "file": "45e6d27d-image.jpg",
@@ -64,15 +66,16 @@
    },
    {
     "file": "a748d654-image.jpg",
-    "frame": "instant",
-    "caption": "Hello, Olivia"
+    "frame": "baby",
+    "caption": "Welcome, Olivia"
    },
    {
     "file": "1e232d3c-image.jpg",
-    "frame": "white",
+    "frame": "arch",
+    "caption": "Our little one",
     "crop": {
      "x": 0.5,
-     "y": 0.55,
+     "y": 0.5,
      "z": 1.1
     }
    }
@@ -92,12 +95,12 @@
    },
    {
     "file": "20502b69-image.jpg",
-    "frame": "instant",
+    "frame": "circle",
     "caption": "Bento",
     "crop": {
      "x": 0.5,
      "y": 0.4,
-     "z": 1
+     "z": 1.1
     }
    },
    {
@@ -111,7 +114,7 @@
   "magnets": [
    {
     "file": "9864608b-image.jpg",
-    "frame": "instant",
+    "frame": "graduation",
     "caption": "Class of 2026",
     "crop": {
      "x": 0.5,
@@ -125,7 +128,7 @@
    },
    {
     "file": "8bad3e68-image.jpg",
-    "frame": "white"
+    "frame": "border"
    }
   ]
  },
@@ -148,12 +151,12 @@
    },
    {
     "file": "20420bb5-image.jpg",
-    "frame": "instant",
-    "caption": "Summer 2026",
+    "frame": "datestamp",
+    "caption": "07 04 26",
     "crop": {
      "x": 0.5,
-     "y": 0.42,
-     "z": 1.9
+     "y": 0.45,
+     "z": 1.5
     }
    }
   ]

@@ -162,8 +162,8 @@ test("planTiles caps at MAX_TILES and says so", () => {
 test("windowPx: the frame window on the 600 px face, in whole pixels", () => {
   assert.deepEqual(P.windowPx(FRAMES.none), { x: 0, y: 0, w: 600, h: 600 });
   assert.deepEqual(P.windowPx(FRAMES.white), { x: 100, y: 100, w: 400, h: 400 });
-  const inst = P.windowPx(FRAMES.instant);   // [94, 90, 412, 344]
-  assert.deepEqual(inst, { x: 94, y: 90, w: 412, h: 344 });
+  const inst = P.windowPx(FRAMES.instant);   // [52, 50, 496, 414]
+  assert.deepEqual(inst, { x: 52, y: 50, w: 496, h: 414 });
   const hex = P.windowPx(FRAMES.honeycomb);  // fractional window
   assert.ok(hex.w > 0 && hex.h > 0 && hex.x + hex.w <= 600 && hex.y + hex.h <= 600);
 });
@@ -179,7 +179,7 @@ test("packing slip rows, address lines and the magnet count", () => {
   assert.deepEqual([rows[0].qty, rows[0].title, rows[0].sub], [3, "New York", "Places · 2 × 2 in magnet"]);
   assert.equal(rows[2].title, "Photo magnets, 9-pack");
   assert.match(rows[2].sub, /9 magnets from 4 photos/);
-  assert.deepEqual(rows[2].lines, ["1. Instant photo · “Summer 2026” ×3", "2. No border ×2", "3. Postage stamp · “WITH LOVE” ×2", "4. Linen & gold leaf · “Ana & Leo · 06.14.26” ×2"]);
+  assert.deepEqual(rows[2].lines, ["1. Instant print · “Summer 2026” ×3", "2. Full photo ×2", "3. Postage stamp · “WITH LOVE” ×2", "4. Wedding · “Ana & Leo · 06.14.26” ×2"]);
   assert.deepEqual([rows[3].qty, rows[3].sub], [1, "12 custom magnets · artwork by email"]);
   assert.equal(P.fileName(order), "LHH-1042-magnets.pdf");
   assert.equal(P.fileName(order, "slip"), "LHH-1042-packing-slip.pdf");
@@ -203,17 +203,24 @@ test("font metrics read from the bundled TTFs match the Python tool (fontTools) 
 
 test("captionSvg is a faithful port of tools/frames.py caption_svg (same output for the same input)", () => {
   assert.equal(FM.captionSvg(FRAMES.instant, "Summer 2026"),
-    '<text x="300" y="494" text-anchor="middle" font-family="\'Playfair Display\', Georgia, serif" font-style="italic" font-weight="700" font-size="46" fill="#2D3A6B" transform="rotate(-2 300 494)">Summer 2026</text>');
-  // upper-cased, cut to the frame's max (20), shrunk to fit 330 units with letter-spacing 4 (the x shifts by ls/2)
+    '<text x="300" y="540" text-anchor="middle" font-family="Caveat, cursive" font-weight="600" font-size="66" fill="#2E3550" transform="rotate(-1.5 300 540)">Summer 2026</text>');
+  // the lettering the customer picked replaces the frame's default
+  assert.equal(FM.captionSvg(FRAMES.instant, "Summer 2026", "classic"),
+    '<text x="300" y="540" text-anchor="middle" font-family="\'Cormorant Garamond\', Georgia, serif" font-style="italic" font-weight="600" font-size="61" fill="#2E3550" transform="rotate(-1.5 300 540)">Summer 2026</text>');
+  assert.equal(FM.captionSvg(FRAMES.instant, "Summer 2026", "modern"),
+    '<text x="302.65" y="540" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="33" letter-spacing="5.3" fill="#2E3550" transform="rotate(-1.5 300 540)">SUMMER 2026</text>');
+  assert.equal(FM.captionSvg(FRAMES.instant, "Summer 2026", "nope"), FM.captionSvg(FRAMES.instant, "Summer 2026"), "an unknown lettering falls back to the default");
+  // first-edition frames (hidden from the builder) still draw: upper-cased, cut to the max (20), shrunk to fit
+  assert.equal(FRAMES.stamp.hidden, true);
   assert.equal(FM.captionSvg(FRAMES.stamp, "with love and a very long caption here"),
     '<text x="302" y="494" text-anchor="middle" font-family="\'Josefin Sans\', sans-serif" font-weight="700" font-size="19" letter-spacing="4" fill="#FBF5EA">WITH LOVE AND A VERY</text>');
   // the kicker comes first
   assert.equal(FM.captionSvg(FRAMES.postcard, "Lisbon"),
-    '<text x="302.5" y="452" text-anchor="middle" font-family="\'Josefin Sans\', sans-serif" font-weight="700" font-size="17" letter-spacing="5" fill="#B8432F">GREETINGS FROM</text>' +
-    '<text x="300" y="498" text-anchor="middle" font-family="\'DM Serif Display\', Georgia, serif" font-size="46" fill="#1F4E8C">Lisbon</text>');
+    '<text x="302" y="496" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="17" letter-spacing="4" fill="#B4483C">GREETINGS FROM</text>' +
+    '<text x="300" y="556" text-anchor="middle" font-family="\'Dancing Script\', cursive" font-weight="600" font-size="57" fill="#22406E">Lisbon</text>');
   assert.equal(FM.captionSvg(FRAMES.sports, "Mia #12"),
-    '<text x="301.5" y="508" text-anchor="middle" font-family="\'Bebas Neue\', Impact, sans-serif" font-size="64" letter-spacing="3" fill="#FFFFFF">MIA #12</text>');
-  assert.equal(FM.captionSvg(FRAMES.white, "anything"), "", "frames without a caption draw nothing");
+    '<text x="303.35" y="548" text-anchor="middle" font-family="Jost, sans-serif" font-weight="500" font-size="42" letter-spacing="6.7" fill="#FFFFFF">MIA #12</text>');
+  assert.equal(FM.captionSvg(FRAMES.border, "anything"), "", "frames without a caption draw nothing");
   assert.equal(FM.captionSvg(FRAMES.instant, "   "), "");
   assert.match(FM.captionSvg(FRAMES.wedding, 'Ana & Leo <3 "forever"'), /Ana &amp; Leo &lt;3 &quot;forever&quot;/);
 });
