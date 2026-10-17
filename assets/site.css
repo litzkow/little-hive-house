@@ -926,3 +926,6 @@ html.studio-open { overflow: hidden; }
   .occ-grid .col-body p { font-size: 13px; line-height: 1.35; }
   .occ-grid .col-body .more { font-size: 14px; }
 }
+/* home: only the first collections (site.js has already moved the in-season ones up), then "See all collections" */
+.col-limit > li:nth-child(n+7) { display: none; }
+.see-all { display: flex; justify-content: center; margin-top: 22px; }

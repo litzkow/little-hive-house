@@ -562,9 +562,10 @@ def page_home():
         </div>
         <p>Travel posters, black and white skylines, seasonal favorites, star signs, great paintings and more. {deal()} {vol_badge()}</p>
       </div>
-      <ul class="col-grid">
+      <ul class="col-grid occ-grid col-limit">
 {cards}
       </ul>
+      <div class="see-all"><a class="btn btn-ghost" href="collections/index.html">See all {len(top_level())} collections →</a></div>
     </div>
   </section>
 
