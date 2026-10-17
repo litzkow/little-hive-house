@@ -13,6 +13,8 @@
   var MIN_PHOTO_PX = 600;
   var photos = [];
   var defaultFrame = 'none';
+  /* links from the occasion cards (?frame=wedding) start new photos with that frame */
+  try { var qf = new URLSearchParams(location.search).get('frame'); if (qf && FR[qf]) defaultFrame = qf; } catch (e) { /* old browser */ }
   var current = -1;
   var group = '';
 

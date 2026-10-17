@@ -456,6 +456,69 @@ def gift_cards(pg):
                      for t, line, href in GIFTS)
 
 
+# ---------------------------------------------------------------- photo magnets showcase (assets/showcase, tools/showcase/render.js)
+# (id, title, line, frame the builder starts with, number of sample magnets)
+OCCASIONS = [
+    ("wedding", "Weddings", "The vows, the first dance, the whole crew. Favors for every guest, too.", "wedding", 3),
+    ("family", "Family & grandparents", "The faces that make a house a home.", "instant", 3),
+    ("baby", "Baby's first year", "Every tiny milestone, right where you see it every day.", "white", 3),
+    ("pets", "Pets", "Because they are family too.", "instant", 3),
+    ("graduation", "Graduation", "Caps, gowns and big proud smiles.", "instant", 3),
+    ("travel", "Trips & vacations", "Postcards from the places you have been.", "postcard", 3),
+]
+
+
+def showcase_img(pg, occ, n, lazy=True, cls=""):
+    c = f' class="{cls}"' if cls else ""
+    return (f'<img{c} src="{pg.p}assets/showcase/{occ}-{n}.webp" width="480" height="480" alt=""'
+            f'{" loading=\"lazy\"" if lazy else ""} decoding="async">')
+
+
+def occasion_cards(pg):
+    out = []
+    for oid, title, line, frame, n in OCCASIONS:
+        fan = "".join(f'<span class="m">{showcase_img(pg, oid, i)}</span>' for i in range(1, min(n, 3) + 1))
+        out.append(f"""<li><a class="col-card" href="{pg.p}photo-magnets.html?frame={frame}#custom">
+  <div class="fan" aria-hidden="true">{fan}</div>
+  <div class="col-body">
+    <h3>{E(title)}</h3>
+    <p>{E(line)}</p>
+    <span class="more">Make yours →</span>
+  </div>
+</a></li>""")
+    return "\n".join(out)
+
+
+def doors(pg):
+    """The two halves of the shop, side by side: our designs and the customer's own photos."""
+    ours = "".join(f'<span class="m">{pg.svg(c, s, cls="fan-svg")}</span>' for c, s in FEATURED[:3])
+    theirs = "".join(f'<span class="m">{showcase_img(pg, o, n, lazy=False)}</span>' for o, n in (("pets", 3), ("wedding", 1), ("baby", 1)))
+    return f"""  <section class="tight doors" aria-label="Two ways to shop">
+    <div class="wrap">
+      <ul class="door-grid">
+        <li><a class="col-card door" href="{pg.p}shop.html">
+          <div class="fan" aria-hidden="true">{ours}</div>
+          <div class="col-body">
+            <p class="eyebrow">Our designs</p>
+            <h2>{TOTAL} original magnets</h2>
+            <p>Travel posters, skylines, seasons, star signs and more, drawn by us. ${PRICE} each.</p>
+            <span class="btn">Shop our designs</span>
+          </div>
+        </a></li>
+        <li><a class="col-card door" href="{pg.p}photo-magnets.html">
+          <div class="fan" aria-hidden="true">{theirs}</div>
+          <div class="col-body">
+            <p class="eyebrow">Your photos</p>
+            <h2>Magnets from your pictures</h2>
+            <p>Upload, pick a frame, move and zoom each photo. Packs of 4 to 50, from $14.</p>
+            <span class="btn">Make photo magnets</span>
+          </div>
+        </a></li>
+      </ul>
+    </div>
+  </section>"""
+
+
 # ---------------------------------------------------------------- pages
 def page_home():
     pg = Page("")
@@ -466,12 +529,12 @@ def page_home():
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <p class="eyebrow">Handmade gifts &amp; paper goods</p>
-        <h1>Little things for the fridge, <em>made by hand.</em></h1>
-        <p class="lede">{TOTAL} original magnet designs in {len(COLLECTIONS)} collections, plus custom magnets made from your own photos. Each one is printed, pressed and packed in our little house.</p>
+        <p class="eyebrow">Handmade magnets &amp; photo gifts</p>
+        <h1>Our designs or your photos, <em>made by hand.</em></h1>
+        <p class="lede">{TOTAL} original magnet designs, and custom magnets made from your own pictures: weddings, grandkids, pets, trips. Each one is printed, pressed and packed in our little house.</p>
         <div class="hero-actions">
-          <a class="btn" href="shop.html">Shop all designs</a>
-          <a class="btn btn-ghost" href="photo-magnets.html">Make photo magnets</a>
+          <a class="btn" href="shop.html">Shop our designs</a>
+          <a class="btn" href="photo-magnets.html">Make photo magnets</a>
         </div>
       </div>
       <div class="seal">
@@ -480,6 +543,8 @@ def page_home():
       </div>
     </div>
   </section>
+
+{doors(pg)}
 
 {spotlight_block(pg)}
 {tabs_links(pg, None)}
@@ -494,6 +559,21 @@ def page_home():
       </div>
       <ul class="col-grid">
 {cards}
+      </ul>
+    </div>
+  </section>
+
+  <section class="tight" id="occasions">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Photo magnets</p>
+          <h2>Your photos, for every occasion</h2>
+        </div>
+        <p>Send us your favorite pictures and we turn them into glossy 2 × 2 inch magnets, with a frame and a caption if you like. Mix them with our designs in the same order.</p>
+      </div>
+      <ul class="col-grid occ-grid">
+{occasion_cards(pg)}
       </ul>
     </div>
   </section>
@@ -536,10 +616,10 @@ def page_home():
         <div>
           <p class="eyebrow">Custom</p>
           <h2>Your photos, on the fridge</h2>
-          <p>Upload your favorite pictures and we turn them into a set of glossy 2 × 2 inch magnets. Packs of 4 to 50, and you can mix them with any of our designs.</p>
+          <p>Upload your favorite pictures, choose a frame and move or zoom each one until it looks just right. We turn them into a set of glossy 2 × 2 inch magnets. Packs of 4 to 50, and you can mix them with any of our designs.</p>
           <div class="actions"><a class="btn" href="photo-magnets.html">Make photo magnets</a></div>
         </div>
-        <div class="band-art" aria-hidden="true">{photo_tiles()}</div>
+        <div class="band-art" aria-hidden="true">{"".join(showcase_img(pg, o, n, cls="ph") for o, n in (("family", 1), ("travel", 1), ("pets", 2), ("graduation", 1), ("baby", 2), ("wedding", 3)))}</div>
       </div>
     </div>
   </section>
@@ -784,6 +864,9 @@ def page_photo():
     <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Photo magnets</li></ol>
     <h1>Your photos, on the fridge</h1>
     <p class="lede">Glossy 2 × 2 inch magnets made from your own pictures. Kids, pets, trips, grandparents: everyone gets a spot on the fridge.</p>
+    <ul class="ideas" aria-label="Photo magnet ideas">
+{chr(10).join(f'      <li><a href="?frame={frame}#custom">{showcase_img(pg, oid, 1, lazy=False)}<span>{E(title)}</span></a></li>' for oid, title, _, frame, _n in OCCASIONS)}
+    </ul>
   </div>
   <section class="tight" id="custom">
     <div class="wrap custom-grid">

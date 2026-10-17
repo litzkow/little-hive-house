@@ -1,0 +1,161 @@
+[
+ {
+  "id": "wedding",
+  "magnets": [
+   {
+    "file": "1fcbfc4c-image.jpg",
+    "frame": "wedding",
+    "caption": "Ana & Leo · 06.14.26",
+    "crop": {
+     "x": 0.5,
+     "y": 0.42,
+     "z": 1.15
+    }
+   },
+   {
+    "file": "1555d152-image.jpg",
+    "frame": "white",
+    "crop": {
+     "x": 0.5,
+     "y": 0.4,
+     "z": 1.2
+    }
+   },
+   {
+    "file": "31557e59-image.jpg",
+    "frame": "gold-cream",
+    "crop": {
+     "x": 0.5,
+     "y": 0.35,
+     "z": 1.1
+    }
+   }
+  ]
+ },
+ {
+  "id": "family",
+  "magnets": [
+   {
+    "file": "a2dd42b8-image.jpg",
+    "frame": "instant",
+    "caption": "Vovô & Leo"
+   },
+   {
+    "file": "c0ddb996-image.jpg",
+    "frame": "none"
+   },
+   {
+    "file": "45e6d27d-image.jpg",
+    "frame": "gallery"
+   }
+  ]
+ },
+ {
+  "id": "baby",
+  "magnets": [
+   {
+    "file": "5d418299-image.jpg",
+    "frame": "none",
+    "crop": {
+     "x": 0.402,
+     "y": 0.379,
+     "z": 1.5
+    }
+   },
+   {
+    "file": "a748d654-image.jpg",
+    "frame": "instant",
+    "caption": "Hello, Olivia"
+   },
+   {
+    "file": "1e232d3c-image.jpg",
+    "frame": "white",
+    "crop": {
+     "x": 0.5,
+     "y": 0.55,
+     "z": 1.1
+    }
+   }
+  ]
+ },
+ {
+  "id": "pets",
+  "magnets": [
+   {
+    "file": "eff73d0f-image.jpg",
+    "frame": "none",
+    "crop": {
+     "x": 0.5,
+     "y": 0.4,
+     "z": 1
+    }
+   },
+   {
+    "file": "20502b69-image.jpg",
+    "frame": "instant",
+    "caption": "Bento",
+    "crop": {
+     "x": 0.5,
+     "y": 0.4,
+     "z": 1
+    }
+   },
+   {
+    "file": "1e1ea244-image.jpg",
+    "frame": "none"
+   }
+  ]
+ },
+ {
+  "id": "graduation",
+  "magnets": [
+   {
+    "file": "9864608b-image.jpg",
+    "frame": "instant",
+    "caption": "Class of 2026",
+    "crop": {
+     "x": 0.5,
+     "y": 0.35,
+     "z": 1
+    }
+   },
+   {
+    "file": "cf333f2e-image.jpg",
+    "frame": "none"
+   },
+   {
+    "file": "8bad3e68-image.jpg",
+    "frame": "white"
+   }
+  ]
+ },
+ {
+  "id": "travel",
+  "magnets": [
+   {
+    "file": "20420bb5-image.jpg",
+    "frame": "postcard",
+    "caption": "Tulum"
+   },
+   {
+    "file": "20420bb5-image.jpg",
+    "frame": "none",
+    "crop": {
+     "x": 0.45,
+     "y": 0.5,
+     "z": 1.3
+    }
+   },
+   {
+    "file": "20420bb5-image.jpg",
+    "frame": "instant",
+    "caption": "Summer 2026",
+    "crop": {
+     "x": 0.5,
+     "y": 0.42,
+     "z": 1.9
+    }
+   }
+  ]
+ }
+]

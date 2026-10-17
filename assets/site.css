@@ -893,3 +893,36 @@ html.studio-open { overflow: hidden; }
 .prose-foot { margin-top: 8px !important; padding: 16px 18px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 15px; }
 @media (max-width: 860px) { .policy-grid { grid-template-columns: 1fr; gap: 0; } .policy-toc { display: none; } }
 /* ===================================================================================== /store */
+
+/* home: the two halves of the shop (our designs | your photos) */
+.door-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.door .fan { height: 220px; }
+.door .fan .m { width: 128px; top: 44px; }
+.door .col-body { gap: 6px; padding-bottom: 22px; }
+.door h2 { font-size: clamp(24px, 3vw, 32px); margin: 0; }
+.door .btn { align-self: start; margin-top: 10px; }
+@media (max-width: 700px) {
+  .door-grid { grid-template-columns: 1fr; gap: 14px; }
+  .door .fan { height: 170px; }
+  .door .fan .m { width: 100px; top: 34px; }
+}
+.band-art img.ph { object-fit: cover; }
+/* photo page: occasion ideas under the title */
+.ideas { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.ideas a { display: grid; gap: 6px; text-decoration: none; color: var(--ink); font-size: 13px; font-weight: 600; text-align: center; }
+.ideas img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 8%; box-shadow: var(--shadow); transition: transform .2s ease; }
+.ideas a:hover img { transform: translateY(-3px) rotate(-1.5deg); }
+@media (max-width: 700px) { .ideas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } }
+.occ-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .occ-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .occ-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .occ-grid .fan { height: 118px; }
+  .occ-grid .fan .m { width: 66px; top: 26px; }
+  .occ-grid .fan .m:nth-child(1) { transform: translateX(-42px) rotate(-8deg); }
+  .occ-grid .fan .m:nth-child(3) { transform: translateX(42px) rotate(7deg); }
+  .occ-grid .col-body { padding: 12px 12px 14px; }
+  .occ-grid .col-body h3 { font-size: 17px; }
+  .occ-grid .col-body p { font-size: 13px; line-height: 1.35; }
+  .occ-grid .col-body .more { font-size: 14px; }
+}
