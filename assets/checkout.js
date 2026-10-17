@@ -119,7 +119,7 @@
       if (l.kind === 'package') return { kind: 'package', id: l.id, qty: l.qty };
       if (l.kind === 'custom') {
         return { kind: 'photos', packSize: l.count, qty: l.qty, notes: l.notes || '',
-                 photos: l.photos.map(function (p) { return { path: p.path, frame: p.frame || 'none', caption: p.caption || '' }; }) };
+                 photos: l.photos.map(function (p) { return { path: p.path, frame: p.frame || 'none', caption: p.caption || '', crop: p.crop || null, w: p.w || 0, h: p.h || 0 }; }) };
       }
       return null;
     }).filter(Boolean);

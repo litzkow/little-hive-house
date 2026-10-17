@@ -28,7 +28,7 @@
       localStorage.setItem(KEY, JSON.stringify(cart.filter(function (l) { return l.kind === 'design' || keep(l); }).map(function (l) {
         if (!l.photos) return l;
         var c = {}; for (var k in l) c[k] = l[k];   /* Blobs and blob: URLs only live on this page */
-        c.photos = l.photos.map(function (ph) { return { n: ph.n, file: ph.file, frame: ph.frame, frameName: ph.frameName, caption: ph.caption, path: ph.path }; });
+        c.photos = l.photos.map(function (ph) { return { n: ph.n, file: ph.file, frame: ph.frame, frameName: ph.frameName, caption: ph.caption, path: ph.path, crop: ph.crop || null, w: ph.w || 0, h: ph.h || 0 }; });
         return c;
       })));
     } catch (e) {}

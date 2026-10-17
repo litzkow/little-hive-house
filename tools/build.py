@@ -854,6 +854,14 @@ def page_photo():
           <div class="studio-preview">
             <div class="studio-mag" id="studio-mag"></div>
             <p class="studio-fname"><strong id="studio-fname">No border</strong> <span id="studio-blurb"></span></p>
+            <div class="studio-adjust" id="studio-adjust">
+              <div class="zoom-row">
+                <label class="label" for="studio-zoom">Zoom</label>
+                <input type="range" id="studio-zoom" min="1" max="4" step="0.01" value="1" aria-describedby="adjust-help">
+                <button type="button" class="linkish" id="adjust-reset">Reset</button>
+              </div>
+              <p class="cap-help" id="adjust-help">Drag the photo to move it. Pinch or slide to zoom.</p>
+            </div>
             <div class="studio-cap" id="studio-cap-row" hidden>
               <label class="label" for="studio-cap" id="studio-cap-label">Caption</label>
               <input type="text" id="studio-cap" maxlength="24" autocomplete="off" aria-describedby="studio-cap-help">

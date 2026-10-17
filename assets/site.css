@@ -505,6 +505,14 @@ html.studio-open { overflow: hidden; }
 .studio-preview { padding: 22px; display: grid; gap: 12px; align-content: start; border-right: 1px solid var(--line); overflow: auto; background: color-mix(in srgb, var(--fridge) 40%, var(--surface)); }
 .studio-mag { width: 100%; max-width: 336px; margin: 0 auto; aspect-ratio: 1; border-radius: 8%; overflow: hidden; box-shadow: 0 2px 0 rgba(43,33,24,.08), 0 22px 40px -18px rgba(43,33,24,.55); background: #fff; }
 .studio-fname { margin: 0; text-align: center; font-size: 15px; line-height: 1.4; }
+.studio-mag svg.big { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.studio-mag svg.big.dragging { cursor: grabbing; }
+.studio-adjust { display: grid; gap: 4px; }
+.zoom-row { display: flex; align-items: center; gap: 10px; }
+.zoom-row .label { margin: 0; font-size: 13px; }
+.zoom-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--ink); height: 32px; }
+.zoom-row .linkish { padding: 0; min-height: 32px; font-size: 13px; }
+.studio-adjust .cap-help { text-align: center; }
 .studio-fname span { color: var(--muted); }
 .studio-cap { display: grid; gap: 6px; }
 .studio-cap .label { margin: 0; }
@@ -537,9 +545,12 @@ html.studio-open { overflow: hidden; }
   .studio-head h2 { font-size: 15px; }
   .icon-btn { width: 40px; height: 40px; font-size: 22px; }
   .studio-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
-  .studio-preview { border-right: 0; border-bottom: 1px solid var(--line); padding: 12px 14px; grid-template-columns: 150px 1fr; gap: 8px 14px; align-items: center; overflow: visible; }
-  .studio-mag { max-width: 150px; margin: 0; border-radius: 9%; }
+  .studio-preview { border-right: 0; border-bottom: 1px solid var(--line); padding: 12px 14px; grid-template-columns: 170px minmax(0, 1fr); gap: 8px 14px; align-items: center; overflow: visible; }
+  .studio-mag { max-width: 170px; margin: 0; border-radius: 9%; grid-row: span 2; align-self: start; }
   .studio-fname { text-align: left; font-size: 14px; }
+  .studio-adjust .cap-help { text-align: left; font-size: 12px; }
+  .zoom-row { gap: 8px; }
+  .zoom-row .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .studio-cap { grid-column: 1 / -1; gap: 4px; }
   .studio-cap .label { font-size: 12px; }
   .studio-cap input { font-size: 16px; min-height: 44px; }

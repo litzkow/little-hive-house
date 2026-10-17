@@ -48,12 +48,26 @@
       (rot ? ' transform="rotate(' + rot + ' ' + c.x + ' ' + y + ')"' : '') + (fit ? ' data-fit="1"' : '') + '>' + esc(s) + '</text>';
   }
   /* same drawing as the shop's photo builder (assets/custom.js) and tools/print_sheet.py: photo in the window, frame on top, caption last */
-  function magnetSVG(url, f, caption) {
+  /* where the customer moved / zoomed the photo (functions/crop.js region): the part of the photo that shows */
+  function cropBox(p, w) {
+    var W = R.num(p.w), H = R.num(p.h), c = p.crop || { x: 0.5, y: 0.5, z: 1 };
+    var cl = function (v, lo, hi) { return Math.min(hi, Math.max(lo, v)); };
+    var sc = Math.max(w[2] / W, w[3] / H) * cl(R.num(c.z) || 1, 1, 4);
+    var rw = Math.min(W, w[2] / sc), rh = Math.min(H, w[3] / sc);
+    return [cl(R.num(c.x) * W - rw / 2, 0, W - rw), cl(R.num(c.y) * H - rh / 2, 0, H - rh), rw, rh, W, H];
+  }
+  function magnetSVG(url, f, caption, p) {
     var w = f.window, c = f.caption, s = capText(f, caption);
     var out = '<svg viewBox="0 0 600 600" data-frame="' + esc(f.id) + '" aria-hidden="true" focusable="false">';
     if (f.id !== 'none') out += '<rect width="600" height="600" fill="#FFFFFF"/>';
-    out += url ? '<image href="' + esc(url) + '" x="' + w[0] + '" y="' + w[1] + '" width="' + w[2] + '" height="' + w[3] + '" preserveAspectRatio="xMidYMid slice"/>'
-               : '<rect x="' + w[0] + '" y="' + w[1] + '" width="' + w[2] + '" height="' + w[3] + '" fill="#EDE3D1"/>';
+    if (url && p && R.num(p.w) > 0 && R.num(p.h) > 0) {
+      var b = cropBox(p, w);
+      out += '<svg x="' + w[0] + '" y="' + w[1] + '" width="' + w[2] + '" height="' + w[3] + '" viewBox="' + b.slice(0, 4).join(' ') + '" preserveAspectRatio="none">' +
+        '<image href="' + esc(url) + '" x="0" y="0" width="' + b[4] + '" height="' + b[5] + '" preserveAspectRatio="none"/></svg>';
+    } else {
+      out += url ? '<image href="' + esc(url) + '" x="' + w[0] + '" y="' + w[1] + '" width="' + w[2] + '" height="' + w[3] + '" preserveAspectRatio="xMidYMid slice"/>'
+                 : '<rect x="' + w[0] + '" y="' + w[1] + '" width="' + w[2] + '" height="' + w[3] + '" fill="#EDE3D1"/>';
+    }
     if (f.id !== 'none') out += '<image href="' + h.FRAMES_URL + esc(f.id) + '.svg" x="0" y="0" width="600" height="600"/>';
     if (c && s) {
       if (c.kicker) { var k = c.kicker; out += textEl({ x: c.x }, k.text, k.y, k.size, k.ls || 0, k.family, k.style, k.weight, k.color, 0, false); }
@@ -114,7 +128,7 @@
         var gi = Number(m.getAttribute('data-gi')), it = photoItems(o)[Number(m.getAttribute('data-pack'))];
         var p = it.photos[Number(m.getAttribute('data-j'))], url = urlFor(u, p, gi), small = thumbFor(u, p, gi);
         var badge = m.querySelector('.n');
-        m.innerHTML = small ? magnetSVG(small, frameOf(p.frame), p.caption) : '<div class="missing">Photo file not found</div>';
+        m.innerHTML = small ? magnetSVG(small, frameOf(p.frame), p.caption, p) : '<div class="missing">Photo file not found</div>';
         if (badge) m.appendChild(badge);
         var cap = m.parentNode && m.parentNode.querySelector('figcaption');
         if (url && cap && !cap.querySelector('.orig')) {

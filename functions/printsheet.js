@@ -25,6 +25,7 @@ const crypto = require("crypto");
 const { siteUrl, nowIso, AppError } = require("./config");
 const deps = require("./deps");
 const FM = require("./fontmetrics");
+const Crop = require("./crop");
 
 /* ---------- geometry ----------
    Each magnet is a square piece of paper cut with the square punch (the cut size, about 2.4 in for a 2 x 2 in
@@ -135,7 +136,9 @@ function planTiles(order) {
       fillIndexes(size, photos.length).forEach((j) => {
         const p = photos[j];
         const frame = frameId(p.frame), caption = String(p.caption || "").trim();
-        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, key: `photo:${p.path}|${frame}|${caption}` });
+        const crop = Crop.clean(p.crop);
+        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop,
+          key: `photo:${p.path}|${frame}|${caption}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}` });
       });
     } else if (it.kind === "package") {
       skipped.push({ kind: "package", title: it.title || it.id || "Package", qty, size: toInt(it.size) * qty });
@@ -339,8 +342,14 @@ async function renderPhoto(tile, ctx) {
   let photoLayer = null;
   try {
     const buf = await ctx.readPhoto(tile.path);
-    let img = await sharp(buf, { failOn: "none", limitInputPixels: 120e6, animated: false }).rotate()
-      .resize(win.w, win.h, { fit: "cover", position: "centre", kernel: "lanczos3" })
+    // the part the customer chose (crop.js), in the photo's upright pixels; no crop = centred, just covering the window
+    const opts = { failOn: "none", limitInputPixels: 120e6, animated: false };
+    const meta = await sharp(buf, opts).metadata();
+    const turned = (meta.orientation || 1) >= 5;
+    const W = turned ? meta.height : meta.width, H = turned ? meta.width : meta.height;
+    const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop);
+    let img = await sharp(buf, opts).rotate().extract(reg)
+      .resize(win.w, win.h, { fit: "fill", kernel: "lanczos3" })
       .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
     if (ctx.enhance) {
       try { img = await enhancePhoto(sharp, img); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }

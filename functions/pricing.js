@@ -4,6 +4,7 @@
    All math is in integer cents; stored order amounts are dollars with 2 decimals. */
 
 const { AppError } = require("./config");
+const Crop = require("./crop");
 
 const MAX_LINES = 100;          // Stripe Checkout allows 100 line items
 const MAX_QTY = 500;
@@ -62,7 +63,7 @@ function intQty(v, max, what) {
  * Validates a cart from the site and prices it.
  * Accepted lines (prices sent by the client are ignored):
  *   {kind:"design", id:"places/new-york", qty}
- *   {kind:"photos"|"custom", packSize|count, qty?, photos:[{path, frame, caption}], notes}
+ *   {kind:"photos"|"custom", packSize|count, qty?, photos:[{path, frame, caption, crop?, w?, h?}], notes}
  *   {kind:"package", id:"weddings-50", qty}
  * Returns {items (order items, dollars), lines (cents, for Stripe), totals (cents), pricing (dollars)}.
  */
@@ -106,7 +107,12 @@ function priceCart(cart, catalog = loadCatalog()) {
         if (Object.keys(frames).length && !f) throw bad(`Photo ${n + 1}: unknown frame "${frame}".`);
         const max = f && f.captionMax ? f.captionMax : 0;
         const caption = max ? str(p && p.caption, max) : "";
-        return { path: str(p && p.path, 300), frame, caption };
+        const out = { path: str(p && p.path, 300), frame, caption };
+        const crop = Crop.clean(p && p.crop);                 // where the customer moved / zoomed the photo
+        if (crop) out.crop = crop;
+        const w = Math.round(Number(p && p.w)), h = Math.round(Number(p && p.h));
+        if (w > 0 && h > 0 && w < 100000 && h < 100000) { out.w = w; out.h = h; }   // the photo's size, for the admin preview
+        return out;
       });
       const unit = cents(pack.price);
       items.push({ kind: "photos", title: pack.title, packSize: size, price: dollars(unit), qty, photos: clean, notes: str(raw.notes, 1000) });

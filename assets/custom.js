@@ -1,6 +1,7 @@
 /* Little Hive House: the custom photo magnet builder. Needs site.js first.
-   Every photo keeps its own frame and caption. Tapping a photo opens the frame studio: a big live preview,
-   the caption field (for caption frames) and every frame drawn as a mini preview of that same photo. */
+   Every photo keeps its own frame, caption and placement. Tapping a photo opens the frame studio: a big live
+   preview (drag to move the photo, pinch / slider to zoom), the caption field (for caption frames) and every frame
+   drawn as a mini preview of that same photo. The placement prints exactly as shown (functions/crop.js). */
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var NS = 'http://www.w3.org/2000/svg';
@@ -39,12 +40,28 @@
     t.textContent = s;
     return t;
   }
+  /* where the customer moved / zoomed the photo: crop {x, y, z}, same math as functions/crop.js region() and the print sheet */
+  var ZMAX = 4;
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+  function region(w, h, ww, wh, c) {
+    c = c || { x: 0.5, y: 0.5, z: 1 };
+    var s = Math.max(ww / w, wh / h) * clamp(c.z || 1, 1, ZMAX);
+    var rw = Math.min(w, ww / s), rh = Math.min(h, wh / s);
+    return { left: clamp(c.x * w - rw / 2, 0, w - rw), top: clamp(c.y * h - rh / 2, 0, h - rh), width: rw, height: rh };
+  }
+  function viewBoxOf(p, w) { var r = region(p.w, p.h, w[2], w[3], p.crop); return r.left + ' ' + r.top + ' ' + r.width + ' ' + r.height; }
   function magnet(p, f, caption, cls) {
     var svg = node('svg', { viewBox: '0 0 600 600', 'aria-hidden': 'true', focusable: 'false' });
     if (cls) svg.setAttribute('class', cls);
     var w = f.window;
     if (f.id !== 'none') node('rect', { width: 600, height: 600, fill: '#FFFFFF' }, svg);
-    node('image', { href: p.url, x: w[0], y: w[1], width: w[2], height: w[3], preserveAspectRatio: 'xMidYMid slice' }, svg);
+    if (p.w && p.h) {
+      /* a window onto the photo: the nested svg clips it, its viewBox is the part of the photo that shows */
+      var win = node('svg', { x: w[0], y: w[1], width: w[2], height: w[3], viewBox: viewBoxOf(p, w), preserveAspectRatio: 'none', 'class': 'ph' }, svg);
+      node('image', { href: p.url, x: 0, y: 0, width: p.w, height: p.h, preserveAspectRatio: 'none' }, win);
+    } else {
+      node('image', { href: p.url, x: w[0], y: w[1], width: w[2], height: w[3], preserveAspectRatio: 'xMidYMid slice' }, svg);
+    }
     if (f.id !== 'none') node('image', { href: BASE + f.id + '.svg', x: 0, y: 0, width: 600, height: 600 }, svg);
     var c = f.caption, s = capText(f, caption);
     if (c && s) {
@@ -90,7 +107,7 @@
       var b = document.createElement('button'); b.type = 'button'; b.className = 'thumb-btn'; b.setAttribute('data-i', i);
       b.setAttribute('aria-label', describe(p, i)); b.setAttribute('aria-haspopup', 'dialog');
       b.appendChild(draw(p, frameOf(p), p.caption));
-      var edit = document.createElement('span'); edit.className = 'thumb-edit'; edit.setAttribute('aria-hidden', 'true'); edit.textContent = 'Frame';
+      var edit = document.createElement('span'); edit.className = 'thumb-edit'; edit.setAttribute('aria-hidden', 'true'); edit.textContent = 'Edit';
       b.appendChild(edit);
       b.onclick = function () { openStudio(i); };
       var nm = document.createElement('span'); nm.className = 'thumb-name'; nm.textContent = frameOf(p).name; nm.setAttribute('aria-hidden', 'true');
@@ -136,12 +153,17 @@
   function addFiles(files) {
     Array.prototype.forEach.call(files, function (f) {
       if (f.type.indexOf('image/') !== 0) return;
-      var p = { name: f.name, url: URL.createObjectURL(f), blob: f, low: false, frame: defaultFrame, caption: '' };
+      var p = { name: f.name, url: URL.createObjectURL(f), blob: f, low: false, frame: defaultFrame, caption: '', crop: null, w: 0, h: 0 };
       photos.push(p);
-      /* a 2 in magnet wraps about 2.5 in of print; under 600 px on the short side it prints soft */
+      /* the size (upright, as the browser shows it) lets the customer move and zoom the photo;
+         a 2 in magnet face is 600 px at 300 dpi, under that on the short side it prints soft */
       var probe = new Image();
       probe.onload = function () {
-        if (Math.min(probe.naturalWidth, probe.naturalHeight) < MIN_PHOTO_PX && photos.indexOf(p) !== -1) { p.low = true; renderBuilder(); }
+        if (photos.indexOf(p) === -1) return;
+        p.w = probe.naturalWidth; p.h = probe.naturalHeight;
+        p.low = Math.min(p.w, p.h) < MIN_PHOTO_PX;
+        renderBuilder();
+        if (studio.open && photos[current] === p) { buildSwatches(); updateStudio(); }
       };
       probe.src = p.url;
     });
@@ -216,6 +238,8 @@
     var all = $('apply-all');
     all.hidden = n < 2;
     all.textContent = 'Apply this frame to all ' + n + ' photos';
+    zoomIn.value = String(cropOf(p).z || 1);
+    zoomIn.disabled = !p.w; $('adjust-reset').disabled = !p.w;
   }
   function setFrame(id) {
     var p = photos[current];
@@ -272,6 +296,80 @@
     say('Caption added to all ' + photos.length + ' photos. It prints on photos with a caption frame.');
   };
 
+  /* ---------- move & zoom: drag the big preview, pinch or use the slider ---------- */
+  var zoomIn = $('studio-zoom');
+  var magBox = $('studio-mag');
+  var ptrs = {}, gesture = null, settleTimer;
+  function cropOf(p) { return p.crop || { x: 0.5, y: 0.5, z: 1 }; }
+  /* stores the crop as the centre of what really shows (region() slides it back inside the photo) */
+  function setCrop(p, c, live) {
+    var w = frameOf(p).window, z = clamp(c.z || 1, 1, ZMAX);
+    var r = region(p.w, p.h, w[2], w[3], { x: c.x, y: c.y, z: z });
+    var x = (r.left + r.width / 2) / p.w, y = (r.top + r.height / 2) / p.h;
+    p.crop = Math.abs(x - 0.5) < 1e-4 && Math.abs(y - 0.5) < 1e-4 && z === 1 ? null : { x: x, y: y, z: z };
+    var ph = magBox.querySelector('svg.big svg.ph');
+    if (ph) ph.setAttribute('viewBox', viewBoxOf(p, w));
+    if (Math.abs(Number(zoomIn.value) - z) > 1e-3) zoomIn.value = String(z);
+    if (!live) cropSettled();
+  }
+  function refreshSwatchArts() {
+    if (!studio.open) return;
+    var p = photos[current];
+    LIST.forEach(function (f) {
+      var art = document.querySelector('#sw-' + f.id + ' + label .sw-art'); if (!art) return;
+      art.replaceChild(draw(p, f, f.caption ? (p.caption || f.caption.placeholder) : ''), art.firstChild);
+    });
+    fitIn($('swatches'));
+  }
+  function cropSettled() { refreshThumb(current); clearTimeout(settleTimer); settleTimer = setTimeout(refreshSwatchArts, 250); }
+  function pts() { return Object.keys(ptrs).map(function (k) { return ptrs[k]; }); }
+  function centroid() { var a = pts(), x = 0, y = 0; a.forEach(function (q) { x += q.x; y += q.y; }); return { x: x / a.length, y: y / a.length }; }
+  function spread() { var a = pts(); return a.length < 2 ? 0 : Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+  function begin() {
+    var p = photos[current], w = frameOf(p).window, rect = magBox.getBoundingClientRect();
+    var r = region(p.w, p.h, w[2], w[3], p.crop), c = cropOf(p);
+    /* photo pixels per screen pixel, at the zoom the gesture starts with */
+    gesture = { x: (r.left + r.width / 2) / p.w, y: (r.top + r.height / 2) / p.h, z: c.z || 1,
+                k: (600 / rect.width) * (r.width / w[2]), at: centroid(), d: spread() };
+  }
+  magBox.addEventListener('pointerdown', function (e) {
+    var p = photos[current]; if (!p || !p.w || !e.target.closest('svg.big')) return;
+    e.preventDefault();
+    try { magBox.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    begin();
+    var big = magBox.querySelector('svg.big'); if (big) big.classList.add('dragging');
+  });
+  magBox.addEventListener('pointermove', function (e) {
+    if (!ptrs[e.pointerId] || !gesture) return;
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var p = photos[current], g = gesture, now = centroid();
+    var z = g.d > 0 && spread() > 0 ? g.z * spread() / g.d : g.z;
+    z = clamp(z, 1, ZMAX);
+    var k = g.k * g.z / z;
+    setCrop(p, { x: g.x - (now.x - g.at.x) * k / p.w, y: g.y - (now.y - g.at.y) * k / p.h, z: z }, true);
+  });
+  function lift(e) {
+    if (!ptrs[e.pointerId]) return;
+    delete ptrs[e.pointerId];
+    if (pts().length) { begin(); return; }
+    gesture = null;
+    var big = magBox.querySelector('svg.big'); if (big) big.classList.remove('dragging');
+    cropSettled();
+  }
+  magBox.addEventListener('pointerup', lift);
+  magBox.addEventListener('pointercancel', lift);
+  magBox.addEventListener('wheel', function (e) {
+    var p = photos[current]; if (!p || !p.w) return;
+    e.preventDefault();
+    var c = cropOf(p);
+    setCrop(p, { x: c.x, y: c.y, z: (c.z || 1) * Math.exp(-e.deltaY * 0.002) }, true);
+    clearTimeout(settleTimer); settleTimer = setTimeout(cropSettled, 200);
+  }, { passive: false });
+  zoomIn.addEventListener('input', function () { var p = photos[current], c = cropOf(p); setCrop(p, { x: c.x, y: c.y, z: Number(zoomIn.value) }, true); });
+  zoomIn.addEventListener('change', cropSettled);
+  $('adjust-reset').onclick = function () { var p = photos[current]; p.crop = null; updateStudio(); cropSettled(); say('Photo centred again.'); };
+
   /* ---------- wiring ---------- */
   $('photos').addEventListener('change', function (e) { addFiles(e.target.files); e.target.value = ''; });
   var drop = $('drop');
@@ -289,6 +387,7 @@
     var lines = photos.map(function (p, i) {
       var f = frameOf(p);
       return { n: i + 1, file: p.name, frame: f.id, frameName: f.name, caption: f.caption ? p.caption.trim().slice(0, f.caption.max) : '',
+               crop: p.crop || null, w: p.w || 0, h: p.h || 0,
                blob: p.blob, url: p.url };  /* blob/url: uploaded at checkout (assets/checkout.js) */
     });
     var names = [];
@@ -296,7 +395,7 @@
     var notes = $('notes').value.trim();
     var detail = size + ' magnets · ' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') + ' · ' + (names.length === 1 ? names[0] : names.length + ' frames');
     var orderNotes = lines.map(function (l) {
-      return 'Photo ' + l.n + ' (' + l.file + '): ' + l.frameName + ' [' + l.frame + ']' + (l.caption ? ', caption "' + l.caption + '"' : '');
+      return 'Photo ' + l.n + ' (' + l.file + '): ' + l.frameName + ' [' + l.frame + ']' + (l.caption ? ', caption "' + l.caption + '"' : '') + (l.crop ? ', moved/zoomed' : '');
     }).join('\n');
     if (photos.length < size) orderNotes += '\nPack of ' + size + ': repeat photos in order to fill it.';
     if (notes) orderNotes += '\nNotes: ' + notes;
