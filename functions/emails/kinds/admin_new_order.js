@@ -20,7 +20,8 @@ module.exports = function adminNewOrder(data, { L }) {
   const ps = data.printSheet && typeof data.printSheet === "object" ? data.printSheet : null;
   const sheets = ps ? F.num(ps.sheets) : 0;
   const printLine = !ps ? (count ? "The print sheet could not be made automatically: open the order in the admin and tap “Print sheet (PDF)” to try again, or use the photo ZIP." : "")
-    : ps.attached ? `Print sheet attached (${F.plural(sheets, "sheet")}, 12 magnets each, plus the packing slip): print on glossy photo paper at 100% / “actual size” and cut on the marks.`
+    : ps.attached ? (sheets ? `Two PDFs attached. The magnets (${F.plural(sheets, "sheet")}, 9 per sheet): glossy photo paper, 100% / “Actual size”. The packing slip: plain paper.`
+      : "The packing slip is attached (plain paper). Nothing in this order prints on the magnet sheets.")
       : `Print sheet ready (${F.plural(sheets, "sheet")}): it was too big to attach, so open the order in the admin and tap “Print sheet (PDF)”.`;
   const warn = ps && Array.isArray(ps.warnings) && ps.warnings.length ? `Check the “Before you print” page in the PDF: ${F.line(ps.warnings[0], 200)}` : "";
   const todo = [

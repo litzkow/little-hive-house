@@ -18,7 +18,8 @@ const ADMIN = { uid: "admin1", token: { admin: true, email: "owner@lhh.com" } };
 
 const fakeBuilder = (extra = {}) => async (orderId, order) => {
   const plan = P.planTiles(order);
-  return { pdf: Buffer.from(`%PDF-1.5 fake ${orderId} ${plan.tiles.length} tiles`), pages: plan.sheets + 1, sheets: plan.sheets, tiles: plan.tiles.length, warnings: [], ...extra };
+  return { pdf: plan.sheets ? Buffer.from(`%PDF-1.5 fake ${orderId} ${plan.tiles.length} tiles`) : null, slip: Buffer.from(`%PDF-1.5 fake slip ${orderId}`),
+    pages: plan.sheets, slipPages: 1, sheets: plan.sheets, tiles: plan.tiles.length, warnings: [], ...extra };
 };
 
 function setup(builder = fakeBuilder()) {
@@ -57,43 +58,58 @@ const SESSION = {
 };
 
 /* ---------------------------------------------------------------- layout math */
-test("geometry: US Letter, 12 tiles of 2.5 in, same numbers as tools/print_sheet.py", () => {
+test("geometry: US Letter, 9 pieces of the punch size, the 2 in face in the middle, white space between", () => {
   assert.equal(P.DPI, 300);
-  assert.equal(P.TILE_PX, 750);
-  assert.equal(P.TILE_PT, 180);
+  assert.equal(P.PER_PAGE, 9);
+  assert.equal(P.FACE_PX, 600);
   assert.deepEqual(P.PAGE_PT, { w: 612, h: 792 });
-  assert.equal(P.MARGIN_X, 36);
-  assert.equal(P.MARGIN_Y, 36);
-  const pt = P.tilePositions("pt");
-  assert.equal(pt.length, 12);
-  assert.deepEqual(pt[0], { i: 0, col: 0, row: 0, x: 36, y: 36, size: 180 });
-  assert.deepEqual(pt[5], { i: 5, col: 2, row: 1, x: 36 + 360, y: 36 + 180, size: 180 });
-  assert.deepEqual(pt[11], { i: 11, col: 2, row: 3, x: 396, y: 576, size: 180 });
-  assert.equal(pt[11].x + 180, 612 - 36, "the grid is centred horizontally");
-  assert.equal(pt[11].y + 180, 792 - 36, "and vertically");
-  // in pixels at 300 dpi: print_sheet.py puts the grid at (150, 150) on a 2550 x 3300 page
-  const px = P.tilePositions("px");
-  assert.deepEqual([px[0].x, px[0].y, px[0].size], [150, 150, 750]);
-  assert.deepEqual([px[11].x, px[11].y], [150 + 2 * 750, 150 + 3 * 750]);
+  const g = P.geometry(2.4);
+  assert.equal(g.cut, 2.4);
+  assert.equal(g.extPx, 72, "0.2 in wrap + 0.04 in bleed on each side = 72 px");
+  assert.equal(g.artPx, 744);
+  assert.equal(g.gap, 0.35);
+  const near = (a, b) => Math.abs(a - b) < 1e-6;
+  const pt = P.tilePositions(2.4);
+  assert.equal(pt.length, 9);
+  assert.ok(near(pt[0].size, 172.8) && near(pt[0].art.size, 178.56) && near(pt[0].face.size, 144));
+  // centred left to right
+  assert.ok(near(pt[0].x, 612 - (pt[2].x + pt[2].size)));
+  // the gap between pieces, and the face centred in its piece
+  assert.ok(near(pt[1].x - (pt[0].x + pt[0].size), 0.35 * 72));
+  assert.ok(near(pt[4].face.x - pt[4].x, 0.2 * 72) && near(pt[4].art.x, pt[4].x - 0.04 * 72));
+  // everything stays on the page with room for the printer's own margin
+  for (const t of pt) assert.ok(t.art.x >= 0.25 * 72 && t.art.x + t.art.size <= 612 - 0.25 * 72 && t.art.y >= 36 && t.art.y + t.art.size <= 792 - 36);
+  // pieces never touch
+  assert.ok(pt[1].art.x > pt[0].art.x + pt[0].art.size + 10);
+  assert.ok(pt[3].art.y > pt[0].art.y + pt[0].art.size + 10);
 });
 
-test("crop marks sit on the outer grid lines, 15 px off the grid and 45 px long (in points)", () => {
-  const marks = P.cropMarks();
-  assert.equal(marks.length, 2 * (P.COLS + 1) + 2 * (P.ROWS + 1));
-  const near = (a, b) => Math.abs(a - b) < 1e-9;
-  const topLeft = marks.find((m) => near(m.x1, 36) && near(m.x2, 36) && m.y2 < 36);
-  assert.ok(topLeft);
-  assert.ok(near(topLeft.y2, 36 - 3.6) && near(topLeft.y1, 36 - 3.6 - 10.8));
-  const rightBottom = marks.find((m) => near(m.y1, 756) && near(m.y2, 756) && m.x1 > 396 + 180);
-  assert.ok(rightBottom);
-  assert.ok(near(rightBottom.x1, 576 + 3.6) && near(rightBottom.x2, 576 + 3.6 + 10.8));
-  for (const m of marks) assert.ok(m.x1 >= 0 && m.x2 <= 612 && m.y1 >= 0 && m.y2 <= 792, "marks stay on the page");
-  // no mark crosses into a tile
-  for (const m of marks) assert.ok(m.x2 <= 36 || m.x1 >= 576 || m.y2 <= 36 || m.y1 >= 756);
+test("the punch size: any measured size from 2.10 to 2.55 in, anything else falls back to 2.45", () => {
+  assert.equal(P.cutSize(2.25), 2.25);
+  assert.equal(P.cutSize("2.5"), 2.5);
+  assert.equal(P.cutSize(3), 2.45);
+  assert.equal(P.cutSize(undefined), 2.45);
+  const big = P.geometry(2.55), small = P.geometry(2.1);
+  assert.ok(big.gap > 0.1 && small.gap === 0.5);
+  for (const g of [big, small]) {
+    const pt = P.tilePositions(g.cut);
+    assert.ok(pt[2].art.x + pt[2].art.size < 612 && pt[0].art.x > 0);
+    assert.equal((g.artPx - 600) % 2, 0);
+  }
 });
 
-test("page count: 12 per sheet", () => {
-  assert.deepEqual([0, 1, 11, 12, 13, 24, 25, 50].map(P.pageCount), [0, 1, 1, 1, 2, 2, 3, 5]);
+test("photo touch-up: overexposed photos are darkened a little, dark ones lifted a little, never too much", () => {
+  const mid = P.enhanceParams(118), bright = P.enhanceParams(200), dark = P.enhanceParams(60);
+  assert.equal(mid.brightness, 1);
+  assert.ok(bright.brightness < 1 && bright.brightness >= 0.84);
+  assert.ok(dark.brightness > 1 && dark.brightness <= 1.12);
+  assert.equal(P.enhanceParams(255).brightness, 0.84);
+  assert.equal(P.enhanceParams(0).brightness, 1.12);
+  assert.ok(mid.saturation > 1 && mid.contrast > 1 && mid.offset < 0);
+});
+
+test("page count: 9 per sheet", () => {
+  assert.deepEqual([0, 1, 8, 9, 10, 18, 19, 50].map(P.pageCount), [0, 1, 1, 1, 2, 2, 3, 6]);
 });
 
 test("fill: a pack with fewer photos than magnets repeats them in order (print_sheet.py --order, admin photoPlan)", () => {
@@ -120,7 +136,7 @@ test("planTiles: designs x qty, photo packs filled x qty, packages and custom it
   assert.deepEqual(plan.skipped.map((s) => [s.kind, s.size]), [["package", 12]]);
   // placed on pages
   const placed = P.placeTiles(plan.tiles);
-  assert.deepEqual([placed[0].page, placed[0].slot, placed[11].page, placed[11].slot, placed[12].page, placed[12].slot], [0, 0, 0, 11, 1, 0]);
+  assert.deepEqual([placed[0].page, placed[0].slot, placed[8].page, placed[8].slot, placed[9].page, placed[9].slot], [0, 0, 0, 8, 1, 0]);
 });
 
 test("planTiles: qty multiplies photo packs, photos without a file are skipped, a pack with no files is listed as skipped", () => {
@@ -142,14 +158,13 @@ test("planTiles caps at MAX_TILES and says so", () => {
   assert.equal(plan.total, 700);
 });
 
-test("windowPx: the frame window scaled 600 -> 750 and rounded to whole pixels", () => {
-  assert.deepEqual(P.windowPx(FRAMES.none), { x: 0, y: 0, w: 750, h: 750 });
-  assert.deepEqual(P.windowPx(FRAMES.white), { x: 125, y: 125, w: 500, h: 500 });
+test("windowPx: the frame window on the 600 px face, in whole pixels", () => {
+  assert.deepEqual(P.windowPx(FRAMES.none), { x: 0, y: 0, w: 600, h: 600 });
+  assert.deepEqual(P.windowPx(FRAMES.white), { x: 100, y: 100, w: 400, h: 400 });
   const inst = P.windowPx(FRAMES.instant);   // [94, 90, 412, 344]
-  assert.deepEqual(inst, { x: 118, y: 113, w: 515, h: 430 });
-  assert.ok(inst.x + inst.w <= 750 && inst.y + inst.h <= 750);
+  assert.deepEqual(inst, { x: 94, y: 90, w: 412, h: 344 });
   const hex = P.windowPx(FRAMES.honeycomb);  // fractional window
-  assert.ok(hex.w > 0 && hex.h > 0 && hex.x + hex.w <= 750 && hex.y + hex.h <= 750);
+  assert.ok(hex.w > 0 && hex.h > 0 && hex.x + hex.w <= 600 && hex.y + hex.h <= 600);
 });
 
 test("packing slip rows, address lines and the magnet count", () => {
@@ -165,8 +180,10 @@ test("packing slip rows, address lines and the magnet count", () => {
   assert.match(rows[2].sub, /9 magnets from 4 photos/);
   assert.deepEqual(rows[2].lines, ["1. Instant photo · “Summer 2026” ×3", "2. No border ×2", "3. Postage stamp · “WITH LOVE” ×2", "4. Linen & gold leaf · “Ana & Leo · 06.14.26” ×2"]);
   assert.deepEqual([rows[3].qty, rows[3].sub], [1, "12 custom magnets · artwork by email"]);
-  assert.equal(P.fileName(order), "LHH-1042-print-sheet.pdf");
+  assert.equal(P.fileName(order), "LHH-1042-magnets.pdf");
+  assert.equal(P.fileName(order, "slip"), "LHH-1042-packing-slip.pdf");
   assert.equal(P.storagePath("abc"), "orders/abc/print-sheet.pdf");
+  assert.equal(P.storagePath("abc", "slip"), "orders/abc/packing-slip.pdf");
   assert.equal(P.fmtDate("2026-10-11T12:00:00.000Z"), "Oct 11, 2026");
 });
 
@@ -216,12 +233,12 @@ test("caption fitting never goes below the frame's minimum size and always fits 
   assert.equal(FM.captionText(FRAMES.stamp, "  hello world, this is long  "), "HELLO WORLD, THIS IS");
 });
 
-test("overlay and placeholder SVGs are 750 px canvases over the frames' 600-unit viewBox", () => {
+test("overlay and placeholder SVGs are 600 px canvases (the face) over the frames' 600-unit viewBox", () => {
   const o = P.overlaySvg("<g id=\"frame\"/>", "<text>cap</text>");
-  assert.match(o, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*width="750" height="750" viewBox="0 0 600 600">/);
+  assert.match(o, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*width="600" height="600" viewBox="0 0 600 600">/);
   assert.match(o, /<g id="frame"\/><text>cap<\/text><\/svg>$/);
   const ph = P.placeholderSvg(["Photo 3 could not be read", "a & b"]);
-  assert.match(ph, /width="750" height="750"/);
+  assert.match(ph, /width="600" height="600"/);
   assert.match(ph, /a &amp; b/);
   assert.match(ph, /font-family="Jost/);
 });
@@ -263,8 +280,14 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.path, "orders/ord1/print-sheet.pdf");
   assert.equal(o.printSheet.tiles, 13);
   assert.equal(o.printSheet.sheets, 2);
-  assert.equal(o.printSheet.pages, 3);
-  assert.ok(o.printSheet.at && o.printSheet.bytes > 0);
+  assert.equal(o.printSheet.pages, 2);
+  assert.equal(o.printSheet.slipPath, "orders/ord1/packing-slip.pdf");
+  assert.equal(o.printSheet.cut, 2.45, "the default punch size");
+  assert.equal(o.printSheet.enhance, true);
+  assert.equal(o.printSheet.v, 2);
+  assert.ok(o.printSheet.at && o.printSheet.bytes > 0 && o.printSheet.slipBytes > 0);
+  const slip = bucket.files.get("orders/ord1/packing-slip.pdf");
+  assert.equal(slip.data.toString(), "%PDF-1.5 fake slip ord1");
   const f = bucket.files.get("orders/ord1/print-sheet.pdf");
   assert.ok(f, "saved in the bucket");
   assert.equal(f.contentType, "application/pdf");
@@ -273,9 +296,11 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.deepEqual(net.emails.map((e) => e.to[0]), ["ana@example.com", "support@littlehivehouse.com"]);
   assert.equal(net.emails[0].attachments, undefined, "the customer never gets the print sheet");
   const adminMail = net.emails[1];
-  assert.deepEqual(adminMail.attachments, [{ filename: "LHH-1001-print-sheet.pdf", content: f.data.toString("base64"), content_type: "application/pdf" }]);
+  assert.deepEqual(adminMail.attachments, [{ filename: "LHH-1001-magnets.pdf", content: f.data.toString("base64"), content_type: "application/pdf" },
+    { filename: "LHH-1001-packing-slip.pdf", content: slip.data.toString("base64"), content_type: "application/pdf" }]);
   assert.match(adminMail.subject, /print sheet attached/);
-  assert.match(adminMail.text, /Print sheet attached \(2 sheets/);
+  assert.match(adminMail.text, /Two PDFs attached\. The magnets \(2 sheets, 9 per sheet\): glossy photo paper/);
+  assert.match(adminMail.text, /packing slip: plain paper/);
   assert.match(adminMail.text, /100%/);
   assert.doesNotMatch(adminMail.text, /Download the 4 customer photos/, "no need to download photos by hand any more");
   // paying twice does not rebuild or re-send
@@ -317,8 +342,14 @@ test("a paid payment-link (custom) order gets a slip-only PDF", async () => {
   const res = await checkout.completeCheckout({ ...SESSION, id: "cs_4", client_reference_id: null, metadata: {}, payment_link: "plink_1" });
   assert.equal(res.orderId, "ord4");
   const o = db.get("orders/ord4");
-  assert.deepEqual([o.printSheet.tiles, o.printSheet.sheets, o.printSheet.pages], [0, 0, 1]);
-  assert.equal(net.emails[1].attachments.length, 1);
+  assert.deepEqual([o.printSheet.tiles, o.printSheet.sheets, o.printSheet.pages, o.printSheet.path], [0, 0, 0, null]);
+  assert.equal(o.printSheet.slipPath, "orders/ord4/packing-slip.pdf");
+  assert.deepEqual(net.emails[1].attachments.map((x) => x.filename), ["LHH-1001-packing-slip.pdf"]);
+  assert.match(net.emails[1].text, /Nothing in this order prints on the magnet sheets/);
+  const admin = require("../admin");
+  await assert.rejects(admin.adminPrintSheet({ orderId: "ord4" }, ADMIN), (e) => e.code === "failed-precondition" && /made by hand/.test(e.message));
+  const slip = await admin.adminPrintSheet({ orderId: "ord4", which: "slip" }, ADMIN);
+  assert.match(slip.url, /packing-slip\.pdf/);
 });
 
 test("adminPrintSheet: admins only, paid orders only, returns a short-lived signed link, rebuilds on demand or when the file is gone", async () => {
@@ -342,8 +373,17 @@ test("adminPrintSheet: admins only, paid orders only, returns a short-lived sign
   const signed = bucket.signed[bucket.signed.length - 1];
   assert.equal(signed.opts.action, "read");
   assert.equal(signed.opts.version, "v4");
-  assert.match(signed.opts.responseDisposition, /inline; filename="LHH-1001-print-sheet\.pdf"/);
+  assert.match(signed.opts.responseDisposition, /inline; filename="LHH-1001-magnets\.pdf"/);
   assert.equal(r1.printSheet.at, first.at, "no rebuild when the file is there");
+  const rs = await admin.adminPrintSheet({ orderId: "ord5", which: "slip" }, ADMIN);
+  assert.equal(rs.which, "slip");
+  assert.match(rs.url, /orders%2Ford5%2Fpacking-slip\.pdf/);
+  assert.equal(rs.rebuilt, false);
+  // a PDF from the old 12-per-sheet layout is made again
+  await db.collection("orders").doc("ord5").update({ printSheet: { ...first, v: undefined } });
+  const old = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
+  assert.equal(old.rebuilt, true);
+  assert.equal(db.get("orders/ord5").printSheet.v, 2);
 
   await new Promise((r) => setTimeout(r, 5));
   const r2 = await admin.adminPrintSheet({ orderId: "ord5", rebuild: true }, ADMIN);

@@ -14,7 +14,8 @@ const { trackerFor } = require("./tracking");
 const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = require("./checkout");
 const payments = require("./payments");
 
-const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25 };
+const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25,
+  printCutIn: 2.45, printEnhance: 1 };   // Settings › Printing: the square punch's paper size (inches) and the photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -390,6 +391,8 @@ async function adminSaveSettings(data, auth) {
     if (s[k] === undefined || s[k] === null || s[k] === "") continue;
     const n = Number(s[k]);
     if (!Number.isFinite(n) || n < 0 || n > 100000) fail("invalid-argument", `"${k}" must be a number of 0 or more.`);
+    if (k === "printCutIn" && (n < 2.1 || n > 2.55)) fail("invalid-argument", "The punch size should be between 2.10 and 2.55 inches (measure a piece the punch cut).");
+    if (k === "printEnhance" && n !== 0 && n !== 1) fail("invalid-argument", "The photo touch-up is on (1) or off (0).");
     out[k] = Math.round(n * 10000) / 10000;
   }
   if (!Object.keys(out).length) fail("invalid-argument", "Nothing to save.");
@@ -421,6 +424,29 @@ async function photoUrl(bucket, path) {
   }
 }
 
+/* Phone photos are 3-12 MB; drawing several of them on the order page froze the admin on iPhone. The page shows a
+   small copy instead (thumbs/<path>.jpg, 800 px, made once with sharp) and links to the original. */
+const THUMB_PX = 800;
+async function thumbUrl(bucket, path) {
+  const tp = `thumbs/${path.replace(/\.[A-Za-z0-9]+$/, "")}.jpg`;
+  const file = bucket.file(tp);
+  let exists = false;
+  try { [exists] = await file.exists(); } catch (e) { exists = false; }
+  if (!exists) {
+    try {
+      const sharp = require("./printsheet")._internal.loadSharp();
+      const [buf] = await bucket.file(path).download();
+      const jpg = await sharp(buf, { failOn: "none", limitInputPixels: 120e6, animated: false }).rotate()
+        .resize(THUMB_PX, THUMB_PX, { fit: "inside", withoutEnlargement: true }).flatten({ background: "#FFFFFF" }).jpeg({ quality: 82 }).toBuffer();
+      await file.save(jpg, { contentType: "image/jpeg", resumable: false, metadata: { cacheControl: "private, max-age=86400" } });
+    } catch (err) {
+      console.warn("[adminPhotoUrls] no thumbnail for", path, err && err.message);
+      return null;
+    }
+  }
+  return photoUrl(bucket, tp);
+}
+
 async function adminPhotoUrls(data, auth) {
   U.requireAdmin(auth);
   const { order } = await loadOrder(data && data.orderId);
@@ -429,18 +455,27 @@ async function adminPhotoUrls(data, auth) {
   const bucket = deps.bucket();
   const out = [];
   for (const { it, index } of packs) {
-    const photos = await Promise.all((it.photos || []).map(async (p, n) => ({
-      n: n + 1, path: p.path, frame: p.frame, caption: p.caption || "", url: p.path ? await photoUrl(bucket, p.path) : null,
-    })));
+    const list = it.photos || [];
+    const photos = new Array(list.length);
+    let next = 0;
+    const worker = async () => {
+      while (next < list.length) {
+        const n = next++, p = list[n];
+        const [url, thumb] = p.path ? await Promise.all([photoUrl(bucket, p.path), thumbUrl(bucket, p.path)]) : [null, null];
+        photos[n] = { n: n + 1, path: p.path, frame: p.frame, caption: p.caption || "", url, thumb: thumb || url };
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
     out.push({ index, packSize: it.packSize, qty: it.qty || 1, notes: it.notes || "", photos });
   }
   return { packs: out };
 }
 
-/* ---------- the print-ready PDF (printsheet.js) ---------- */
+/* ---------- the print-ready PDFs (printsheet.js) ---------- */
 /**
- * adminPrintSheet({orderId, rebuild?}) -> {url, expiresAt, rebuilt, printSheet}
- * Returns a short-lived link to orders/<id>/print-sheet.pdf; makes (or remakes, with rebuild) the PDF first when needed.
+ * adminPrintSheet({orderId, rebuild?, which?: "sheet" | "slip"}) -> {url, expiresAt, rebuilt, which, printSheet}
+ * Returns a short-lived link to the magnets PDF (orders/<id>/print-sheet.pdf, glossy paper) or, with which "slip",
+ * the packing slip (packing-slip.pdf, plain paper); makes (or remakes, with rebuild) the PDFs first when needed.
  */
 async function adminPrintSheet(data, auth) {
   U.requireAdmin(auth);
@@ -448,10 +483,13 @@ async function adminPrintSheet(data, auth) {
   const { ref, id, order } = await loadOrder(data && data.orderId);
   if (order.status === "pending") fail("failed-precondition", "This order hasn't been paid yet, so there is nothing to print.");
   const rebuild = !!(data && data.rebuild);
-  let meta = order.printSheet && order.printSheet.path ? order.printSheet : null;
+  const which = data && data.which === "slip" ? "slip" : "sheet";
+  const pathOf = (m) => (m ? (which === "slip" ? m.slipPath : m.path) : null);
+  // PDFs made before the 9-per-sheet layout (no v: 2) are made again
+  let meta = order.printSheet && order.printSheet.v === 2 && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
   let exists = false;
-  if (meta && !rebuild) {
-    try { exists = (await deps.bucket().file(meta.path).exists())[0] === true; } catch (err) { exists = false; }
+  if (meta && !rebuild && pathOf(meta)) {
+    try { exists = (await deps.bucket().file(pathOf(meta)).exists())[0] === true; } catch (err) { exists = false; }
   }
   let rebuilt = false;
   if (!exists) {
@@ -463,8 +501,9 @@ async function adminPrintSheet(data, auth) {
     }
     rebuilt = true;
   }
-  const link = await printsheet.downloadUrl(meta.path, printsheet.fileName(order));
-  return { ok: true, url: link.url, expiresAt: link.expiresAt, signed: link.signed, rebuilt, printSheet: meta };
+  if (!pathOf(meta)) fail("failed-precondition", which === "slip" ? "The packing slip could not be made." : "Nothing in this order prints on the magnet sheets (packages and custom orders are made by hand).");
+  const link = await printsheet.downloadUrl(pathOf(meta), printsheet.fileName(order, which));
+  return { ok: true, url: link.url, expiresAt: link.expiresAt, signed: link.signed, rebuilt, which, printSheet: meta };
 }
 
 /* ---------- reviews ---------- */

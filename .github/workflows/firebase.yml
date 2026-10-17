@@ -132,6 +132,20 @@ jobs:
         run: |
           if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
+      - name: Print sheet check (real sharp + pdfkit, no customer data)
+        if: steps.check.outputs.ready == 'true'
+        env:
+          OUT_DIR: ${{ runner.temp }}/printsheet-smoke
+        run: node tools/maint/printsheet-smoke.js
+
+      - name: Keep the sample print sheets (1 day)
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: printsheet-sample
+          path: ${{ runner.temp }}/printsheet-smoke
+          retention-days: 1
+
       - name: Deploy
         if: steps.check.outputs.ready == 'true'
         run: |

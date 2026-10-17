@@ -490,10 +490,11 @@
       '<p class="small muted" style="margin-top:8px">Admins are the emails in <code>ADMIN_EMAILS</code> (see SETUP.md). A new admin signs up on the shop’s account page, opens this page and taps “Activate admin access”.</p>' +
       '<div class="row gap-top"><button class="btn btn-ghost btn-sm" data-act="theme">' + esc(themeText()) + '</button><button class="btn btn-ghost btn-sm" data-act="signout">' + icon('logout') + 'Sign out</button></div></section>' +
       notifCard() + installCard() +
-      '<section class="card"><div class="card-head"><h2>Printing</h2></div><p class="small muted">Print sheets are made on the computer with <code>python3 tools/print_sheet.py</code>. Every order page shows the exact command, and its photo ZIP includes the frame list the tool reads.</p></section></div></div>';
+      printCard(s) + '</div></div>';
     return {
       title: 'Settings', html: html, after: function () {
         loadNotif();
+        wirePrint();
         var f = $('#set-form');
         f.addEventListener('input', function () {
           var mc = Number(f.magnetUnitCost.value) || 0, pk = Number(f.packagingCost.value) || 0;
@@ -512,12 +513,36 @@
           var btn = f.querySelector('button[type=submit]');
           h.busy(btn, true, 'Saving…');
           h.call('adminSaveSettings', out).then(function () {
-            S.settings = R.settingsWithDefaults(out); h.busy(btn, false); h.toast('Saved. Reports are updated.');
+            S.settings = R.settingsWithDefaults(Object.assign({}, S.settings, out)); h.busy(btn, false); h.toast('Saved. Reports are updated.');
           }).catch(function (e) { h.busy(btn, false); err.textContent = h.friendlyError(e); err.hidden = false; });
         });
       }
     };
   };
+  /* ---------- printing (functions/printsheet.js reads these when it makes the PDFs) ---------- */
+  function printCard(s) {
+    return '<section class="card"><div class="card-head"><h2>Printing</h2></div><form class="stack" id="print-form" novalidate>' +
+      '<label class="field"><span>Size of the paper piece the punch cuts</span><span class="input-unit"><input class="input" name="printCutIn" type="number" inputmode="decimal" min="2.1" max="2.55" step="0.01" value="' + esc(Number(s.printCutIn).toFixed(2)) + '"> in</span>' +
+      '<span class="hint">Cut a scrap of paper with the punch and measure it from one straight side to the opposite one. The magnet face stays 2 in; the rest wraps around the edge. Between 2.10 and 2.55.</span></label>' +
+      '<label class="check"><input type="checkbox" name="printEnhance"' + (Number(s.printEnhance) ? ' checked' : '') + '> <span>Touch up customer photos for paper<span class="hint">Fixes washed-out or too-bright photos and adds a little colour and contrast, because prints come out flatter than a screen.</span></span></label>' +
+      '<p class="err" id="print-err" hidden></p><div class="row end"><button class="btn btn-honey" type="submit">Save printing</button></div>' +
+      '<p class="small muted">New orders use these right away. For an order already made, tap Rebuild on its page.</p></form></section>';
+  }
+  function wirePrint() {
+    var f = $('#print-form'); if (!f) return;
+    f.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var err = $('#print-err'), cut = Number(f.printCutIn.value);
+      err.hidden = true;
+      if (!isFinite(cut) || cut < 2.1 || cut > 2.55) { err.textContent = 'The piece should be between 2.10 and 2.55 inches.'; err.hidden = false; f.printCutIn.focus(); return; }
+      var out = { printCutIn: Math.round(cut * 100) / 100, printEnhance: f.printEnhance.checked ? 1 : 0 };
+      var btn = f.querySelector('button[type=submit]');
+      h.busy(btn, true, 'Saving…');
+      h.call('adminSaveSettings', out).then(function () {
+        S.settings = R.settingsWithDefaults(Object.assign({}, S.settings, out)); h.busy(btn, false); h.toast('Saved. New print sheets use it.');
+      }).catch(function (e) { h.busy(btn, false); err.textContent = h.friendlyError(e); err.hidden = false; });
+    });
+  }
   /* ---------- phone notifications (Web Push: functions/push.js -> sw.js) ---------- */
   var NOTIF_KINDS = [
     ['orders', 'New orders', 'Every paid order, with the total.'],

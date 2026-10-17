@@ -495,3 +495,8 @@ dialog.modal .big { font-size: 34px; font-weight: 600; font-variant-numeric: tab
 .hb-track i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--bar); }
 
 .code { max-width: 100%; }
+.photo figcaption .orig { display: block; margin-top: 2px; color: var(--honey-ink, inherit); text-decoration: underline; }
+.input-unit { display: flex; align-items: center; gap: 8px; }
+.input-unit .input { max-width: 120px; }
+#print-form .check { align-items: flex-start; }
+#print-form .check .hint { display: block; margin-top: 2px; }

@@ -279,11 +279,14 @@ async function completeCheckout(session) {
     const sent = await mail.send({ to: after.email, kind: "order_confirmation", data });
     if (!sent.skipped) await ref.update({ "emails.confirmation": nowIso() }).catch(() => {});
     // the print-ready PDF for the owners: saved on the order and attached to the new-order alert (never blocks the order)
+    // two PDFs: the magnets (glossy paper) and the packing slip (plain paper)
     const ps = await printsheet().tryGenerate(ref, orderId, after);
-    const attach = !!(ps && ps.pdf.length <= mail.MAX_ATTACHMENT_BYTES);
+    const files = ps ? [ps.pdf && { filename: printsheet().fileName(after, "sheet"), content: ps.pdf, contentType: "application/pdf" },
+      ps.slip && { filename: printsheet().fileName(after, "slip"), content: ps.slip, contentType: "application/pdf" }].filter(Boolean) : [];
+    const attach = files.length > 0 && files.reduce((n, f) => n + f.content.length, 0) <= mail.MAX_ATTACHMENT_BYTES;
     const adminData = { ...data, printSheet: ps ? { ...ps.meta, attached: attach } : null };
     await mail.send({ to: mailAdmin(), kind: "admin_new_order", data: adminData, replyTo: after.email || undefined,
-      attachments: attach ? [{ filename: printsheet().fileName(after), content: ps.pdf, contentType: "application/pdf" }] : undefined });
+      attachments: attach ? files : undefined });
     if (after.marketing && after.email) {
       await db.collection("subscribers").doc(U.emailKey(after.email))
         .set({ email: after.email, at: nowIso(), source: "checkout" }, { merge: true }).catch(() => {});

@@ -35,15 +35,34 @@
 
   /* ---------- photos ---------- */
   var EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/heif': 'heic', 'image/webp': 'webp' };
+  var MAX_SIDE = 4000;   /* plenty for a 2 in magnet at 300 dpi, even zoomed in */
+  function viaImg(blob) {
+    return new Promise(function (res, rej) {
+      var u = URL.createObjectURL(blob), im = new Image();
+      im.onload = function () { res({ src: im, w: im.naturalWidth, h: im.naturalHeight, done: function () { URL.revokeObjectURL(u); } }); };
+      im.onerror = function () { URL.revokeObjectURL(u); rej(new Error('no-decode')); };
+      im.src = u;
+    });
+  }
+  function decode(blob) {
+    if (!window.createImageBitmap) return viaImg(blob);
+    return createImageBitmap(blob, { imageOrientation: 'from-image' })
+      .catch(function () { return createImageBitmap(blob); })
+      .then(function (bmp) { return { src: bmp, w: bmp.width, h: bmp.height, done: function () { if (bmp.close) bmp.close(); } }; })
+      .catch(function () { return viaImg(blob); });
+  }
   function toJpeg(blob) {
-    if (!window.createImageBitmap) return Promise.reject(new Error('no-decode'));
-    return createImageBitmap(blob).then(function (bmp) {
-      var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
-      c.getContext('2d').drawImage(bmp, 0, 0);
+    return decode(blob).then(function (d) {
+      var k = Math.min(1, MAX_SIDE / Math.max(d.w, d.h));
+      var c = document.createElement('canvas'); c.width = Math.round(d.w * k); c.height = Math.round(d.h * k);
+      var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(d.src, 0, 0, c.width, c.height); d.done();
       return new Promise(function (res, rej) { c.toBlob(function (b) { if (b) res(b); else rej(new Error('no-encode')); }, 'image/jpeg', 0.92); });
     });
   }
-  /* → {blob, ext, type}: JPG, PNG, HEIC and WebP go up as they are; anything else (GIF, BMP, AVIF...) becomes a JPG */
+  /* → {blob, ext, type}: JPG, PNG and WebP go up as they are. HEIC becomes a JPG (the print server can't read HEIC);
+     if this browser can't open it either, it goes up as it is and the owners get a note on the print sheet.
+     Anything else (GIF, BMP, AVIF...) becomes a JPG. */
   function prepare(ph) {
     var got = ph.blob ? Promise.resolve(ph.blob)
       : ph.url && /^blob:/.test(ph.url) ? fetch(ph.url).then(function (r) { if (!r.ok) throw new Error('gone'); return r.blob(); })
@@ -51,6 +70,10 @@
     return got.catch(function () { var e = new Error('photos missing'); e.code = 'photos/missing'; throw e; }).then(function (b) {
       var type = (b.type || '').toLowerCase();
       if (!type && /\.(heic|heif)$/i.test(ph.file || '')) type = 'image/heic';
+      if (type === 'image/heic' || type === 'image/heif') {
+        return toJpeg(b).then(function (j) { return { blob: j, ext: 'jpg', type: 'image/jpeg' }; },
+          function () { return { blob: b, ext: 'heic', type: 'image/heic' }; });
+      }
       if (EXT[type]) return { blob: b, ext: EXT[type], type: type === 'image/jpg' ? 'image/jpeg' : type };
       return toJpeg(b).then(function (j) { return { blob: j, ext: 'jpg', type: 'image/jpeg' }; });
     });

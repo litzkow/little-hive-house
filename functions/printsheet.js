@@ -1,21 +1,22 @@
 "use strict";
-/* Print-ready PDF for a paid order, made on the server so the owners never have to run anything on a computer:
-   US Letter at 300 dpi, 12 magnets per page (3 x 4), every tile 2.5 in (the 2 in face plus the paper that wraps the
-   edge), crop marks, a small header, then a packing slip page. A port of tools/print_sheet.py (layout, frames,
-   captions, photo repeats) to Node: `sharp` rasterises (photos, the frame SVGs through librsvg, WebP designs) and
-   `pdfkit` assembles the PDF. Both are required lazily, so this module loads and its layout math is unit-tested
-   without node_modules.
+/* Print-ready PDFs for a paid order, made on the server so the owners never have to run anything on a computer.
+   Two files, so only the magnets go on the glossy paper:
+     magnets      US Letter at 300 dpi, 9 pieces per page (3 x 3), each the size of the square punch (Settings ›
+                  Printing, 2.4 in by default) with white space between them and a thin grey guide line
+     packing slip plain paper: the "Before you print" notes (when there are any) and the packing slip
+   `sharp` rasterises (photos, the frame SVGs through librsvg, WebP designs) and `pdfkit` assembles the PDFs. Both are
+   required lazily, so this module loads and its layout math is unit-tested without node_modules.
 
-   Tile sources
-     design  -> ${SITE_URL}/assets/art/<collection>/<slug>.webp (600 px) upsampled to 750 px (lanczos3)
+   Tile sources (each fills the 2 in face, 600 px, then its edges are stretched out to the cut line + bleed)
+     design  -> ${SITE_URL}/assets/art/<collection>/<slug>.webp (600 px)
      photo   -> the customer's file in the Storage bucket (uploads/<uid>/<packId>/<n>.<ext>), EXIF-rotated,
-                centre-cropped into the frame's window, the frame SVG (${SITE_URL}/assets/frames/<id>.svg) on top,
-                then the caption drawn exactly like tools/frames.py caption_svg (fontmetrics.js)
+                centre-cropped into the frame's window, touched up for paper (enhancePhoto), the frame SVG
+                (${SITE_URL}/assets/frames/<id>.svg) on top, then the caption drawn like tools/frames.py caption_svg
      package / custom -> no artwork: listed on the packing slip only
    A pack with fewer photos than magnets repeats them in order (as promised on the site); qty multiplies everything.
 
-   The PDF is saved at orders/<orderId>/print-sheet.pdf (private: admins get a short-lived URL from adminPrintSheet)
-   and the order gets printSheet: {path, pages, sheets, tiles, bytes, at, warnings}. */
+   Saved at orders/<orderId>/print-sheet.pdf and packing-slip.pdf (private: admins get a short-lived URL from
+   adminPrintSheet); the order gets printSheet: {path, slipPath, pages, sheets, tiles, cut, ...}. */
 
 const fs = require("fs");
 const os = require("os");
@@ -25,23 +26,49 @@ const { siteUrl, nowIso, AppError } = require("./config");
 const deps = require("./deps");
 const FM = require("./fontmetrics");
 
-/* ---------- geometry ---------- */
+/* ---------- geometry ----------
+   Each magnet is a square piece of paper cut with the square punch (the cut size, about 2.4 in for a 2 x 2 in
+   magnet: the 2 in face plus the paper that wraps around the edge). The artwork / photo fills the 2 in face exactly
+   (what the customer saw on the site), and its edges are stretched outwards to the cut line plus a little bleed, so
+   the wrapped edge is coloured and a slightly off-centre cut never shows white. 9 pieces per page (3 x 3), with white
+   space between them for the punch and a thin grey guide line around each piece. */
 const DPI = 300;
-const COLS = 3, ROWS = 4, PER_PAGE = COLS * ROWS;
-const TILE_IN = 2.5;
-const TILE_PX = TILE_IN * DPI;                       // 750
-const TILE_PT = TILE_IN * 72;                        // 180
+const COLS = 3, ROWS = 3, PER_PAGE = COLS * ROWS;
+const FACE_IN = 2;                                   // the visible magnet face
+const FACE_PX = FACE_IN * DPI;                       // 600
+const CUT_IN = 2.45;                                 // default paper size of the octagonal punch (Settings › Printing): a little big on purpose,
+                                                     // the face stays 2 in either way and a larger piece only adds coloured edge
+const CUT_MIN = 2.1, CUT_MAX = 2.55;
+const BLEED_IN = 0.04;                               // the art runs this far past the cut line
+const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
-const MARGIN_X = (PAGE_PT.w - COLS * TILE_PT) / 2;   // 36
-const MARGIN_Y = (PAGE_PT.h - ROWS * TILE_PT) / 2;   // 36
-const MARK_GAP = 15 / DPI * 72;                      // 3.6 pt from the grid, like print_sheet.py (15 px)
-const MARK_LEN = 45 / DPI * 72;                      // 10.8 pt long (60 - 15 px)
-const SVG_UNITS = 600;                               // the frames' coordinate system
-const SCALE = TILE_PX / SVG_UNITS;                   // 1.25 px per unit
-const MAX_TILES = 600;                               // 50 sheets: more than any pack x qty the shop sells
-const JPEG = { quality: 92, chromaSubsampling: "4:4:4" };
+const SVG_UNITS = 600;                               // the frames' coordinate system = the 2 in face
+const SCALE = FACE_PX / SVG_UNITS;                   // 1 px per unit
+const MAX_TILES = 450;                               // 50 sheets: more than any pack x qty the shop sells
+const JPEG = { quality: 93, chromaSubsampling: "4:4:4" };
 const URL_TTL_MS = 60 * 60 * 1000;
 const CONCURRENCY = 4;
+
+const r6 = (v) => Math.round(v * 1e6) / 1e6;
+/** A valid cut size in inches (falls back to the default). */
+function cutSize(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= CUT_MIN && n <= CUT_MAX ? n : CUT_IN;
+}
+/**
+ * Everything about the sheet for a cut size: points for the PDF, pixels for the artwork.
+ * {cut, face, bleed, gap, cutPt, artPt, artPx, extPx, gapPt, left, top}
+ */
+function geometry(cutIn) {
+  const cut = cutSize(cutIn);
+  const extPx = Math.round(((cut - FACE_IN) / 2 + BLEED_IN) * DPI);   // pixels added on each side of the 600 px face
+  const artPx = FACE_PX + 2 * extPx;
+  const gap = Math.min(0.5, (8.5 - 2 * SIDE_IN - COLS * cut) / (COLS - 1));
+  const cutPt = cut * 72, gapPt = gap * 72, artPt = artPx / DPI * 72;
+  const gridW = COLS * cutPt + (COLS - 1) * gapPt, gridH = ROWS * cutPt + (ROWS - 1) * gapPt;
+  return { cut, face: FACE_IN, bleed: BLEED_IN, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, extPx, gapPt: r6(gapPt),
+    left: r6((PAGE_PT.w - gridW) / 2), top: r6((PAGE_PT.h - gridH) / 2 + 6) };
+}
 
 const ALIASES = { classic: "white", polaroid: "instant", honey: "honeycomb", scallop: "lace", autumn: "fall", starry: "baby" };
 const NONE_FRAME = { id: "none", name: "No border", window: [0, 0, 600, 600], shape: "rect", caption: null };
@@ -52,33 +79,21 @@ const frameId = (id) => { const k = String(id || "none").trim(); return ALIASES[
 /** Number of sheet pages for n tiles. */
 function pageCount(n) { return n > 0 ? Math.ceil(n / PER_PAGE) : 0; }
 
-/** The 12 tile slots of a sheet: {i, col, row, x, y} in points (unit "pt") or pixels at 300 dpi (unit "px"). */
-function tilePositions(unit = "pt") {
-  const k = unit === "px" ? DPI / 72 : 1;
+/**
+ * The 9 pieces of a sheet, in points: {i, col, row, x, y, size} is the cut square (where the punch cuts),
+ * art {x, y, size} is the printed image (the cut square plus the bleed), face {x, y, size} the 2 in magnet face.
+ */
+function tilePositions(cutIn) {
+  const g = geometry(cutIn);
+  const b = (g.artPt - g.cutPt) / 2, f = (g.cutPt - FACE_IN * 72) / 2;
   const out = [];
   for (let i = 0; i < PER_PAGE; i++) {
     const col = i % COLS, row = Math.floor(i / COLS);
-    const r6 = (v) => Math.round(v * 1e6) / 1e6;
-    out.push({ i, col, row, x: r6((MARGIN_X + col * TILE_PT) * k), y: r6((MARGIN_Y + row * TILE_PT) * k), size: r6(TILE_PT * k) });
+    const x = g.left + col * (g.cutPt + g.gapPt), y = g.top + row * (g.cutPt + g.gapPt);
+    out.push({ i, col, row, x: r6(x), y: r6(y), size: g.cutPt,
+      art: { x: r6(x - b), y: r6(y - b), size: g.artPt }, face: { x: r6(x + f), y: r6(y + f), size: FACE_IN * 72 } });
   }
   return out;
-}
-
-/** Crop marks on the outer grid lines, as line segments in points: [{x1, y1, x2, y2}]. */
-function cropMarks() {
-  const segs = [];
-  const top = MARGIN_Y, bottom = MARGIN_Y + ROWS * TILE_PT, left = MARGIN_X, right = MARGIN_X + COLS * TILE_PT;
-  for (let c = 0; c <= COLS; c++) {
-    const x = MARGIN_X + c * TILE_PT;
-    segs.push({ x1: x, y1: top - MARK_GAP - MARK_LEN, x2: x, y2: top - MARK_GAP });
-    segs.push({ x1: x, y1: bottom + MARK_GAP, x2: x, y2: bottom + MARK_GAP + MARK_LEN });
-  }
-  for (let r = 0; r <= ROWS; r++) {
-    const y = MARGIN_Y + r * TILE_PT;
-    segs.push({ x1: left - MARK_GAP - MARK_LEN, y1: y, x2: left - MARK_GAP, y2: y });
-    segs.push({ x1: right + MARK_GAP, y1: y, x2: right + MARK_GAP + MARK_LEN, y2: y });
-  }
-  return segs;
 }
 
 /** Which photo (0-based) goes on each of `count` magnets when the pack has `available` photos: they repeat in order. */
@@ -89,7 +104,7 @@ function fillIndexes(count, available) {
   return out;
 }
 
-/** The photo's window inside a 750 px tile, in whole pixels: {x, y, w, h}. */
+/** The photo's window inside the 600 px face, in whole pixels: {x, y, w, h}. */
 function windowPx(frame) {
   const [x, y, w, h] = (frame && frame.window) || NONE_FRAME.window;
   const x0 = Math.round(x * SCALE), y0 = Math.round(y * SCALE);
@@ -138,10 +153,11 @@ function placeTiles(tiles) {
   return tiles.map((t, i) => ({ ...t, page: Math.floor(i / PER_PAGE), slot: i % PER_PAGE }));
 }
 
-function fileName(order) {
-  return `${String((order && order.number) || "order").replace(/[^\w-]+/g, "-")}-print-sheet.pdf`;
+/** Two files: the magnets (glossy photo paper) and the packing slip (plain paper). */
+function fileName(order, which) {
+  return `${String((order && order.number) || "order").replace(/[^\w-]+/g, "-")}-${which === "slip" ? "packing-slip" : "magnets"}.pdf`;
 }
-function storagePath(orderId) { return `orders/${orderId}/print-sheet.pdf`; }
+function storagePath(orderId, which) { return `orders/${orderId}/${which === "slip" ? "packing-slip" : "print-sheet"}.pdf`; }
 
 /* ---------- packing slip text (pure) ---------- */
 function addressLines(sh) {
@@ -254,30 +270,63 @@ async function frameInner(id, ctx) {
   return svg.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 }
 
-/** The overlay drawn over the photo: frame + fitted caption, in a 750 px canvas with the frames' 600-unit viewBox. */
+/** The overlay drawn over the photo: frame + fitted caption, on the 600 px face with the frames' 600-unit viewBox. */
 function overlaySvg(inner, captionMarkup) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${TILE_PX}" height="${TILE_PX}" viewBox="0 0 ${SVG_UNITS} ${SVG_UNITS}">${inner}${captionMarkup}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${FACE_PX}" height="${FACE_PX}" viewBox="0 0 ${SVG_UNITS} ${SVG_UNITS}">${inner}${captionMarkup}</svg>`;
 }
 
 /** A readable stand-in tile when the artwork can't be made, so the sheet still prints and the owner sees why. */
 function placeholderSvg(lines) {
   const text = lines.slice(0, 4).map((s, i) => `<text x="300" y="${270 + i * 40}" text-anchor="middle" ${FM.FONTS.jost.attrs} font-size="${i ? 22 : 28}" fill="${i ? "#6B5A48" : "#2B2118"}">${FM.esc(s)}</text>`).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${TILE_PX}" height="${TILE_PX}" viewBox="0 0 600 600"><rect width="600" height="600" fill="#FFF6E5"/>` +
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${FACE_PX}" height="${FACE_PX}" viewBox="0 0 600 600"><rect width="600" height="600" fill="#FFF6E5"/>` +
     `<rect x="60" y="60" width="480" height="480" fill="none" stroke="#E2B252" stroke-width="3" stroke-dasharray="10 8"/>${text}</svg>`;
+}
+
+/* ---------- photo touch-up (pure numbers, then sharp) ----------
+   Phone photos look bright on a screen and come out lighter or flatter on paper. Every customer photo gets a gentle,
+   automatic touch-up before it is printed (Settings › Printing can turn it off):
+     levels    the darkest and brightest 0.5% become black and white (removes haze, fixes washed-out photos)
+     exposure  pulled towards a mid brightness: an overexposed photo is darkened a little, a dark one lifted a little
+     colour    +10% saturation and +6% contrast, because ink on paper is less vivid than a screen
+     detail    a light sharpen for the small 2 in size */
+const ENHANCE = { target: 118, minBrightness: 0.84, maxBrightness: 1.12, saturation: 1.1, contrast: 1.06, sharpen: 0.6 };
+/** Pure: the touch-up for a photo whose average brightness (0-255, after levels) is `mean`. */
+function enhanceParams(mean) {
+  const n = Number(mean), m = Math.max(1, Number.isFinite(n) ? n : ENHANCE.target);
+  const brightness = Math.min(ENHANCE.maxBrightness, Math.max(ENHANCE.minBrightness, Math.sqrt(ENHANCE.target / m)));
+  return { brightness: Math.round(brightness * 1000) / 1000, saturation: ENHANCE.saturation, contrast: ENHANCE.contrast,
+    offset: Math.round(-128 * (ENHANCE.contrast - 1) * 100) / 100, sharpen: ENHANCE.sharpen };
+}
+const luma = (st) => 0.2126 * st.channels[0].mean + 0.7152 * st.channels[1].mean + 0.0722 * st.channels[2].mean;
+
+/** raw RGB {data, info} -> touched-up raw RGB {data, info}. */
+async function enhancePhoto(sharp, img) {
+  const raw = { raw: { width: img.info.width, height: img.info.height, channels: 3 } };
+  const lev = await sharp(img.data, raw).normalise({ lower: 0.5, upper: 99.5 }).raw().toBuffer({ resolveWithObject: true });
+  const p = enhanceParams(luma(await sharp(lev.data, raw).stats()));
+  return sharp(lev.data, raw).modulate({ brightness: p.brightness, saturation: p.saturation })
+    .linear(p.contrast, p.offset).sharpen({ sigma: p.sharpen }).raw().toBuffer({ resolveWithObject: true });
+}
+
+/** The 600 px face -> the printed piece: the edges are stretched (or mirrored, for a plain photo) out to the cut line + bleed. */
+async function withBleed(sharp, faceJpeg, ext, mode) {
+  return sharp(faceJpeg).extend({ top: ext, bottom: ext, left: ext, right: ext, extendWith: mode === "mirror" ? "mirror" : "copy" }).jpeg(JPEG).toBuffer();
 }
 
 /* ---------- rendering tiles (sharp) ---------- */
 async function renderDesign(tile, ctx) {
   const sharp = loadSharp();
   const url = `${ctx.site}/assets/art/${encodeURIComponent(tile.collection)}/${encodeURIComponent(tile.slug)}.webp`;
+  let face;
   try {
     const buf = await fetchBuffer(url, ctx.fetchImpl);
-    return await sharp(buf, { failOn: "none" }).resize(TILE_PX, TILE_PX, { fit: "fill", kernel: "lanczos3" })
+    face = await sharp(buf, { failOn: "none" }).resize(FACE_PX, FACE_PX, { fit: "fill", kernel: "lanczos3" })
       .flatten({ background: "#FFFFFF" }).jpeg(JPEG).toBuffer();
   } catch (err) {
     ctx.warn(`Design "${tile.title}" (${tile.id}) could not be fetched from the site: ${err.message}. Its tile is a placeholder.`);
-    return sharp(Buffer.from(placeholderSvg(["Missing artwork", tile.title, tile.id]))).jpeg(JPEG).toBuffer();
+    face = await sharp(Buffer.from(placeholderSvg(["Missing artwork", tile.title, tile.id]))).jpeg(JPEG).toBuffer();
   }
+  return withBleed(sharp, face, ctx.geo.extPx, "copy");
 }
 
 async function renderPhoto(tile, ctx) {
@@ -290,13 +339,19 @@ async function renderPhoto(tile, ctx) {
   let photoLayer = null;
   try {
     const buf = await ctx.readPhoto(tile.path);
-    const { data, info } = await sharp(buf, { failOn: "none", limitInputPixels: 120e6, animated: false }).rotate()
+    let img = await sharp(buf, { failOn: "none", limitInputPixels: 120e6, animated: false }).rotate()
       .resize(win.w, win.h, { fit: "cover", position: "centre", kernel: "lanczos3" })
-      .flatten({ background: "#FFFFFF" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    photoLayer = { input: data, raw: { width: info.width, height: info.height, channels: info.channels }, left: win.x, top: win.y };
+      .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    if (ctx.enhance) {
+      try { img = await enhancePhoto(sharp, img); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
+    }
+    photoLayer = { input: img.data, raw: { width: img.info.width, height: img.info.height, channels: img.info.channels }, left: win.x, top: win.y };
   } catch (err) {
-    ctx.warn(`${label} could not be read (${err.message}). Its tile is a placeholder: download the photo from the admin and print it by hand.`);
-    return sharp(Buffer.from(placeholderSvg([`${label} could not be read`, "Download it from the admin", "and print it by hand", path.basename(tile.path)]))).jpeg(JPEG).toBuffer();
+    ctx.warn(/\.hei[cf]$/i.test(tile.path)
+      ? `${label} is an iPhone HEIC file, which the print server can't open. Its tile is a placeholder: open “Original photo” on the order page, save it as a JPG and print it by hand.`
+      : `${label} could not be read (${err.message}). Its tile is a placeholder: download the photo from the admin and print it by hand.`);
+    const ph = await sharp(Buffer.from(placeholderSvg([`${label} could not be read`, "Download it from the admin", "and print it by hand", path.basename(tile.path)]))).jpeg(JPEG).toBuffer();
+    return withBleed(sharp, ph, ctx.geo.extPx, "copy");
   }
   const layers = [photoLayer];
   const captionMarkup = FM.captionSvg(f, tile.caption);
@@ -305,7 +360,8 @@ async function renderPhoto(tile, ctx) {
     try { inner = await frameInner(f.id, ctx); } catch (err) { ctx.warn(`${label}: the "${f.name || f.id}" frame could not be loaded (${err.message}); printed without it.`); }
   }
   if (inner || captionMarkup) layers.push({ input: Buffer.from(overlaySvg(inner, captionMarkup)), left: 0, top: 0 });
-  return sharp({ create: { width: TILE_PX, height: TILE_PX, channels: 3, background: "#FFFFFF" } }).composite(layers).jpeg(JPEG).toBuffer();
+  const face = await sharp({ create: { width: FACE_PX, height: FACE_PX, channels: 3, background: "#FFFFFF" } }).composite(layers).jpeg(JPEG).toBuffer();
+  return withBleed(sharp, face, ctx.geo.extPx, inner || captionMarkup ? "copy" : "mirror");
 }
 
 async function pool(items, n, fn) {
@@ -326,25 +382,26 @@ function registerFonts(doc) {
   return { body: fonts.Body || "Helvetica", head: fonts.Head || "Helvetica-Bold", caps: fonts.Caps || "Helvetica-Bold" };
 }
 
-function drawSheet(doc, F, { order, page, sheets, placed, images, date }) {
+function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo }) {
   doc.addPage({ size: "LETTER", margin: 0 });
   const num = order.number || "";
   const left = `Little Hive House · Order ${num}${order.name ? ` · ${String(order.name).slice(0, 40)}` : ""}`;
-  const right = `Sheet ${page + 1} of ${sheets} · ${date} · print at 100% (actual size) and cut on the marks`;
+  const right = `Sheet ${page + 1} of ${sheets} · ${date} · glossy photo paper · 100% (Actual size)`;
+  const L = geo.left;
   doc.font(F.body).fontSize(7.5).fillColor("#2B2118");
-  doc.text(left, MARGIN_X, 11, { width: 230, lineBreak: false, ellipsis: true });
-  doc.text(right, 272, 11, { width: PAGE_PT.w - MARGIN_X - 272, align: "right", lineBreak: false });
-  const slots = tilePositions("pt");
+  doc.text(left, L, 18, { width: 250, lineBreak: false, ellipsis: true });
+  doc.text(right, PAGE_PT.w / 2, 18, { width: PAGE_PT.w / 2 - L, align: "right", lineBreak: false });
+  const slots = tilePositions(geo.cut);
+  doc.lineWidth(0.35).strokeColor("#B5B5B5");
   for (const t of placed) {
     const img = images.get(t.key);
-    const s = slots[t.slot];
-    if (img) doc.image(img, s.x, s.y, { width: TILE_PT, height: TILE_PT });
+    const a = slots[t.slot].art;
+    if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
+    doc.rect(a.x, a.y, a.size, a.size).stroke();          // thin guide just outside the cut: centre it in the punch
   }
-  doc.lineWidth(0.5).strokeColor("#000000");
-  for (const m of cropMarks()) doc.moveTo(m.x1, m.y1).lineTo(m.x2, m.y2);
-  doc.stroke();
   doc.font(F.body).fontSize(6.5).fillColor("#8A7A66");
-  doc.text(`${placed.length} of ${PER_PAGE} tiles · each tile ${TILE_IN} in = the 2 in magnet face plus the edge wrap`, MARGIN_X, PAGE_PT.h - 22, { width: PAGE_PT.w - 2 * MARGIN_X, align: "center", lineBreak: false });
+  doc.text(`${placed.length} of ${PER_PAGE} magnets · each piece ${geo.cut.toFixed(2)} in (the ${FACE_IN} in face plus the edge that wraps) · centre each one in the square punch`,
+    L, PAGE_PT.h - 26, { width: PAGE_PT.w - 2 * L, align: "center", lineBreak: false });
 }
 
 function drawNotesPage(doc, F, warnings) {
@@ -436,36 +493,60 @@ function drawSlip(doc, F, { order, frames, skipped, date }) {
 
 function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }
 
-async function assemblePdf({ order, plan, images, warnings, frames }) {
+function newDoc(title, subject) {
   const PDFDocument = loadPdfkit();
   const doc = new PDFDocument({ size: "LETTER", margin: 0, autoFirstPage: false, pdfVersion: "1.5", compress: true,
-    info: { Title: `Print sheet · Order ${order.number || ""}`, Author: "Little Hive House", Subject: "Fridge magnets, 12 per sheet, 2.5 in tiles at 300 dpi" } });
+    info: { Title: title, Author: "Little Hive House", Subject: subject } });
   const chunks = [];
   const done = new Promise((resolve, reject) => {
     doc.on("data", (c) => chunks.push(c));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
   });
-  let pages = 0;
-  doc.on("pageAdded", () => { pages++; });     // counts the slip's overflow pages too
-  const F = registerFonts(doc);
+  const state = { pages: 0 };
+  doc.on("pageAdded", () => { state.pages++; });     // counts the slip's overflow pages too
+  return { doc, done, state, F: registerFonts(doc) };
+}
+
+/** Two PDFs: {pdf: the magnets only (or null when nothing prints), slip: notes + packing slip, pages, slipPages}. */
+async function assemblePdf({ order, plan, images, warnings, frames, geo }) {
   const date = fmtDate(order.paidAt || order.createdAt);
-  // embed each unique artwork once (openImage), then place it as many times as needed
-  const embedded = new Map();
-  for (const [key, jpeg] of images) { try { embedded.set(key, doc.openImage(jpeg)); } catch (e) { warnings.push(`A tile could not be embedded (${e.message}).`); } }
-  const placed = placeTiles(plan.tiles);
-  for (let p = 0; p < plan.sheets; p++) {
-    drawSheet(doc, F, { order, page: p, sheets: plan.sheets, placed: placed.filter((t) => t.page === p), images: embedded, date });
+  if (plan.truncated) warnings.push(`This order has ${plan.total} magnets to print but the sheets stop at ${MAX_TILES}. Print the rest from the admin ZIP.`);
+  let pdf = null, pages = 0;
+  if (plan.sheets) {
+    const s = newDoc(`Magnets · Order ${order.number || ""}`, `Fridge magnets, ${PER_PAGE} per sheet, ${geo.cut.toFixed(2)} in pieces at 300 dpi`);
+    // embed each unique artwork once (openImage), then place it as many times as needed
+    const embedded = new Map();
+    for (const [key, jpeg] of images) { try { embedded.set(key, s.doc.openImage(jpeg)); } catch (e) { warnings.push(`A tile could not be embedded (${e.message}).`); } }
+    const placed = placeTiles(plan.tiles);
+    for (let p = 0; p < plan.sheets; p++) {
+      drawSheet(s.doc, s.F, { order, page: p, sheets: plan.sheets, placed: placed.filter((t) => t.page === p), images: embedded, date, geo });
+    }
+    s.doc.end();
+    pdf = await s.done;
+    pages = s.state.pages;
   }
-  if (plan.truncated) warnings.push(`This order has ${plan.total} magnets to print but the sheet stops at ${MAX_TILES}. Print the rest from the admin ZIP.`);
-  if (warnings.length) drawNotesPage(doc, F, warnings);
-  drawSlip(doc, F, { order, frames, skipped: plan.skipped, date });
-  doc.end();
-  const pdf = await done;
-  return { pdf, pages };
+  const k = newDoc(`Packing slip · Order ${order.number || ""}`, "Packing slip (plain paper)");
+  if (warnings.length) drawNotesPage(k.doc, k.F, warnings);
+  drawSlip(k.doc, k.F, { order, frames, skipped: plan.skipped, date });
+  k.doc.end();
+  const slip = await k.done;
+  return { pdf, pages, slip, slipPages: k.state.pages };
 }
 
 /* ---------- building ---------- */
+/** Settings › Printing (settings/store): {cut, enhance}. */
+async function printSettings() {
+  try {
+    const snap = await deps.db().collection("settings").doc("store").get();
+    const s = snap.exists ? snap.data() : {};
+    return { cut: cutSize(s.printCutIn), enhance: s.printEnhance === undefined ? true : Number(s.printEnhance) !== 0 };
+  } catch (err) {
+    console.warn("[printsheet] settings could not be read; using the defaults", err && err.message);
+    return { cut: CUT_IN, enhance: true };
+  }
+}
+
 function makeContext(order, opts) {
   const warnings = [];
   const ctx = {
@@ -478,13 +559,15 @@ function makeContext(order, opts) {
       return buf;
     }),
     frames: null,
+    geo: geometry(opts.cut),
+    enhance: opts.enhance !== false,
   };
   return ctx;
 }
 
 /**
- * Renders the whole PDF. Returns {pdf: Buffer, pages, sheets, tiles, warnings}. Options (tests / callers):
- * fetchImpl, bucket, readPhoto(path) -> Buffer.
+ * Renders both PDFs. Returns {pdf (magnets, null when nothing prints), slip, pages, slipPages, sheets, tiles, cut,
+ * enhance, warnings}. Options (tests / callers): cut (inches), enhance (default true), fetchImpl, bucket, readPhoto(path).
  */
 async function buildPrintSheetDetailed(orderId, order, opts = {}) {
   order = order || {};
@@ -497,34 +580,43 @@ async function buildPrintSheetDetailed(orderId, order, opts = {}) {
   await pool(Array.from(uniq.values()), CONCURRENCY, async (t) => {
     images.set(t.key, await (t.kind === "design" ? renderDesign(t, ctx) : renderPhoto(t, ctx)));
   });
-  const { pdf, pages } = await assemblePdf({ order, plan, images, warnings: ctx.warnings, frames: ctx.frames });
-  return { pdf, pages, sheets: plan.sheets, tiles: plan.tiles.length, warnings: ctx.warnings.slice(0, 10) };
+  const out = await assemblePdf({ order, plan, images, warnings: ctx.warnings, frames: ctx.frames, geo: ctx.geo });
+  return { ...out, sheets: plan.sheets, tiles: plan.tiles.length, cut: ctx.geo.cut, enhance: ctx.enhance, warnings: ctx.warnings.slice(0, 10) };
 }
 
-/** buildPrintSheet(orderId, order) -> Buffer (the PDF). */
+/** buildPrintSheet(orderId, order) -> Buffer (the magnets PDF). */
 async function buildPrintSheet(orderId, order, opts) { return (await buildPrintSheetDetailed(orderId, order, opts)).pdf; }
 
 let builder = buildPrintSheetDetailed;
 /** Tests swap the renderer (sharp/pdfkit are not installed there). */
 function setBuilder(fn) { builder = fn || buildPrintSheetDetailed; }
 
+async function savePdf(bucket, p, buf, order, orderId, by, which) {
+  await bucket.file(p).save(buf, {
+    contentType: "application/pdf", resumable: false,
+    metadata: { cacheControl: "private, max-age=0", contentDisposition: `inline; filename="${fileName(order, which)}"`, metadata: { orderId, number: order.number || "", by } },
+  });
+}
+
 /**
- * Builds the PDF, saves it at orders/<orderId>/print-sheet.pdf and writes order.printSheet. Throws on failure
- * (callers that must not block an order use tryGenerate). Returns {pdf, meta}.
+ * Builds the PDFs, saves them at orders/<orderId>/print-sheet.pdf (magnets) and packing-slip.pdf, and writes
+ * order.printSheet {path, slipPath, pages, slipPages, sheets, tiles, cut, enhance, bytes, slipBytes, at, by, warnings}.
+ * Throws on failure (callers that must not block an order use tryGenerate). Returns {pdf, slip, meta}.
  */
 async function generateForOrder(ref, orderId, order, { by = "system" } = {}) {
   const t0 = Date.now();
-  const out = await builder(orderId, order);
-  const p = storagePath(orderId);
+  const settings = await printSettings();
+  const out = await builder(orderId, order, { cut: settings.cut, enhance: settings.enhance });
   const bucket = deps.bucket();
-  await bucket.file(p).save(out.pdf, {
-    contentType: "application/pdf", resumable: false,
-    metadata: { cacheControl: "private, max-age=0", contentDisposition: `inline; filename="${fileName(order)}"`, metadata: { orderId, number: order.number || "", by } },
-  });
-  const meta = { path: p, pages: out.pages, sheets: out.sheets, tiles: out.tiles, bytes: out.pdf.length, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0 };
+  const p = out.pdf ? storagePath(orderId) : null, sp = storagePath(orderId, "slip");
+  if (out.pdf) await savePdf(bucket, p, out.pdf, order, orderId, by, "sheet");
+  if (out.slip) await savePdf(bucket, sp, out.slip, order, orderId, by, "slip");
+  const meta = { path: p, slipPath: out.slip ? sp : null, pages: out.pages, slipPages: out.slipPages || 0, sheets: out.sheets, tiles: out.tiles,
+    cut: out.cut || settings.cut, enhance: out.enhance !== undefined ? out.enhance : settings.enhance,
+    bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: 2 };
   if (ref) await ref.update({ printSheet: meta, updatedAt: nowIso() }).catch((err) => console.warn("[printsheet] could not save printSheet on the order", err && err.message));
-  console.log(`[printsheet] ${order.number || orderId}: ${out.tiles} tiles, ${out.pages} pages, ${(out.pdf.length / 1048576).toFixed(1)} MB in ${meta.ms} ms`);
-  return { pdf: out.pdf, meta };
+  console.log(`[printsheet] ${order.number || orderId}: ${out.tiles} tiles, ${out.pages} pages + slip, ${((meta.bytes + meta.slipBytes) / 1048576).toFixed(1)} MB in ${meta.ms} ms`);
+  return { pdf: out.pdf, slip: out.slip, meta };
 }
 
 /** Same, but never throws: null when the sheet could not be made (the order itself is never blocked). */
@@ -564,9 +656,9 @@ async function downloadUrl(p, filename) {
 }
 
 module.exports = {
-  DPI, COLS, ROWS, PER_PAGE, TILE_IN, TILE_PX, TILE_PT, PAGE_PT, MARGIN_X, MARGIN_Y, MARK_GAP, MARK_LEN, SCALE, MAX_TILES, ALIASES,
-  pageCount, tilePositions, cropMarks, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath,
+  DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, CUT_IN, CUT_MIN, CUT_MAX, BLEED_IN, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
+  pageCount, geometry, cutSize, tilePositions, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,
-  _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf },   // for diagnostics / visual checks
+  _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp },   // for diagnostics / visual checks
 };

@@ -75,7 +75,8 @@ exports.adminCreatePaymentLink = callable("adminCreatePaymentLink", admin);
 exports.adminCreatePromo = callable("adminCreatePromo", admin);
 exports.adminListPromos = callable("adminListPromos", admin);
 exports.adminSaveSettings = callable("adminSaveSettings", admin);
-exports.adminPhotoUrls = callable("adminPhotoUrls", admin);
+// makes small copies of the customer photos for the order page (sharp): more memory than the other callables
+exports.adminPhotoUrls = callable("adminPhotoUrls", admin, null, { timeoutSeconds: 120, memory: "1GiB" });
 exports.adminModerateReview = callable("adminModerateReview", admin);
 // builds the print-ready PDF (sharp + pdfkit) on demand: more memory and time than the other callables
 exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
