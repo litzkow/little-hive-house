@@ -1,4 +1,5 @@
-/* Little Hive House: contact.html (form → callable contact, or the email app while the store isn't connected)
+/* Little Hive House: contact.html (form → callable contact, or the email app while the store isn't connected),
+   suggestions.html (ideas box → callable suggest)
    and unsubscribe.html (callable unsubscribe({e, t}) from the link in our emails). Needs site.js and store.js first. */
 (function () {
   var S = window.LHHStore;
@@ -42,6 +43,47 @@
       }).catch(function (er) {
         b.disabled = false; b.textContent = 'Send message';
         say(msg, S.message(er), 'err');
+      });
+    });
+  }
+
+  /* ---------- ideas box (suggestions.html) ---------- */
+  var idea = $('idea-form');
+  if (idea) {
+    var g = idea.elements, imsg = $('idea-msg');
+    var k = (q.get('kind') || '').replace(/[^a-z]/g, ''); if (k && g.kind.querySelector('option[value="' + k + '"]')) g.kind.value = k;
+    if (q.get('idea')) g.idea.value = q.get('idea').slice(0, 300);
+    if (!S.configured) $('idea-hint').textContent = 'This opens your email app with your idea filled in.';
+    S.onUser(function (u) {
+      if (!S.isMember(u)) return;
+      if (!g.name.value) g.name.value = u.displayName || '';
+      if (!g.email.value) g.email.value = u.email || '';
+    });
+    $('idea-again').addEventListener('click', function () {
+      g.idea.value = ''; $('idea-done').hidden = true; idea.hidden = false; g.idea.focus();
+    });
+    idea.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = g.name.value.trim(), email = g.email.value.trim(), text = g.idea.value.trim();
+      var kindLabel = g.kind.options[g.kind.selectedIndex].text;
+      if (text.length < 3) { say(imsg, 'Please tell us your idea.', 'err'); g.idea.focus(); return; }
+      if (email && !EMAIL_RE.test(email)) { say(imsg, 'That email doesn’t look right. You can also leave it empty.', 'err'); g.email.focus(); return; }
+      if (!S.configured) {
+        location.href = 'mailto:' + S.support + '?subject=' + encodeURIComponent('An idea: ' + kindLabel) +
+          '&body=' + encodeURIComponent(text + (name || email ? '\n\n' + [name, email].filter(Boolean).join('\n') : ''));
+        say(imsg, 'Your email app should open now. If it doesn’t, write to us at ' + S.support + '.', 'ok');
+        return;
+      }
+      var b = idea.querySelector('button[type="submit"]');
+      b.disabled = true; b.textContent = 'Sending…'; say(imsg, '');
+      S.call('suggest', { kind: g.kind.value, idea: text, name: name, email: email, page: document.referrer.slice(0, 200), website: g.website.value }).then(function () {
+        b.disabled = false; b.textContent = 'Send my idea';
+        $('idea-done-name').textContent = name ? ', ' + name.split(/\s+/)[0] : '';
+        $('idea-done-email').textContent = email ? ' and will write to ' + email + ' if we make it' : '';
+        idea.hidden = true; $('idea-done').hidden = false; $('idea-done').focus();
+      }).catch(function (er) {
+        b.disabled = false; b.textContent = 'Send my idea';
+        say(imsg, S.message(er), 'err');
       });
     });
   }

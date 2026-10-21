@@ -401,35 +401,40 @@
       .then(function (ok) { if (ok) go(); });
   };
 
-  /* ====================================================================== MESSAGES (contact form + quote requests) */
-  var QUOTE_SKIP = { id: 1, name: 1, email: 1, createdAt: 1, at: 1, message: 1, details: 1, status: 1, uid: 1 };
+  /* ====================================================================== MESSAGES (contact form, ideas box, quote requests) */
+  var QUOTE_SKIP = { id: 1, name: 1, email: 1, createdAt: 1, at: 1, message: 1, details: 1, status: 1, uid: 1, idea: 1, kind: 1, kindLabel: 1 };
+  var MSG_TABS = [['messages', 'Contact form'], ['suggestions', 'Ideas'], ['quotes', 'Quote requests']];
   function prettyKey(k) { return k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ').replace(/^\w/, function (c) { return c.toUpperCase(); }); }
-  V.messages = function () {
-    var a = need('messages'), b = need('quotes');
-    if (!a || !b) return { title: 'Messages', html: head('Inbox', 'Messages') + loading('Loading messages…') };
+  V.messages = function (r) {
+    var want = r && r.q && r.q.get('tab');
+    if (want && MSG_TABS.some(function (t) { return t[0] === want; })) S.ui.messages = want;
+    var a = need('messages'), b = need('quotes'), c = need('suggestions');
+    if (!a || !b || !c) return { title: 'Messages', html: head('Inbox', 'Messages') + loading('Loading messages…') };
     var tab = S.ui.messages;
-    var list = tab === 'quotes' ? S.quotes : S.messages;
-    var html = head('Inbox', 'Messages', 'From the contact form and the big-order quote form. Reply by email.') + errBox('messages') + errBox('quotes') +
-      '<nav class="tabs">' + [['messages', 'Contact form', S.messages.length], ['quotes', 'Quote requests', S.quotes.length]].map(function (t) {
-        return '<button type="button" data-act="msgTab" data-tab="' + t[0] + '"' + (tab === t[0] ? ' aria-current="true"' : '') + '>' + t[1] + '<span class="n">' + t[2] + '</span></button>';
+    var list = S[tab] || [];
+    var html = head('Inbox', 'Messages', 'From the contact form, the ideas box and the big-order quote form. Reply by email.') + errBox('messages') + errBox('suggestions') + errBox('quotes') +
+      '<nav class="tabs">' + MSG_TABS.map(function (t) {
+        return '<button type="button" data-act="msgTab" data-tab="' + t[0] + '"' + (tab === t[0] ? ' aria-current="true"' : '') + '>' + t[1] + '<span class="n">' + (S[t[0]] || []).length + '</span></button>';
       }).join('') + '</nav>' +
       (list.length ? '<div class="feed">' + list.map(function (m) {
         var when = m.createdAt || m.at;
-        var subj = tab === 'quotes' ? 'Your Little Hive House quote' : 'Re: your message to Little Hive House';
+        var subj = tab === 'quotes' ? 'Your Little Hive House quote' : tab === 'suggestions' ? 'Your idea for Little Hive House' : 'Re: your message to Little Hive House';
         var extra = Object.keys(m).filter(function (k) { return !QUOTE_SKIP[k] && k !== 'topic' && m[k] != null && m[k] !== '' && typeof m[k] !== 'object'; });
-        var body = m.message || m.details || '';
+        var body = m.message || m.details || m.idea || '';
+        var badge = m.topic || m.kindLabel;
         var qty = m.quantity || m.qty;
         var linkQ = tab === 'quotes' ? h.qs({ email: m.email, magnets: qty || '', title: [(qty ? qty + ' ' : '') + (m.package || m.occasion || 'custom') + ' magnets', m.name ? '— ' + m.name : ''].join(' ') }) : '';
-        return '<article class="msg"><header><b>' + esc(m.name || m.email || 'Someone') + '</b><time title="' + esc(h.fmtDT(when)) + '">' + esc(h.ago(when)) + '</time></header>' +
-          '<p class="meta">' + (m.email ? '<a href="mailto:' + esc(m.email) + '">' + esc(m.email) + '</a>' : '') + (m.topic ? '<span class="badge quiet">' + esc(m.topic) + '</span>' : '') + '</p>' +
+        return '<article class="msg"><header><b>' + esc(m.name || m.email || (tab === 'suggestions' ? 'A visitor' : 'Someone')) + '</b><time title="' + esc(h.fmtDT(when)) + '">' + esc(h.ago(when)) + '</time></header>' +
+          '<p class="meta">' + (m.email ? '<a href="mailto:' + esc(m.email) + '">' + esc(m.email) + '</a>' : (tab === 'suggestions' ? '<span class="muted">No email left</span>' : '')) + (badge ? '<span class="badge quiet">' + esc(badge) + '</span>' : '') + '</p>' +
           (body ? '<p class="body">' + esc(body) + '</p>' : '') +
           (extra.length ? '<dl class="kv small">' + extra.map(function (k) { return '<dt>' + esc(prettyKey(k)) + '</dt><dd>' + esc(m[k]) + '</dd>'; }).join('') + '</dl>' : '') +
           '<div class="acts">' + (m.email ? '<a class="btn btn-ghost btn-sm" href="mailto:' + esc(m.email) + '?subject=' + encodeURIComponent(subj) + '">' + icon('mail') + 'Reply</a>' : '') +
           (tab === 'quotes' ? '<a class="btn btn-ghost btn-sm" href="#links' + linkQ + '">' + icon('links') + 'Send payment link</a>' : '') + '</div></article>';
-      }).join('') + '</div>' : '<div class="card"><div class="empty">' + icon('messages') + '<b>Inbox zero</b>' + (tab === 'quotes' ? 'Quote requests from the Big orders page land here.' : 'Messages from the contact form land here.') + '</div></div>');
+      }).join('') + '</div>' : '<div class="card"><div class="empty">' + icon('messages') + '<b>Inbox zero</b>' +
+        (tab === 'quotes' ? 'Quote requests from the Big orders page land here.' : tab === 'suggestions' ? 'Ideas from the “Share an idea” page land here.' : 'Messages from the contact form land here.') + '</div></div>');
     return { title: 'Messages', html: html };
   };
-  ACT.msgTab = function (el) { S.ui.messages = el.getAttribute('data-tab'); h.route(); };
+  ACT.msgTab = function (el) { S.ui.messages = el.getAttribute('data-tab'); location.hash = '#messages?tab=' + S.ui.messages; };
 
   /* ====================================================================== SUBSCRIBERS */
   V.subscribers = function () {
@@ -822,7 +827,7 @@
   var NOTIF_KINDS = [
     ['orders', 'New orders', 'Every paid order, with the total.'],
     ['payments', 'Card holds', 'A card hold ends in 2 days, or ended before it was charged.'],
-    ['messages', 'Customer messages', 'The contact form.'],
+    ['messages', 'Customer messages', 'The contact form and the ideas box.'],
     ['quotes', 'Big order requests', 'Weddings, businesses, parties.'],
     ['disputes', 'Payment disputes', 'A customer disputed a charge (there is a deadline).'],
     ['delivery', 'Delivery checks', 'Parcels that look stuck or late.'],

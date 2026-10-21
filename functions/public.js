@@ -1,5 +1,5 @@
 "use strict";
-/* Public callables: subscribe, contact, requestQuote, sendPasswordReset, welcome, submitReview, unsubscribe. */
+/* Public callables: subscribe, contact, suggest, requestQuote, sendPasswordReset, welcome, submitReview, unsubscribe. */
 
 const { fail, siteUrl, mailAdmin, nowIso, env } = require("./config");
 const deps = require("./deps");
@@ -48,6 +48,25 @@ async function contact(data, auth, rawRequest) {
   const c = { name, email, topic, message, orderNumber: U.text(data && data.orderNumber, 30), at: doc.at };
   await mail.send({ to: mailAdmin(), kind: "admin_contact", data: { ...c, contact: c, messageId: ref.id }, replyTo: email });
   await mail.send({ to: email, kind: "contact_autoreply", data: { ...c, contact: c } });
+  return { ok: true, id: ref.id };
+}
+
+/* Ideas box (suggestions.html): a new design, a place to draw, a change to the site. Name and email are optional;
+   an email lets the owners write back. Saved to suggestions/{id}; the owners get an email and a phone notification. */
+const SUGGESTION_KINDS = { design: "New design idea", place: "A place to draw", site: "The website", other: "Something else" };
+async function suggest(data, auth, rawRequest) {
+  const d = data || {};
+  if (d.website) return { ok: true };            // honeypot
+  const kind = Object.prototype.hasOwnProperty.call(SUGGESTION_KINDS, d.kind) ? d.kind : "other";
+  const idea = U.text(d.idea, 3000, { required: true, field: "your idea" });
+  if (idea.length < 3) fail("invalid-argument", "Please tell us a little more about your idea.");
+  const name = U.text(d.name, 120);
+  const email = U.cleanEmail(d.email, { required: false });
+  await U.rateLimit("suggest", U.clientIp(rawRequest) || email || "anon", 8, 3600);
+  const at = nowIso();
+  const doc = { kind, kindLabel: SUGGESTION_KINDS[kind], idea, name, email, page: U.text(d.page, 200), at, status: "new", uid: auth ? auth.uid : null };
+  const ref = await deps.db().collection("suggestions").add(doc);
+  await mail.send({ to: mailAdmin(), kind: "admin_suggestion", data: { suggestion: { ...doc, id: ref.id }, suggestionId: ref.id }, replyTo: email || undefined });
   return { ok: true, id: ref.id };
 }
 
@@ -199,4 +218,4 @@ async function setMarketing(data, auth) {
   return { ok: true, on };
 }
 
-module.exports = { subscribe, unsubscribe, contact, requestQuote, sendPasswordReset, welcome, submitReview, setMarketing };
+module.exports = { subscribe, unsubscribe, contact, suggest, requestQuote, sendPasswordReset, welcome, submitReview, setMarketing };

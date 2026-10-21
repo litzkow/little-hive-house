@@ -31,7 +31,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "20"
+VERSION = "21"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -317,6 +317,7 @@ def footer(pg):
           <li><a href="{pg.p}track.html">Track your order</a></li>
           <li><a href="{pg.p}account.html">Your account</a></li>
           <li><a href="{pg.p}contact.html">Contact us</a></li>
+          <li><a href="{pg.p}suggestions.html">Share an idea</a></li>
           <li><a href="{pg.p}shipping.html">Shipping</a></li>
           <li><a href="{pg.p}returns.html">Returns &amp; refunds</a></li>
           <li><a href="{pg.p}index.html#about">About us</a></li>
@@ -1174,7 +1175,7 @@ def write_sitemap():
         imgs = "".join(img(c["slug"], s, c["titles"].get(s) or s.replace("-", " ").title())
                        for s in c["order"] if (ROOT / f"assets/art/{c['slug']}/{s}.webp").exists())
         entries.append((f"collections/{c['slug']}.html", "0.8", imgs))
-    for p in ("contact.html", "shipping.html", "returns.html", "track.html", "privacy.html", "terms.html"):
+    for p in ("contact.html", "suggestions.html", "shipping.html", "returns.html", "track.html", "privacy.html", "terms.html"):
         if (ROOT / p).exists():
             entries.append((p, "0.4", ""))
     urls = "\n".join(f"  <url>\n    <loc>{site}{loc}</loc>\n    <priority>{pri}</priority>{imgs}\n  </url>"

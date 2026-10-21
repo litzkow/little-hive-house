@@ -37,7 +37,7 @@
   var S = {
     cfg: window.LHH_FIREBASE || null, auth: null, db: null, fns: null, user: null, admin: false,
     orders: [], ordersAt: 0, settings: R.settingsWithDefaults(null), settingsLoaded: false,
-    reviews: null, messages: null, quotes: null, subscribers: null, promos: null, frames: null,
+    reviews: null, messages: null, suggestions: null, quotes: null, subscribers: null, promos: null, frames: null,
     photoUrls: {}, shellReady: false,
     ui: { orders: { tab: null, q: '', range: 'any', from: '', to: '', sel: {}, limit: 50 }, reports: { month: null, scope: 'month' },
           customers: { q: '' }, subscribers: { q: '' }, reviews: 'pending', messages: 'messages', newsletter: null, testprint: null }

@@ -16,7 +16,7 @@ const U = require("./util");
 
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
-  admin_new_order: "orders", admin_contact: "messages", admin_quote: "quotes", admin_dispute: "disputes",
+  admin_new_order: "orders", admin_contact: "messages", admin_suggestion: "messages", admin_quote: "quotes", admin_dispute: "disputes",
   admin_delivery_check: "delivery", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", push_test: null,
 };
 const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
@@ -96,6 +96,10 @@ function message(kind, data) {
     case "admin_contact": {
       const c = d.contact || d;
       return { title: "💬 Mensagem de cliente", body: `${firstName(c.name) || "Alguém"}: ${clip(c.message, 120)}`, url: "/admin/#messages", tag: `msg-${d.messageId || Date.now()}`, urgency: "normal" };
+    }
+    case "admin_suggestion": {
+      const s = d.suggestion || d;
+      return { title: "💡 Um cliente mandou uma sugestão", body: `${firstName(s.name) || "Alguém"}: ${clip(s.idea, 120)}`, url: "/admin/#messages?tab=suggestions", tag: `idea-${d.suggestionId || Date.now()}`, urgency: "normal" };
     }
     case "admin_quote": {
       const q = d.quote || d;

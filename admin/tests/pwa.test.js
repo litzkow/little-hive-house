@@ -50,7 +50,7 @@ function loadSW() {
   const fetched = [];
   const caches = {
     open: async () => ({ put: async (k, v) => { store.set(String(k), v); } }),
-    keys: async () => ['hive-admin-shell-v0', 'hive-admin-shell-v9', 'someone-else'],
+    keys: async () => ['hive-admin-shell-v0', 'hive-admin-shell-v10', 'someone-else'],
     delete: async (k) => { store.set('deleted:' + k, true); return true; },
     match: async (k) => store.get(String(k)),
   };
@@ -120,7 +120,7 @@ test('offline: the cached shell is served; old shell caches are removed on activ
   handlers.activate({ waitUntil: (p) => { done = p; } });
   await done;
   assert.ok(store.get('deleted:hive-admin-shell-v0'));
-  assert.ok(!store.get('deleted:hive-admin-shell-v9'), 'current cache kept');
+  assert.ok(!store.get('deleted:hive-admin-shell-v10'), 'current cache kept');
   assert.ok(!store.get('deleted:someone-else'), 'other caches untouched');
 });
 

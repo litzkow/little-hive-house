@@ -333,6 +333,7 @@ def page_contact():
           <li><strong>Email us directly</strong><span><a href="mailto:{SUPPORT}">{SUPPORT}</a></span></li>
           <li><strong>Where’s my order?</strong><span><a href="track.html">Track it here</a> with your order number and email.</span></li>
           <li><strong>Something arrived damaged?</strong><span>Send a photo and we’ll reprint it or refund you. See <a href="returns.html">returns</a>.</span></li>
+          <li><strong>Have an idea for a design?</strong><span><a href="suggestions.html">Share it here</a>. We read every one.</span></li>
         </ul>
       </div>
       <div>
@@ -367,6 +368,52 @@ def page_contact():
 </main>
 """
     page("contact.html", "Contact us", "Contact Little Hive House. We reply within one business day.", None, body, ("forms.js",))
+
+
+def page_suggestions():
+    body = f"""
+<main id="main" data-page="suggestions">
+  {head_block([("Share an idea", None)], "Got an idea for us?", "Tell us the design you wish we made: your town, your pet, a saying your family always uses, a holiday we missed. Or anything about the site we could do better. We read every idea ourselves.")}
+  <section class="tight">
+    <div class="wrap contact-grid">
+      <div class="contact-info">
+        <ul class="perks">
+          <li><strong>A place you love</strong><span>If your town, beach or favorite city isn’t in our collections yet, we’d love to draw it.</span></li>
+          <li><strong>A design or a saying</strong><span>Inside jokes, heritage, a pet breed, a hobby, a holiday.</span></li>
+          <li><strong>Something about the site</strong><span>Anything confusing, missing or not working.</span></li>
+          <li><strong>We’ll let you know</strong><span>Leave your email and we’ll write when your idea becomes a magnet.</span></li>
+        </ul>
+      </div>
+      <div>
+        <form class="panel contact-form" id="idea-form" novalidate>
+          <div class="field full"><label for="i-kind">What’s your idea about?</label>
+            <select id="i-kind" name="kind">
+              <option value="design" selected>A new design or collection</option>
+              <option value="place">A place you’d like as a magnet</option>
+              <option value="site">Something about the website</option>
+              <option value="other">Something else</option>
+            </select></div>
+          <div class="field full"><label for="i-idea">Your idea</label><textarea id="i-idea" name="idea" rows="6" required maxlength="3000" placeholder="For example: a magnet of Tybee Island lighthouse, or a golden retriever design that says “Good boy”."></textarea></div>
+          <div class="field"><label for="i-name">Your name <small>optional</small></label><input id="i-name" name="name" autocomplete="name"></div>
+          <div class="field"><label for="i-email">Email <small>optional, so we can tell you</small></label><input id="i-email" name="email" type="email" autocomplete="email" inputmode="email"></div>
+          <div class="hp" aria-hidden="true"><label for="i-web">Leave this empty</label><input id="i-web" name="website" tabindex="-1" autocomplete="off"></div>
+          <p class="msg full" id="idea-msg" role="alert" hidden></p>
+          <div class="full contact-foot"><button type="submit" class="btn btn-honey">Send my idea</button><span class="hint" id="idea-hint">It goes straight to us, the two people who run the shop.</span></div>
+        </form>
+        <div class="panel soon" id="idea-done" tabindex="-1" hidden>
+          <span class="soon-hex ok" aria-hidden="true"></span>
+          <div>
+            <h2>Thank you<span id="idea-done-name"></span>!</h2>
+            <p>Your idea is in the hive. We read every one<span id="idea-done-email"></span>.</p>
+            <div class="row"><button type="button" class="btn btn-small" id="idea-again">Share another idea</button><a class="btn btn-ghost btn-small" href="shop.html">Back to the shop</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+"""
+    page("suggestions.html", "Share an idea", "Suggest a new magnet design, a place for us to draw, or something about our site. We read every idea.", None, body, ("forms.js",))
 
 
 def page_unsubscribe():
@@ -541,5 +588,6 @@ def build(module):
     page_thanks()
     page_favorites()
     page_contact()
+    page_suggestions()
     page_unsubscribe()
     page_policies()

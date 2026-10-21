@@ -43,6 +43,7 @@ service cloud.firestore {
     match /settings/{id} { allow read: if isAdmin(); allow write: if false; }
     match /quotes/{id} { allow read: if isAdmin(); allow write: if false; }
     match /messages/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /suggestions/{id} { allow read: if isAdmin(); allow write: if false; }
     match /subscribers/{id} { allow read: if isAdmin(); allow write: if false; }
 
     // server-only: meta/counters, stripeEvents, rateLimits and anything else

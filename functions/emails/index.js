@@ -23,6 +23,7 @@ const KINDS = {
   admin_delivery_check: require("./kinds/admin_delivery_check"),
   contact_autoreply: require("./kinds/contact_autoreply"),
   admin_contact: require("./kinds/admin_contact"),
+  admin_suggestion: require("./kinds/admin_suggestion"),
   quote_received: require("./kinds/quote_received"),
   admin_quote: require("./kinds/admin_quote"),
   payment_link: require("./kinds/payment_link"),

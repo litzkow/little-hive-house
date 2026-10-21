@@ -53,6 +53,7 @@ exports.subscribe = callable("subscribe", pub);
 exports.unsubscribe = callable("unsubscribe", pub);
 exports.setMarketing = callable("setMarketing", pub);
 exports.contact = callable("contact", pub);
+exports.suggest = callable("suggest", pub);
 exports.requestQuote = callable("requestQuote", pub);
 exports.sendPasswordReset = callable("sendPasswordReset", pub);
 exports.welcome = callable("welcome", pub);

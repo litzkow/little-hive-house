@@ -351,6 +351,10 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://littlehivehouse.com/suggestions.html</loc>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://littlehivehouse.com/shipping.html</loc>
     <priority>0.4</priority>
   </url>
