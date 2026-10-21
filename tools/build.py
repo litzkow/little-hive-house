@@ -31,7 +31,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "21"
+VERSION = "22"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -107,7 +107,20 @@ def seal(idp):
 
 
 NAV = [("shop.html", "Shop all", "shop"), ("collections/index.html", "Collections", "collections"),
-       ("photo-magnets.html", "Photo magnets", "photo"), ("big-orders.html", "Big orders", "big")]
+       ("photo-magnets.html", "Photo magnets", "photo"), ("big-orders.html", "Big orders", "big"),
+       ("suggestions.html", "Share an idea", "ideas")]
+
+
+def idea_strip(pg, lead="Don’t see your favorite?", text="Tell us the place, the pet or the saying and we might draw it next."):
+    """A dashed call-out that sends people to the ideas box (suggestions.html)."""
+    return f"""      <div class="idea-strip">
+        <p><strong>{lead}</strong> {text}</p>
+        <a class="btn btn-small" href="{pg.p}suggestions.html">Share an idea</a>
+      </div>"""
+
+
+IDEA_ART = (("places", "savannah"), ("furry-friends", "dog-mom"), ("kitchen-words", "but-first-coffee"),
+            ("bee-kind", "bee-kind"), ("world", "santorini"))
 
 
 def head(pg, title, desc, path):
@@ -653,6 +666,20 @@ def page_home():
     </div>
   </section>
 
+  <section class="tight" id="ideas">
+    <div class="wrap">
+      <div class="band idea">
+        <div>
+          <p class="eyebrow">Ideas box</p>
+          <h2>Your idea could be our next magnet</h2>
+          <p>Missing your town, your dog’s breed or the saying your family always uses? Tell us. We read every idea ourselves and draw our favorites. Something on the site could be better? Tell us that too.</p>
+          <div class="actions"><a class="btn btn-honey" href="suggestions.html">Share an idea</a></div>
+        </div>
+        <div class="band-art" aria-hidden="true">{"".join(f'<img class="ph" src="{pg.p}assets/art/{c}/{s}.webp" width="600" height="600" alt="" loading="lazy" decoding="async">' for c, s in IDEA_ART)}<span class="ph idea-tile">Your idea here</span></div>
+      </div>
+    </div>
+  </section>
+
   <section class="about" id="about">
     <div class="wrap about-grid">
       <div>
@@ -716,8 +743,9 @@ def page_shop():
         <ul class="products four" id="all-products">
 {items}
         </ul>
-        <p class="empty-results" id="no-results" hidden>No designs match that search. Try a city, a zodiac sign or a word like “coffee”.</p>
+        <p class="empty-results" id="no-results" hidden>No designs match that search. Try a city, a zodiac sign or a word like “coffee”, or <a id="no-results-idea" href="suggestions.html?kind=place">ask us to draw it</a>.</p>
       </div>
+{idea_strip(pg, "Looking for something we don’t have yet?")}
     </div>
   </section>
 </main>
@@ -771,6 +799,7 @@ def page_group(g):
 {items}
         </ul>
       </div>
+{idea_strip(pg)}
     </div>
   </section>""")
     body = f"""{header(pg, "collections")}
@@ -828,6 +857,7 @@ def page_collection(col):
 {items}
         </ul>
       </div>
+{idea_strip(pg)}
     </div>
   </section>
   <section class="tight">

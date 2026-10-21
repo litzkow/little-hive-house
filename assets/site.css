@@ -932,3 +932,12 @@ html.studio-open { overflow: hidden; }
 /* photo builder: caption lettering chips */
 .cap-styles { position: static; padding: 4px 0 0; background: none; flex-wrap: wrap; gap: 6px; }
 .cap-styles .chip.letter { min-height: 36px; padding: 0 12px; font-size: 16px; }
+
+/* ideas box call-outs (home band, shop, collections) */
+.band.idea { background: var(--surface); border: 2px dashed var(--line); }
+.band-art .idea-tile { display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; border: 2px dashed var(--focus); color: var(--focus); background: transparent; box-shadow: none; font-weight: 600; font-size: 15px; line-height: 1.2; aspect-ratio: 1; border-radius: 8px; }
+.idea-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin-top: 28px; padding: 18px 22px; border: 2px dashed var(--line); border-radius: 18px; background: var(--surface); }
+.idea-strip p { margin: 0; max-width: 42em; }
+/* five links in the header: switch to the Menu button a bit earlier so they never wrap */
+.nav a { white-space: nowrap; }
+@media (max-width: 1120px) { .nav a { display: none; } .nav a.acct-btn { display: inline-grid; } .menu-btn { display: inline-flex; } }

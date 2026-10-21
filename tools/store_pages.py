@@ -413,7 +413,7 @@ def page_suggestions():
   </section>
 </main>
 """
-    page("suggestions.html", "Share an idea", "Suggest a new magnet design, a place for us to draw, or something about our site. We read every idea.", None, body, ("forms.js",))
+    page("suggestions.html", "Share an idea", "Suggest a new magnet design, a place for us to draw, or something about our site. We read every idea.", "ideas", body, ("forms.js",))
 
 
 def page_unsubscribe():

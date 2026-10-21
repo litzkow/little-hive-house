@@ -256,6 +256,8 @@
       tabs.forEach(function (t) { t.setAttribute('aria-pressed', String(t.getAttribute('data-filter') === current)); });
       countEl.textContent = shown + (shown === 1 ? ' design' : ' designs');
       none.hidden = shown !== 0;
+      var ask = $('no-results-idea');
+      if (ask) ask.href = 'suggestions.html?kind=place' + (term ? '&idea=' + encodeURIComponent(q.value.trim()) : '');
     }
     tabs.forEach(function (t) {
       t.addEventListener('click', function () {
