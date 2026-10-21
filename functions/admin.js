@@ -522,7 +522,82 @@ async function adminModerateReview(data, auth) {
   return { ok: true, status };
 }
 
+/* ---------- test orders and test sheets ---------- */
+/** Orders that may be deleted: never charged (free with a coupon, Stripe test mode, unpaid, or a card hold released). */
+function deletable(o) {
+  const total = Number((o.pricing && o.pricing.total) || 0);
+  const testMode = String((o.stripe && o.stripe.sessionId) || "").startsWith("cs_test_") || (o.stripe && o.stripe.livemode === false);
+  const charged = o.payment && o.payment.state === "captured";
+  const held = o.payment && o.payment.state === "authorized";
+  if (testMode) return true;
+  if (held) return false;                                   // release the hold first (Refund), so the card isn't left blocked
+  if (total <= 0) return true;                              // free (100% coupon): nothing was paid
+  if (o.status === "pending" && !o.paidAt) return true;     // never paid
+  return !!(!charged && o.payment && (o.payment.state === "released" || o.payment.state === "expired"));
+}
+
+/** adminDeleteOrder({orderId, confirm: "DELETE"}): removes a test order (see deletable) and its print files for good. */
+async function adminDeleteOrder(data, auth) {
+  U.requireAdmin(auth);
+  const { ref, id, order } = await loadOrder(data && data.orderId);
+  if (U.text(data && data.confirm, 20).toUpperCase() !== "DELETE") fail("failed-precondition", "Please confirm the delete.");
+  if (!deletable(order)) {
+    fail("failed-precondition", order.payment && order.payment.state === "authorized"
+      ? "The customer's card is still on hold for this order. Cancel it first (Refund the whole amount), then delete."
+      : "Only test orders can be deleted: free orders, unpaid ones, or ones never charged. Orders with money in them stay for your records; refund them instead.");
+  }
+  try { await deps.bucket().deleteFiles({ prefix: `orders/${id}/` }); } catch (e) { /* no files */ }
+  await ref.delete();
+  console.log(`[adminDeleteOrder] ${order.number || id} deleted by ${U.who(auth)}`);
+  return { ok: true, deleted: order.number || id };
+}
+
+const TEST_MAX_MAGNETS = 27;
+/**
+ * adminTestSheet({designs: [{id, qty}], photos: [{data (base64 JPEG/PNG), frame, caption, capStyle, qty}]})
+ * -> {url, sheets, tiles}: a magnets PDF exactly like an order's, without an order. Saved at tests/test-sheet.pdf.
+ */
+async function adminTestSheet(data, auth) {
+  U.requireAdmin(auth);
+  const printsheet = require("./printsheet");
+  const catalog = require("./catalog.json");
+  const items = [];
+  let count = 0;
+  for (const d of (Array.isArray(data && data.designs) ? data.designs : []).slice(0, TEST_MAX_MAGNETS)) {
+    const id = U.text(d && d.id, 120);
+    const c = catalog.designs[id];
+    if (!c) fail("invalid-argument", `Unknown design "${id}".`);
+    const qty = Math.min(99, Math.max(1, Math.floor(Number(d.qty) || 1)));
+    count += qty;
+    items.push({ kind: "design", id, title: c.title, collection: c.collection, qty });
+  }
+  const photos = new Map();
+  (Array.isArray(data && data.photos) ? data.photos : []).slice(0, 9).forEach((p, n) => {
+    const b64 = String((p && p.data) || "").replace(/^data:image\/[a-z]+;base64,/, "");
+    if (!b64) return;
+    const buf = Buffer.from(b64, "base64");
+    if (buf.length < 100 || buf.length > 8 * 1024 * 1024) fail("invalid-argument", `Photo ${n + 1} is too big or empty.`);
+    const path = `test/${n + 1}.jpg`;
+    photos.set(path, buf);
+    const frame = U.text(p.frame, 40) || "none";
+    const qty = Math.min(99, Math.max(1, Math.floor(Number(p.qty) || 1)));
+    count += qty;
+    items.push({ kind: "photos", packSize: qty, qty: 1, photos: [{ path, frame, caption: U.text(p.caption, 40), capStyle: U.text(p.capStyle, 20) || null }] });
+  });
+  if (!items.length) fail("invalid-argument", "Add at least one design or photo.");
+  if (count > TEST_MAX_MAGNETS) fail("invalid-argument", `That is ${count} magnets; a test sheet holds up to ${TEST_MAX_MAGNETS} (3 sheets).`);
+  const settings = await printsheet.printSettings();
+  const out = await printsheet.buildPrintSheetDetailed("test", { number: "TEST", name: "Test sheet", items, paidAt: nowIso() },
+    { cut: settings.cut, image: settings.image, enhance: settings.enhance, readPhoto: async (p) => { if (!photos.has(p)) throw new Error("missing"); return photos.get(p); } });
+  if (!out.pdf) fail("unavailable", "The test sheet could not be made.");
+  const path = "tests/test-sheet.pdf";
+  await deps.bucket().file(path).save(out.pdf, { contentType: "application/pdf", resumable: false, metadata: { cacheControl: "private, max-age=0" } });
+  const link = await printsheet.downloadUrl(path, "TEST-magnets.pdf");
+  return { ok: true, url: link.url, sheets: out.sheets, tiles: out.tiles, warnings: out.warnings };
+}
+
 module.exports = {
+  adminDeleteOrder, adminTestSheet, deletable,
   claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
   adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet,
   DEFAULT_SETTINGS, promoView, deliverOrder,

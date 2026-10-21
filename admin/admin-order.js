@@ -610,6 +610,36 @@
     }).join('') + '</ol></section>';
   }
 
+  /* test orders (free with a coupon, Stripe test mode, unpaid, or never charged) can be deleted: functions/admin.js deletable */
+  function deletable(o) {
+    var total = R.pricing(o).total, pay = o.payment || {};
+    var test = /^cs_test_/.test((o.stripe && o.stripe.sessionId) || '') || (o.stripe && o.stripe.livemode === false);
+    if (test) return true;
+    if (pay.state === 'authorized') return false;
+    if (total <= 0) return true;
+    if (o.status === 'pending' && !R.toMs(o.paidAt)) return true;
+    return pay.state === 'released' || pay.state === 'expired';
+  }
+  function deleteCard(o) {
+    if (!deletable(o)) return '';
+    return '<section class="card"><div class="card-head"><h2>Test order?</h2></div><p class="small muted">This order was never charged' +
+      (R.pricing(o).total <= 0 ? ' (it was free)' : '') + ', so you can delete it. It disappears from orders and reports for good.</p>' +
+      '<div class="row end gap-top"><button class="btn btn-danger btn-sm" data-act="deleteOrder">' + icon('trash') + 'Delete this order</button></div></section>';
+  }
+  ACT.deleteOrder = function (btn) {
+    var o = current; if (!o) return;
+    h.dialog({ title: 'Delete ' + h.orderNo(o) + '?', danger: true, ok: 'Delete',
+      html: '<p>The order and its print files are removed for good. Use this only for tests.</p>' }).then(function (ok) {
+      if (!ok) return;
+      h.busy(btn, true, 'Deleting…');
+      return h.call('adminDeleteOrder', { orderId: o.id, confirm: 'DELETE' }).then(function () {
+        S.orders = S.orders.filter(function (x) { return x.id !== o.id; });
+        h.toast(h.orderNo(o) + ' deleted.');
+        location.hash = '#orders';
+      });
+    }).catch(function (e) { h.busy(btn, false); h.toast(h.friendlyError(e), true); });
+  };
+
   /* ---------------------------------------------------------------- the view */
   A.VIEWS.order = function (r) {
     var o = h.findOrder(r.arg);
@@ -631,7 +661,7 @@
       '<div class="ometa"><span>' + (R.toMs(o.paidAt) ? 'Paid' : 'Started') + ' <b>' + esc(h.fmtDT(o.paidAt || o.createdAt)) + '</b></span><span>Total <b>' + money(p.total) + '</b></span>' +
       '<span><b>' + h.plural(R.magnetsOf(o), 'magnet') + '</b></span>' + (o.uid ? '' : '<span>Guest</span>') + '</div>' +
       '<div class="cols"><div>' + fulfilCard(o) + itemsCard(o) + (R.isSale(o) && R.stage(o) !== 'refunded' && R.stage(o) !== 'canceled' ? printCard(o) : '') + timelineCard(o) + '</div>' +
-      '<div>' + customerCard(o) + paymentCard(o) + emailsCard(o) + notesCard(o) + statusCard(o) + '</div></div>';
+      '<div>' + customerCard(o) + paymentCard(o) + emailsCard(o) + notesCard(o) + statusCard(o) + deleteCard(o) + '</div></div>';
     return { title: h.orderNo(o), html: html, after: function () { bindOrder(o); fillPhotos(); } };
   };
 

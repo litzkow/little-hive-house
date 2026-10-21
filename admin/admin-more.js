@@ -591,6 +591,151 @@
     }).catch(function (e) { h.busy(btn, false); nlErr(h.friendlyError(e)); });
   };
 
+  /* ====================================================================== TEST PRINT (functions/admin.js adminTestSheet) */
+  function tpState() { return S.ui.testprint || (S.ui.testprint = { col: '', designs: [], photos: [] }); }
+  function tpLoadDesigns() {
+    if (S.shopDesigns) return Promise.resolve(S.shopDesigns);
+    return fetch('../shop.html', { cache: 'no-cache' }).then(function (r) { return r.text(); }).then(function (txt) {
+      var doc = new DOMParser().parseFromString(txt, 'text/html'), seen = {};
+      S.shopDesigns = Array.prototype.slice.call(doc.querySelectorAll('[data-add]')).map(function (b) {
+        return { id: b.getAttribute('data-add'), name: b.getAttribute('data-name') || b.getAttribute('data-add'), col: b.getAttribute('data-collection') || '' };
+      }).filter(function (d) { if (seen[d.id]) return false; seen[d.id] = 1; return /^[a-z0-9-]+\/[a-z0-9-]+$/.test(d.id); });
+      return S.shopDesigns;
+    });
+  }
+  function tpCount(st) {
+    return st.designs.reduce(function (n, d) { return n + d.qty; }, 0) + st.photos.reduce(function (n, p) { return n + p.qty; }, 0);
+  }
+  V.testprint = function () {
+    var st = tpState();
+    var html = head('Printing', 'Test print', 'Make a magnets PDF without an order: to test the printer, the paper, the punch, or a new design') +
+      '<div class="cols"><div>' +
+      '<section class="card"><div class="card-head"><h2>Designs</h2></div><label class="field"><span>Collection</span><select class="input" id="tp-col"><option value="">Choose a collection…</option></select></label>' +
+      '<div class="tp-grid" id="tp-grid"></div></section>' +
+      '<section class="card"><div class="card-head"><h2>Photos</h2></div><label class="btn btn-ghost btn-sm" style="cursor:pointer">' + icon('image') + 'Add photos<input type="file" id="tp-files" accept="image/*" multiple hidden></label>' +
+      '<p class="tiny faint" style="margin-top:6px">Each photo is printed with the frame and caption you pick, exactly like a customer’s.</p><div id="tp-photos" class="stack gap-top"></div></section>' +
+      '</div><div>' +
+      '<section class="card tint"><div class="card-head"><h2>Your test sheet</h2><span class="small muted" id="tp-count"></span></div><div id="tp-list"></div>' +
+      '<p class="err" id="tp-err" hidden></p><div class="row end gap-top"><button class="btn btn-ghost btn-sm" data-act="tpClear">Clear</button><button class="btn btn-honey" data-act="tpMake">' + icon('print') + 'Make test PDF</button></div></section>' +
+      '<section class="card"><div class="card-head"><h2>Print it well</h2></div><ol class="small" style="padding-left:18px;margin:0;display:grid;gap:6px">' +
+      '<li>Print from the <b>Canon PRINT</b> app (Wi-Fi Direct works), not the iPhone’s own Print button.</li>' +
+      '<li>Paper: <b>Letter</b>, media type <b>Photo Paper Plus Glossy II</b>, quality <b>High</b>, borderless <b>off</b>, Auto Photo Fix <b>off</b>.</li>' +
+      '<li>Glossy side up toward you in the rear tray. Let the sheet dry 10 minutes before cutting.</li>' +
+      '<li>Colours odd or stripes? In the app: Maintenance › Nozzle Check, then Cleaning if a colour is missing.</li></ol></section>' +
+      '</div></div>';
+    return {
+      title: 'Test print', html: html, after: function () {
+        var sel = $('#tp-col');
+        tpLoadDesigns().then(function (list) {
+          var cols = [];
+          list.forEach(function (d) { if (cols.indexOf(d.col) < 0) cols.push(d.col); });
+          sel.innerHTML = '<option value="">Choose a collection…</option>' + cols.map(function (c) { return '<option' + (c === st.col ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
+          tpGrid();
+        }).catch(function (e) { $('#tp-grid').innerHTML = '<p class="small err">Couldn’t load the designs: ' + esc(e.message) + '</p>'; });
+        sel.addEventListener('change', function () { st.col = sel.value; tpGrid(); });
+        $('#tp-files').addEventListener('change', function (ev) { tpAddFiles(ev.target.files); ev.target.value = ''; });
+        A.h.loadFrames().then(function () { tpPhotos(); });
+        tpList();
+      }
+    };
+  };
+  function tpGrid() {
+    var st = tpState(), box = $('#tp-grid'); if (!box) return;
+    var list = (S.shopDesigns || []).filter(function (d) { return st.col && d.col === st.col; });
+    box.innerHTML = list.map(function (d) {
+      return '<button type="button" class="tp-d" data-act="tpAdd" data-id="' + esc(d.id) + '" title="' + esc(d.name) + '"><img src="' + h.ART_URL + esc(d.id) + '.webp" alt="" loading="lazy"><span>' + esc(d.name) + '</span></button>';
+    }).join('') || (st.col ? '<p class="small muted">No designs.</p>' : '<p class="small muted">Pick a collection, then tap the designs to add them.</p>');
+  }
+  function tpList() {
+    var st = tpState(), box = $('#tp-list'); if (!box) return;
+    var n = tpCount(st);
+    $('#tp-count').textContent = n ? h.plural(n, 'magnet') + ' · ' + h.plural(Math.ceil(n / 9), 'sheet') : '';
+    var rows = st.designs.map(function (d, i) {
+      return '<li class="tp-row"><img src="' + h.ART_URL + esc(d.id) + '.webp" alt=""><span>' + esc(d.name) + '</span>' +
+        '<input class="input tp-qty" type="number" min="1" max="27" value="' + d.qty + '" data-kind="d" data-i="' + i + '" aria-label="How many">' +
+        '<button type="button" class="icon-btn" data-act="tpDel" data-kind="d" data-i="' + i + '" aria-label="Remove">×</button></li>';
+    }).concat(st.photos.map(function (p, i) {
+      return '<li class="tp-row"><img src="' + p.data + '" alt=""><span>' + esc(p.name) + '</span>' +
+        '<input class="input tp-qty" type="number" min="1" max="27" value="' + p.qty + '" data-kind="p" data-i="' + i + '" aria-label="How many">' +
+        '<button type="button" class="icon-btn" data-act="tpDel" data-kind="p" data-i="' + i + '" aria-label="Remove">×</button></li>';
+    }));
+    box.innerHTML = rows.length ? '<ul class="plain">' + rows.join('') + '</ul>' : '<p class="small muted">Nothing yet. Add designs or photos.</p>';
+    Array.prototype.forEach.call(box.querySelectorAll('.tp-qty'), function (inp) {
+      inp.addEventListener('change', function () {
+        var arr = inp.getAttribute('data-kind') === 'd' ? st.designs : st.photos, it = arr[Number(inp.getAttribute('data-i'))];
+        it.qty = Math.max(1, Math.min(27, Math.floor(Number(inp.value) || 1))); inp.value = it.qty; tpList();
+      });
+    });
+  }
+  function tpPhotos() {
+    var st = tpState(), box = $('#tp-photos'); if (!box) return;
+    var frames = Object.keys(S.frames || {}).map(function (k) { return S.frames[k]; }).filter(function (f) { return !f.hidden; });
+    box.innerHTML = st.photos.map(function (p, i) {
+      var f = S.frames && S.frames[p.frame], c = f && f.caption, styles = c && c.styles ? Object.keys(c.styles) : [];
+      return '<div class="tp-photo"><img src="' + p.data + '" alt=""><div class="stack" style="gap:6px;flex:1;min-width:0">' +
+        '<select class="input" data-tp="frame" data-i="' + i + '">' + frames.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === p.frame ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select>' +
+        (c ? '<input class="input" data-tp="caption" data-i="' + i + '" maxlength="' + (c.max || 24) + '" placeholder="Caption, e.g. ' + esc(c.placeholder || '') + '" value="' + esc(p.caption) + '">' : '') +
+        (styles.length > 1 ? '<select class="input" data-tp="capStyle" data-i="' + i + '">' + styles.map(function (k) { return '<option value="' + k + '"' + ((p.capStyle || c.default) === k ? ' selected' : '') + '>' + esc(c.styles[k].name || k) + '</option>'; }).join('') + '</select>' : '') +
+        '</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('[data-tp]'), function (el) {
+      el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () {
+        var p = st.photos[Number(el.getAttribute('data-i'))], k = el.getAttribute('data-tp');
+        p[k] = el.value;
+        if (k === 'frame') { p.capStyle = ''; tpPhotos(); }
+      });
+    });
+  }
+  function tpAddFiles(files) {
+    var st = tpState();
+    Array.prototype.slice.call(files, 0, Math.max(0, 9 - st.photos.length)).forEach(function (file) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, 2000 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
+        c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+        var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        st.photos.push({ name: file.name || 'Photo', data: c.toDataURL('image/jpeg', 0.9), frame: 'none', caption: '', capStyle: '', qty: 1 });
+        tpPhotos(); tpList();
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); h.toast('Couldn’t open ' + (file.name || 'that photo') + '. Try a JPG.', true); };
+      im.src = url;
+    });
+  }
+  ACT.tpAdd = function (btn) {
+    var st = tpState(), id = btn.getAttribute('data-id');
+    var d = (S.shopDesigns || []).find(function (x) { return x.id === id; });
+    var have = st.designs.find(function (x) { return x.id === id; });
+    if (have) have.qty += 1; else st.designs.push({ id: id, name: d ? d.name : id, qty: 1 });
+    tpList(); h.toast((d ? d.name : id) + ' added');
+  };
+  ACT.tpDel = function (btn) {
+    var st = tpState(), arr = btn.getAttribute('data-kind') === 'd' ? st.designs : st.photos;
+    arr.splice(Number(btn.getAttribute('data-i')), 1); tpList(); tpPhotos();
+  };
+  ACT.tpClear = function () { S.ui.testprint = { col: tpState().col, designs: [], photos: [] }; h.route(); };
+  ACT.tpMake = function (btn) {
+    var st = tpState(), err = $('#tp-err'); err.hidden = true;
+    var n = tpCount(st);
+    if (!n) { err.textContent = 'Add at least one design or photo.'; err.hidden = false; return; }
+    if (n > 27) { err.textContent = 'A test sheet holds up to 27 magnets (3 sheets). Remove a few.'; err.hidden = false; return; }
+    var tab = null;
+    try { tab = window.open('about:blank', '_blank'); if (tab && tab.document) tab.document.body.innerHTML = '<p style="font:16px -apple-system,system-ui,sans-serif;padding:24px">Making the test sheet… about a minute.</p>'; } catch (e) { tab = null; }
+    h.busy(btn, true, 'Making…');
+    h.call('adminTestSheet', {
+      designs: st.designs.map(function (d) { return { id: d.id, qty: d.qty }; }),
+      photos: st.photos.map(function (p) { return { data: p.data, frame: p.frame, caption: p.caption, capStyle: p.capStyle || null, qty: p.qty }; })
+    }).then(function (res) {
+      h.busy(btn, false);
+      if (tab && !tab.closed) tab.location.href = res.url;
+      else h.dialog({ title: 'Test sheet ready', ok: false, cancel: 'Close', html: '<p><a class="btn btn-honey" href="' + esc(res.url) + '" target="_blank" rel="noopener">' + icon('external') + 'Open the PDF</a></p>' });
+    }).catch(function (e) {
+      h.busy(btn, false);
+      if (tab && !tab.closed) { try { tab.close(); } catch (x) { /* ignore */ } }
+      err.textContent = h.friendlyError(e); err.hidden = false;
+    });
+  };
+
   /* ====================================================================== SETTINGS */
   var FIELDS = [
     ['magnetUnitCost', 'Cost of one magnet', 'money', 'Paper, ink, magnet sheet and lamination for one 2 × 2 in magnet. Add up a pack of supplies and divide by how many magnets it makes.'],

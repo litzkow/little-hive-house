@@ -1,7 +1,7 @@
 "use strict";
 /* Print-ready PDFs for a paid order, made on the server so the owners never have to run anything on a computer.
    Two files, so only the magnets go on the glossy paper:
-     magnets      US Letter at 300 dpi, 9 pieces per page (3 x 3), each the size of the square punch (Settings ›
+     magnets      US Letter at 600 dpi, 9 pieces per page (3 x 3), each the size of the square punch (Settings ›
                   Printing, 2.4 in by default) with white space between them and a thin grey guide line
      packing slip plain paper: the "Before you print" notes (when there are any) and the packing slip
    `sharp` rasterises (photos, the frame SVGs through librsvg, WebP designs) and `pdfkit` assembles the PDFs. Both are
@@ -33,10 +33,10 @@ const Crop = require("./crop");
    (IMAGE_IN, so the rounded edge of the face is covered too), centred in its piece, and the rest of the piece is
    plain white paper that wraps around the sides, like the punch makers' own samples. 9 pieces per page (3 x 3),
    with white space between them. */
-const DPI = 300;
+const DPI = 600;                                     // sharp text and lines; the photo printer prints far finer than this
 const COLS = 3, ROWS = 3, PER_PAGE = COLS * ROWS;
 const FACE_IN = 2;                                   // the visible magnet face
-const FACE_PX = FACE_IN * DPI;                       // 600
+const FACE_PX = FACE_IN * DPI;                       // 1200
 const CUT_IN = 2.45;                                 // default paper size of the octagonal punch (Settings › Printing): a little big on purpose,
                                                      // the face stays 2 in either way and a larger piece only adds coloured edge
 const CUT_MIN = 2.1, CUT_MAX = 2.55;
@@ -45,7 +45,7 @@ const IMAGE_MIN = 2.0, IMAGE_MAX = 2.3;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
 const SVG_UNITS = 600;                               // the frames' coordinate system = the 2 in face
-const SCALE = FACE_PX / SVG_UNITS;                   // 1 px per unit
+const SCALE = FACE_PX / SVG_UNITS;                   // 2 px per unit
 const MAX_TILES = 450;                               // 50 sheets: more than any pack x qty the shop sells
 const JPEG = { quality: 93, chromaSubsampling: "4:4:4" };
 const URL_TTL_MS = 60 * 60 * 1000;
@@ -299,7 +299,7 @@ function placeholderSvg(lines) {
      exposure  pulled towards a mid brightness: an overexposed photo is darkened a little, a dark one lifted a little
      colour    +10% saturation and +6% contrast, because ink on paper is less vivid than a screen
      detail    a light sharpen for the small 2 in size */
-const ENHANCE = { target: 118, minBrightness: 0.84, maxBrightness: 1.12, saturation: 1.1, contrast: 1.06, sharpen: 0.6 };
+const ENHANCE = { target: 118, minBrightness: 0.84, maxBrightness: 1.12, saturation: 1.1, contrast: 1.06, sharpen: 1.0 };
 /** Pure: the touch-up for a photo whose average brightness (0-255, after levels) is `mean`. */
 function enhanceParams(mean) {
   const n = Number(mean), m = Math.max(1, Number.isFinite(n) ? n : ENHANCE.target);
@@ -326,10 +326,12 @@ async function toPrint(sharp, faceJpeg, px) {
 /* ---------- rendering tiles (sharp) ---------- */
 async function renderDesign(tile, ctx) {
   const sharp = loadSharp();
-  const url = `${ctx.site}/assets/art/${encodeURIComponent(tile.collection)}/${encodeURIComponent(tile.slug)}.webp`;
+  // the 1200 px print render (tools/print_art.py) when there is one, else the 600 px website picture
+  const base = `${ctx.site}/assets/%s/${encodeURIComponent(tile.collection)}/${encodeURIComponent(tile.slug)}`;
   let face;
   try {
-    const buf = await fetchBuffer(url, ctx.fetchImpl);
+    const buf = await fetchBuffer(base.replace("%s", "print") + ".jpg", ctx.fetchImpl)
+      .catch(() => fetchBuffer(base.replace("%s", "art") + ".webp", ctx.fetchImpl));
     face = await sharp(buf, { failOn: "none" }).resize(FACE_PX, FACE_PX, { fit: "fill", kernel: "lanczos3" })
       .flatten({ background: "#FFFFFF" }).jpeg(JPEG).toBuffer();
   } catch (err) {
@@ -529,7 +531,7 @@ async function assemblePdf({ order, plan, images, warnings, frames, geo }) {
   if (plan.truncated) warnings.push(`This order has ${plan.total} magnets to print but the sheets stop at ${MAX_TILES}. Print the rest from the admin ZIP.`);
   let pdf = null, pages = 0;
   if (plan.sheets) {
-    const s = newDoc(`Magnets · Order ${order.number || ""}`, `Fridge magnets, ${PER_PAGE} per sheet, ${geo.cut.toFixed(2)} in pieces at 300 dpi`);
+    const s = newDoc(`Magnets · Order ${order.number || ""}`, `Fridge magnets, ${PER_PAGE} per sheet, ${geo.cut.toFixed(2)} in pieces at 600 dpi`);
     // embed each unique artwork once (openImage), then place it as many times as needed
     const embedded = new Map();
     for (const [key, jpeg] of images) { try { embedded.set(key, s.doc.openImage(jpeg)); } catch (e) { warnings.push(`A tile could not be embedded (${e.message}).`); } }

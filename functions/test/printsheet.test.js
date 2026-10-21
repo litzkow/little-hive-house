@@ -59,14 +59,14 @@ const SESSION = {
 
 /* ---------------------------------------------------------------- layout math */
 test("geometry: US Letter, 9 pieces of the punch size, the picture a hair over 2 in, centred with white paper around", () => {
-  assert.equal(P.DPI, 300);
+  assert.equal(P.DPI, 600);
   assert.equal(P.PER_PAGE, 9);
-  assert.equal(P.FACE_PX, 600);
+  assert.equal(P.FACE_PX, 1200);
   assert.deepEqual(P.PAGE_PT, { w: 612, h: 792 });
   const g = P.geometry(2.4, 2.08);
   assert.equal(g.cut, 2.4);
   assert.equal(g.image, 2.08);
-  assert.equal(g.artPx, 624);
+  assert.equal(g.artPx, 1248);
   assert.equal(g.gap, 0.35);
   const near = (a, b) => Math.abs(a - b) < 1e-6;
   const pt = P.tilePositions(2.4, 2.08);
@@ -159,13 +159,13 @@ test("planTiles caps at MAX_TILES and says so", () => {
   assert.equal(plan.total, 700);
 });
 
-test("windowPx: the frame window on the 600 px face, in whole pixels", () => {
-  assert.deepEqual(P.windowPx(FRAMES.none), { x: 0, y: 0, w: 600, h: 600 });
-  assert.deepEqual(P.windowPx(FRAMES.white), { x: 100, y: 100, w: 400, h: 400 });
+test("windowPx: the frame window on the 1200 px face (2 px per frame unit), in whole pixels", () => {
+  assert.deepEqual(P.windowPx(FRAMES.none), { x: 0, y: 0, w: 1200, h: 1200 });
+  assert.deepEqual(P.windowPx(FRAMES.white), { x: 200, y: 200, w: 800, h: 800 });
   const inst = P.windowPx(FRAMES.instant);   // [52, 50, 496, 414]
-  assert.deepEqual(inst, { x: 52, y: 50, w: 496, h: 414 });
+  assert.deepEqual(inst, { x: 104, y: 100, w: 992, h: 828 });
   const hex = P.windowPx(FRAMES.honeycomb);  // fractional window
-  assert.ok(hex.w > 0 && hex.h > 0 && hex.x + hex.w <= 600 && hex.y + hex.h <= 600);
+  assert.ok(hex.w > 0 && hex.h > 0 && hex.x + hex.w <= 1200 && hex.y + hex.h <= 1200);
 });
 
 test("packing slip rows, address lines and the magnet count", () => {
@@ -241,12 +241,12 @@ test("caption fitting never goes below the frame's minimum size and always fits 
   assert.equal(FM.captionText(FRAMES.stamp, "  hello world, this is long  "), "HELLO WORLD, THIS IS");
 });
 
-test("overlay and placeholder SVGs are 600 px canvases (the face) over the frames' 600-unit viewBox", () => {
+test("overlay and placeholder SVGs are 1200 px canvases (the face) over the frames' 600-unit viewBox", () => {
   const o = P.overlaySvg("<g id=\"frame\"/>", "<text>cap</text>");
-  assert.match(o, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*width="600" height="600" viewBox="0 0 600 600">/);
+  assert.match(o, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*width="1200" height="1200" viewBox="0 0 600 600">/);
   assert.match(o, /<g id="frame"\/><text>cap<\/text><\/svg>$/);
   const ph = P.placeholderSvg(["Photo 3 could not be read", "a & b"]);
-  assert.match(ph, /width="600" height="600"/);
+  assert.match(ph, /width="1200" height="1200"/);
   assert.match(ph, /a &amp; b/);
   assert.match(ph, /font-family="Jost/);
 });

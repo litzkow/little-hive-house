@@ -41,6 +41,8 @@ FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&famil
 
 import raster  # noqa: E402
 raster.main()
+import print_art  # noqa: E402
+print_art.main()   # 1200 px print files of the designs on sale (functions/printsheet.js)
 
 # Site decoration season by date (inclusive MMDD ranges); the spotlight uses catalog.SEASONS.
 DECOR = [(1226, 1231, "newyear"), (101, 103, "newyear"), (104, 131, "winter"), (201, 214, "valentine"), (215, 229, "winter"),

@@ -40,7 +40,7 @@
     reviews: null, messages: null, quotes: null, subscribers: null, promos: null, frames: null,
     photoUrls: {}, shellReady: false,
     ui: { orders: { tab: null, q: '', range: 'any', from: '', to: '', sel: {}, limit: 50 }, reports: { month: null, scope: 'month' },
-          customers: { q: '' }, subscribers: { q: '' }, reviews: 'pending', messages: 'messages', newsletter: null }
+          customers: { q: '' }, subscribers: { q: '' }, reviews: 'pending', messages: 'messages', newsletter: null, testprint: null }
   };
   var charts = [];
 
@@ -112,6 +112,7 @@
     copy: '<rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9.5a1 1 0 0 0 1 1h3.5"/>',
     download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
     print: '<path d="M7 9V3.5h10V9M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v6.5H7z"/>',
+    trash: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/>',
     truck: '<path d="M2.5 6h11.5v10H2.5zM14 9.5h4l3.5 3.5v3H14"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="17.5" cy="17.5" r="1.8"/>',
     external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
     right: '<path d="m9 6 6 6-6 6"/>',
@@ -434,7 +435,7 @@
   var NAV = [
     ['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['customers', 'Customers', 'customers'], ['reports', 'Reports', 'reports'],
     ['sep'], ['discounts', 'Discounts', 'discounts'], ['links', 'Payment links', 'links'], ['reviews', 'Reviews', 'reviews'],
-    ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail'], ['sep'], ['settings', 'Settings', 'settings']
+    ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail'], ['sep'], ['testprint', 'Test print', 'print'], ['settings', 'Settings', 'settings']
   ];
   function navHTML() {
     return NAV.map(function (n) {

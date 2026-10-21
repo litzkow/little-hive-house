@@ -84,6 +84,9 @@ exports.adminModerateReview = callable("adminModerateReview", admin);
 exports.adminNewsletter = callable("adminNewsletter", newsletter, null, { timeoutSeconds: 540, memory: "512MiB" });
 // builds the print-ready PDF (sharp + pdfkit) on demand: more memory and time than the other callables
 exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
+// a test PDF of designs / photos without an order, and deleting test orders
+exports.adminTestSheet = callable("adminTestSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
+exports.adminDeleteOrder = callable("adminDeleteOrder", admin);
 
 /* ---------- Stripe webhook (HTTP): marks orders paid and renders their print sheet (1 GiB, 300 s for the PDF) ---------- */
 exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 300, memory: "1GiB", maxInstances: 10 }, async (req, res) => {
