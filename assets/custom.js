@@ -55,21 +55,13 @@
   /* where the customer moved / zoomed the photo: crop {x, y, z}, same math as functions/crop.js region() and the print sheet */
   var ZMAX = 4;
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
-  /* the photo also prints a little past the face where it wraps around the magnet (functions/crop.js bleedFor), so it
-     always covers the window plus that bleed: what shows here is exactly the front of the magnet */
-  var BLEED = 60;
-  function bleedFor(win) {
-    return { l: win[0] <= 0 ? BLEED : 0, t: win[1] <= 0 ? BLEED : 0, r: win[0] + win[2] >= 600 ? BLEED : 0, b: win[1] + win[3] >= 600 ? BLEED : 0 };
-  }
-  function region(w, h, win, c) {
+  function region(w, h, ww, wh, c) {
     c = c || { x: 0.5, y: 0.5, z: 1 };
-    var ww = win[2], wh = win[3], B = bleedFor(win), bw = ww + B.l + B.r, bh = wh + B.t + B.b;
-    var s = Math.max(bw / w, bh / h) * clamp(c.z || 1, 1, ZMAX);
-    var rw = Math.min(w, ww / s), rh = Math.min(h, wh / s), boxW = Math.min(w, bw / s), boxH = Math.min(h, bh / s);
-    var boxL = clamp(c.x * w - (ww / 2 + B.l) / s, 0, w - boxW), boxT = clamp(c.y * h - (wh / 2 + B.t) / s, 0, h - boxH);
-    return { left: boxL + B.l / s, top: boxT + B.t / s, width: rw, height: rh };
+    var s = Math.max(ww / w, wh / h) * clamp(c.z || 1, 1, ZMAX);
+    var rw = Math.min(w, ww / s), rh = Math.min(h, wh / s);
+    return { left: clamp(c.x * w - rw / 2, 0, w - rw), top: clamp(c.y * h - rh / 2, 0, h - rh), width: rw, height: rh };
   }
-  function viewBoxOf(p, w) { var r = region(p.w, p.h, w, p.crop); return r.left + ' ' + r.top + ' ' + r.width + ' ' + r.height; }
+  function viewBoxOf(p, w) { var r = region(p.w, p.h, w[2], w[3], p.crop); return r.left + ' ' + r.top + ' ' + r.width + ' ' + r.height; }
   function magnet(p, f, caption, cls) {
     var svg = node('svg', { viewBox: '0 0 600 600', 'aria-hidden': 'true', focusable: 'false' });
     if (cls) svg.setAttribute('class', cls);
@@ -341,7 +333,7 @@
   /* stores the crop as the centre of what really shows (region() slides it back inside the photo) */
   function setCrop(p, c, live) {
     var w = frameOf(p).window, z = clamp(c.z || 1, 1, ZMAX);
-    var r = region(p.w, p.h, w, { x: c.x, y: c.y, z: z });
+    var r = region(p.w, p.h, w[2], w[3], { x: c.x, y: c.y, z: z });
     var x = (r.left + r.width / 2) / p.w, y = (r.top + r.height / 2) / p.h;
     p.crop = Math.abs(x - 0.5) < 1e-4 && Math.abs(y - 0.5) < 1e-4 && z === 1 ? null : { x: x, y: y, z: z };
     var ph = magBox.querySelector('svg.big svg.ph');
@@ -364,7 +356,7 @@
   function spread() { var a = pts(); return a.length < 2 ? 0 : Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
   function begin() {
     var p = photos[current], w = frameOf(p).window, rect = magBox.getBoundingClientRect();
-    var r = region(p.w, p.h, w, p.crop), c = cropOf(p);
+    var r = region(p.w, p.h, w[2], w[3], p.crop), c = cropOf(p);
     /* photo pixels per screen pixel, at the zoom the gesture starts with */
     gesture = { x: (r.left + r.width / 2) / p.w, y: (r.top + r.height / 2) / p.h, z: c.z || 1,
                 k: (600 / rect.width) * (r.width / w[2]), at: centroid(), d: spread() };

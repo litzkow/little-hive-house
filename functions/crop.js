@@ -23,8 +23,9 @@ function clean(c) {
 }
 
 /* The paper around a magnet wraps over its sides, so a photo that reaches the edge of the face is printed a little
-   past it with the photo itself (the part just outside what shows), never a reflection or a blur. BLEED is that extra,
-   in frame units (600 = the 2 in face): only on the sides where the frame's window touches the edge of the face. */
+   past it with the photo itself, where the photo has more to show (the part just outside what the customer picked).
+   The photo is never zoomed for it: what shows on the front is exactly what the customer saw. BLEED is how far, in
+   frame units (600 = the 2 in face), only on the sides where the frame's window touches the edge of the face. */
 const BLEED = 60;                                      // 0.2 in: past the punch's cut line (2.45 in piece)
 /** {l, t, r, b} in frame units for a frame window [x, y, w, h] (600-unit face). */
 function bleedFor(win) {
@@ -33,23 +34,24 @@ function bleedFor(win) {
 }
 
 /**
- * The part of a w x h photo that fills a winW x winH window: {left, top, width, height} in photo pixels (not rounded),
- * plus box: the part that also covers the bleed around the window ({l, t, r, b} in window units, see bleedFor). The
- * photo always covers the window and its bleed (so zoom 1 is a touch closer than "just covers" when there is bleed);
- * a centre too close to an edge slides back inside.
+ * The part of a w x h photo that fills a winW x winH window: {left, top, width, height} in photo pixels (not rounded).
+ * The photo always covers the whole window; a centre too close to an edge slides back inside. With `bleed` ({l, t, r,
+ * b} in window units) also box: the window grown by the bleed, as far as the photo goes (it may be less on a side).
  */
 function region(w, h, winW, winH, crop, bleed) {
   const c = crop || { x: 0.5, y: 0.5, z: 1 };
-  const B = bleed || { l: 0, t: 0, r: 0, b: 0 };
   const z = clamp(Number(c.z) || 1, 1, ZMAX);
-  const bw = winW + B.l + B.r, bh = winH + B.t + B.b;
-  const s = Math.max(bw / w, bh / h) * z;              // window units per photo pixel
+  const s = Math.max(winW / w, winH / h) * z;          // window units per photo pixel
   const width = Math.min(w, winW / s), height = Math.min(h, winH / s);
-  const boxW = Math.min(w, bw / s), boxH = Math.min(h, bh / s);
-  const cx = (Number.isFinite(Number(c.x)) ? Number(c.x) : 0.5) * w, cy = (Number.isFinite(Number(c.y)) ? Number(c.y) : 0.5) * h;
-  const boxL = clamp(cx - (winW / 2 + B.l) / s, 0, w - boxW), boxT = clamp(cy - (winH / 2 + B.t) / s, 0, h - boxH);
-  const out = { left: boxL + B.l / s, top: boxT + B.t / s, width, height };
-  if (bleed) out.box = { left: boxL, top: boxT, width: boxW, height: boxH };
+  const left = clamp((Number.isFinite(Number(c.x)) ? Number(c.x) : 0.5) * w - width / 2, 0, w - width);
+  const top = clamp((Number.isFinite(Number(c.y)) ? Number(c.y) : 0.5) * h - height / 2, 0, h - height);
+  const out = { left, top, width, height };
+  if (bleed) {
+    const bl = Math.max(0, left - bleed.l / s), bt = Math.max(0, top - bleed.t / s);
+    const br = Math.min(w, left + width + bleed.r / s), bb = Math.min(h, top + height + bleed.b / s);
+    out.box = { left: bl, top: bt, width: br - bl, height: bb - bt };
+    out.scale = s;
+  }
   return out;
 }
 
@@ -61,7 +63,12 @@ function regionPx(w, h, winW, winH, crop, bleed) {
     return { left, top, width: clamp(Math.round(q.width), 1, w - left), height: clamp(Math.round(q.height), 1, h - top) };
   };
   const out = px(r);
-  if (bleed) out.box = px(r.box);
+  if (bleed) {
+    out.box = px(r.box);
+    // how far the box reaches past the window on each side, in window units (what the photo really has there)
+    out.ext = { l: Math.round((out.left - out.box.left) * r.scale), t: Math.round((out.top - out.box.top) * r.scale),
+      r: Math.round((out.box.left + out.box.width - out.left - out.width) * r.scale), b: Math.round((out.box.top + out.box.height - out.top - out.height) * r.scale) };
+  }
   return out;
 }
 

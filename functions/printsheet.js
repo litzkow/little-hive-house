@@ -52,7 +52,7 @@ const SVG_UNITS = 600;                               // the frames' coordinate s
 const SCALE = FACE_PX / SVG_UNITS;                   // 2 px per unit
 const MAX_TILES = 450;                               // 50 sheets: more than any pack x qty the shop sells
 const JPEG = { quality: 93, chromaSubsampling: "4:4:4" };
-const LAYOUT_V = 6;                                  // 6: photos bleed with the photo itself (crop.js), designs reflected past the cut line + cut marks
+const LAYOUT_V = 7;                                  // 7: photos never zoomed; their edge is the photo itself where it has more (crop.js)
 const URL_TTL_MS = 60 * 60 * 1000;
 const CONCURRENCY = 4;
 
@@ -424,19 +424,20 @@ async function renderPhoto(tile, ctx) {
     // the window plus, on the sides where it reaches the edge of the face, a bleed of the photo itself (crop.js)
     const b = Crop.bleedFor(f.window), B = { l: b.l * SCALE, t: b.t * SCALE, r: b.r * SCALE, b: b.b * SCALE };
     const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop, B);
-    const bw = win.w + B.l + B.r, bh = win.h + B.t + B.b;
+    const E = { l: Math.min(B.l, reg.ext.l), t: Math.min(B.t, reg.ext.t), r: Math.min(B.r, reg.ext.r), b: Math.min(B.b, reg.ext.b) };
+    const bw = win.w + E.l + E.r, bh = win.h + E.t + E.b;
     let big = await sharp(buf, opts).rotate().extract(reg.box)
       .resize(bw, bh, { fit: "fill", kernel: "lanczos3" })
       .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
     if (ctx.enhance) {
       try { big = await enhancePhoto(sharp, big); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
     }
-    const hasBleed = !!(B.l || B.t || B.r || B.b);
+    const hasBleed = !!(E.l || E.t || E.r || E.b);
     const img = hasBleed
-      ? await sharp(big.data, { raw: { width: bw, height: bh, channels: 3 } }).extract({ left: B.l, top: B.t, width: win.w, height: win.h }).raw().toBuffer({ resolveWithObject: true })
+      ? await sharp(big.data, { raw: { width: bw, height: bh, channels: 3 } }).extract({ left: E.l, top: E.t, width: win.w, height: win.h }).raw().toBuffer({ resolveWithObject: true })
       : big;
     photoLayer = { input: img.data, raw: { width: img.info.width, height: img.info.height, channels: 3 }, left: win.x, top: win.y };
-    if (hasBleed) under = { data: big.data, width: bw, height: bh, left: win.x - B.l, top: win.y - B.t };
+    if (hasBleed) under = { data: big.data, width: bw, height: bh, left: win.x - E.l, top: win.y - E.t };
   } catch (err) {
     ctx.warn(/\.hei[cf]$/i.test(tile.path)
       ? `${label} is an iPhone HEIC file, which the print server can't open. Its tile is a placeholder: open “Original photo” on the order page, save it as a JPG and print it by hand.`
