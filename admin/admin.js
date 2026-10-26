@@ -506,16 +506,47 @@
     if (!out.keepScroll) window.scrollTo(0, 0);
   }
 
+  /* ---------- border colour picker (print sheets: functions/printsheet.js borderColour) ----------
+     value: '' = the default (only when opts.def is given), 'auto' = the colour of the picture's own edge, or '#RRGGBB'.
+     Read it with bpickValue(el); it fires a 'bpick' event (detail = value) on the picker when it changes. */
+  var BORDER_SWATCHES = [['#FFFFFF', 'White'], ['#000000', 'Black'], ['#F7F0E3', 'Cream'], ['#F2A81D', 'Honey'], ['#C8A27A', 'Kraft'], ['#8A8A8A', 'Grey'],
+    ['#1F2A44', 'Navy'], ['#2F4A3A', 'Forest'], ['#B3261E', 'Red'], ['#F4C9C6', 'Blush'], ['#A9CBE6', 'Sky'], ['#C9B8E8', 'Lavender']];
+  function normColour(v) { var m = /^#?([0-9a-f]{6})$/i.exec(String(v || '').trim()); return m ? '#' + m[1].toUpperCase() : ''; }
+  function borderPicker(value, opts) {
+    opts = opts || {};
+    var v = value === 'auto' ? 'auto' : normColour(value) || (opts.def ? '' : '#FFFFFF');
+    var custom = v && v !== 'auto' && !BORDER_SWATCHES.some(function (x) { return x[0] === v; });
+    var opt = function (val, label, title) { return '<button type="button" class="bp-opt' + (v === val ? ' on' : '') + '" data-bp="' + val + '" title="' + esc(title || label) + '">' + esc(label) + '</button>'; };
+    return '<div class="bpick' + (opts.small ? ' small' : '') + '" data-value="' + esc(v) + '"' + (opts.id ? ' id="' + esc(opts.id) + '"' : '') + (opts.attrs || '') + '>' +
+      (opts.def ? opt('', opts.def, 'Use the default border') : '') + opt('auto', 'Photo colour', 'The colour of the picture’s own edge') +
+      BORDER_SWATCHES.map(function (x) { return '<button type="button" class="bp-sw' + (v === x[0] ? ' on' : '') + '" data-bp="' + x[0] + '" style="background:' + x[0] + '" title="' + x[1] + '" aria-label="' + x[1] + '"></button>'; }).join('') +
+      '<label class="bp-custom' + (custom ? ' on' : '') + '" title="Any colour"' + (custom ? ' style="background:' + v + '"' : '') + '><input type="color" value="' + (custom ? v : '#B3261E') + '" aria-label="Any colour">+</label></div>';
+  }
+  function bpickValue(el) { return el ? el.getAttribute('data-value') || '' : ''; }
+  function bpickSet(box, v) {
+    box.setAttribute('data-value', v);
+    Array.prototype.forEach.call(box.querySelectorAll('[data-bp]'), function (b) { b.classList.toggle('on', b.getAttribute('data-bp') === v); });
+    var c = box.querySelector('.bp-custom'), isCustom = v && v !== 'auto' && !box.querySelector('[data-bp="' + v + '"]');
+    if (c) { c.classList.toggle('on', !!isCustom); c.style.background = isCustom ? v : ''; }
+    box.dispatchEvent(new CustomEvent('bpick', { detail: v, bubbles: true }));
+  }
+
   /* ---------- delegated events ---------- */
   var ACT = {};
   function bindGlobal() {
     if (bindGlobal.done) return;
     bindGlobal.done = true;
     document.addEventListener('click', function (ev) {
+      var bp = ev.target.closest('.bpick [data-bp]');
+      if (bp) { bpickSet(bp.closest('.bpick'), bp.getAttribute('data-bp')); return; }
       var el = ev.target.closest('[data-act]');
       if (el && ACT[el.getAttribute('data-act')]) { ACT[el.getAttribute('data-act')](el, ev); return; }
       var row = ev.target.closest('tr[data-href]');
       if (row && !ev.target.closest('a, button, input, label, select')) location.hash = row.getAttribute('data-href');
+    });
+    document.addEventListener('input', function (ev) {
+      var t = ev.target;
+      if (t && t.type === 'color' && t.closest('.bpick')) bpickSet(t.closest('.bpick'), normColour(t.value));
     });
     document.addEventListener('keydown', function (ev) {
       var row = ev.target.closest && ev.target.closest('tr[data-href]');
@@ -904,7 +935,7 @@
     call: call, refreshOrder: refreshOrder, loadOrders: loadOrders, loadCol: loadCol, loadSettings: loadSettings, loadFrames: loadFrames, chart: chart, hbars: hbars, tile: tile,
     orderTable: orderTable, itemsSummary: itemsSummary, carrierName: carrierName, updateBadges: updateBadges, route: route,
     CARRIERS: CARRIERS, TRACK_URL: TRACK_URL, STATUSES: STATUSES, STAGE_LABEL: STAGE_LABEL, EMAIL_KINDS: EMAIL_KINDS, FRAMES_URL: FRAMES_URL, ART_URL: ART_URL,
-    FRAME_ALIASES: FRAME_ALIASES, Z: Z } };
+    FRAME_ALIASES: FRAME_ALIASES, Z: Z, borderPicker: borderPicker, bpickValue: bpickValue, normColour: normColour } };
   /* the other views live in admin-order.js and admin-more.js; boot once they're loaded */
   var booted = false;
   function bootOnce() { if (!booted) { booted = true; boot(); } }

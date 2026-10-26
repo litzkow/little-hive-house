@@ -427,14 +427,30 @@ test("buildPrintSheet without sharp/pdfkit installed fails cleanly (the real ren
     (e) => e.code === "MODULE_NOT_FOUND");
 });
 
-test("border: white by default, black on request; the black square covers the punched piece plus a little, never the gap", () => {
-  assert.equal(P.borderColour(undefined), "white");
-  assert.equal(P.borderColour("black"), "black");
-  assert.equal(P.borderColour(1), "black");
-  assert.equal(P.borderColour("pink"), "white");
+test("border: white by default, any colour or the picture's own on request; the black square covers the punched piece plus a little, never the gap", () => {
+  assert.equal(P.borderColour(undefined), "#FFFFFF");
+  assert.equal(P.borderColour("black"), "#000000");
+  assert.equal(P.borderColour(1), "#000000");
+  assert.equal(P.borderColour("pink"), "#FFFFFF");
+  assert.equal(P.borderColour("pink", null), null);
+  assert.equal(P.borderColour("#f2a81d"), "#F2A81D");
+  assert.equal(P.borderColour("abc"), "#AABBCC");
+  assert.equal(P.borderColour("Auto"), "auto");
   const g = P.geometry(2.45, 2.08), pt = P.tilePositions(2.45, 2.08);
   const a = P.borderRect(pt[0], g), b = P.borderRect(pt[1], g);
   assert.ok(a.x < pt[0].x && a.size > pt[0].size, "a little past the cut line");
   assert.ok(a.x <= pt[0].art.x && a.x + a.size >= pt[0].art.x + pt[0].art.size, "behind the whole picture");
   assert.ok(b.x - (a.x + a.size) >= 0.12 * 72 - 1e-6, "white stays between two pieces");
+});
+
+test("border per item: an order's colour for all, one per item, or the item's own; auto = the picture's edge colour", () => {
+  const order = { items: [{ kind: "design", id: "a/b", qty: 1 }, { kind: "design", id: "c/d", qty: 2, border: "#00ff00" }, { kind: "photos", packSize: 1, photos: [{ path: "p.jpg" }] }],
+    printBorders: { all: "black", items: { 2: "auto" } } };
+  const plan = P.planTiles(order);
+  assert.deepEqual(plan.tiles.map((t) => t.border), ["#000000", "#00FF00", "#00FF00", "auto"]);
+  assert.deepEqual(P.planTiles({ items: order.items }).tiles.map((t) => t.border || null), [null, "#00FF00", "#00FF00", null]);
+  // the ring of a 4 x 4 picture: red outside, blue inside -> red
+  const n = 4, d = Buffer.alloc(n * n * 3);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const o = (y * n + x) * 3, inner = x > 0 && x < 3 && y > 0 && y < 3; d[o] = inner ? 0 : 255; d[o + 2] = inner ? 255 : 0; }
+  assert.equal(P.ringMean(d, n, 3, 1), "#FF0000");
 });

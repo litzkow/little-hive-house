@@ -461,14 +461,34 @@
       (tiles ? '<button class="btn btn-honey" data-act="printSheet" data-which="sheet">' + icon('print') + 'Magnets PDF (glossy)</button>' : '') +
       '<button class="btn ' + (tiles ? 'btn-ghost' : 'btn-honey') + '" data-act="printSheet" data-which="slip">' + icon('print') + 'Packing slip PDF</button>' +
       '<button class="btn btn-ghost btn-sm" data-act="printSheet" data-rebuild="1" title="Make the PDFs again from the photos and designs">' + icon('refresh') + 'Rebuild</button></div>' +
-      '<p class="sheet-status" id="sheet-status" style="margin:0 0 14px">' + sheetStatus(o) + '</p>' +
+      '<p class="sheet-status" id="sheet-status" style="margin:0 0 14px">' + sheetStatus(o) + '</p>' + (tiles ? bordersPanel(o) : '') +
       '<ol class="steps-n">' + steps.map(function (s) { return '<li><div>' + s + '</div></li>'; }).join('') + '</ol>' + more + '</section>';
   }
   /* Opens the PDF in a new tab. The tab is opened right away (synchronously, in the tap) so iPhone Safari doesn't block it,
      then pointed at the signed link when the server answers. */
+  /* the border around each picture on the magnets PDF (functions/printsheet.js): one for all, and/or one per item */
+  function bordersPanel(o) {
+    var pb = o.printBorders || {}, items = pb.items || {}, set = Object.keys(items).length;
+    var rows = (o.items || []).map(function (it, i) {
+      if (!it || (it.kind !== 'design' && it.kind !== 'photos')) return '';
+      var name = it.kind === 'design' ? (it.title || it.id) : 'Photo magnets, ' + (it.packSize || (it.photos || []).length) + '-pack';
+      return '<div class="tp-item"><div class="small"><b>' + esc(name) + '</b>' + (it.qty > 1 ? ' ×' + esc(it.qty) : '') + '</div>' +
+        h.borderPicker(items[i] || '', { def: 'Same as above', small: true, attrs: ' data-item="' + i + '"' }) + '</div>';
+    }).join('');
+    return '<details class="panel" id="border-panel"' + (pb.all || set ? ' open' : '') + '><summary>Border colours' + (pb.all || set ? ' (changed for this order)' : '') + '</summary><div class="stack">' +
+      '<div class="field"><span>All the magnets in this order</span>' + h.borderPicker(pb.all || '', { def: 'Settings default', id: 'ord-border-all' }) + '</div>' +
+      '<p class="small muted" style="margin:0">Or a different one for some items:</p>' + rows +
+      '<div class="row end"><button class="btn btn-honey" data-act="printSheet" data-which="sheet" data-borders="1">' + icon('print') + 'Make the magnets PDF with these borders</button></div></div></details>';
+  }
+  function collectBorders() {
+    var items = {};
+    Array.prototype.forEach.call(document.querySelectorAll('#border-panel .bpick[data-item]'), function (bp) { var v = h.bpickValue(bp); if (v) items[bp.getAttribute('data-item')] = v; });
+    return { all: h.bpickValue(document.getElementById('ord-border-all')) || null, items: items };
+  }
   ACT.printSheet = function (btn) {
     var o = current; if (!o) return;
-    var rebuild = btn.getAttribute('data-rebuild') === '1', which = btn.getAttribute('data-which') === 'slip' || !printableMagnets(o) ? 'slip' : 'sheet';
+    var borders = btn.getAttribute('data-borders') === '1' ? collectBorders() : null;
+    var rebuild = btn.getAttribute('data-rebuild') === '1' || !!borders, which = btn.getAttribute('data-which') === 'slip' || !printableMagnets(o) ? 'slip' : 'sheet';
     var openLink = function (url) { return '<a class="btn btn-honey" href="' + esc(url) + '" target="_blank" rel="noopener">' + icon('external') + 'Open the PDF</a>'; };
     var go = function (openTab) {
       var tab = null;
@@ -477,7 +497,9 @@
         if (tab && tab.document) { try { tab.document.title = 'Print sheet…'; tab.document.body.innerHTML = '<p style="font:16px -apple-system,system-ui,sans-serif;padding:24px">Getting the print sheet… this can take a minute for big orders.</p>'; } catch (e) { /* ignore */ } }
       }
       h.busy(btn, true, rebuild ? 'Rebuilding…' : 'Opening…');
-      h.call('adminPrintSheet', { orderId: o.id, rebuild: rebuild, which: which }).then(function (res) {
+      var args = { orderId: o.id, rebuild: rebuild, which: which };
+      if (borders) args.borders = borders;
+      h.call('adminPrintSheet', args).then(function (res) {
         h.busy(btn, false);
         if (!res || !res.url) throw new Error('No link came back.');
         if (tab && !tab.closed) tab.location.href = res.url;
@@ -493,7 +515,7 @@
         h.toast('Couldn’t get the print sheet: ' + h.friendlyError(e), true);
       });
     };
-    if (!rebuild) return go(true);
+    if (!rebuild || borders) return go(true);
     h.dialog({ title: 'Rebuild the print sheets?', html: '<p>Both PDFs are made again from the customer’s photos and the designs, with the punch size and photo touch-up in Settings › Printing (about a minute for big orders).</p>', ok: 'Rebuild' })
       .then(function (ok) { if (ok) go(false); });
   };

@@ -133,18 +133,20 @@ function planTiles(order) {
       const id = String(it.id);
       const slug = id.split("/").pop();
       const collection = String(it.collection || id.split("/")[0] || "");
-      for (let q = 0; q < qty; q++) tiles.push({ kind: "design", id, collection, slug, title: it.title || id, key: `design:${id}` });
+      const border = itemBorder(order, it, index);
+      for (let q = 0; q < qty; q++) tiles.push({ kind: "design", id, collection, slug, title: it.title || id, key: `design:${id}`, ...(border ? { border } : {}) });
     } else if (it.kind === "photos") {
       pack += 1;
       const photos = (Array.isArray(it.photos) ? it.photos : []).filter((p) => p && typeof p.path === "string" && p.path);
       const size = (toInt(it.packSize) * qty) || photos.length;
       if (!photos.length) { skipped.push({ kind: "photos", title: it.title || `Photo magnets (${it.packSize || "?"})`, qty, size, reason: "no photos" }); return; }
+      const border = itemBorder(order, it, index);
       fillIndexes(size, photos.length).forEach((j) => {
         const p = photos[j];
         const frame = frameId(p.frame), caption = String(p.caption || "").trim();
         const crop = Crop.clean(p.crop);
         const capStyle = typeof p.capStyle === "string" && p.capStyle ? p.capStyle : null;
-        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle,
+        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle, ...(border ? { border } : {}),
           key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}` });
       });
     } else if (it.kind === "package") {
@@ -400,17 +402,57 @@ function registerFonts(doc) {
   return { body: fonts.Body || "Helvetica", head: fonts.Head || "Helvetica-Bold", caps: fonts.Caps || "Helvetica-Bold" };
 }
 
-/** Pure: the black square drawn behind a picture (border "black"): the piece the punch cuts plus a little extra all
- * round, so a punch a little off centre still cuts black, while some white stays between two pieces. Points. */
+/** Pure: the coloured square drawn behind a picture (any border but white): the piece the punch cuts plus a little extra
+ * all round, so a punch a little off centre still cuts that colour, while some white stays between two pieces. Points. */
 function borderRect(slot, geo) {
   const extra = Math.max(0, Math.min(0.05 * 72, (geo.gapPt - 0.12 * 72) / 2));
   return { x: r6(slot.x - extra), y: r6(slot.y - extra), size: r6(slot.size + 2 * extra) };
 }
-const BORDERS = { white: "white", black: "black" };
-/** "black" or "white" (the default). */
-function borderColour(v) { return v === "black" || v === 1 || v === "1" ? "black" : "white"; }
+/* Border = the paper around each picture, which wraps over the edge of the magnet. Any colour: Settings › Printing has the
+   default, an order (printBorders {all, items: {<item index>: colour}}) or a test sheet can change it per item. */
+const WHITE = "#FFFFFF";
+const NAMED = { white: "#FFFFFF", black: "#000000" };
+const AUTO = "auto";                                 // the colour of each picture's own edge (edgeColour)
+/** Pure: "#RRGGBB" for a colour ("#abc", "#aabbcc", "white", "black"), "auto", else `fallback` (white unless given). */
+function borderColour(v, fallback = WHITE) {
+  if (v === 1 || v === "1") return "#000000";
+  if (typeof v !== "string") return fallback;
+  const k = v.trim().toLowerCase();
+  if (k === AUTO) return AUTO;
+  if (NAMED[k]) return NAMED[k];
+  let m = /^#?([0-9a-f]{6})$/.exec(k);
+  if (m) return `#${m[1].toUpperCase()}`;
+  m = /^#?([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(k);
+  if (m) return `#${m[1]}${m[1]}${m[2]}${m[2]}${m[3]}${m[3]}`.toUpperCase();
+  return fallback;
+}
+/** Pure: the border an order sets for one of its items (index in order.items), or null for the sheet's default. */
+function itemBorder(order, it, index) {
+  const pb = order && order.printBorders;
+  const per = pb && pb.items && (pb.items[index] !== undefined ? pb.items[index] : pb.items[String(index)]);
+  return borderColour(per, null) || borderColour(it && it.border, null) || borderColour(pb && pb.all, null);
+}
+/** Pure: "#RRGGBB" from the mean of a ring of pixels (raw RGB, n x n): the outermost `ring` pixels on every side. */
+function ringMean(data, n, ch, ring) {
+  let r = 0, g = 0, b = 0, cnt = 0;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (x >= ring && x < n - ring && y >= ring && y < n - ring) continue;
+    const o = (y * n + x) * ch; r += data[o]; g += data[o + 1]; b += data[o + 2]; cnt++;
+  }
+  const hex = (v) => Math.round(v / cnt).toString(16).padStart(2, "0");
+  return `#${hex(r)}${hex(g)}${hex(b)}`.toUpperCase();
+}
+/** The colour of a printed picture's edge (its outer 3%), for the "auto" border. */
+async function edgeColour(sharp, jpeg) {
+  const n = 64;
+  const { data, info } = await sharp(jpeg).resize(n, n, { fit: "fill" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  return ringMean(data, n, info.channels, 2);
+}
 
-function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, border }) {
+/** Pure: a name for a colour on the sheet's footer. */
+function colourName(c) { return c === WHITE ? "white" : c === "#000000" ? "black" : c === AUTO ? "picture-coloured" : c; }
+
+function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, border, edges }) {
   doc.addPage({ size: "LETTER", margin: 0 });
   const num = order.number || "";
   const left = `Little Hive House · Order ${num}${order.name ? ` · ${String(order.name).slice(0, 40)}` : ""}`;
@@ -420,15 +462,18 @@ function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, bor
   doc.text(left, L, 18, { width: 250, lineBreak: false, ellipsis: true });
   doc.text(right, PAGE_PT.w / 2, 18, { width: PAGE_PT.w / 2 - L, align: "right", lineBreak: false });
   const slots = tilePositions(geo.cut, geo.image);
-  const black = borderColour(border) === "black";
+  const base = borderColour(border), used = new Set();
   for (const t of placed) {
     const img = images.get(t.key);
     const a = slots[t.slot].art;
-    if (black) { const r = borderRect(slots[t.slot], geo); doc.rect(r.x, r.y, r.size, r.size).fill("#000000"); }
+    let c = t.border || base;
+    used.add(c);
+    if (c === AUTO) c = (edges && edges.get(t.key)) || WHITE;
+    if (c !== WHITE) { const r = borderRect(slots[t.slot], geo); doc.rect(r.x, r.y, r.size, r.size).fill(c); }
     if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
   }
   doc.font(F.body).fontSize(6.5).fillColor("#8A7A66");
-  doc.text(`${placed.length} of ${PER_PAGE} magnets · each picture ${geo.image.toFixed(2)} in with ${black ? "black" : "white"} paper around it for the edge · centre the picture in the punch`,
+  doc.text(`${placed.length} of ${PER_PAGE} magnets · each picture ${geo.image.toFixed(2)} in with ${used.size === 1 ? colourName([...used][0]) : "coloured"} paper around it for the edge · centre the picture in the punch`,
     L, PAGE_PT.h - 26, { width: PAGE_PT.w - 2 * L, align: "center", lineBreak: false });
 }
 
@@ -538,7 +583,7 @@ function newDoc(title, subject) {
 }
 
 /** Two PDFs: {pdf: the magnets only (or null when nothing prints), slip: notes + packing slip, pages, slipPages}. */
-async function assemblePdf({ order, plan, images, warnings, frames, geo, border }) {
+async function assemblePdf({ order, plan, images, warnings, frames, geo, border, edges }) {
   const date = fmtDate(order.paidAt || order.createdAt);
   if (plan.truncated) warnings.push(`This order has ${plan.total} magnets to print but the sheets stop at ${MAX_TILES}. Print the rest from the admin ZIP.`);
   let pdf = null, pages = 0;
@@ -549,7 +594,7 @@ async function assemblePdf({ order, plan, images, warnings, frames, geo, border 
     for (const [key, jpeg] of images) { try { embedded.set(key, s.doc.openImage(jpeg)); } catch (e) { warnings.push(`A tile could not be embedded (${e.message}).`); } }
     const placed = placeTiles(plan.tiles);
     for (let p = 0; p < plan.sheets; p++) {
-      drawSheet(s.doc, s.F, { order, page: p, sheets: plan.sheets, placed: placed.filter((t) => t.page === p), images: embedded, date, geo, border });
+      drawSheet(s.doc, s.F, { order, page: p, sheets: plan.sheets, placed: placed.filter((t) => t.page === p), images: embedded, date, geo, border, edges });
     }
     s.doc.end();
     pdf = await s.done;
@@ -570,10 +615,10 @@ async function printSettings() {
     const snap = await deps.db().collection("settings").doc("store").get();
     const s = snap.exists ? snap.data() : {};
     return { cut: cutSize(s.printCutIn), image: imageSize(s.printImageIn), enhance: s.printEnhance === undefined ? true : Number(s.printEnhance) !== 0,
-      border: borderColour(Number(s.printBorderBlack) === 1 ? "black" : "white") };
+      border: borderColour(s.printBorderColor, Number(s.printBorderBlack) === 1 ? "#000000" : WHITE) };
   } catch (err) {
     console.warn("[printsheet] settings could not be read; using the defaults", err && err.message);
-    return { cut: CUT_IN, image: IMAGE_IN, enhance: true, border: "white" };
+    return { cut: CUT_IN, image: IMAGE_IN, enhance: true, border: WHITE };
   }
 }
 
@@ -611,7 +656,14 @@ async function buildPrintSheetDetailed(orderId, order, opts = {}) {
   await pool(Array.from(uniq.values()), CONCURRENCY, async (t) => {
     images.set(t.key, await (t.kind === "design" ? renderDesign(t, ctx) : renderPhoto(t, ctx)));
   });
-  const out = await assemblePdf({ order, plan, images, warnings: ctx.warnings, frames: ctx.frames, geo: ctx.geo, border: ctx.border });
+  // "auto" borders: the colour of each picture's own edge
+  let edges = null;
+  if (ctx.border === AUTO || plan.tiles.some((t) => t.border === AUTO)) {
+    edges = new Map();
+    const sharp = loadSharp();
+    for (const [key, jpeg] of images) { try { edges.set(key, await edgeColour(sharp, jpeg)); } catch (e) { /* white */ } }
+  }
+  const out = await assemblePdf({ order, plan, images, warnings: ctx.warnings, frames: ctx.frames, geo: ctx.geo, border: ctx.border, edges });
   return { ...out, sheets: plan.sheets, tiles: plan.tiles.length, cut: ctx.geo.cut, image: ctx.geo.image, enhance: ctx.enhance, border: ctx.border, warnings: ctx.warnings.slice(0, 10) };
 }
 
@@ -643,7 +695,7 @@ async function generateForOrder(ref, orderId, order, { by = "system" } = {}) {
   if (out.pdf) await savePdf(bucket, p, out.pdf, order, orderId, by, "sheet");
   if (out.slip) await savePdf(bucket, sp, out.slip, order, orderId, by, "slip");
   const meta = { path: p, slipPath: out.slip ? sp : null, pages: out.pages, slipPages: out.slipPages || 0, sheets: out.sheets, tiles: out.tiles,
-    cut: out.cut || settings.cut, image: out.image || settings.image, enhance: out.enhance !== undefined ? out.enhance : settings.enhance, border: out.border || settings.border || "white",
+    cut: out.cut || settings.cut, image: out.image || settings.image, enhance: out.enhance !== undefined ? out.enhance : settings.enhance, border: out.border || settings.border || WHITE, borders: order.printBorders || null,
     bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: 3 };
   if (ref) await ref.update({ printSheet: meta, updatedAt: nowIso() }).catch((err) => console.warn("[printsheet] could not save printSheet on the order", err && err.message));
   console.log(`[printsheet] ${order.number || orderId}: ${out.tiles} tiles, ${out.pages} pages + slip, ${((meta.bytes + meta.slipBytes) / 1048576).toFixed(1)} MB in ${meta.ms} ms`);
@@ -688,7 +740,7 @@ async function downloadUrl(p, filename) {
 
 module.exports = {
   DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, CUT_IN, CUT_MIN, CUT_MAX, IMAGE_IN, IMAGE_MIN, IMAGE_MAX, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
-  pageCount, geometry, cutSize, imageSize, tilePositions, borderRect, borderColour, BORDERS, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
+  pageCount, geometry, cutSize, imageSize, tilePositions, borderRect, borderColour, itemBorder, colourName, ringMean, WHITE, AUTO, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,
   _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp },   // for diagnostics / visual checks

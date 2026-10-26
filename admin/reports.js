@@ -21,7 +21,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1, printBorderBlack: 0, autoNewsletter: 1 };
+  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1, autoNewsletter: 1 };
   var SALE_STATUSES = ['paid', 'in_production', 'shipped', 'delivered', 'refunded', 'partially_refunded'];
   var REASONS = [
     ['not_delivered', 'Never arrived'],
@@ -55,6 +55,9 @@
   function settingsWithDefaults(s) {
     var out = {};
     for (var k in DEFAULT_SETTINGS) out[k] = (s && s[k] != null && s[k] !== '' && isFinite(Number(s[k]))) ? Number(s[k]) : DEFAULT_SETTINGS[k];
+    // the default border of the print sheets: a colour, or 'auto' (the picture's own edge colour)
+    var b = s && typeof s.printBorderColor === 'string' ? s.printBorderColor : '';
+    out.printBorderColor = b === 'auto' || /^#[0-9A-Fa-f]{6}$/.test(b) ? b.toUpperCase().replace('AUTO', 'auto') : (s && Number(s.printBorderBlack) === 1 ? '#000000' : '#FFFFFF');
     return out;
   }
   function monthKey(ms) { var d = new Date(ms); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }

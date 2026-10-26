@@ -78,13 +78,13 @@ test("the last test sheet is saved and can be made again from Storage without pi
     const jpg = Buffer.alloc(300, 9);
     const r = await A.adminTestSheet({ border: "black", designs: [{ id: "places/new-york", qty: 2 }], photos: [{ data: jpg.toString("base64"), name: "beach.jpg", frame: "instant", caption: "Hi", qty: 1 }] }, ADMIN);
     assert.equal(r.saved, true);
-    assert.equal(r.border, "black");
-    assert.equal(seenOpts.border, "black");
+    assert.equal(r.border, "#000000");
+    assert.equal(seenOpts.border, "#000000");
     assert.ok(bucket.files.has("tests/last/1.jpg") && bucket.files.has("tests/last.json"));
     const last = await A.adminLastTestSheet({}, ADMIN);
     assert.ok(last.pdfUrl);
     assert.equal(last.sheet.designs[0].id, "places/new-york");
-    assert.equal(last.sheet.border, "black");
+    assert.equal(last.sheet.border, "#000000");
     assert.equal(last.sheet.designs[0].qty, 2);
     assert.equal(last.sheet.photos[0].saved, "tests/last/1.jpg");
     assert.equal(last.sheet.photos[0].name, "beach.jpg");

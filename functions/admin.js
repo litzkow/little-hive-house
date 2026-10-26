@@ -15,7 +15,7 @@ const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = requi
 const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25,
-  printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1, printBorderBlack: 0, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
+  printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -395,8 +395,12 @@ async function adminSaveSettings(data, auth) {
     if (k === "printImageIn" && (n < 2 || n > 2.3)) fail("invalid-argument", "The picture size should be between 2.00 and 2.30 inches.");
     if (k === "autoNewsletter" && n !== 0 && n !== 1) fail("invalid-argument", "Automatic emails are on (1) or off (0).");
     if (k === "printEnhance" && n !== 0 && n !== 1) fail("invalid-argument", "The photo touch-up is on (1) or off (0).");
-    if (k === "printBorderBlack" && n !== 0 && n !== 1) fail("invalid-argument", "The border is white (0) or black (1).");
     out[k] = Math.round(n * 10000) / 10000;
+  }
+  if (s.printBorderColor !== undefined && s.printBorderColor !== null && s.printBorderColor !== "") {
+    const c = require("./printsheet").borderColour(String(s.printBorderColor), null);
+    if (!c) fail("invalid-argument", "The border colour should look like #FFFFFF.");
+    out.printBorderColor = c;
   }
   if (!Object.keys(out).length) fail("invalid-argument", "Nothing to save.");
   out.updatedAt = nowIso();
@@ -485,8 +489,21 @@ async function adminPrintSheet(data, auth) {
   const printsheet = require("./printsheet");
   const { ref, id, order } = await loadOrder(data && data.orderId);
   if (order.status === "pending") fail("failed-precondition", "This order hasn't been paid yet, so there is nothing to print.");
-  const rebuild = !!(data && data.rebuild);
+  let rebuild = !!(data && data.rebuild);
   const which = data && data.which === "slip" ? "slip" : "sheet";
+  if (data && data.borders && typeof data.borders === "object") {
+    // border colours for this order: one for all, and/or one per item (index in order.items); made again with them
+    const all = printsheet.borderColour(data.borders.all, null);
+    const items = {};
+    const src = data.borders.items && typeof data.borders.items === "object" ? data.borders.items : {};
+    for (const [k, v] of Object.entries(src)) {
+      const i = Number(k), c = printsheet.borderColour(v, null);
+      if (Number.isInteger(i) && i >= 0 && i < (order.items || []).length && c) items[i] = c;
+    }
+    order.printBorders = { all, items };
+    await ref.update({ printBorders: order.printBorders, updatedAt: nowIso() });
+    rebuild = true;
+  }
   const pathOf = (m) => (m ? (which === "slip" ? m.slipPath : m.path) : null);
   // PDFs made with an older layout (v under 3) are made again
   let meta = order.printSheet && order.printSheet.v === 3 && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
@@ -570,7 +587,7 @@ async function adminTestSheet(data, auth) {
     if (!c) fail("invalid-argument", `Unknown design "${id}".`);
     const qty = Math.min(99, Math.max(1, Math.floor(Number(d.qty) || 1)));
     count += qty;
-    items.push({ kind: "design", id, title: c.title, collection: c.collection, qty });
+    items.push({ kind: "design", id, title: c.title, collection: c.collection, qty, border: printsheet.borderColour(d.border, null) });
   }
   const photos = new Map(), keep = [];
   const list = (Array.isArray(data && data.photos) ? data.photos : []).slice(0, 9);
@@ -591,13 +608,14 @@ async function adminTestSheet(data, auth) {
     const qty = Math.min(99, Math.max(1, Math.floor(Number(p.qty) || 1)));
     const caption = U.text(p.caption, 40), capStyle = U.text(p.capStyle, 20) || null;
     count += qty;
-    items.push({ kind: "photos", packSize: qty, qty: 1, photos: [{ path, frame, caption, capStyle }] });
-    keep.push({ buf, name: U.text(p.name, 80) || `Photo ${n + 1}`, frame, caption, capStyle, qty });
+    const pb = printsheet.borderColour(p.border, null);
+    items.push({ kind: "photos", packSize: qty, qty: 1, photos: [{ path, frame, caption, capStyle }], border: pb });
+    keep.push({ buf, name: U.text(p.name, 80) || `Photo ${n + 1}`, frame, caption, capStyle, qty, border: pb });
   }
   if (!items.length) fail("invalid-argument", "Add at least one design or photo.");
   if (count > TEST_MAX_MAGNETS) fail("invalid-argument", `That is ${count} magnets; a test sheet holds up to ${TEST_MAX_MAGNETS} (3 sheets).`);
   const settings = await printsheet.printSettings();
-  const border = data && (data.border === "black" || data.border === "white") ? data.border : settings.border;
+  const border = printsheet.borderColour(data && data.border, settings.border);
   const out = await printsheet.buildPrintSheetDetailed("test", { number: "TEST", name: "Test sheet", items, paidAt: nowIso() },
     { cut: settings.cut, image: settings.image, enhance: settings.enhance, border, readPhoto: async (p) => { if (!photos.has(p)) throw new Error("missing"); return photos.get(p); } });
   if (!out.pdf) fail("unavailable", "The test sheet could not be made.");
@@ -615,11 +633,11 @@ const TEST_SAVED_RE = /^tests\/last\/[1-9]\.jpg$/;
 async function saveTestSheet(designs, photos, border) {
   const bucket = deps.bucket();
   const opts = { resumable: false, metadata: { cacheControl: "private, max-age=0" } };
-  const out = { at: nowIso(), border: border === "black" ? "black" : "white", designs: designs.map((d) => ({ id: d.id, name: d.title || d.id, qty: d.qty })), photos: [] };
+  const out = { at: nowIso(), border, designs: designs.map((d) => ({ id: d.id, name: d.title || d.id, qty: d.qty, border: d.border || null })), photos: [] };
   for (let n = 0; n < photos.length; n++) {
     const p = photos[n], file = `tests/last/${n + 1}.jpg`;
     await bucket.file(file).save(p.buf, { ...opts, contentType: "image/jpeg" });
-    out.photos.push({ saved: file, name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle, qty: p.qty });
+    out.photos.push({ saved: file, name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle, qty: p.qty, border: p.border || null });
   }
   for (let n = photos.length + 1; n <= 9; n++) { try { await bucket.file(`tests/last/${n}.jpg`).delete(); } catch (e) { /* not there */ } }
   await bucket.file("tests/last.json").save(Buffer.from(JSON.stringify(out)), { ...opts, contentType: "application/json" });
