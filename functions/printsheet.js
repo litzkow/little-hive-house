@@ -2,13 +2,12 @@
 /* Print-ready PDFs for a paid order, made on the server so the owners never have to run anything on a computer.
    Two files, so only the magnets go on the glossy paper:
      magnets      US Letter at 600 dpi, 9 pieces per page (3 x 3), each the size of the square punch (Settings ›
-                  Printing, 2.45 in by default), the picture's edge carried out past the cut line (no white on the
-                  magnet even when the punch is a little off), white space between them with thin grey cut marks
+                  Printing, 2.4 in by default) with white space between them and a thin grey guide line
      packing slip plain paper: the "Before you print" notes (when there are any) and the packing slip
    `sharp` rasterises (photos, the frame SVGs through librsvg, WebP designs) and `pdfkit` assembles the PDFs. Both are
    required lazily, so this module loads and its layout math is unit-tested without node_modules.
 
-   Tile sources (each fills the 2 in face, 1200 px, is printed at IMAGE_IN, then carried on past the cut line + BLEED, see continueEdges)
+   Tile sources (each fills the 2 in face, 600 px, then its edges are stretched out to the cut line + bleed)
      design  -> ${SITE_URL}/assets/art/<collection>/<slug>.webp (600 px)
      photo   -> the customer's file in the Storage bucket (uploads/<uid>/<packId>/<n>.<ext>), EXIF-rotated,
                 centre-cropped into the frame's window, touched up for paper (enhancePhoto), the frame SVG
@@ -27,15 +26,13 @@ const { siteUrl, nowIso, AppError } = require("./config");
 const deps = require("./deps");
 const FM = require("./fontmetrics");
 const Crop = require("./crop");
-const AI = require("./aiedge");
 
 /* ---------- geometry ----------
    Each magnet is a piece of paper cut with the punch (the cut size, about 2.45 in for a 2 x 2 in magnet: the face
    plus the paper that wraps around the edge). The artwork / photo is printed a hair bigger than the 2 in face
-   (IMAGE_IN, so the rounded edge of the face is covered too), centred in its piece. The paper around it that wraps
-   over the sides is not white: the picture carries on outwards, past the cut line by BLEED_IN (each side continues as
-   its own reflection, so there is no seam, blur or frame) and a punch placed a little off centre never shows a white edge. The picture
-   itself is not made bigger. 9 pieces per page (3 x 3), with white space between them and grey cut marks in it. */
+   (IMAGE_IN, so the rounded edge of the face is covered too), centred in its piece, and the rest of the piece is
+   plain white paper that wraps around the sides, like the punch makers' own samples. 9 pieces per page (3 x 3),
+   with white space between them. */
 const DPI = 600;                                     // sharp text and lines; the photo printer prints far finer than this
 const COLS = 3, ROWS = 3, PER_PAGE = COLS * ROWS;
 const FACE_IN = 2;                                   // the visible magnet face
@@ -45,15 +42,12 @@ const CUT_IN = 2.45;                                 // default paper size of th
 const CUT_MIN = 2.1, CUT_MAX = 2.55;
 const IMAGE_IN = 2.08;                               // default printed size of each photo / design (Settings › Printing)
 const IMAGE_MIN = 2.0, IMAGE_MAX = 2.3;
-const EDGE_REACH = 60;                               // px (0.1 in): how far into the picture its edge is reflected outwards
-const BLEED_IN = 0.07;                               // how far the carried-out edge runs past the cut line (less when the gaps are narrow)
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
 const SVG_UNITS = 600;                               // the frames' coordinate system = the 2 in face
 const SCALE = FACE_PX / SVG_UNITS;                   // 2 px per unit
 const MAX_TILES = 450;                               // 50 sheets: more than any pack x qty the shop sells
 const JPEG = { quality: 93, chromaSubsampling: "4:4:4" };
-const LAYOUT_V = 7;                                  // 7: photos never zoomed; their edge is the photo itself where it has more (crop.js)
 const URL_TTL_MS = 60 * 60 * 1000;
 const CONCURRENCY = 4;
 
@@ -70,21 +64,16 @@ function imageSize(v) {
 }
 /**
  * Everything about the sheet for a cut size and image size: points for the PDF, pixels for the artwork.
- * {cut, image, face, gap, bleed, cutPt, artPt, artPx, padPx, fullPx, fullPt, gapPt, left, top}
- * artPx is the picture; padPx the carried-out edge added on each side of it; fullPx / fullPt the whole printed square.
+ * {cut, image, face, gap, cutPt, artPt, artPx, gapPt, left, top}
  */
 function geometry(cutIn, imageIn) {
   const cut = cutSize(cutIn);
   const image = Math.min(imageSize(imageIn), cut);
   const artPx = Math.round(image * DPI);
   const gap = Math.min(0.5, (8.5 - 2 * SIDE_IN - COLS * cut) / (COLS - 1));
-  // the carried-out edge runs past the cut line, but always leaves at least 0.1 in of white between two pieces for the marks
-  const bleed = Math.max(0, Math.min(BLEED_IN, (gap - 0.1) / 2));
-  const padPx = Math.max(0, Math.round(((cut + 2 * bleed) * DPI - artPx) / 2)), fullPx = artPx + 2 * padPx;
-  const cutPt = cut * 72, gapPt = gap * 72, artPt = artPx / DPI * 72, fullPt = fullPx / DPI * 72;
+  const cutPt = cut * 72, gapPt = gap * 72, artPt = artPx / DPI * 72;
   const gridW = COLS * cutPt + (COLS - 1) * gapPt, gridH = ROWS * cutPt + (ROWS - 1) * gapPt;
-  return { cut, image: r6(artPx / DPI), face: FACE_IN, gap: r6(gap), bleed: r6((fullPx / DPI - cut) / 2), cutPt: r6(cutPt), artPt: r6(artPt), artPx,
-    padPx, fullPx, fullPt: r6(fullPt), gapPt: r6(gapPt),
+  return { cut, image: r6(artPx / DPI), face: FACE_IN, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, gapPt: r6(gapPt),
     left: r6((PAGE_PT.w - gridW) / 2), top: r6((PAGE_PT.h - gridH) / 2 + 6) };
 }
 
@@ -99,18 +88,17 @@ function pageCount(n) { return n > 0 ? Math.ceil(n / PER_PAGE) : 0; }
 
 /**
  * The 9 pieces of a sheet, in points: {i, col, row, x, y, size} is the piece the punch cuts, art {x, y, size} the
- * picture centred in it, print {x, y, size} the whole printed square (the picture plus its carried-out edge, a little
- * past the cut line), face {x, y, size} the 2 in magnet face.
+ * printed image centred in it (white paper around), face {x, y, size} the 2 in magnet face.
  */
 function tilePositions(cutIn, imageIn) {
   const g = geometry(cutIn, imageIn);
-  const b = (g.artPt - g.cutPt) / 2, e = (g.fullPt - g.cutPt) / 2, f = (g.cutPt - FACE_IN * 72) / 2;
+  const b = (g.artPt - g.cutPt) / 2, f = (g.cutPt - FACE_IN * 72) / 2;
   const out = [];
   for (let i = 0; i < PER_PAGE; i++) {
     const col = i % COLS, row = Math.floor(i / COLS);
     const x = g.left + col * (g.cutPt + g.gapPt), y = g.top + row * (g.cutPt + g.gapPt);
     out.push({ i, col, row, x: r6(x), y: r6(y), size: g.cutPt,
-      art: { x: r6(x - b), y: r6(y - b), size: g.artPt }, print: { x: r6(x - e), y: r6(y - e), size: g.fullPt }, face: { x: r6(x + f), y: r6(y + f), size: FACE_IN * 72 } });
+      art: { x: r6(x - b), y: r6(y - b), size: g.artPt }, face: { x: r6(x + f), y: r6(y + f), size: FACE_IN * 72 } });
   }
   return out;
 }
@@ -330,63 +318,9 @@ async function enhancePhoto(sharp, img) {
     .linear(p.contrast, p.offset).sharpen({ sigma: p.sharpen }).raw().toBuffer({ resolveWithObject: true });
 }
 
-/**
- * The 1200 px face -> the printed square: the picture at IMAGE_IN (a hair bigger than the face so its rounded edge is
- * covered), then carried on outwards by geo.padPx on every side (continueEdges), so the paper that wraps around the
- * magnet carries on the picture instead of being white. The picture itself keeps its size.
- */
-async function toPrint(sharp, faceJpeg, geo) {
-  const px = geo.artPx, pad = geo.padPx || 0;
-  if (px === FACE_PX && !pad) return faceJpeg;
-  let img = sharp(faceJpeg);
-  if (px !== FACE_PX) img = img.resize(px, px, { fit: "fill", kernel: "lanczos3" });
-  if (!pad) return img.jpeg(JPEG).toBuffer();
-  const pic = await img.removeAlpha().raw().toBuffer({ resolveWithObject: true });
-  const out = continueEdges(pic.data, pic.info.width, pic.info.channels, pad);
-  return sharp(out.data, { raw: { width: out.size, height: out.size, channels: pic.info.channels } }).jpeg(JPEG).toBuffer();
-}
-
-/**
- * A photo that reaches the edge of the face: around the face goes the photo itself (`under`, the window plus its
- * bleed, in face pixels relative to the face), so the edge that wraps around the magnet is the real photo, not a
- * reflection. Only the far part that ends up on the back of the magnet is folded (continueEdges).
- */
-async function toPrintWithPhoto(sharp, faceJpeg, geo, under) {
-  const k = geo.artPx / FACE_PX;
-  const e = Math.ceil((geo.padPx || 0) / k) + 2;       // face px around the face that the printed square needs
-  const B = Math.max(0, -under.left, -under.top, under.left + under.width - FACE_PX, under.top + under.height - FACE_PX);
-  const face = await sharp(faceJpeg).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-  const s1 = continueEdges(face.data, FACE_PX, 3, B);
-  let cur = await sharp(s1.data, { raw: { width: s1.size, height: s1.size, channels: 3 } })
-    .composite([{ input: under.data, raw: { width: under.width, height: under.height, channels: 3 }, left: B + under.left, top: B + under.top },
-      { input: faceJpeg, left: B, top: B }]).removeAlpha().raw().toBuffer();
-  let size = s1.size;
-  if (e > B) { const s2 = continueEdges(cur, size, 3, e - B); cur = s2.data; size = s2.size; }
-  else if (e < B) { cur = await sharp(cur, { raw: { width: size, height: size, channels: 3 } }).extract({ left: B - e, top: B - e, width: FACE_PX + 2 * e, height: FACE_PX + 2 * e }).removeAlpha().raw().toBuffer(); size = FACE_PX + 2 * e; }
-  const big = Math.round(size * k), off = Math.max(0, Math.floor((big - geo.fullPx) / 2));
-  return sharp(cur, { raw: { width: size, height: size, channels: 3 } }).resize(big, big, { fit: "fill", kernel: "lanczos3" })
-    .extract({ left: off, top: off, width: Math.min(geo.fullPx, big - off), height: Math.min(geo.fullPx, big - off) }).jpeg(JPEG).toBuffer();
-}
-
-/**
- * Pure: an n x n raw picture -> (n + 2 pad) square, the picture untouched in the middle and carried on outwards with
- * nothing that looks added: each side continues as its own reflection, pixel for pixel, so there is no seam, no blur
- * and no frame (a one-colour background just stays that colour, a photo or a painting just carries on). The reflection
- * only reaches EDGE_REACH px into the picture and then folds back, so a sky, a wall or a lawn keeps going but a
- * title or an object further in is never pulled out onto the edge.
- */
-function continueEdges(data, n, ch, pad, reach = EDGE_REACH) {
-  const K = Math.max(1, Math.min(reach, n));
-  const size = n + 2 * pad, out = Buffer.alloc(size * size * ch);
-  const fold = (d) => { const t = d % (2 * K); return t < K ? t : 2 * K - 1 - t; };   // 0,1,..K-1,K-1,..0,0,1..
-  const map = (i) => (i < 0 ? fold(-i - 1) : i >= n ? n - 1 - fold(i - n) : i);
-  const xs = new Int32Array(size);
-  for (let X = 0; X < size; X++) xs[X] = map(X - pad);
-  for (let Y = 0; Y < size; Y++) {
-    const row = map(Y - pad) * n;
-    for (let X = 0; X < size; X++) data.copy(out, (Y * size + X) * ch, (row + xs[X]) * ch, (row + xs[X]) * ch + ch);
-  }
-  return { data: out, size };
+/** The 600 px face -> the printed image (IMAGE_IN, a hair bigger than the face so its rounded edge is covered). */
+async function toPrint(sharp, faceJpeg, px) {
+  return px === FACE_PX ? faceJpeg : sharp(faceJpeg).resize(px, px, { fit: "fill", kernel: "lanczos3" }).jpeg(JPEG).toBuffer();
 }
 
 /* ---------- rendering tiles (sharp) ---------- */
@@ -404,7 +338,7 @@ async function renderDesign(tile, ctx) {
     ctx.warn(`Design "${tile.title}" (${tile.id}) could not be fetched from the site: ${err.message}. Its tile is a placeholder.`);
     face = await sharp(Buffer.from(placeholderSvg(["Missing artwork", tile.title, tile.id]))).jpeg(JPEG).toBuffer();
   }
-  return toPrint(sharp, face, ctx.geo);
+  return toPrint(sharp, face, ctx.geo.artPx);
 }
 
 async function renderPhoto(tile, ctx) {
@@ -414,7 +348,7 @@ async function renderPhoto(tile, ctx) {
   const f = frame || ctx.frames.none || NONE_FRAME;
   const win = windowPx(f);
   const label = `Photo ${tile.n}${tile.pack > 1 || ctx.packs > 1 ? ` (pack ${tile.pack})` : ""}`;
-  let photoLayer = null, under = null;
+  let photoLayer = null;
   try {
     const buf = await ctx.readPhoto(tile.path);
     // the part the customer chose (crop.js), in the photo's upright pixels; no crop = centred, just covering the window
@@ -422,52 +356,20 @@ async function renderPhoto(tile, ctx) {
     const meta = await sharp(buf, opts).metadata();
     const turned = (meta.orientation || 1) >= 5;
     const W = turned ? meta.height : meta.width, H = turned ? meta.width : meta.height;
-    // the window plus, on the sides where it reaches the edge of the face, a bleed of the photo itself (crop.js)
-    const b = Crop.bleedFor(f.window), B = { l: b.l * SCALE, t: b.t * SCALE, r: b.r * SCALE, b: b.b * SCALE };
-    const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop, B);
-    const E = { l: Math.min(B.l, reg.ext.l), t: Math.min(B.t, reg.ext.t), r: Math.min(B.r, reg.ext.r), b: Math.min(B.b, reg.ext.b) };
-    const bw = win.w + E.l + E.r, bh = win.h + E.t + E.b;
-    let big = await sharp(buf, opts).rotate().extract(reg.box)
-      .resize(bw, bh, { fit: "fill", kernel: "lanczos3" })
+    const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop);
+    let img = await sharp(buf, opts).rotate().extract(reg)
+      .resize(win.w, win.h, { fit: "fill", kernel: "lanczos3" })
       .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
     if (ctx.enhance) {
-      try { big = await enhancePhoto(sharp, big); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
+      try { img = await enhancePhoto(sharp, img); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
     }
-    // where the photo ends right at the edge, the AI draws the missing strip (aiedge.js); the real photo goes back on top
-    const miss = { l: B.l - E.l, t: B.t - E.t, r: B.r - E.r, b: B.b - E.b };
-    let ubuf = big.data, uw = bw, uh = bh, ux = E.l, uy = E.t;
-    if (miss.l || miss.t || miss.r || miss.b) {
-      if (AI.configured()) {
-        try {
-          const raw = { raw: { width: bw, height: bh, channels: 3 } };
-          const png = await sharp(big.data, raw).png().toBuffer();
-          const key = AI.cacheKey(buf, { crop: tile.crop || null, win: f.window, B, E, enhance: !!ctx.enhance });
-          const out = await AI.outpaint(png, miss, { key, fetchImpl: ctx.aiFetch });
-          const W2 = bw + miss.l + miss.r, H2 = bh + miss.t + miss.b;
-          ubuf = await sharp(out).resize(W2, H2, { fit: "fill", kernel: "lanczos3" }).removeAlpha()
-            .composite([{ input: big.data, raw: raw.raw, left: miss.l, top: miss.t }]).removeAlpha().raw().toBuffer();
-          uw = W2; uh = H2; ux = B.l; uy = B.t;
-          ctx.aiEdges = (ctx.aiEdges || 0) + 1;
-        } catch (err) {
-          ctx.warn(`${label}: the AI edge could not be made (${err.message}); where the photo ends, its edge is a reflection.`);
-        }
-      } else if (!ctx.aiOffWarned) {
-        ctx.aiOffWarned = true;
-        ctx.warn("The AI edge for photos is off (STABILITY_API_KEY is not set): where a photo ends right at the edge of a magnet, its edge is a reflection.");
-      }
-    }
-    const hasBleed = uw > win.w || uh > win.h;
-    const img = E.l || E.t || E.r || E.b
-      ? await sharp(big.data, { raw: { width: bw, height: bh, channels: 3 } }).extract({ left: E.l, top: E.t, width: win.w, height: win.h }).raw().toBuffer({ resolveWithObject: true })
-      : big;
-    photoLayer = { input: img.data, raw: { width: img.info.width, height: img.info.height, channels: 3 }, left: win.x, top: win.y };
-    if (hasBleed) under = { data: ubuf, width: uw, height: uh, left: win.x - ux, top: win.y - uy };
+    photoLayer = { input: img.data, raw: { width: img.info.width, height: img.info.height, channels: img.info.channels }, left: win.x, top: win.y };
   } catch (err) {
     ctx.warn(/\.hei[cf]$/i.test(tile.path)
       ? `${label} is an iPhone HEIC file, which the print server can't open. Its tile is a placeholder: open “Original photo” on the order page, save it as a JPG and print it by hand.`
       : `${label} could not be read (${err.message}). Its tile is a placeholder: download the photo from the admin and print it by hand.`);
     const ph = await sharp(Buffer.from(placeholderSvg([`${label} could not be read`, "Download it from the admin", "and print it by hand", path.basename(tile.path)]))).jpeg(JPEG).toBuffer();
-    return toPrint(sharp, ph, ctx.geo);
+    return toPrint(sharp, ph, ctx.geo.artPx);
   }
   const layers = [photoLayer];
   const captionMarkup = FM.captionSvg(f, tile.caption, tile.capStyle);
@@ -477,7 +379,7 @@ async function renderPhoto(tile, ctx) {
   }
   if (inner || captionMarkup) layers.push({ input: Buffer.from(overlaySvg(inner, captionMarkup)), left: 0, top: 0 });
   const face = await sharp({ create: { width: FACE_PX, height: FACE_PX, channels: 3, background: "#FFFFFF" } }).composite(layers).jpeg(JPEG).toBuffer();
-  return under ? toPrintWithPhoto(sharp, face, ctx.geo, under) : toPrint(sharp, face, ctx.geo);
+  return toPrint(sharp, face, ctx.geo.artPx);
 }
 
 async function pool(items, n, fn) {
@@ -510,35 +412,12 @@ function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo }) {
   const slots = tilePositions(geo.cut, geo.image);
   for (const t of placed) {
     const img = images.get(t.key);
-    const a = slots[t.slot].print;
+    const a = slots[t.slot].art;
     if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
   }
-  drawCutMarks(doc, placed.map((t) => slots[t.slot]), geo);
   doc.font(F.body).fontSize(6.5).fillColor("#8A7A66");
-  doc.text(`${placed.length} of ${PER_PAGE} magnets · each picture ${geo.image.toFixed(2)} in, its edge carries on past the cut line so no white shows · line the punch up with the grey marks`,
+  doc.text(`${placed.length} of ${PER_PAGE} magnets · each picture ${geo.image.toFixed(2)} in with white paper around it for the edge · centre the picture in the punch`,
     L, PAGE_PT.h - 26, { width: PAGE_PT.w - 2 * L, align: "center", lineBreak: false });
-}
-
-/** Pure: the grey cut marks around the pieces, in the white between them: [[x1, y1, x2, y2], ...] in points. Each
- * mark sits on the line of a cut edge, just outside the printed picture, so the punch can be lined up with them. */
-function cutMarks(pieces, geo) {
-  const e = (geo.fullPt - geo.cutPt) / 2, clear = 2, len = Math.min(10, geo.gapPt - 2 * e - 2 * clear);
-  if (!(len >= 2)) return [];
-  const out = [];
-  for (const p of pieces) {
-    const x0 = p.x, y0 = p.y, x1 = p.x + p.size, y1 = p.y + p.size;
-    const L = x0 - e - clear, R = x1 + e + clear, T = y0 - e - clear, B = y1 + e + clear;
-    for (const y of [y0, y1]) { out.push([L - len, y, L, y], [R, y, R + len, y]); }
-    for (const x of [x0, x1]) { out.push([x, T - len, x, T], [x, B, x, B + len]); }
-  }
-  return out.map((m) => m.map(r6));
-}
-function drawCutMarks(doc, pieces, geo) {
-  const marks = cutMarks(pieces, geo);
-  if (!marks.length) return;
-  doc.save().lineWidth(0.5).strokeColor("#9A8B78");
-  for (const [x1, y1, x2, y2] of marks) doc.moveTo(x1, y1).lineTo(x2, y2);
-  doc.stroke().restore();
 }
 
 function drawNotesPage(doc, F, warnings) {
@@ -699,7 +578,6 @@ function makeContext(order, opts) {
     frames: null,
     geo: geometry(opts.cut, opts.image),
     enhance: opts.enhance !== false,
-    aiFetch: opts.aiFetch,
   };
   return ctx;
 }
@@ -752,7 +630,7 @@ async function generateForOrder(ref, orderId, order, { by = "system" } = {}) {
   if (out.slip) await savePdf(bucket, sp, out.slip, order, orderId, by, "slip");
   const meta = { path: p, slipPath: out.slip ? sp : null, pages: out.pages, slipPages: out.slipPages || 0, sheets: out.sheets, tiles: out.tiles,
     cut: out.cut || settings.cut, image: out.image || settings.image, enhance: out.enhance !== undefined ? out.enhance : settings.enhance,
-    bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: LAYOUT_V };
+    bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: 3 };
   if (ref) await ref.update({ printSheet: meta, updatedAt: nowIso() }).catch((err) => console.warn("[printsheet] could not save printSheet on the order", err && err.message));
   console.log(`[printsheet] ${order.number || orderId}: ${out.tiles} tiles, ${out.pages} pages + slip, ${((meta.bytes + meta.slipBytes) / 1048576).toFixed(1)} MB in ${meta.ms} ms`);
   return { pdf: out.pdf, slip: out.slip, meta };
@@ -796,9 +674,8 @@ async function downloadUrl(p, filename) {
 
 module.exports = {
   DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, CUT_IN, CUT_MIN, CUT_MAX, IMAGE_IN, IMAGE_MIN, IMAGE_MAX, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
-  pageCount, geometry, cutSize, imageSize, tilePositions, cutMarks, LAYOUT_V, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
+  pageCount, geometry, cutSize, imageSize, tilePositions, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,
-  continueEdges,
   _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp },   // for diagnostics / visual checks
 };

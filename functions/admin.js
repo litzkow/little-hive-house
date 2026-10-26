@@ -487,8 +487,8 @@ async function adminPrintSheet(data, auth) {
   const rebuild = !!(data && data.rebuild);
   const which = data && data.which === "slip" ? "slip" : "sheet";
   const pathOf = (m) => (m ? (which === "slip" ? m.slipPath : m.path) : null);
-  // PDFs made with an older layout are made again (printsheet.LAYOUT_V)
-  let meta = order.printSheet && order.printSheet.v === printsheet.LAYOUT_V && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
+  // PDFs made with an older layout (v under 3) are made again
+  let meta = order.printSheet && order.printSheet.v === 3 && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
   let exists = false;
   if (meta && !rebuild && pathOf(meta)) {
     try { exists = (await deps.bucket().file(pathOf(meta)).exists())[0] === true; } catch (err) { exists = false; }

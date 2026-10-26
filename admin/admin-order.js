@@ -431,7 +431,7 @@
     var ps = o.printSheet;
     if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
     if (!ps.path && !ps.slipPath) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
-    if (ps.v !== 7) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (9 per sheet, each picture carries on past the cut line, so no white edge).</span>';
+    if (ps.v !== 3) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (9 per sheet, white border around each picture).</span>';
     var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
     return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of 9' +
       (ps.image ? ' · pictures ' + Number(ps.image).toFixed(2) + ' in' : '') + (ps.enhance === false ? ' · photos as uploaded' : ps.enhance ? ' · photos touched up' : '') + '</span>' +
@@ -443,7 +443,7 @@
     var cmd = printCommand(o);
     var steps = [];
     steps.push('<b>Magnets PDF</b> on glossy photo paper, US Letter. In the printer app pick the paper type <b>Glossy photo paper</b>, quality <b>Best</b>, size <b>100% / “Actual size”</b> (never “Fit to page”), no borderless. ' +
-      'The edge of each picture carries on past the cut line, so no white shows even if the punch is a little off. Line the punch up with the grey marks.' +
+      'Each picture has white paper around it for the edge: centre the picture in the punch.' +
       (tiles ? ' ' + h.plural(tiles, 'magnet') + ' on ' + h.plural(sheets, 'sheet') + '.' : ' Nothing to print from this order: the artwork is made by hand.'));
     if (special.length) steps.push('<b>Design the custom artwork.</b> ' + special.map(function (it) { return esc(it.title || 'Custom order'); }).join(', ') +
       ' — made from the details the customer emails you. Print it with the Terminal tool under More (<code>--copies</code> prints one artwork per magnet).');

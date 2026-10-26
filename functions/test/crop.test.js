@@ -68,21 +68,3 @@ test("the caption lettering reaches the order only when the frame offers it and 
   assert.equal(plan.tiles[0].capStyle, "classic");
   assert.notEqual(plan.tiles[0].key, plan.tiles[1].key);
 });
-
-test("bleed: never zooms; the box grows past the window only as far as the photo really goes", () => {
-  assert.deepEqual(C.bleedFor([0, 0, 600, 600]), { l: 60, t: 60, r: 60, b: 60 });
-  assert.deepEqual(C.bleedFor([0, 0, 600, 470]), { l: 60, t: 60, r: 60, b: 0 }, "a caption band at the bottom");
-  assert.deepEqual(C.bleedFor([30, 30, 540, 540]), { l: 0, t: 0, r: 0, b: 0 }, "a frame all around: nothing to bleed");
-  const B = { l: 120, t: 120, r: 120, b: 120 };
-  // a tall phone photo in a square window: exactly the same window as without bleed (no zoom)
-  const plain = C.region(3000, 4000, 1200, 1200, null), r = C.region(3000, 4000, 1200, 1200, null, B);
-  assert.deepEqual({ left: r.left, top: r.top, width: r.width, height: r.height }, plain);
-  // no more photo left and right, 120 units of real photo above and below
-  const px = C.regionPx(3000, 4000, 1200, 1200, null, B);
-  assert.deepEqual(px.ext, { l: 0, t: 120, r: 0, b: 120 });
-  // zoomed in and moved: real photo on every side, as far as it goes
-  const z = C.regionPx(3000, 4000, 1200, 1200, { x: 0.5, y: 0.5, z: 1.5 }, B);
-  assert.deepEqual(z.ext, { l: 120, t: 120, r: 120, b: 120 });
-  const edge = C.regionPx(3000, 4000, 1200, 1200, { x: 0, y: 0.5, z: 1.5 }, B);
-  assert.equal(edge.ext.l, 0);
-});
