@@ -597,7 +597,7 @@
   };
 
   /* ====================================================================== TEST PRINT (functions/admin.js adminTestSheet) */
-  function tpState() { return S.ui.testprint || (S.ui.testprint = { col: '', designs: [], photos: [] }); }
+  function tpState() { return S.ui.testprint || (S.ui.testprint = { col: '', designs: [], photos: [], border: Number(S.settings && S.settings.printBorderBlack) ? 'black' : 'white' }); }
   function tpLoadDesigns() {
     if (S.shopDesigns) return Promise.resolve(S.shopDesigns);
     return fetch('../shop.html', { cache: 'no-cache' }).then(function (r) { return r.text(); }).then(function (txt) {
@@ -621,6 +621,7 @@
       '<p class="tiny faint" style="margin-top:6px">Each photo is printed with the frame and caption you pick, exactly like a customer’s.</p><div id="tp-photos" class="stack gap-top"></div></section>' +
       '</div><div>' +
       '<section class="card tint"><div class="card-head"><h2>Your test sheet</h2><span class="small muted" id="tp-count"></span></div><p class="small muted" id="tp-last" hidden></p><div id="tp-list"></div>' +
+      '<label class="field gap-top"><span>Border around each picture</span><select class="input" id="tp-border"><option value="white"' + (st.border === 'black' ? '' : ' selected') + '>White</option><option value="black"' + (st.border === 'black' ? ' selected' : '') + '>Black</option></select></label>' +
       '<p class="err" id="tp-err" hidden></p><div class="row end gap-top"><button class="btn btn-ghost btn-sm" data-act="tpClear">Clear</button><button class="btn btn-honey" data-act="tpMake">' + icon('print') + 'Make test PDF</button></div></section>' +
       '<section class="card"><div class="card-head"><h2>Print it well</h2></div><ol class="small" style="padding-left:18px;margin:0;display:grid;gap:6px">' +
       '<li>Print from the <b>Canon PRINT</b> app (Wi-Fi Direct works), not the iPhone’s own Print button.</li>' +
@@ -638,6 +639,7 @@
           tpGrid();
         }).catch(function (e) { $('#tp-grid').innerHTML = '<p class="small err">Couldn’t load the designs: ' + esc(e.message) + '</p>'; });
         sel.addEventListener('change', function () { st.col = sel.value; tpGrid(); });
+        $('#tp-border').addEventListener('change', function (ev) { st.border = ev.target.value === 'black' ? 'black' : 'white'; });
         $('#tp-files').addEventListener('change', function (ev) { tpAddFiles(ev.target.files); ev.target.value = ''; });
         A.h.loadFrames().then(function () { tpPhotos(); });
         tpList();
@@ -660,6 +662,7 @@
       if (res.sheet && !tpCount(st) && !S.ui.testprintRestored) {
         S.ui.testprintRestored = true;
         st.designs = (res.sheet.designs || []).map(function (d) { return { id: d.id, name: d.name || d.id, qty: Math.max(1, Number(d.qty) || 1) }; });
+        if (res.sheet.border === 'black' || res.sheet.border === 'white') { st.border = res.sheet.border; var bs = $('#tp-border'); if (bs) bs.value = st.border; }
         st.photos = (res.sheet.photos || []).map(function (p) { return { name: p.name || 'Photo', data: p.url || '', saved: p.saved, frame: p.frame || 'none', caption: p.caption || '', capStyle: p.capStyle || '', qty: Math.max(1, Number(p.qty) || 1) }; });
         tpList(); tpPhotos();
       }
@@ -740,7 +743,7 @@
     var st = tpState(), arr = btn.getAttribute('data-kind') === 'd' ? st.designs : st.photos;
     arr.splice(Number(btn.getAttribute('data-i')), 1); tpList(); tpPhotos();
   };
-  ACT.tpClear = function () { S.ui.testprint = { col: tpState().col, designs: [], photos: [] }; h.route(); };
+  ACT.tpClear = function () { var o = tpState(); S.ui.testprint = { col: o.col, designs: [], photos: [], border: o.border }; h.route(); };
   ACT.tpMake = function (btn) {
     var st = tpState(), err = $('#tp-err'); err.hidden = true;
     var n = tpCount(st);
@@ -750,6 +753,7 @@
     try { tab = window.open('about:blank', '_blank'); if (tab && tab.document) tab.document.body.innerHTML = '<p style="font:16px -apple-system,system-ui,sans-serif;padding:24px">Making the test sheet… about a minute.</p>'; } catch (e) { tab = null; }
     h.busy(btn, true, 'Making…');
     h.call('adminTestSheet', {
+      border: st.border === 'black' ? 'black' : 'white',
       designs: st.designs.map(function (d) { return { id: d.id, qty: d.qty }; }),
       photos: st.photos.map(function (p) {
         var o = { name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle || null, qty: p.qty };
@@ -831,6 +835,8 @@
       '<span class="hint">Cut a scrap of paper with the punch and measure it from one straight side to the opposite one. The magnet face stays 2 in; the rest wraps around the edge. Between 2.10 and 2.55.</span></label>' +
       '<label class="field"><span>Size of each printed picture</span><span class="input-unit"><input class="input" name="printImageIn" type="number" inputmode="decimal" min="2" max="2.3" step="0.01" value="' + esc(Number(s.printImageIn).toFixed(2)) + '"> in</span>' +
       '<span class="hint">The photo or design, with white paper around it. A little over 2 in covers the rounded edge of the magnet face. If white shows on the front, make it bigger; if the picture runs too far down the sides, smaller. Between 2.00 and 2.30.</span></label>' +
+      '<label class="field"><span>Border around each picture</span><select class="input" name="printBorderBlack"><option value="0"' + (Number(s.printBorderBlack) ? '' : ' selected') + '>White</option><option value="1"' + (Number(s.printBorderBlack) ? ' selected' : '') + '>Black</option></select>' +
+      '<span class="hint">The paper around the picture that wraps over the edge of the magnet. Try both with Test print.</span></label>' +
       '<label class="check"><input type="checkbox" name="printEnhance"' + (Number(s.printEnhance) ? ' checked' : '') + '> <span>Touch up customer photos for paper<span class="hint">Fixes washed-out or too-bright photos and adds a little colour and contrast, because prints come out flatter than a screen.</span></span></label>' +
       '<p class="err" id="print-err" hidden></p><div class="row end"><button class="btn btn-honey" type="submit">Save printing</button></div>' +
       '<p class="small muted">New orders use these right away. For an order already made, tap Rebuild on its page.</p></form></section>';
@@ -843,7 +849,7 @@
       err.hidden = true;
       if (!isFinite(cut) || cut < 2.1 || cut > 2.55) { err.textContent = 'The piece should be between 2.10 and 2.55 inches.'; err.hidden = false; f.printCutIn.focus(); return; }
       if (!isFinite(img) || img < 2 || img > 2.3) { err.textContent = 'The picture should be between 2.00 and 2.30 inches.'; err.hidden = false; f.printImageIn.focus(); return; }
-      var out = { printCutIn: Math.round(cut * 100) / 100, printImageIn: Math.round(img * 100) / 100, printEnhance: f.printEnhance.checked ? 1 : 0 };
+      var out = { printCutIn: Math.round(cut * 100) / 100, printImageIn: Math.round(img * 100) / 100, printEnhance: f.printEnhance.checked ? 1 : 0, printBorderBlack: Number(f.printBorderBlack.value) === 1 ? 1 : 0 };
       var btn = f.querySelector('button[type=submit]');
       h.busy(btn, true, 'Saving…');
       h.call('adminSaveSettings', out).then(function () {

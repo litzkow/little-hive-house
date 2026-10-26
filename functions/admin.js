@@ -15,7 +15,7 @@ const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = requi
 const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25,
-  printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
+  printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1, printBorderBlack: 0, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -395,6 +395,7 @@ async function adminSaveSettings(data, auth) {
     if (k === "printImageIn" && (n < 2 || n > 2.3)) fail("invalid-argument", "The picture size should be between 2.00 and 2.30 inches.");
     if (k === "autoNewsletter" && n !== 0 && n !== 1) fail("invalid-argument", "Automatic emails are on (1) or off (0).");
     if (k === "printEnhance" && n !== 0 && n !== 1) fail("invalid-argument", "The photo touch-up is on (1) or off (0).");
+    if (k === "printBorderBlack" && n !== 0 && n !== 1) fail("invalid-argument", "The border is white (0) or black (1).");
     out[k] = Math.round(n * 10000) / 10000;
   }
   if (!Object.keys(out).length) fail("invalid-argument", "Nothing to save.");
@@ -596,24 +597,25 @@ async function adminTestSheet(data, auth) {
   if (!items.length) fail("invalid-argument", "Add at least one design or photo.");
   if (count > TEST_MAX_MAGNETS) fail("invalid-argument", `That is ${count} magnets; a test sheet holds up to ${TEST_MAX_MAGNETS} (3 sheets).`);
   const settings = await printsheet.printSettings();
+  const border = data && (data.border === "black" || data.border === "white") ? data.border : settings.border;
   const out = await printsheet.buildPrintSheetDetailed("test", { number: "TEST", name: "Test sheet", items, paidAt: nowIso() },
-    { cut: settings.cut, image: settings.image, enhance: settings.enhance, readPhoto: async (p) => { if (!photos.has(p)) throw new Error("missing"); return photos.get(p); } });
+    { cut: settings.cut, image: settings.image, enhance: settings.enhance, border, readPhoto: async (p) => { if (!photos.has(p)) throw new Error("missing"); return photos.get(p); } });
   if (!out.pdf) fail("unavailable", "The test sheet could not be made.");
   const path = "tests/test-sheet.pdf";
   await deps.bucket().file(path).save(out.pdf, { contentType: "application/pdf", resumable: false, metadata: { cacheControl: "private, max-age=0" } });
   const link = await printsheet.downloadUrl(path, "TEST-magnets.pdf");
   let saved = false;
-  try { await saveTestSheet(items.filter((i) => i.kind === "design"), keep); saved = true; } catch (err) { console.warn("[adminTestSheet] could not save the test sheet for next time", err && err.message); }
-  return { ok: true, url: link.url, sheets: out.sheets, tiles: out.tiles, warnings: out.warnings, saved };
+  try { await saveTestSheet(items.filter((i) => i.kind === "design"), keep, border); saved = true; } catch (err) { console.warn("[adminTestSheet] could not save the test sheet for next time", err && err.message); }
+  return { ok: true, url: link.url, sheets: out.sheets, tiles: out.tiles, warnings: out.warnings, saved, border };
 }
 
 /* The last test sheet is kept (tests/last.json + its photos at tests/last/<n>.jpg) so it can be made again later,
    e.g. after a change to the print layout, without picking the designs and photos again. */
 const TEST_SAVED_RE = /^tests\/last\/[1-9]\.jpg$/;
-async function saveTestSheet(designs, photos) {
+async function saveTestSheet(designs, photos, border) {
   const bucket = deps.bucket();
   const opts = { resumable: false, metadata: { cacheControl: "private, max-age=0" } };
-  const out = { at: nowIso(), designs: designs.map((d) => ({ id: d.id, name: d.title || d.id, qty: d.qty })), photos: [] };
+  const out = { at: nowIso(), border: border === "black" ? "black" : "white", designs: designs.map((d) => ({ id: d.id, name: d.title || d.id, qty: d.qty })), photos: [] };
   for (let n = 0; n < photos.length; n++) {
     const p = photos[n], file = `tests/last/${n + 1}.jpg`;
     await bucket.file(file).save(p.buf, { ...opts, contentType: "image/jpeg" });

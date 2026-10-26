@@ -70,17 +70,21 @@ test("the last test sheet is saved and can be made again from Storage without pi
   const A = require("../admin");
   const orig = P.buildPrintSheetDetailed;
   let seen = null;
-  P.buildPrintSheetDetailed = async (id, order, opts) => { seen = { order, photo: await opts.readPhoto("test/1.jpg") }; return { pdf: Buffer.from("%PDF-1.5 test"), sheets: 1, tiles: 3, warnings: [] }; };
+  let seenOpts = null;
+  P.buildPrintSheetDetailed = async (id, order, opts) => { seenOpts = opts; seen = { order, photo: await opts.readPhoto("test/1.jpg") }; return { pdf: Buffer.from("%PDF-1.5 test"), sheets: 1, tiles: 3, warnings: [] }; };
   try {
     assert.deepEqual(await A.adminLastTestSheet({}, ADMIN), { sheet: null, pdfUrl: null });
     await assert.rejects(A.adminLastTestSheet({}, { uid: "u", token: {} }), (e) => e.code === "permission-denied");
     const jpg = Buffer.alloc(300, 9);
-    const r = await A.adminTestSheet({ designs: [{ id: "places/new-york", qty: 2 }], photos: [{ data: jpg.toString("base64"), name: "beach.jpg", frame: "instant", caption: "Hi", qty: 1 }] }, ADMIN);
+    const r = await A.adminTestSheet({ border: "black", designs: [{ id: "places/new-york", qty: 2 }], photos: [{ data: jpg.toString("base64"), name: "beach.jpg", frame: "instant", caption: "Hi", qty: 1 }] }, ADMIN);
     assert.equal(r.saved, true);
+    assert.equal(r.border, "black");
+    assert.equal(seenOpts.border, "black");
     assert.ok(bucket.files.has("tests/last/1.jpg") && bucket.files.has("tests/last.json"));
     const last = await A.adminLastTestSheet({}, ADMIN);
     assert.ok(last.pdfUrl);
     assert.equal(last.sheet.designs[0].id, "places/new-york");
+    assert.equal(last.sheet.border, "black");
     assert.equal(last.sheet.designs[0].qty, 2);
     assert.equal(last.sheet.photos[0].saved, "tests/last/1.jpg");
     assert.equal(last.sheet.photos[0].name, "beach.jpg");

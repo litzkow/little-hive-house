@@ -426,3 +426,15 @@ test("buildPrintSheet without sharp/pdfkit installed fails cleanly (the real ren
   await assert.rejects(P.buildPrintSheet("x", { items: [{ kind: "design", id: "places/new-york", qty: 1 }] }, { fetchImpl: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }) }),
     (e) => e.code === "MODULE_NOT_FOUND");
 });
+
+test("border: white by default, black on request; the black square covers the punched piece plus a little, never the gap", () => {
+  assert.equal(P.borderColour(undefined), "white");
+  assert.equal(P.borderColour("black"), "black");
+  assert.equal(P.borderColour(1), "black");
+  assert.equal(P.borderColour("pink"), "white");
+  const g = P.geometry(2.45, 2.08), pt = P.tilePositions(2.45, 2.08);
+  const a = P.borderRect(pt[0], g), b = P.borderRect(pt[1], g);
+  assert.ok(a.x < pt[0].x && a.size > pt[0].size, "a little past the cut line");
+  assert.ok(a.x <= pt[0].art.x && a.x + a.size >= pt[0].art.x + pt[0].art.size, "behind the whole picture");
+  assert.ok(b.x - (a.x + a.size) >= 0.12 * 72 - 1e-6, "white stays between two pieces");
+});
