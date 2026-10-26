@@ -58,6 +58,15 @@ Só precisa se você mandar pacotes por UPS, FedEx ou DHL. Sem isso, esses conti
 3. Clique em **Generate Token** na parte **Live** (começa com `shippo_live_`).
 4. Ela vai no `FUNCTIONS_ENV` (passo 4.6) como `SHIPPO_API_KEY`. Não cole em chat.
 
+## 3c2. Stability AI (borda das fotos nos ímãs)
+
+Quando uma foto termina bem na beirada do ímã, a IA desenha só a faixinha que dobra para a lateral, continuando a cena. A frente do ímã nunca muda. Custa uns 4 créditos (US$ 0,04) por foto, e a mesma foto não é cobrada duas vezes. Sem a chave, essa faixa sai como reflexo da foto.
+
+1. Crie a conta em https://platform.stability.ai e compre créditos (**Billing**; US$ 10 dá para uns 250 ímãs de foto).
+2. **API Keys** → copie a chave (começa com `sk-`).
+3. GitHub, no celular: repositório → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**. Nome `STABILITY_API_KEY`, valor a chave. Não cole em chat.
+4. **Actions** → **Deploy store backend (Firebase)** → **Run workflow**, para o servidor pegar a chave.
+
 ## 3d. Dois valores para os e-mails
 
 1. `MAIL_POSTAL_ADDRESS`: o endereço postal da loja. A lei dos EUA (CAN-SPAM) exige um endereço físico nos e-mails de marketing. Pode ser uma caixa postal (PO Box) ou caixa de correio privada, se não quiserem mostrar o endereço de casa.

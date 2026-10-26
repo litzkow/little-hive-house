@@ -27,6 +27,7 @@ const { siteUrl, nowIso, AppError } = require("./config");
 const deps = require("./deps");
 const FM = require("./fontmetrics");
 const Crop = require("./crop");
+const AI = require("./aiedge");
 
 /* ---------- geometry ----------
    Each magnet is a piece of paper cut with the punch (the cut size, about 2.45 in for a 2 x 2 in magnet: the face
@@ -432,12 +433,35 @@ async function renderPhoto(tile, ctx) {
     if (ctx.enhance) {
       try { big = await enhancePhoto(sharp, big); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
     }
-    const hasBleed = !!(E.l || E.t || E.r || E.b);
-    const img = hasBleed
+    // where the photo ends right at the edge, the AI draws the missing strip (aiedge.js); the real photo goes back on top
+    const miss = { l: B.l - E.l, t: B.t - E.t, r: B.r - E.r, b: B.b - E.b };
+    let ubuf = big.data, uw = bw, uh = bh, ux = E.l, uy = E.t;
+    if (miss.l || miss.t || miss.r || miss.b) {
+      if (AI.configured()) {
+        try {
+          const raw = { raw: { width: bw, height: bh, channels: 3 } };
+          const png = await sharp(big.data, raw).png().toBuffer();
+          const key = AI.cacheKey(buf, { crop: tile.crop || null, win: f.window, B, E, enhance: !!ctx.enhance });
+          const out = await AI.outpaint(png, miss, { key, fetchImpl: ctx.aiFetch });
+          const W2 = bw + miss.l + miss.r, H2 = bh + miss.t + miss.b;
+          ubuf = await sharp(out).resize(W2, H2, { fit: "fill", kernel: "lanczos3" }).removeAlpha()
+            .composite([{ input: big.data, raw: raw.raw, left: miss.l, top: miss.t }]).removeAlpha().raw().toBuffer();
+          uw = W2; uh = H2; ux = B.l; uy = B.t;
+          ctx.aiEdges = (ctx.aiEdges || 0) + 1;
+        } catch (err) {
+          ctx.warn(`${label}: the AI edge could not be made (${err.message}); where the photo ends, its edge is a reflection.`);
+        }
+      } else if (!ctx.aiOffWarned) {
+        ctx.aiOffWarned = true;
+        ctx.warn("The AI edge for photos is off (STABILITY_API_KEY is not set): where a photo ends right at the edge of a magnet, its edge is a reflection.");
+      }
+    }
+    const hasBleed = uw > win.w || uh > win.h;
+    const img = E.l || E.t || E.r || E.b
       ? await sharp(big.data, { raw: { width: bw, height: bh, channels: 3 } }).extract({ left: E.l, top: E.t, width: win.w, height: win.h }).raw().toBuffer({ resolveWithObject: true })
       : big;
     photoLayer = { input: img.data, raw: { width: img.info.width, height: img.info.height, channels: 3 }, left: win.x, top: win.y };
-    if (hasBleed) under = { data: big.data, width: bw, height: bh, left: win.x - E.l, top: win.y - E.t };
+    if (hasBleed) under = { data: ubuf, width: uw, height: uh, left: win.x - ux, top: win.y - uy };
   } catch (err) {
     ctx.warn(/\.hei[cf]$/i.test(tile.path)
       ? `${label} is an iPhone HEIC file, which the print server can't open. Its tile is a placeholder: open “Original photo” on the order page, save it as a JPG and print it by hand.`
@@ -675,6 +699,7 @@ function makeContext(order, opts) {
     frames: null,
     geo: geometry(opts.cut, opts.image),
     enhance: opts.enhance !== false,
+    aiFetch: opts.aiFetch,
   };
   return ctx;
 }

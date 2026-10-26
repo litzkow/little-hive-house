@@ -75,6 +75,7 @@ jobs:
           USPS_CLIENT_ID: ${{ secrets.USPS_CLIENT_ID }}
           USPS_CLIENT_SECRET: ${{ secrets.USPS_CLIENT_SECRET }}
           SHIPPO_API_KEY: ${{ secrets.SHIPPO_API_KEY }}
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
           ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS || secrets.ADMIN_EMAILS }}
           MAIL_POSTAL_ADDRESS: ${{ vars.MAIL_POSTAL_ADDRESS }}
           MAIL_FROM: ${{ vars.MAIL_FROM }}
@@ -86,7 +87,7 @@ jobs:
           # 1) the old all-in-one FUNCTIONS_ENV secret, if there is one
           printf '%s\n' "$FUNCTIONS_ENV" | tr -d '\r' | grep -v '^[[:space:]]*$' > functions/.env.base || true
           # 2) each separate secret / variable overrides it (values are trimmed and quoted for the .env file)
-          KEYS="STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY UNSUBSCRIBE_SECRET USPS_CLIENT_ID USPS_CLIENT_SECRET SHIPPO_API_KEY ADMIN_EMAILS MAIL_POSTAL_ADDRESS MAIL_FROM MAIL_ADMIN SITE_URL STRIPE_TAX"
+          KEYS="STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY UNSUBSCRIBE_SECRET USPS_CLIENT_ID USPS_CLIENT_SECRET SHIPPO_API_KEY STABILITY_API_KEY ADMIN_EMAILS MAIL_POSTAL_ADDRESS MAIL_FROM MAIL_ADMIN SITE_URL STRIPE_TAX"
           cp functions/.env.base functions/.env
           for k in $KEYS; do
             v="$(printenv "$k" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
