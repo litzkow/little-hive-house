@@ -571,19 +571,28 @@ async function adminTestSheet(data, auth) {
     count += qty;
     items.push({ kind: "design", id, title: c.title, collection: c.collection, qty });
   }
-  const photos = new Map();
-  (Array.isArray(data && data.photos) ? data.photos : []).slice(0, 9).forEach((p, n) => {
-    const b64 = String((p && p.data) || "").replace(/^data:image\/[a-z]+;base64,/, "");
-    if (!b64) return;
-    const buf = Buffer.from(b64, "base64");
+  const photos = new Map(), keep = [];
+  const list = (Array.isArray(data && data.photos) ? data.photos : []).slice(0, 9);
+  for (let n = 0; n < list.length; n++) {
+    const p = list[n] || {};
+    let buf = null;
+    const b64 = String(p.data || "").replace(/^data:image\/[a-z]+;base64,/, "");
+    if (b64) buf = Buffer.from(b64, "base64");
+    else if (typeof p.saved === "string" && TEST_SAVED_RE.test(p.saved)) {
+      // a photo from the saved test sheet (adminLastTestSheet), still in Storage
+      try { [buf] = await deps.bucket().file(p.saved).download(); } catch (err) { fail("not-found", `Photo ${n + 1} from the saved test sheet is gone. Add it again.`); }
+    }
+    if (!buf) continue;
     if (buf.length < 100 || buf.length > 8 * 1024 * 1024) fail("invalid-argument", `Photo ${n + 1} is too big or empty.`);
     const path = `test/${n + 1}.jpg`;
     photos.set(path, buf);
     const frame = U.text(p.frame, 40) || "none";
     const qty = Math.min(99, Math.max(1, Math.floor(Number(p.qty) || 1)));
+    const caption = U.text(p.caption, 40), capStyle = U.text(p.capStyle, 20) || null;
     count += qty;
-    items.push({ kind: "photos", packSize: qty, qty: 1, photos: [{ path, frame, caption: U.text(p.caption, 40), capStyle: U.text(p.capStyle, 20) || null }] });
-  });
+    items.push({ kind: "photos", packSize: qty, qty: 1, photos: [{ path, frame, caption, capStyle }] });
+    keep.push({ buf, name: U.text(p.name, 80) || `Photo ${n + 1}`, frame, caption, capStyle, qty });
+  }
   if (!items.length) fail("invalid-argument", "Add at least one design or photo.");
   if (count > TEST_MAX_MAGNETS) fail("invalid-argument", `That is ${count} magnets; a test sheet holds up to ${TEST_MAX_MAGNETS} (3 sheets).`);
   const settings = await printsheet.printSettings();
@@ -593,11 +602,50 @@ async function adminTestSheet(data, auth) {
   const path = "tests/test-sheet.pdf";
   await deps.bucket().file(path).save(out.pdf, { contentType: "application/pdf", resumable: false, metadata: { cacheControl: "private, max-age=0" } });
   const link = await printsheet.downloadUrl(path, "TEST-magnets.pdf");
-  return { ok: true, url: link.url, sheets: out.sheets, tiles: out.tiles, warnings: out.warnings };
+  let saved = false;
+  try { await saveTestSheet(items.filter((i) => i.kind === "design"), keep); saved = true; } catch (err) { console.warn("[adminTestSheet] could not save the test sheet for next time", err && err.message); }
+  return { ok: true, url: link.url, sheets: out.sheets, tiles: out.tiles, warnings: out.warnings, saved };
+}
+
+/* The last test sheet is kept (tests/last.json + its photos at tests/last/<n>.jpg) so it can be made again later,
+   e.g. after a change to the print layout, without picking the designs and photos again. */
+const TEST_SAVED_RE = /^tests\/last\/[1-9]\.jpg$/;
+async function saveTestSheet(designs, photos) {
+  const bucket = deps.bucket();
+  const opts = { resumable: false, metadata: { cacheControl: "private, max-age=0" } };
+  const out = { at: nowIso(), designs: designs.map((d) => ({ id: d.id, name: d.title || d.id, qty: d.qty })), photos: [] };
+  for (let n = 0; n < photos.length; n++) {
+    const p = photos[n], file = `tests/last/${n + 1}.jpg`;
+    await bucket.file(file).save(p.buf, { ...opts, contentType: "image/jpeg" });
+    out.photos.push({ saved: file, name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle, qty: p.qty });
+  }
+  for (let n = photos.length + 1; n <= 9; n++) { try { await bucket.file(`tests/last/${n}.jpg`).delete(); } catch (e) { /* not there */ } }
+  await bucket.file("tests/last.json").save(Buffer.from(JSON.stringify(out)), { ...opts, contentType: "application/json" });
+  return out;
+}
+
+/** adminLastTestSheet() -> {sheet: {at, designs, photos: [{saved, url, name, frame, caption, capStyle, qty}]} | null, pdfUrl} */
+async function adminLastTestSheet(data, auth) {
+  U.requireAdmin(auth);
+  const printsheet = require("./printsheet");
+  const bucket = deps.bucket();
+  let sheet = null;
+  try {
+    const [buf] = await bucket.file("tests/last.json").download();
+    sheet = JSON.parse(buf.toString("utf8"));
+  } catch (err) { sheet = null; }
+  if (sheet) {
+    sheet.designs = Array.isArray(sheet.designs) ? sheet.designs : [];
+    sheet.photos = Array.isArray(sheet.photos) ? sheet.photos.filter((p) => p && TEST_SAVED_RE.test(p.saved)) : [];
+    for (const p of sheet.photos) { try { p.url = (await printsheet.downloadUrl(p.saved, p.saved.split("/").pop())).url; } catch (e) { p.url = null; } }
+  }
+  let pdfUrl = null;
+  try { if ((await bucket.file("tests/test-sheet.pdf").exists())[0]) pdfUrl = (await printsheet.downloadUrl("tests/test-sheet.pdf", "TEST-magnets.pdf")).url; } catch (e) { pdfUrl = null; }
+  return { sheet, pdfUrl };
 }
 
 module.exports = {
-  adminDeleteOrder, adminTestSheet, deletable,
+  adminDeleteOrder, adminTestSheet, adminLastTestSheet, deletable,
   claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
   adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet,
   DEFAULT_SETTINGS, promoView, deliverOrder,

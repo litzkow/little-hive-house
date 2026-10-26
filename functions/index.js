@@ -87,6 +87,7 @@ exports.adminNewsletter = callable("adminNewsletter", newsletter, null, { timeou
 exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
 // a test PDF of designs / photos without an order, and deleting test orders
 exports.adminTestSheet = callable("adminTestSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
+exports.adminLastTestSheet = callable("adminLastTestSheet", admin);
 exports.adminDeleteOrder = callable("adminDeleteOrder", admin);
 
 /* ---------- Stripe webhook (HTTP): marks orders paid and renders their print sheet (1 GiB, 300 s for the PDF) ---------- */

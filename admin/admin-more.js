@@ -620,7 +620,7 @@
       '<section class="card"><div class="card-head"><h2>Photos</h2></div><label class="btn btn-ghost btn-sm" style="cursor:pointer">' + icon('image') + 'Add photos<input type="file" id="tp-files" accept="image/*" multiple hidden></label>' +
       '<p class="tiny faint" style="margin-top:6px">Each photo is printed with the frame and caption you pick, exactly like a customer’s.</p><div id="tp-photos" class="stack gap-top"></div></section>' +
       '</div><div>' +
-      '<section class="card tint"><div class="card-head"><h2>Your test sheet</h2><span class="small muted" id="tp-count"></span></div><div id="tp-list"></div>' +
+      '<section class="card tint"><div class="card-head"><h2>Your test sheet</h2><span class="small muted" id="tp-count"></span></div><p class="small muted" id="tp-last" hidden></p><div id="tp-list"></div>' +
       '<p class="err" id="tp-err" hidden></p><div class="row end gap-top"><button class="btn btn-ghost btn-sm" data-act="tpClear">Clear</button><button class="btn btn-honey" data-act="tpMake">' + icon('print') + 'Make test PDF</button></div></section>' +
       '<section class="card"><div class="card-head"><h2>Print it well</h2></div><ol class="small" style="padding-left:18px;margin:0;display:grid;gap:6px">' +
       '<li>Print from the <b>Canon PRINT</b> app (Wi-Fi Direct works), not the iPhone’s own Print button.</li>' +
@@ -641,9 +641,31 @@
         $('#tp-files').addEventListener('change', function (ev) { tpAddFiles(ev.target.files); ev.target.value = ''; });
         A.h.loadFrames().then(function () { tpPhotos(); });
         tpList();
+        tpRestore();
       }
     };
   };
+  /* the last test sheet is saved on the server (functions/admin.js adminLastTestSheet): it comes back on its own when
+     this page opens with nothing picked, so it can be made again after a change without picking everything again */
+  function tpLastNote(res) {
+    var el = $('#tp-last'); if (!el) return;
+    var bits = [];
+    if (res.sheet && res.sheet.at) bits.push('Your last test sheet (' + esc(h.ago(res.sheet.at)) + ') is saved here.');
+    if (res.pdfUrl) bits.push('<a href="' + esc(res.pdfUrl) + '" target="_blank" rel="noopener">Open the last test PDF</a>');
+    el.innerHTML = bits.join(' '); el.hidden = !bits.length;
+  }
+  function tpRestore() {
+    h.call('adminLastTestSheet', {}).then(function (res) {
+      var st = tpState();
+      if (res.sheet && !tpCount(st) && !S.ui.testprintRestored) {
+        S.ui.testprintRestored = true;
+        st.designs = (res.sheet.designs || []).map(function (d) { return { id: d.id, name: d.name || d.id, qty: Math.max(1, Number(d.qty) || 1) }; });
+        st.photos = (res.sheet.photos || []).map(function (p) { return { name: p.name || 'Photo', data: p.url || '', saved: p.saved, frame: p.frame || 'none', caption: p.caption || '', capStyle: p.capStyle || '', qty: Math.max(1, Number(p.qty) || 1) }; });
+        tpList(); tpPhotos();
+      }
+      tpLastNote(res);
+    }).catch(function () { /* nothing saved yet, or offline: start empty */ });
+  }
   function tpGrid() {
     var st = tpState(), box = $('#tp-grid'); if (!box) return;
     var list = (S.shopDesigns || []).filter(function (d) { return st.col && d.col === st.col; });
@@ -729,9 +751,15 @@
     h.busy(btn, true, 'Making…');
     h.call('adminTestSheet', {
       designs: st.designs.map(function (d) { return { id: d.id, qty: d.qty }; }),
-      photos: st.photos.map(function (p) { return { data: p.data, frame: p.frame, caption: p.caption, capStyle: p.capStyle || null, qty: p.qty }; })
+      photos: st.photos.map(function (p) {
+        var o = { name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle || null, qty: p.qty };
+        if (p.saved) o.saved = p.saved; else o.data = p.data;
+        return o;
+      })
     }).then(function (res) {
       h.busy(btn, false);
+      if (res.saved) h.toast('Test sheet saved. It will be here next time.');
+      if (res.url) tpLastNote({ sheet: { at: new Date().toISOString() }, pdfUrl: res.url });
       if (tab && !tab.closed) tab.location.href = res.url;
       else h.dialog({ title: 'Test sheet ready', ok: false, cancel: 'Close', html: '<p><a class="btn btn-honey" href="' + esc(res.url) + '" target="_blank" rel="noopener">' + icon('external') + 'Open the PDF</a></p>' });
     }).catch(function (e) {

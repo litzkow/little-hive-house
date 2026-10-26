@@ -8,7 +8,7 @@
    `sharp` rasterises (photos, the frame SVGs through librsvg, WebP designs) and `pdfkit` assembles the PDFs. Both are
    required lazily, so this module loads and its layout math is unit-tested without node_modules.
 
-   Tile sources (each fills the 2 in face, 1200 px, is printed at IMAGE_IN, then its outermost pixels are carried out to the cut line + BLEED)
+   Tile sources (each fills the 2 in face, 1200 px, is printed at IMAGE_IN, then carried on past the cut line + BLEED, see continueEdges)
      design  -> ${SITE_URL}/assets/art/<collection>/<slug>.webp (600 px)
      photo   -> the customer's file in the Storage bucket (uploads/<uid>/<packId>/<n>.<ext>), EXIF-rotated,
                 centre-cropped into the frame's window, touched up for paper (enhancePhoto), the frame SVG
@@ -32,8 +32,8 @@ const Crop = require("./crop");
    Each magnet is a piece of paper cut with the punch (the cut size, about 2.45 in for a 2 x 2 in magnet: the face
    plus the paper that wraps around the edge). The artwork / photo is printed a hair bigger than the 2 in face
    (IMAGE_IN, so the rounded edge of the face is covered too), centred in its piece. The paper around it that wraps
-   over the sides is not white: the picture's outermost pixels are carried outwards, past the cut line by BLEED_IN, so
-   it reads as the picture carrying on (a frame's border or a design's background just keeps going) and a punch placed a little off centre never shows a white edge. The picture
+   over the sides is not white: the picture carries on outwards, past the cut line by BLEED_IN (each side continues as
+   its own reflection, so there is no seam, blur or frame) and a punch placed a little off centre never shows a white edge. The picture
    itself is not made bigger. 9 pieces per page (3 x 3), with white space between them and grey cut marks in it. */
 const DPI = 600;                                     // sharp text and lines; the photo printer prints far finer than this
 const COLS = 3, ROWS = 3, PER_PAGE = COLS * ROWS;
@@ -44,7 +44,7 @@ const CUT_IN = 2.45;                                 // default paper size of th
 const CUT_MIN = 2.1, CUT_MAX = 2.55;
 const IMAGE_IN = 2.08;                               // default printed size of each photo / design (Settings › Printing)
 const IMAGE_MIN = 2.0, IMAGE_MAX = 2.3;
-const EDGE_BLUR = 6;                                 // px at 600 dpi: softens the carried-out edge of a photo
+const EDGE_REACH = 60;                               // px (0.1 in): how far into the picture its edge is reflected outwards
 const BLEED_IN = 0.07;                               // how far the carried-out edge runs past the cut line (less when the gaps are narrow)
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
@@ -52,7 +52,7 @@ const SVG_UNITS = 600;                               // the frames' coordinate s
 const SCALE = FACE_PX / SVG_UNITS;                   // 2 px per unit
 const MAX_TILES = 450;                               // 50 sheets: more than any pack x qty the shop sells
 const JPEG = { quality: 93, chromaSubsampling: "4:4:4" };
-const LAYOUT_V = 4;                                  // 4: picture's edge carried past the cut line + cut marks (3 was white paper around)
+const LAYOUT_V = 5;                                  // 5: picture reflected past the cut line + cut marks (4 was a blurred stretch, 3 white paper)
 const URL_TTL_MS = 60 * 60 * 1000;
 const CONCURRENCY = 4;
 
@@ -331,18 +331,39 @@ async function enhancePhoto(sharp, img) {
 
 /**
  * The 1200 px face -> the printed square: the picture at IMAGE_IN (a hair bigger than the face so its rounded edge is
- * covered), then its edge carried outwards by geo.padPx on every side, so the paper that wraps around the magnet
- * carries on the picture instead of being white. The picture itself keeps its size.
+ * covered), then carried on outwards by geo.padPx on every side (continueEdges), so the paper that wraps around the
+ * magnet carries on the picture instead of being white. The picture itself keeps its size.
  */
 async function toPrint(sharp, faceJpeg, geo) {
   const px = geo.artPx, pad = geo.padPx || 0;
   if (px === FACE_PX && !pad) return faceJpeg;
-  const pic = px === FACE_PX ? faceJpeg : await sharp(faceJpeg).resize(px, px, { fit: "fill", kernel: "lanczos3" }).png().toBuffer();
-  if (!pad) return sharp(pic).jpeg(JPEG).toBuffer();
-  // the outermost row of pixels carried outwards (a frame's border or a design's background just keeps going), softened
-  // so a photo's edge doesn't turn into hard streaks, then the sharp picture back on top in the middle
-  const edge = await sharp(pic).extend({ top: pad, bottom: pad, left: pad, right: pad, extendWith: "copy" }).blur(EDGE_BLUR).png().toBuffer();
-  return sharp(edge).composite([{ input: pic, left: pad, top: pad }]).jpeg(JPEG).toBuffer();
+  let img = sharp(faceJpeg);
+  if (px !== FACE_PX) img = img.resize(px, px, { fit: "fill", kernel: "lanczos3" });
+  if (!pad) return img.jpeg(JPEG).toBuffer();
+  const pic = await img.removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const out = continueEdges(pic.data, pic.info.width, pic.info.channels, pad);
+  return sharp(out.data, { raw: { width: out.size, height: out.size, channels: pic.info.channels } }).jpeg(JPEG).toBuffer();
+}
+
+/**
+ * Pure: an n x n raw picture -> (n + 2 pad) square, the picture untouched in the middle and carried on outwards with
+ * nothing that looks added: each side continues as its own reflection, pixel for pixel, so there is no seam, no blur
+ * and no frame (a one-colour background just stays that colour, a photo or a painting just carries on). The reflection
+ * only reaches EDGE_REACH px into the picture and then folds back, so a sky, a wall or a lawn keeps going but a
+ * title or an object further in is never pulled out onto the edge.
+ */
+function continueEdges(data, n, ch, pad, reach = EDGE_REACH) {
+  const K = Math.max(1, Math.min(reach, n));
+  const size = n + 2 * pad, out = Buffer.alloc(size * size * ch);
+  const fold = (d) => { const t = d % (2 * K); return t < K ? t : 2 * K - 1 - t; };   // 0,1,..K-1,K-1,..0,0,1..
+  const map = (i) => (i < 0 ? fold(-i - 1) : i >= n ? n - 1 - fold(i - n) : i);
+  const xs = new Int32Array(size);
+  for (let X = 0; X < size; X++) xs[X] = map(X - pad);
+  for (let Y = 0; Y < size; Y++) {
+    const row = map(Y - pad) * n;
+    for (let X = 0; X < size; X++) data.copy(out, (Y * size + X) * ch, (row + xs[X]) * ch, (row + xs[X]) * ch + ch);
+  }
+  return { data: out, size };
 }
 
 /* ---------- rendering tiles (sharp) ---------- */
@@ -722,5 +743,6 @@ module.exports = {
   pageCount, geometry, cutSize, imageSize, tilePositions, cutMarks, LAYOUT_V, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,
+  continueEdges,
   _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp },   // for diagnostics / visual checks
 };

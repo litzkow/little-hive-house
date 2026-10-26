@@ -116,7 +116,24 @@ test("no white edge: the picture keeps its size and its edge is carried out past
     assert.ok(!inside(x1, y1) && !inside(x2, y2) && !inside((x1 + x2) / 2, (y1 + y2) / 2));
     assert.ok(pt.some((t) => near(y1, t.y) || near(y1, t.y + t.size) || near(x1, t.x) || near(x1, t.x + t.size)));
   }
-  assert.equal(P.LAYOUT_V, 4);
+  assert.equal(P.LAYOUT_V, 5);
+});
+
+test("continueEdges: the picture untouched in the middle, each side carried on as its own reflection (no seam, no blur)", () => {
+  const n = 8, ch = 1, pad = 5;
+  const data = Buffer.from(Array.from({ length: n * n }, (_, i) => i % 256));
+  const { data: out, size } = P.continueEdges(data, n, ch, pad, 3);
+  assert.equal(size, n + 2 * pad);
+  const at = (x, y) => out[(y + pad) * size + (x + pad)];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) assert.equal(at(x, y), data[y * n + x], "picture untouched");
+  // left of column 0: 0,1,2 then folds back 2,1 (reach 3)
+  assert.deepEqual([-1, -2, -3, -4, -5].map((x) => at(x, 2)), [0, 1, 2, 2, 1].map((x) => data[2 * n + x]));
+  // right of the last column, and above the top row
+  assert.deepEqual([8, 9, 10].map((x) => at(x, 0)), [7, 6, 5].map((x) => data[x]));
+  assert.deepEqual([-1, -2].map((y) => at(3, y)), [0, 1].map((y) => data[y * n + 3]));
+  // one colour stays exactly that colour
+  const flat = P.continueEdges(Buffer.alloc(n * n * 3, 200), n, 3, pad).data;
+  assert.ok(flat.every((v) => v === 200));
 });
 
 test("the punch size: any measured size from 2.10 to 2.55 in, anything else falls back to 2.45", () => {
@@ -325,7 +342,7 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.slipPath, "orders/ord1/packing-slip.pdf");
   assert.equal(o.printSheet.cut, 2.45, "the default punch size");
   assert.equal(o.printSheet.enhance, true);
-  assert.equal(o.printSheet.v, 4);
+  assert.equal(o.printSheet.v, 5);
   assert.equal(o.printSheet.image, 2.08);
   assert.ok(o.printSheet.at && o.printSheet.bytes > 0 && o.printSheet.slipBytes > 0);
   const slip = bucket.files.get("orders/ord1/packing-slip.pdf");
@@ -425,7 +442,7 @@ test("adminPrintSheet: admins only, paid orders only, returns a short-lived sign
   await db.collection("orders").doc("ord5").update({ printSheet: { ...first, v: undefined } });
   const old = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
   assert.equal(old.rebuilt, true);
-  assert.equal(db.get("orders/ord5").printSheet.v, 4);
+  assert.equal(db.get("orders/ord5").printSheet.v, 5);
 
   await new Promise((r) => setTimeout(r, 5));
   const r2 = await admin.adminPrintSheet({ orderId: "ord5", rebuild: true }, ADMIN);

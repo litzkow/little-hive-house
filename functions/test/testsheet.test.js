@@ -64,3 +64,34 @@ test("adminTestSheet: designs and photos into a PDF without an order", async () 
     assert.ok(bucket.files.has("tests/test-sheet.pdf"));
   } finally { P.buildPrintSheetDetailed = orig; void real; }
 });
+
+test("the last test sheet is saved and can be made again from Storage without picking the photos again", async () => {
+  const { bucket } = setup();
+  const A = require("../admin");
+  const orig = P.buildPrintSheetDetailed;
+  let seen = null;
+  P.buildPrintSheetDetailed = async (id, order, opts) => { seen = { order, photo: await opts.readPhoto("test/1.jpg") }; return { pdf: Buffer.from("%PDF-1.5 test"), sheets: 1, tiles: 3, warnings: [] }; };
+  try {
+    assert.deepEqual(await A.adminLastTestSheet({}, ADMIN), { sheet: null, pdfUrl: null });
+    await assert.rejects(A.adminLastTestSheet({}, { uid: "u", token: {} }), (e) => e.code === "permission-denied");
+    const jpg = Buffer.alloc(300, 9);
+    const r = await A.adminTestSheet({ designs: [{ id: "places/new-york", qty: 2 }], photos: [{ data: jpg.toString("base64"), name: "beach.jpg", frame: "instant", caption: "Hi", qty: 1 }] }, ADMIN);
+    assert.equal(r.saved, true);
+    assert.ok(bucket.files.has("tests/last/1.jpg") && bucket.files.has("tests/last.json"));
+    const last = await A.adminLastTestSheet({}, ADMIN);
+    assert.ok(last.pdfUrl);
+    assert.equal(last.sheet.designs[0].id, "places/new-york");
+    assert.equal(last.sheet.designs[0].qty, 2);
+    assert.equal(last.sheet.photos[0].saved, "tests/last/1.jpg");
+    assert.equal(last.sheet.photos[0].name, "beach.jpg");
+    assert.equal(last.sheet.photos[0].caption, "Hi");
+    assert.ok(last.sheet.photos[0].url);
+    // made again: the photo comes from Storage
+    seen = null;
+    const again = await A.adminTestSheet({ designs: last.sheet.designs, photos: last.sheet.photos.map((p) => ({ saved: p.saved, name: p.name, frame: p.frame, caption: p.caption, qty: p.qty })) }, ADMIN);
+    assert.equal(again.ok, true);
+    assert.deepEqual(seen.photo, jpg);
+    // only its own saved photos can be read back
+    await assert.rejects(A.adminTestSheet({ photos: [{ saved: "orders/x/print-sheet.pdf", qty: 1 }] }, ADMIN), /at least one/);
+  } finally { P.buildPrintSheetDetailed = orig; }
+});
