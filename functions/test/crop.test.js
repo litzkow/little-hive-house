@@ -68,3 +68,23 @@ test("the caption lettering reaches the order only when the frame offers it and 
   assert.equal(plan.tiles[0].capStyle, "classic");
   assert.notEqual(plan.tiles[0].key, plan.tiles[1].key);
 });
+
+test("bleed: a photo that reaches the edge of the face also covers the bleed around it with the photo itself", () => {
+  assert.deepEqual(C.bleedFor([0, 0, 600, 600]), { l: 60, t: 60, r: 60, b: 60 });
+  assert.deepEqual(C.bleedFor([0, 0, 600, 470]), { l: 60, t: 60, r: 60, b: 0 }, "a caption band at the bottom");
+  assert.deepEqual(C.bleedFor([30, 30, 540, 540]), { l: 0, t: 0, r: 0, b: 0 }, "a frame all around: nothing to bleed");
+  const B = { l: 120, t: 120, r: 120, b: 120 };
+  // a tall phone photo in a square window: zoom 1 now leaves room for the bleed on the tight sides
+  const r = C.region(3000, 4000, 1200, 1200, null, B);
+  assert.equal(r.box.width, 3000);
+  assert.equal(r.width, 2500);
+  assert.equal(r.left, 250);
+  assert.ok(r.box.top >= 0 && r.box.top + r.box.height <= 4000);
+  assert.ok(Math.abs(r.top - (r.box.top + 250)) < 1e-9);
+  // pushed to a corner: the box slides back inside, the window keeps its bleed
+  const c = C.region(3000, 4000, 1200, 1200, { x: 0, y: 0, z: 2 }, B);
+  assert.equal(c.box.left, 0); assert.equal(c.box.top, 0);
+  assert.ok(c.left > 0 && c.top > 0);
+  const px = C.regionPx(3000, 4000, 1200, 1200, null, B);
+  assert.ok(px.box && px.box.width === 3000);
+});

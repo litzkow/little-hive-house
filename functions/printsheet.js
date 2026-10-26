@@ -52,7 +52,7 @@ const SVG_UNITS = 600;                               // the frames' coordinate s
 const SCALE = FACE_PX / SVG_UNITS;                   // 2 px per unit
 const MAX_TILES = 450;                               // 50 sheets: more than any pack x qty the shop sells
 const JPEG = { quality: 93, chromaSubsampling: "4:4:4" };
-const LAYOUT_V = 5;                                  // 5: picture reflected past the cut line + cut marks (4 was a blurred stretch, 3 white paper)
+const LAYOUT_V = 6;                                  // 6: photos bleed with the photo itself (crop.js), designs reflected past the cut line + cut marks
 const URL_TTL_MS = 60 * 60 * 1000;
 const CONCURRENCY = 4;
 
@@ -346,6 +346,28 @@ async function toPrint(sharp, faceJpeg, geo) {
 }
 
 /**
+ * A photo that reaches the edge of the face: around the face goes the photo itself (`under`, the window plus its
+ * bleed, in face pixels relative to the face), so the edge that wraps around the magnet is the real photo, not a
+ * reflection. Only the far part that ends up on the back of the magnet is folded (continueEdges).
+ */
+async function toPrintWithPhoto(sharp, faceJpeg, geo, under) {
+  const k = geo.artPx / FACE_PX;
+  const e = Math.ceil((geo.padPx || 0) / k) + 2;       // face px around the face that the printed square needs
+  const B = Math.max(0, -under.left, -under.top, under.left + under.width - FACE_PX, under.top + under.height - FACE_PX);
+  const face = await sharp(faceJpeg).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const s1 = continueEdges(face.data, FACE_PX, 3, B);
+  let cur = await sharp(s1.data, { raw: { width: s1.size, height: s1.size, channels: 3 } })
+    .composite([{ input: under.data, raw: { width: under.width, height: under.height, channels: 3 }, left: B + under.left, top: B + under.top },
+      { input: faceJpeg, left: B, top: B }]).removeAlpha().raw().toBuffer();
+  let size = s1.size;
+  if (e > B) { const s2 = continueEdges(cur, size, 3, e - B); cur = s2.data; size = s2.size; }
+  else if (e < B) { cur = await sharp(cur, { raw: { width: size, height: size, channels: 3 } }).extract({ left: B - e, top: B - e, width: FACE_PX + 2 * e, height: FACE_PX + 2 * e }).removeAlpha().raw().toBuffer(); size = FACE_PX + 2 * e; }
+  const big = Math.round(size * k), off = Math.max(0, Math.floor((big - geo.fullPx) / 2));
+  return sharp(cur, { raw: { width: size, height: size, channels: 3 } }).resize(big, big, { fit: "fill", kernel: "lanczos3" })
+    .extract({ left: off, top: off, width: Math.min(geo.fullPx, big - off), height: Math.min(geo.fullPx, big - off) }).jpeg(JPEG).toBuffer();
+}
+
+/**
  * Pure: an n x n raw picture -> (n + 2 pad) square, the picture untouched in the middle and carried on outwards with
  * nothing that looks added: each side continues as its own reflection, pixel for pixel, so there is no seam, no blur
  * and no frame (a one-colour background just stays that colour, a photo or a painting just carries on). The reflection
@@ -391,7 +413,7 @@ async function renderPhoto(tile, ctx) {
   const f = frame || ctx.frames.none || NONE_FRAME;
   const win = windowPx(f);
   const label = `Photo ${tile.n}${tile.pack > 1 || ctx.packs > 1 ? ` (pack ${tile.pack})` : ""}`;
-  let photoLayer = null;
+  let photoLayer = null, under = null;
   try {
     const buf = await ctx.readPhoto(tile.path);
     // the part the customer chose (crop.js), in the photo's upright pixels; no crop = centred, just covering the window
@@ -399,14 +421,22 @@ async function renderPhoto(tile, ctx) {
     const meta = await sharp(buf, opts).metadata();
     const turned = (meta.orientation || 1) >= 5;
     const W = turned ? meta.height : meta.width, H = turned ? meta.width : meta.height;
-    const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop);
-    let img = await sharp(buf, opts).rotate().extract(reg)
-      .resize(win.w, win.h, { fit: "fill", kernel: "lanczos3" })
+    // the window plus, on the sides where it reaches the edge of the face, a bleed of the photo itself (crop.js)
+    const b = Crop.bleedFor(f.window), B = { l: b.l * SCALE, t: b.t * SCALE, r: b.r * SCALE, b: b.b * SCALE };
+    const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop, B);
+    const bw = win.w + B.l + B.r, bh = win.h + B.t + B.b;
+    let big = await sharp(buf, opts).rotate().extract(reg.box)
+      .resize(bw, bh, { fit: "fill", kernel: "lanczos3" })
       .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
     if (ctx.enhance) {
-      try { img = await enhancePhoto(sharp, img); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
+      try { big = await enhancePhoto(sharp, big); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
     }
-    photoLayer = { input: img.data, raw: { width: img.info.width, height: img.info.height, channels: img.info.channels }, left: win.x, top: win.y };
+    const hasBleed = !!(B.l || B.t || B.r || B.b);
+    const img = hasBleed
+      ? await sharp(big.data, { raw: { width: bw, height: bh, channels: 3 } }).extract({ left: B.l, top: B.t, width: win.w, height: win.h }).raw().toBuffer({ resolveWithObject: true })
+      : big;
+    photoLayer = { input: img.data, raw: { width: img.info.width, height: img.info.height, channels: 3 }, left: win.x, top: win.y };
+    if (hasBleed) under = { data: big.data, width: bw, height: bh, left: win.x - B.l, top: win.y - B.t };
   } catch (err) {
     ctx.warn(/\.hei[cf]$/i.test(tile.path)
       ? `${label} is an iPhone HEIC file, which the print server can't open. Its tile is a placeholder: open “Original photo” on the order page, save it as a JPG and print it by hand.`
@@ -422,7 +452,7 @@ async function renderPhoto(tile, ctx) {
   }
   if (inner || captionMarkup) layers.push({ input: Buffer.from(overlaySvg(inner, captionMarkup)), left: 0, top: 0 });
   const face = await sharp({ create: { width: FACE_PX, height: FACE_PX, channels: 3, background: "#FFFFFF" } }).composite(layers).jpeg(JPEG).toBuffer();
-  return toPrint(sharp, face, ctx.geo);
+  return under ? toPrintWithPhoto(sharp, face, ctx.geo, under) : toPrint(sharp, face, ctx.geo);
 }
 
 async function pool(items, n, fn) {

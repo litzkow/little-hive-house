@@ -60,9 +60,13 @@
   function cropBox(p, w) {
     var W = R.num(p.w), H = R.num(p.h), c = p.crop || { x: 0.5, y: 0.5, z: 1 };
     var cl = function (v, lo, hi) { return Math.min(hi, Math.max(lo, v)); };
-    var sc = Math.max(w[2] / W, w[3] / H) * cl(R.num(c.z) || 1, 1, 4);
-    var rw = Math.min(W, w[2] / sc), rh = Math.min(H, w[3] / sc);
-    return [cl(R.num(c.x) * W - rw / 2, 0, W - rw), cl(R.num(c.y) * H - rh / 2, 0, H - rh), rw, rh, W, H];
+    // plus the bleed where the window reaches the edge of the face (functions/crop.js bleedFor: 60 units)
+    var B = { l: w[0] <= 0 ? 60 : 0, t: w[1] <= 0 ? 60 : 0, r: w[0] + w[2] >= 600 ? 60 : 0, b: w[1] + w[3] >= 600 ? 60 : 0 };
+    var bw = w[2] + B.l + B.r, bh = w[3] + B.t + B.b;
+    var sc = Math.max(bw / W, bh / H) * cl(R.num(c.z) || 1, 1, 4);
+    var rw = Math.min(W, w[2] / sc), rh = Math.min(H, w[3] / sc), boxW = Math.min(W, bw / sc), boxH = Math.min(H, bh / sc);
+    var boxL = cl(R.num(c.x) * W - (w[2] / 2 + B.l) / sc, 0, W - boxW), boxT = cl(R.num(c.y) * H - (w[3] / 2 + B.t) / sc, 0, H - boxH);
+    return [boxL + B.l / sc, boxT + B.t / sc, rw, rh, W, H];
   }
   function magnetSVG(url, f, caption, p) {
     var key = p && p.capStyle, w = f.window, c = capOf(f, key), s = capText(f, caption, key);
@@ -431,7 +435,7 @@
     var ps = o.printSheet;
     if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
     if (!ps.path && !ps.slipPath) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
-    if (ps.v !== 5) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (9 per sheet, each picture carries on past the cut line, so no white edge).</span>';
+    if (ps.v !== 6) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (9 per sheet, each picture carries on past the cut line, so no white edge).</span>';
     var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
     return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of 9' +
       (ps.image ? ' · pictures ' + Number(ps.image).toFixed(2) + ' in' : '') + (ps.enhance === false ? ' · photos as uploaded' : ps.enhance ? ' · photos touched up' : '') + '</span>' +

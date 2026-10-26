@@ -116,7 +116,7 @@ test("no white edge: the picture keeps its size and its edge is carried out past
     assert.ok(!inside(x1, y1) && !inside(x2, y2) && !inside((x1 + x2) / 2, (y1 + y2) / 2));
     assert.ok(pt.some((t) => near(y1, t.y) || near(y1, t.y + t.size) || near(x1, t.x) || near(x1, t.x + t.size)));
   }
-  assert.equal(P.LAYOUT_V, 5);
+  assert.equal(P.LAYOUT_V, 6);
 });
 
 test("continueEdges: the picture untouched in the middle, each side carried on as its own reflection (no seam, no blur)", () => {
@@ -342,7 +342,7 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.slipPath, "orders/ord1/packing-slip.pdf");
   assert.equal(o.printSheet.cut, 2.45, "the default punch size");
   assert.equal(o.printSheet.enhance, true);
-  assert.equal(o.printSheet.v, 5);
+  assert.equal(o.printSheet.v, 6);
   assert.equal(o.printSheet.image, 2.08);
   assert.ok(o.printSheet.at && o.printSheet.bytes > 0 && o.printSheet.slipBytes > 0);
   const slip = bucket.files.get("orders/ord1/packing-slip.pdf");
@@ -442,7 +442,7 @@ test("adminPrintSheet: admins only, paid orders only, returns a short-lived sign
   await db.collection("orders").doc("ord5").update({ printSheet: { ...first, v: undefined } });
   const old = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
   assert.equal(old.rebuilt, true);
-  assert.equal(db.get("orders/ord5").printSheet.v, 5);
+  assert.equal(db.get("orders/ord5").printSheet.v, 6);
 
   await new Promise((r) => setTimeout(r, 5));
   const r2 = await admin.adminPrintSheet({ orderId: "ord5", rebuild: true }, ADMIN);
