@@ -13,6 +13,9 @@ on:
       value:
         description: "set-print-image: the printed picture size in inches"
         default: "2.02"
+      cut:
+        description: "set-print-image: the punch's paper piece in inches (empty = leave as is)"
+        default: ""
 
 jobs:
   maint:
@@ -42,6 +45,7 @@ jobs:
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
+          CUT: ${{ inputs.cut }}
         run: |
           case "${{ inputs.task }}" in
             clear-test-orders) node tools/maint/clear-test-orders.js ;;

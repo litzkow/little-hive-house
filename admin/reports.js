@@ -21,7 +21,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };
+  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.8, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };
   var SALE_STATUSES = ['paid', 'in_production', 'shipped', 'delivered', 'refunded', 'partially_refunded'];
   var REASONS = [
     ['not_delivered', 'Never arrived'],
@@ -59,6 +59,12 @@
     var b = s && typeof s.printBorderColor === 'string' ? s.printBorderColor : '';
     out.printBorderColor = b === 'auto' || /^#[0-9A-Fa-f]{6}$/.test(b) ? b.toUpperCase().replace('AUTO', 'auto') : (s && Number(s.printBorderBlack) === 1 ? '#000000' : '#FFFFFF');
     return out;
+  }
+  /* magnets per printed sheet for a punch size: same as functions/printsheet.js geometry() (3 x 3 up to 2.55 in, 2 x 3 above) */
+  function perSheet(cut) {
+    var c = Number(cut) || 2.8, g = 0.12;
+    var cols = Math.max(1, Math.min(3, Math.floor((7.9 + g) / (c + g)))), rows = Math.max(1, Math.min(3, Math.floor((10.1 + g) / (c + g))));
+    return cols * rows;
   }
   function monthKey(ms) { var d = new Date(ms); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
   function monthRange(key) {
@@ -421,7 +427,7 @@
 
   return {
     DEFAULT_SETTINGS: DEFAULT_SETTINGS, REASONS: REASONS, REASON_LABEL: REASON_LABEL, HOUR: HOUR, DAY: DAY,
-    num: num, round2: round2, toMs: toMs, settingsWithDefaults: settingsWithDefaults,
+    num: num, round2: round2, toMs: toMs, settingsWithDefaults: settingsWithDefaults, perSheet: perSheet,
     monthKey: monthKey, monthRange: monthRange, shiftMonth: shiftMonth, monthLabel: monthLabel, startOfDay: startOfDay,
     orderDate: orderDate, isSale: isSale, isAbandoned: isAbandoned, isPaymentLink: isPaymentLink, itemMagnets: itemMagnets, itemPrice: itemPrice, magnetsOf: magnetsOf,
     pricing: pricing, refundsOf: refundsOf, refundedTotal: refundedTotal, refundable: refundable, stripeFee: stripeFee, labelCost: labelCost,

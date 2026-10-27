@@ -431,14 +431,14 @@
     var ps = o.printSheet;
     if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
     if (!ps.path && !ps.slipPath) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
-    if (ps.v !== 3) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (9 per sheet, white border around each picture).</span>';
+    if (ps.v !== 3) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (white border around each picture).</span>';
     var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
-    return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of 9' +
+    return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of ' + (R.num(ps.perPage) || 9) +
       (ps.image ? ' · pictures ' + Number(ps.image).toFixed(2) + ' in' : '') + (ps.enhance === false ? ' · photos as uploaded' : ps.enhance ? ' · photos touched up' : '') + '</span>' +
       (w ? '<span class="small neg"> · ' + h.plural(w, 'thing') + ' to check on the “Before you print” page</span>' : '');
   }
   function printCard(o) {
-    var mags = R.magnetsOf(o), tiles = printableMagnets(o), sheets = Math.ceil(tiles / 9), hasPhotos = photoItems(o).length > 0;
+    var mags = R.magnetsOf(o), tiles = printableMagnets(o), sheets = Math.ceil(tiles / R.perSheet(S.settings && S.settings.printCutIn)), hasPhotos = photoItems(o).length > 0;
     var designs = designArgs(o).length, special = (o.items || []).filter(function (it) { return it.kind === 'package' || it.kind === 'custom'; });
     var cmd = printCommand(o);
     var steps = [];
@@ -503,7 +503,7 @@
         h.busy(btn, false);
         if (!res || !res.url) throw new Error('No link came back.');
         if (tab && !tab.closed) tab.location.href = res.url;
-        else h.dialog({ title: rebuild ? 'Print sheets made again' : which === 'slip' ? 'Packing slip ready' : 'Magnets ready', html: '<p class="small muted">' + (rebuild ? 'The magnets PDF (' + h.plural(R.num(res.printSheet && res.printSheet.sheets), 'sheet') + ' of 9) and the packing slip are ready. Here is the magnets one.' : which === 'slip' ? 'Print it on plain paper.' : h.plural(R.num(res.printSheet && res.printSheet.sheets), 'sheet') + ' of 9 magnets. Print on glossy photo paper at 100%.') + ' The link works for about an hour.</p><p>' + openLink(res.url) + '</p>', ok: false, cancel: 'Close' });
+        else h.dialog({ title: rebuild ? 'Print sheets made again' : which === 'slip' ? 'Packing slip ready' : 'Magnets ready', html: '<p class="small muted">' + (rebuild ? 'The magnets PDF (' + h.plural(R.num(res.printSheet && res.printSheet.sheets), 'sheet') + ' of ' + (R.num(res.printSheet && res.printSheet.perPage) || 9) + ') and the packing slip are ready. Here is the magnets one.' : which === 'slip' ? 'Print it on plain paper.' : h.plural(R.num(res.printSheet && res.printSheet.sheets), 'sheet') + ' of ' + (R.num(res.printSheet && res.printSheet.perPage) || 9) + ' magnets. Print on glossy photo paper at 100%.') + ' The link works for about an hour.</p><p>' + openLink(res.url) + '</p>', ok: false, cancel: 'Close' });
         return h.refreshOrder(o.id).then(function () {
           var st = document.getElementById('sheet-status'), fresh = h.findOrder(o.id);
           if (st && fresh) { current = fresh; st.innerHTML = sheetStatus(fresh); }

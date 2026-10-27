@@ -15,7 +15,7 @@ const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = requi
 const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25,
-  printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
+  printCutIn: 2.8, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -391,7 +391,7 @@ async function adminSaveSettings(data, auth) {
     if (s[k] === undefined || s[k] === null || s[k] === "") continue;
     const n = Number(s[k]);
     if (!Number.isFinite(n) || n < 0 || n > 100000) fail("invalid-argument", `"${k}" must be a number of 0 or more.`);
-    if (k === "printCutIn" && (n < 2.1 || n > 2.55)) fail("invalid-argument", "The punch size should be between 2.10 and 2.55 inches (measure a piece the punch cut).");
+    if (k === "printCutIn" && (n < 2.1 || n > 2.95)) fail("invalid-argument", "The punch size should be between 2.10 and 2.95 inches (measure a piece the punch cut).");
     if (k === "printImageIn" && (n < 2 || n > 2.3)) fail("invalid-argument", "The picture size should be between 2.00 and 2.30 inches.");
     if (k === "autoNewsletter" && n !== 0 && n !== 1) fail("invalid-argument", "Automatic emails are on (1) or off (0).");
     if (k === "printEnhance" && n !== 0 && n !== 1) fail("invalid-argument", "The photo touch-up is on (1) or off (0).");
@@ -624,7 +624,7 @@ async function adminTestSheet(data, auth) {
   const link = await printsheet.downloadUrl(path, "TEST-magnets.pdf");
   let saved = false;
   try { await saveTestSheet(items.filter((i) => i.kind === "design"), keep, border); saved = true; } catch (err) { console.warn("[adminTestSheet] could not save the test sheet for next time", err && err.message); }
-  return { ok: true, url: link.url, sheets: out.sheets, tiles: out.tiles, warnings: out.warnings, saved, border };
+  return { ok: true, url: link.url, sheets: out.sheets, perPage: out.perPage, tiles: out.tiles, warnings: out.warnings, saved, border };
 }
 
 /* The last test sheet is kept (tests/last.json + its photos at tests/last/<n>.jpg) so it can be made again later,

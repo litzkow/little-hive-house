@@ -86,11 +86,12 @@ test("geometry: US Letter, 9 pieces of the punch size, the picture a hair over 2
   assert.equal(P.geometry(2.1, 2.3).image, 2.1, "never bigger than the piece");
 });
 
-test("the punch size: any measured size from 2.10 to 2.55 in, anything else falls back to 2.45", () => {
+test("the punch size: any measured size from 2.10 to 2.95 in, anything else falls back to 2.80 (their punch)", () => {
   assert.equal(P.cutSize(2.25), 2.25);
   assert.equal(P.cutSize("2.5"), 2.5);
-  assert.equal(P.cutSize(3), 2.45);
-  assert.equal(P.cutSize(undefined), 2.45);
+  assert.equal(P.cutSize(3), 2.8);
+  assert.equal(P.cutSize(undefined), 2.8);
+  assert.equal(P.cutSize(2.9), 2.9);
   const big = P.geometry(2.55), small = P.geometry(2.1);
   assert.ok(big.gap > 0.1 && small.gap === 0.5);
   for (const g of [big, small]) {
@@ -109,8 +110,24 @@ test("photo touch-up: overexposed photos are darkened a little, dark ones lifted
   assert.ok(mid.saturation > 1 && mid.contrast > 1 && mid.offset < 0);
 });
 
-test("page count: 9 per sheet", () => {
-  assert.deepEqual([0, 1, 8, 9, 10, 18, 19, 50].map(P.pageCount), [0, 1, 1, 1, 2, 2, 3, 6]);
+test("page count: 9 per sheet, or as many as the sheet holds", () => {
+  assert.deepEqual([0, 1, 8, 9, 10, 18, 19, 50].map((n) => P.pageCount(n)), [0, 1, 1, 1, 2, 2, 3, 6]);
+  assert.deepEqual([0, 6, 7, 12].map((n) => P.pageCount(n, 6)), [0, 1, 2, 2]);
+});
+
+test("their 2.80 in punch: 6 pieces a sheet (2 x 3), each fully on the page with white between, the colour 0.2 in past the cut", () => {
+  const g = P.geometry(2.8, 2.02);
+  assert.equal(g.cols, 2); assert.equal(g.rows, 3); assert.equal(g.perPage, 6);
+  const pt = P.tilePositions(2.8, 2.02);
+  assert.equal(pt.length, 6);
+  for (const t of pt) {
+    const r = P.borderRect(t, g);
+    assert.ok(r.x > 0.1 * 72 && r.x + r.size < 612 - 0.1 * 72 && r.y > 0.3 * 72 && r.y + r.size < 792 - 0.3 * 72, "inside the printable page");
+    assert.ok(t.x - r.x >= 0.19 * 72, "colour well past the cut line");
+  }
+  assert.ok(P.borderRect(pt[1], g).x - (P.borderRect(pt[0], g).x + P.borderRect(pt[0], g).size) >= 0.04 * 72);
+  assert.equal(P.geometry(2.45).perPage, 9, "a smaller punch still fits 9");
+  assert.deepEqual(P.placeTiles([1, 2, 3, 4, 5, 6, 7].map((k) => ({ k })), 6).map((t) => [t.page, t.slot]), [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [1, 0]]);
 });
 
 test("fill: a pack with fewer photos than magnets repeats them in order (print_sheet.py --order, admin photoPlan)", () => {
@@ -290,7 +307,7 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.sheets, 2);
   assert.equal(o.printSheet.pages, 2);
   assert.equal(o.printSheet.slipPath, "orders/ord1/packing-slip.pdf");
-  assert.equal(o.printSheet.cut, 2.45, "the default punch size");
+  assert.equal(o.printSheet.cut, 2.8, "the default punch size");
   assert.equal(o.printSheet.enhance, true);
   assert.equal(o.printSheet.v, 3);
   assert.equal(o.printSheet.image, 2.02);

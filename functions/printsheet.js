@@ -37,9 +37,11 @@ const DPI = 600;                                     // sharp text and lines; th
 const COLS = 3, ROWS = 3, PER_PAGE = COLS * ROWS;
 const FACE_IN = 2;                                   // the visible magnet face
 const FACE_PX = FACE_IN * DPI;                       // 1200
-const CUT_IN = 2.45;                                 // default paper size of the octagonal punch (Settings › Printing): a little big on purpose,
-                                                     // the face stays 2 in either way and a larger piece only adds coloured edge
-const CUT_MIN = 2.1, CUT_MAX = 2.55;
+const CUT_IN = 2.8;                                  // default paper size of the octagonal punch (Settings › Printing): their 2 x 2 in punch
+                                                     // cuts a 71 mm piece (measured on a cut piece, Oct 2026); the face stays 2 in
+const CUT_MIN = 2.1, CUT_MAX = 2.95;
+const MIN_GAP_IN = 0.12;                             // white between two pieces, at least
+const USE_W_IN = 8.5 - 2 * 0.3, USE_H_IN = 11 - 2 * 0.45;   // the part of the page the pieces go on (header and footer outside)
 const IMAGE_IN = 2.02;                               // default printed size of each photo / design (Settings › Printing)
 const IMAGE_MIN = 2.0, IMAGE_MAX = 2.3;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
@@ -70,11 +72,15 @@ function geometry(cutIn, imageIn) {
   const cut = cutSize(cutIn);
   const image = Math.min(imageSize(imageIn), cut);
   const artPx = Math.round(image * DPI);
-  const gap = Math.min(0.5, (8.5 - 2 * SIDE_IN - COLS * cut) / (COLS - 1));
+  // as many pieces as fit (3 x 3 for a piece up to 2.55 in, 2 x 3 for a bigger one like their 2.8 in punch)
+  const cols = Math.max(1, Math.min(COLS, Math.floor((USE_W_IN + MIN_GAP_IN) / (cut + MIN_GAP_IN))));
+  const rows = Math.max(1, Math.min(ROWS, Math.floor((USE_H_IN + MIN_GAP_IN) / (cut + MIN_GAP_IN))));
+  const gx = cols > 1 ? (8.5 - 2 * SIDE_IN - cols * cut) / (cols - 1) : 0.5, gy = rows > 1 ? (USE_H_IN - rows * cut) / (rows - 1) : 0.5;
+  const gap = Math.min(0.5, gx, gy);
   const cutPt = cut * 72, gapPt = gap * 72, artPt = artPx / DPI * 72;
-  const gridW = COLS * cutPt + (COLS - 1) * gapPt, gridH = ROWS * cutPt + (ROWS - 1) * gapPt;
+  const gridW = cols * cutPt + (cols - 1) * gapPt, gridH = rows * cutPt + (rows - 1) * gapPt;
   return { cut, image: r6(artPx / DPI), face: FACE_IN, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, gapPt: r6(gapPt),
-    left: r6((PAGE_PT.w - gridW) / 2), top: r6((PAGE_PT.h - gridH) / 2 + 6) };
+    cols, rows, perPage: cols * rows, left: r6((PAGE_PT.w - gridW) / 2), top: r6((PAGE_PT.h - gridH) / 2 + 6) };
 }
 
 const ALIASES = { classic: "white", polaroid: "instant", honey: "honeycomb", scallop: "lace", autumn: "fall", starry: "baby" };
@@ -84,7 +90,7 @@ const toInt = (v, d = 0) => (Number.isFinite(Number(v)) ? Math.max(0, Math.floor
 const frameId = (id) => { const k = String(id || "none").trim(); return ALIASES[k] || k || "none"; };
 
 /** Number of sheet pages for n tiles. */
-function pageCount(n) { return n > 0 ? Math.ceil(n / PER_PAGE) : 0; }
+function pageCount(n, perPage = PER_PAGE) { return n > 0 ? Math.ceil(n / perPage) : 0; }
 
 /**
  * The 9 pieces of a sheet, in points: {i, col, row, x, y, size} is the piece the punch cuts, art {x, y, size} the
@@ -94,8 +100,8 @@ function tilePositions(cutIn, imageIn) {
   const g = geometry(cutIn, imageIn);
   const b = (g.artPt - g.cutPt) / 2, f = (g.cutPt - FACE_IN * 72) / 2;
   const out = [];
-  for (let i = 0; i < PER_PAGE; i++) {
-    const col = i % COLS, row = Math.floor(i / COLS);
+  for (let i = 0; i < g.perPage; i++) {
+    const col = i % g.cols, row = Math.floor(i / g.cols);
     const x = g.left + col * (g.cutPt + g.gapPt), y = g.top + row * (g.cutPt + g.gapPt);
     out.push({ i, col, row, x: r6(x), y: r6(y), size: g.cutPt,
       art: { x: r6(x - b), y: r6(y - b), size: g.artPt }, face: { x: r6(x + f), y: r6(y + f), size: FACE_IN * 72 } });
@@ -161,8 +167,8 @@ function planTiles(order) {
 }
 
 /** Which sheet and slot each tile lands on: [{page, slot, ...tile}]. */
-function placeTiles(tiles) {
-  return tiles.map((t, i) => ({ ...t, page: Math.floor(i / PER_PAGE), slot: i % PER_PAGE }));
+function placeTiles(tiles, perPage = PER_PAGE) {
+  return tiles.map((t, i) => ({ ...t, page: Math.floor(i / perPage), slot: i % perPage }));
 }
 
 /** Two files: the magnets (glossy photo paper) and the packing slip (plain paper). */
@@ -406,7 +412,7 @@ function registerFonts(doc) {
  * all round, so a punch a little off centre still cuts that colour, while some white stays between two pieces. Points. */
 function borderRect(slot, geo) {
   // as far into the white between two pieces as it goes (a thin line stays), so a punch well off centre still cuts colour
-  const extra = Math.max(0, geo.gapPt / 2 - 0.02 * 72);
+  const extra = Math.max(0, Math.min(0.2 * 72, geo.gapPt / 2 - 0.02 * 72));
   return { x: r6(slot.x - extra), y: r6(slot.y - extra), size: r6(slot.size + 2 * extra) };
 }
 /* Border = the paper around each picture, which wraps over the edge of the magnet. Any colour: Settings › Printing has the
@@ -474,7 +480,7 @@ function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, bor
     if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
   }
   doc.font(F.body).fontSize(6.5).fillColor("#8A7A66");
-  doc.text(`${placed.length} of ${PER_PAGE} magnets · each picture ${geo.image.toFixed(2)} in with ${used.size === 1 ? colourName([...used][0]) : "coloured"} paper around it for the edge · centre the picture in the punch`,
+  doc.text(`${placed.length} of ${geo.perPage} magnets · each picture ${geo.image.toFixed(2)} in with ${used.size === 1 ? colourName([...used][0]) : "coloured"} paper around it for the edge · centre the picture in the punch`,
     L, PAGE_PT.h - 26, { width: PAGE_PT.w - 2 * L, align: "center", lineBreak: false });
 }
 
@@ -589,11 +595,11 @@ async function assemblePdf({ order, plan, images, warnings, frames, geo, border,
   if (plan.truncated) warnings.push(`This order has ${plan.total} magnets to print but the sheets stop at ${MAX_TILES}. Print the rest from the admin ZIP.`);
   let pdf = null, pages = 0;
   if (plan.sheets) {
-    const s = newDoc(`Magnets · Order ${order.number || ""}`, `Fridge magnets, ${PER_PAGE} per sheet, ${geo.cut.toFixed(2)} in pieces at 600 dpi`);
+    const s = newDoc(`Magnets · Order ${order.number || ""}`, `Fridge magnets, ${geo.perPage} per sheet, ${geo.cut.toFixed(2)} in pieces at 600 dpi`);
     // embed each unique artwork once (openImage), then place it as many times as needed
     const embedded = new Map();
     for (const [key, jpeg] of images) { try { embedded.set(key, s.doc.openImage(jpeg)); } catch (e) { warnings.push(`A tile could not be embedded (${e.message}).`); } }
-    const placed = placeTiles(plan.tiles);
+    const placed = placeTiles(plan.tiles, geo.perPage);
     for (let p = 0; p < plan.sheets; p++) {
       drawSheet(s.doc, s.F, { order, page: p, sheets: plan.sheets, placed: placed.filter((t) => t.page === p), images: embedded, date, geo, border, edges });
     }
@@ -650,6 +656,7 @@ async function buildPrintSheetDetailed(orderId, order, opts = {}) {
   order = order || {};
   const plan = planTiles(order);
   const ctx = makeContext(order, opts);
+  plan.sheets = pageCount(plan.tiles.length, ctx.geo.perPage);
   ctx.frames = ctx.packs ? await loadFrames(ctx) : { none: NONE_FRAME };
   const uniq = new Map();
   for (const t of plan.tiles) if (!uniq.has(t.key)) uniq.set(t.key, t);
@@ -665,7 +672,7 @@ async function buildPrintSheetDetailed(orderId, order, opts = {}) {
     for (const [key, jpeg] of images) { try { edges.set(key, await edgeColour(sharp, jpeg)); } catch (e) { /* white */ } }
   }
   const out = await assemblePdf({ order, plan, images, warnings: ctx.warnings, frames: ctx.frames, geo: ctx.geo, border: ctx.border, edges });
-  return { ...out, sheets: plan.sheets, tiles: plan.tiles.length, cut: ctx.geo.cut, image: ctx.geo.image, enhance: ctx.enhance, border: ctx.border, warnings: ctx.warnings.slice(0, 10) };
+  return { ...out, sheets: plan.sheets, perPage: ctx.geo.perPage, tiles: plan.tiles.length, cut: ctx.geo.cut, image: ctx.geo.image, enhance: ctx.enhance, border: ctx.border, warnings: ctx.warnings.slice(0, 10) };
 }
 
 /** buildPrintSheet(orderId, order) -> Buffer (the magnets PDF). */
@@ -695,7 +702,7 @@ async function generateForOrder(ref, orderId, order, { by = "system" } = {}) {
   const p = out.pdf ? storagePath(orderId) : null, sp = storagePath(orderId, "slip");
   if (out.pdf) await savePdf(bucket, p, out.pdf, order, orderId, by, "sheet");
   if (out.slip) await savePdf(bucket, sp, out.slip, order, orderId, by, "slip");
-  const meta = { path: p, slipPath: out.slip ? sp : null, pages: out.pages, slipPages: out.slipPages || 0, sheets: out.sheets, tiles: out.tiles,
+  const meta = { path: p, slipPath: out.slip ? sp : null, pages: out.pages, slipPages: out.slipPages || 0, sheets: out.sheets, perPage: out.perPage || PER_PAGE, tiles: out.tiles,
     cut: out.cut || settings.cut, image: out.image || settings.image, enhance: out.enhance !== undefined ? out.enhance : settings.enhance, border: out.border || settings.border || WHITE, borders: order.printBorders || null,
     bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: 3 };
   if (ref) await ref.update({ printSheet: meta, updatedAt: nowIso() }).catch((err) => console.warn("[printsheet] could not save printSheet on the order", err && err.message));
