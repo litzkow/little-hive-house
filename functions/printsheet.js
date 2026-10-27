@@ -37,8 +37,8 @@ const DPI = 600;                                     // sharp text and lines; th
 const COLS = 3, ROWS = 3, PER_PAGE = COLS * ROWS;
 const FACE_IN = 2;                                   // the visible magnet face
 const FACE_PX = FACE_IN * DPI;                       // 1200
-const CUT_IN = 2.8;                                  // default paper size of the octagonal punch (Settings › Printing): their 2 x 2 in punch
-                                                     // cuts a 71 mm piece (measured on a cut piece, Oct 2026); the face stays 2 in
+const CUT_IN = 2.45;                                 // default paper size of the octagonal punch (Settings › Printing): their 2 x 2 in punch
+                                                     // (9 per sheet); the coloured border reaches past it to the gap between pieces
 const CUT_MIN = 2.1, CUT_MAX = 2.95;
 const MIN_GAP_IN = 0.12;                             // white between two pieces, at least
 const USE_W_IN = 8.5 - 2 * 0.3, USE_H_IN = 11 - 2 * 0.45;   // the part of the page the pieces go on (header and footer outside)

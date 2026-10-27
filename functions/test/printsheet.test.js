@@ -86,11 +86,11 @@ test("geometry: US Letter, 9 pieces of the punch size, the picture a hair over 2
   assert.equal(P.geometry(2.1, 2.3).image, 2.1, "never bigger than the piece");
 });
 
-test("the punch size: any measured size from 2.10 to 2.95 in, anything else falls back to 2.80 (their punch)", () => {
+test("the punch size: any measured size from 2.10 to 2.95 in, anything else falls back to 2.45", () => {
   assert.equal(P.cutSize(2.25), 2.25);
   assert.equal(P.cutSize("2.5"), 2.5);
-  assert.equal(P.cutSize(3), 2.8);
-  assert.equal(P.cutSize(undefined), 2.8);
+  assert.equal(P.cutSize(3), 2.45);
+  assert.equal(P.cutSize(undefined), 2.45);
   assert.equal(P.cutSize(2.9), 2.9);
   const big = P.geometry(2.55), small = P.geometry(2.1);
   assert.ok(big.gap > 0.1 && small.gap === 0.5);
@@ -307,7 +307,7 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.sheets, 2);
   assert.equal(o.printSheet.pages, 2);
   assert.equal(o.printSheet.slipPath, "orders/ord1/packing-slip.pdf");
-  assert.equal(o.printSheet.cut, 2.8, "the default punch size");
+  assert.equal(o.printSheet.cut, 2.45, "the default punch size");
   assert.equal(o.printSheet.enhance, true);
   assert.equal(o.printSheet.v, 3);
   assert.equal(o.printSheet.image, 2.02);
