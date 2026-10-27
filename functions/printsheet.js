@@ -405,7 +405,8 @@ function registerFonts(doc) {
 /** Pure: the coloured square drawn behind a picture (any border but white): the piece the punch cuts plus a little extra
  * all round, so a punch a little off centre still cuts that colour, while some white stays between two pieces. Points. */
 function borderRect(slot, geo) {
-  const extra = Math.max(0, Math.min(0.05 * 72, (geo.gapPt - 0.12 * 72) / 2));
+  // as far into the white between two pieces as it goes (a thin line stays), so a punch well off centre still cuts colour
+  const extra = Math.max(0, geo.gapPt / 2 - 0.02 * 72);
   return { x: r6(slot.x - extra), y: r6(slot.y - extra), size: r6(slot.size + 2 * extra) };
 }
 /* Border = the paper around each picture, which wraps over the edge of the magnet. Any colour: Settings › Printing has the

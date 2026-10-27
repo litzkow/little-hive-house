@@ -440,7 +440,8 @@ test("border: white by default, any colour or the picture's own on request; the 
   const a = P.borderRect(pt[0], g), b = P.borderRect(pt[1], g);
   assert.ok(a.x < pt[0].x && a.size > pt[0].size, "a little past the cut line");
   assert.ok(a.x <= pt[0].art.x && a.x + a.size >= pt[0].art.x + pt[0].art.size, "behind the whole picture");
-  assert.ok(b.x - (a.x + a.size) >= 0.12 * 72 - 1e-6, "white stays between two pieces");
+  assert.ok(a.x <= pt[0].x - 0.1 * 72, "at least 0.1 in past the cut line");
+  assert.ok(b.x - (a.x + a.size) >= 0.04 * 72 - 1e-6 && a.x > 0, "a thin line stays between two pieces, inside the page");
 });
 
 test("border per item: an order's colour for all, one per item, or the item's own; auto = the picture's edge colour", () => {
