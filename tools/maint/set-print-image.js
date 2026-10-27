@@ -7,7 +7,7 @@ const { Firestore } = require("@google-cloud/firestore");
 const project = process.env.PROJECT || "little-hive-house";
 const db = new Firestore({ projectId: project });
 const dry = process.env.DRY_RUN === "1";
-const value = Number(process.env.VALUE || "2.00");
+const value = Number(process.env.VALUE || "2.02");
 const cut = process.env.CUT ? Number(process.env.CUT) : null;
 
 (async () => {

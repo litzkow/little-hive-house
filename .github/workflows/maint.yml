@@ -12,7 +12,7 @@ on:
         default: "0"
       value:
         description: "set-print-image: the printed picture size in inches"
-        default: "2.00"
+        default: "2.02"
       cut:
         description: "set-print-image: the punch's paper piece in inches (empty = leave as is)"
         default: ""

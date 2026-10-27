@@ -42,7 +42,7 @@ const CUT_IN = 2.8;                                  // default paper size of th
 const CUT_MIN = 2.1, CUT_MAX = 2.95;
 const MIN_GAP_IN = 0.12;                             // white between two pieces, at least
 const USE_W_IN = 8.5 - 2 * 0.3, USE_H_IN = 11 - 2 * 0.45;   // the part of the page the pieces go on (header and footer outside)
-const IMAGE_IN = 2.0;                                // default printed size of each photo / design (Settings › Printing)
+const IMAGE_IN = 2.02;                               // default printed size of each photo / design (Settings › Printing)
 const IMAGE_MIN = 1.9, IMAGE_MAX = 2.3;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
