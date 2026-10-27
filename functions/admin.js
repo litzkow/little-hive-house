@@ -15,7 +15,7 @@ const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = requi
 const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25,
-  printCutIn: 2.45, printImageIn: 2.08, printEnhance: 1, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
+  printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });

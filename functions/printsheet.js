@@ -40,7 +40,7 @@ const FACE_PX = FACE_IN * DPI;                       // 1200
 const CUT_IN = 2.45;                                 // default paper size of the octagonal punch (Settings › Printing): a little big on purpose,
                                                      // the face stays 2 in either way and a larger piece only adds coloured edge
 const CUT_MIN = 2.1, CUT_MAX = 2.55;
-const IMAGE_IN = 2.08;                               // default printed size of each photo / design (Settings › Printing)
+const IMAGE_IN = 2.02;                               // default printed size of each photo / design (Settings › Printing)
 const IMAGE_MIN = 2.0, IMAGE_MAX = 2.3;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
