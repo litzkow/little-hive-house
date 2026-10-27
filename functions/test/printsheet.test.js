@@ -80,9 +80,9 @@ test("geometry: US Letter, 9 pieces of the punch size, the picture a hair over 2
   // white between two pictures: the gap plus the white of both pieces
   assert.ok(near(pt[1].art.x - (pt[0].art.x + pt[0].art.size), (0.35 + 2 * 0.16) * 72));
   // defaults and limits
-  assert.equal(P.imageSize(undefined), 2.02);
+  assert.equal(P.imageSize(undefined), 2);
   assert.equal(P.imageSize(2.2), 2.2);
-  assert.equal(P.imageSize(5), 2.02);
+  assert.equal(P.imageSize(5), 2);
   assert.equal(P.geometry(2.1, 2.3).image, 2.1, "never bigger than the piece");
 });
 
@@ -310,7 +310,7 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.cut, 2.8, "the default punch size");
   assert.equal(o.printSheet.enhance, true);
   assert.equal(o.printSheet.v, 3);
-  assert.equal(o.printSheet.image, 2.02);
+  assert.equal(o.printSheet.image, 2);
   assert.ok(o.printSheet.at && o.printSheet.bytes > 0 && o.printSheet.slipBytes > 0);
   const slip = bucket.files.get("orders/ord1/packing-slip.pdf");
   assert.equal(slip.data.toString(), "%PDF-1.5 fake slip ord1");

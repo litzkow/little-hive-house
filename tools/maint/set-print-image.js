@@ -7,11 +7,11 @@ const { Firestore } = require("@google-cloud/firestore");
 const project = process.env.PROJECT || "little-hive-house";
 const db = new Firestore({ projectId: project });
 const dry = process.env.DRY_RUN === "1";
-const value = Number(process.env.VALUE || "2.02");
+const value = Number(process.env.VALUE || "2.00");
 const cut = process.env.CUT ? Number(process.env.CUT) : null;
 
 (async () => {
-  if (!Number.isFinite(value) || value < 2 || value > 2.3) throw new Error(`VALUE ${process.env.VALUE} fora de 2.00 a 2.30`);
+  if (!Number.isFinite(value) || value < 1.9 || value > 2.3) throw new Error(`VALUE ${process.env.VALUE} fora de 1.90 a 2.30`);
   if (cut !== null && (!Number.isFinite(cut) || cut < 2.1 || cut > 2.95)) throw new Error(`CUT ${process.env.CUT} fora de 2.10 a 2.95`);
   const ref = db.collection("settings").doc("store");
   const snap = await ref.get();
