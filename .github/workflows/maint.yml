@@ -5,11 +5,14 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "clear-test-orders (deletes Stripe TEST-mode orders and resets numbering)"
+        description: "clear-test-orders (deletes Stripe TEST-mode orders and resets numbering) or set-print-image (printed picture size, value below)"
         default: "clear-test-orders"
       dry_run:
         description: "1 = only list what would change"
         default: "0"
+      value:
+        description: "set-print-image: the printed picture size in inches"
+        default: "2.02"
 
 jobs:
   maint:
@@ -38,8 +41,10 @@ jobs:
       - name: Run
         env:
           DRY_RUN: ${{ inputs.dry_run }}
+          VALUE: ${{ inputs.value }}
         run: |
           case "${{ inputs.task }}" in
             clear-test-orders) node tools/maint/clear-test-orders.js ;;
+            set-print-image) node tools/maint/set-print-image.js ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac
