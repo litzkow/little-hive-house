@@ -625,6 +625,13 @@
       '<div class="field gap-top"><span>Border around each picture</span>' + h.borderPicker(st.border, { id: 'tp-border' }) + '</div>' +
       '<label class="check"><input type="checkbox" id="tp-peritem"' + (st.perItem ? ' checked' : '') + '> <span>A different border for some magnets<span class="hint">Each design or photo gets its own choice: the border above, Photo colour, or any colour.</span></span></label>' +
       '<p class="err" id="tp-err" hidden></p><div class="row end gap-top"><button class="btn btn-ghost btn-sm" data-act="tpClear">Clear</button><button class="btn btn-honey" data-act="tpMake">' + icon('print') + 'Make test PDF</button></div></section>' +
+      '<section class="card tint"><div class="card-head"><h2>Package extras</h2></div><p class="small muted" style="margin-top:0">Ready to print, for every package. Tap to open the PDF, then print it from there.</p><ul class="plain stack" style="gap:12px">' +
+      '<li><a class="btn btn-ghost btn-sm" href="../print-files/logo-magnets.pdf?v=1" target="_blank" rel="noopener">' + icon('print') + 'Logo magnets</a>' +
+      '<div class="small muted" style="margin-top:4px">Our own magnet, a free gift in each package. 9 per glossy sheet, cut and pressed like the others. Page 1 cream, page 2 honey: print the one you like.</div></li>' +
+      '<li><a class="btn btn-ghost btn-sm" href="../print-files/kraft-labels.pdf?v=1" target="_blank" rel="noopener">' + icon('print') + 'Round stickers (2 in)</a>' +
+      '<div class="small muted" style="margin-top:4px">For the 2 in round label sheets (12 per sheet, Koala N-RLK2-25 or Avery 22807). Print page 1 on plain paper first and hold it against a label sheet in front of a window: the red circles should sit on the labels. Then print one page on the label sheet: page 2 is a mix, pages 3 to 6 one design each. Paper type Plain paper, 100% (Actual size), one sheet at a time in the rear tray, label side up.</div></li>' +
+      '<li><a class="btn btn-ghost btn-sm" href="../print-files/thank-you-cards.pdf?v=1" target="_blank" rel="noopener">' + icon('print') + 'Thank-you cards</a>' +
+      '<div class="small muted" style="margin-top:4px">4 cards per Letter sheet: cut on the small marks. Card stock or matte paper, 100% (Actual size).</div></li></ul></section>' +
       '<section class="card"><div class="card-head"><h2>Print it well</h2></div><ol class="small" style="padding-left:18px;margin:0;display:grid;gap:6px">' +
       '<li>Print from the <b>Canon PRINT</b> app (Wi-Fi Direct works), not the iPhone’s own Print button.</li>' +
       '<li>Paper: <b>Letter</b>, media type <b>Photo Paper Plus Glossy II</b>, quality <b>High</b>, borderless <b>off</b>, Auto Photo Fix <b>off</b>.</li>' +

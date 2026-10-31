@@ -3,6 +3,9 @@
   print-files/thank-you-cards.pdf   4 thank-you cards per sheet (4.25 x 5.5 in each), cut on the small marks
   print-files/kraft-labels.pdf      2 in round labels for Koala N-RLK2-25 / Avery 22807 sheets (3 x 4, 12 per sheet):
                                     page 1 alignment test (plain paper), page 2 a mix, then one page per design
+  print-files/logo-magnets.pdf      the shop's own logo magnet, a free gift in each package: 9 per glossy sheet, laid out
+                                    like the order sheets (functions/printsheet.js: 2.45 in punch, 2.02 in picture,
+                                    the colour 0.12 in past the cut). Page 1 cream, page 2 honey.
 
 Kraft labels print in one dark ink (light colours disappear on brown paper). Fonts come from tools/fonts.
 Run: python3 tools/print_inserts.py"""
@@ -289,6 +292,71 @@ def kraft_labels():
     return path
 
 
+# ================================================================ the shop's logo magnet (a free gift in each package)
+MAG_CUT, MAG_IMG, MAG_GAP = 2.45 * IN, 2.02 * IN, 0.275 * IN          # same as printsheet.js geometry(2.45, 2.02)
+MAG_LEFT = (8.5 * IN - (3 * MAG_CUT + 2 * MAG_GAP)) / 2
+MAG_TOP = (11 * IN - (3 * MAG_CUT + 2 * MAG_GAP)) / 2 + 6
+MAG_EXTRA = min(0.2 * IN, MAG_GAP / 2 - 0.02 * IN)                     # printsheet.js borderRect()
+
+
+def caps(c, text, x, y, size, color, spacing=1.6):
+    c.saveState()                                      # the letter spacing must not leak into the next text
+    t = c.beginText()
+    t.setFont("Caps", size)
+    t.setCharSpace(spacing)
+    w = pdfmetrics.stringWidth(text, "Caps", size) + spacing * (len(text) - 1)
+    t.setTextOrigin(x - w / 2, y)
+    t.setFillColor(color)
+    t.textOut(text)
+    t.setCharSpace(0)
+    c.drawText(t)
+    c.restoreState()
+
+
+def logo_magnet(c, x, y, bg, logo_kw, ink, sub, link):
+    """One 2.02 in picture, its lower-left corner at (x, y): the hive, the name, and the web address."""
+    s = MAG_IMG
+    c.setFillColor(bg)
+    c.rect(x, y, s, s, fill=1, stroke=0)
+    cx = x + s / 2
+    logo(c, cx, y + s * 0.66, s * 0.36, **logo_kw)
+    centred(c, "Little Hive House", cx, y + s * 0.355, "Serif", 17.5, ink, max_w=s * 0.8)
+    caps(c, "HANDMADE FRIDGE MAGNETS", cx, y + s * 0.26, 5.6, sub)
+    centred(c, "littlehivehouse.com", cx, y + s * 0.135, "Jost", 7.2, link)
+
+
+def logo_magnets():
+    OUT.mkdir(exist_ok=True)
+    path = OUT / "logo-magnets.pdf"
+    c = canvas.Canvas(str(path), pagesize=(8.5 * IN, 11 * IN))
+    c.setTitle("Little Hive House logo magnets")
+    variants = (
+        (CREAM, dict(), INK, MUTED, HONEY, "cream"),
+        (HexColor("#F2A81D"), dict(fill=INK, soft=HexColor("#5A4026"), ink=HexColor("#FFF6E5")), INK, HexColor("#4A3520"), INK, "honey"),
+    )
+    for bg, kw, ink, sub, link, name in variants:
+        c.setFont("Jost", 7.5)
+        c.setFillColor(INK)
+        c.drawString(MAG_LEFT, 11 * IN - 18 - 7, f"Little Hive House \u00b7 logo magnets ({name}) \u00b7 a free gift for each package")
+        c.drawRightString(8.5 * IN - MAG_LEFT, 11 * IN - 18 - 7, "glossy photo paper \u00b7 100% (Actual size)")
+        for r in range(3):
+            for col in range(3):
+                x = MAG_LEFT + col * (MAG_CUT + MAG_GAP)
+                ytop = MAG_TOP + r * (MAG_CUT + MAG_GAP)
+                y = 11 * IN - ytop - MAG_CUT                     # lower-left of the punched piece
+                c.setFillColor(bg)                               # the colour all round, past the cut line
+                c.rect(x - MAG_EXTRA, y - MAG_EXTRA, MAG_CUT + 2 * MAG_EXTRA, MAG_CUT + 2 * MAG_EXTRA, fill=1, stroke=0)
+                b = (MAG_CUT - MAG_IMG) / 2
+                logo_magnet(c, x + b, y + b, bg, kw, ink, sub, link)
+        c.setFont("Jost", 6.5)
+        c.setFillColor(MUTED)
+        c.drawCentredString(4.25 * IN, 26, "9 logo magnets \u00b7 centre the picture in the punch, like the order sheets")
+        c.showPage()
+    c.save()
+    return path
+
+
 if __name__ == "__main__":
     print(thank_you_cards())
     print(kraft_labels())
+    print(logo_magnets())
