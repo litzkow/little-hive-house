@@ -372,7 +372,7 @@
         var o = S.orders.find(function (y) { return y.id === x.orderId; });
         return '<article class="msg review"><img src="' + h.ART_URL + esc(x.designId || '') + '.webp" alt="" width="72" height="72" loading="lazy" data-fallback><div class="stack" style="gap:6px">' +
           '<header><b>' + stars(x.rating) + ' ' + esc(x.name || 'Customer') + '</b><time>' + esc(h.fmtDate(x.createdAt || x.at)) + '</time></header>' +
-          '<p class="body">' + esc(x.text || '') + '</p><p class="meta"><span>' + esc(designTitle(x.designId, o)) + '</span>' + (o ? '<a href="#order/' + encodeURIComponent(o.id) + '">' + esc(h.orderNo(o)) + '</a>' : '') + '</p>' +
+          '<p class="body" translate="no">' + esc(x.text || '') + '</p><p class="meta"><span>' + esc(designTitle(x.designId, o)) + '</span>' + (o ? '<a href="#order/' + encodeURIComponent(o.id) + '">' + esc(h.orderNo(o)) + '</a>' : '') + '</p>' +
           '<div class="acts">' + (tab === 'pending' ? '<button class="btn btn-honey btn-sm" data-act="moderate" data-id="' + esc(x.id) + '" data-status="published">' + icon('check') + 'Publish</button>'
             : '<button class="btn btn-ghost btn-sm" data-act="moderate" data-id="' + esc(x.id) + '" data-status="pending">Unpublish</button>') +
           '<button class="btn btn-ghost btn-sm" data-act="moderate" data-id="' + esc(x.id) + '" data-status="deleted">Delete</button></div></div></article>';
@@ -426,8 +426,8 @@
         var linkQ = tab === 'quotes' ? h.qs({ email: m.email, magnets: qty || '', title: [(qty ? qty + ' ' : '') + (m.package || m.occasion || 'custom') + ' magnets', m.name ? '— ' + m.name : ''].join(' ') }) : '';
         return '<article class="msg"><header><b>' + esc(m.name || m.email || (tab === 'suggestions' ? 'A visitor' : 'Someone')) + '</b><time title="' + esc(h.fmtDT(when)) + '">' + esc(h.ago(when)) + '</time></header>' +
           '<p class="meta">' + (m.email ? '<a href="mailto:' + esc(m.email) + '">' + esc(m.email) + '</a>' : (tab === 'suggestions' ? '<span class="muted">No email left</span>' : '')) + (badge ? '<span class="badge quiet">' + esc(badge) + '</span>' : '') + '</p>' +
-          (body ? '<p class="body">' + esc(body) + '</p>' : '') +
-          (extra.length ? '<dl class="kv small">' + extra.map(function (k) { return '<dt>' + esc(prettyKey(k)) + '</dt><dd>' + esc(m[k]) + '</dd>'; }).join('') + '</dl>' : '') +
+          (body ? '<p class="body" translate="no">' + esc(body) + '</p>' : '') +
+          (extra.length ? '<dl class="kv small">' + extra.map(function (k) { return '<dt>' + esc(prettyKey(k)) + '</dt><dd translate="no">' + esc(m[k]) + '</dd>'; }).join('') + '</dl>' : '') +
           '<div class="acts">' + (m.email ? '<a class="btn btn-ghost btn-sm" href="mailto:' + esc(m.email) + '?subject=' + encodeURIComponent(subj) + '">' + icon('mail') + 'Reply</a>' : '') +
           (tab === 'quotes' ? '<a class="btn btn-ghost btn-sm" href="#links' + linkQ + '">' + icon('links') + 'Send payment link</a>' : '') + '</div></article>';
       }).join('') + '</div>' : '<div class="card"><div class="empty">' + icon('messages') + '<b>Inbox zero</b>' +
@@ -562,7 +562,7 @@
   function nlLast(list) {
     var el = $('#nl-last'); if (!el) return;
     var now = new Date(), next = now.getDate() < 15 ? new Date(now.getFullYear(), now.getMonth(), 15) : new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    var nextTxt = next.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    var nextTxt = next.toLocaleDateString(window.LHHI18N ? LHHI18N.locale() : 'en-US', { month: 'short', day: 'numeric' });
     if (Number(S.settings.autoNewsletter) === 0) { el.innerHTML = '<span class="muted">Automatic emails are off.</span>'; return; }
     var last = list.find(function (x) { return x.by === 'automatic'; });
     if (last && last.status === 'blocked') { el.innerHTML = '⚠️ The last automatic email didn’t go out: the shop’s mailing address is missing. Next try: <b>' + esc(nextTxt) + '</b>.'; return; }
@@ -821,6 +821,11 @@
     var s = S.settings;
     var ex = 9 * s.magnetUnitCost + s.packagingCost;
     var html = head('Settings', 'Settings', 'Your costs. Reports use them to work out profit.') +
+      '<section class="card tint" translate="no"><div class="card-head"><h2>Idioma · Language</h2></div>' +
+      '<p class="small muted" style="margin-top:0">Cada um escolhe o seu, e fica salvo na sua conta. · Each person picks their own; it stays on their account.</p>' +
+      '<div class="row wrap" style="gap:8px">' +
+      '<button type="button" class="btn ' + (h.LANG() === 'pt' ? 'btn-honey' : 'btn-ghost') + '" data-act="lang" data-lang="pt">Português</button>' +
+      '<button type="button" class="btn ' + (h.LANG() === 'en' ? 'btn-honey' : 'btn-ghost') + '" data-act="lang" data-lang="en">English</button></div></section>' +
       '<div class="cols"><div><section class="card"><div class="card-head"><h2>Costs</h2></div><form class="stack" id="set-form" novalidate>' +
       FIELDS.map(function (f) {
         return '<label class="field"><span>' + esc(f[1]) + '</span><span class="' + (f[2] === 'pct' ? 'input-pct' : 'input-money') + '"><input class="input" name="' + f[0] + '" type="number" inputmode="decimal" min="0" step="0.01" value="' + esc(f[2] === 'money' ? Number(s[f[0]]).toFixed(2) : s[f[0]]) + '"></span>' +

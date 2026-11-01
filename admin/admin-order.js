@@ -266,7 +266,7 @@
         return '<tr><td class="box"><span></span></td><td class="q">' + r[0] + '</td><td><b>' + r[1] + '</b><div class="sub">' + r[2] + '</div></td></tr>';
       }).join('') + '</tbody></table>' +
       '<p style="margin-top:10px">' + h.plural(R.magnetsOf(o), 'magnet') + ' in this order.</p>' +
-      (o.giftMessage ? '<div class="gift">' + esc(o.giftMessage) + '</div>' : '') +
+      (o.giftMessage ? '<div class="gift" translate="no">' + esc(o.giftMessage) + '</div>' : '') +
       '<div class="thanks"><b>Thank you for shopping small!</b>Made by hand with love by our little family. Tag us when your fridge looks sweet.</div>';
     document.body.classList.add('printing-slip');
     var done = function () { document.body.classList.remove('printing-slip'); window.removeEventListener('afterprint', done); };
@@ -529,8 +529,8 @@
       '<p class="small muted" style="margin-top:6px"><a href="#orders?tab=all&q=' + encodeURIComponent(o.email || '') + '">' + h.plural(others.length, 'order') + '</a> · ' + money(spent) + ' spent' + (o.uid ? ' · has an account' : ' · guest checkout') + '</p></div>' +
       '<div class="sect"><div class="row between"><h3>Ship to</h3>' + (lines.length ? '<button class="btn btn-ghost btn-sm" data-act="copy" data-copy="' + esc(addr) + '">' + icon('copy') + 'Copy</button>' : '') + '</div>' +
       (lines.length ? '<address class="addr">' + esc(addr) + '</address>' : '<p class="muted">No address yet (not paid).</p>') + '</div>' +
-      (o.giftMessage ? '<div class="sect"><h3>Gift message</h3><p class="quote">' + esc(o.giftMessage) + '</p></div>' : '') +
-      (o.notes ? '<div class="sect"><h3>Note from the customer</h3><p class="quote">' + esc(o.notes) + '</p></div>' : '') + '</section>';
+      (o.giftMessage ? '<div class="sect"><h3>Gift message</h3><p class="quote" translate="no">' + esc(o.giftMessage) + '</p></div>' : '') +
+      (o.notes ? '<div class="sect"><h3>Note from the customer</h3><p class="quote" translate="no">' + esc(o.notes) + '</p></div>' : '') + '</section>';
   }
   function paymentCard(o) {
     var p = R.pricing(o), fee = R.stripeFee(o, S.settings), refunded = R.refundedTotal(o), left = R.refundable(o);

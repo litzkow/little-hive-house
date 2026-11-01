@@ -41,6 +41,11 @@ service cloud.firestore {
 
     // admin-only reading; written by Cloud Functions
     match /settings/{id} { allow read: if isAdmin(); allow write: if false; }
+    // each admin's own app language (Hive Admin, i18n.js)
+    match /adminPrefs/{uid} {
+      allow read: if isAdmin() && request.auth.uid == uid;
+      allow write: if isAdmin() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['lang', 'at']);
+    }
     match /quotes/{id} { allow read: if isAdmin(); allow write: if false; }
     match /messages/{id} { allow read: if isAdmin(); allow write: if false; }
     match /suggestions/{id} { allow read: if isAdmin(); allow write: if false; }

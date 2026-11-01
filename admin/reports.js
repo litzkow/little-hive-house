@@ -77,7 +77,9 @@
   }
   function monthLabel(key, long) {
     var p = key.split('-'), d = new Date(Number(p[0]), Number(p[1]) - 1, 1);
-    return d.toLocaleString('en-US', long ? { month: 'long', year: 'numeric' } : { month: 'short', year: '2-digit' }).replace(' ', long ? ' ' : " '");
+    var loc = typeof window !== 'undefined' && window.LHHI18N ? window.LHHI18N.locale() : 'en-US';
+    if (loc !== 'en-US') return long ? d.toLocaleString(loc, { month: 'long', year: 'numeric' }) : d.toLocaleString(loc, { month: 'short' }).replace('.', '') + " '" + String(d.getFullYear()).slice(2);
+    return d.toLocaleString(loc, long ? { month: 'long', year: 'numeric' } : { month: 'short', year: '2-digit' }).replace(' ', long ? ' ' : " '");
   }
   function monthsBetween(from, to) {   /* calendar months touched by [from, to) */
     var a = new Date(from), b = new Date(to - 1);

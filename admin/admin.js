@@ -60,26 +60,29 @@
   function signedMoney(v) { return v < 0 ? '−' + money(-v) : money(v); }
   function pct(v) { return v == null ? '—' : (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '') + '%'; }
   function int(v) { return new Intl.NumberFormat('en-US').format(Math.round(R.num(v))); }
-  function plural(n, one, many) { return int(n) + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function plural(n, one, many) { return int(n) + ' ' + (window.LHHI18N ? LHHI18N.word(n, one, many) : (n === 1 ? one : (many || one + 's'))); }
+  /** The language of dates: Portuguese or English, as each person chose (i18n.js). */
+  function LOC() { return window.LHHI18N ? LHHI18N.locale() : 'en-US'; }
   function fmtDate(v, opts) {
     var ms = R.toMs(v); if (!ms) return '—';
     var d = new Date(ms), now = new Date();
     var o = { month: 'short', day: 'numeric' };
     if (d.getFullYear() !== now.getFullYear() || (opts && opts.year)) o.year = 'numeric';
-    return d.toLocaleDateString('en-US', o);
+    return d.toLocaleDateString(LOC(), o);
   }
   function fmtDT(v) {
     var ms = R.toMs(v); if (!ms) return '—';
-    return fmtDate(ms) + ', ' + new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return fmtDate(ms) + ', ' + new Date(ms).toLocaleTimeString(LOC(), { hour: 'numeric', minute: '2-digit' });
   }
   function ago(v) {
     var ms = R.toMs(v); if (!ms) return '';
     var s = (Date.now() - ms) / 1000;
-    if (s < 60) return 'just now';
-    if (s < 3600) return Math.floor(s / 60) + ' min ago';
-    if (s < 86400) return Math.floor(s / 3600) + ' h ago';
-    if (s < 86400 * 2) return 'yesterday';
-    if (s < 86400 * 30) return Math.floor(s / 86400) + ' days ago';
+    var pt = window.LHHI18N && LHHI18N.lang === 'pt';
+    if (s < 60) return pt ? 'agora mesmo' : 'just now';
+    if (s < 3600) return pt ? 'há ' + Math.floor(s / 60) + ' min' : Math.floor(s / 60) + ' min ago';
+    if (s < 86400) return pt ? 'há ' + Math.floor(s / 3600) + ' h' : Math.floor(s / 3600) + ' h ago';
+    if (s < 86400 * 2) return pt ? 'ontem' : 'yesterday';
+    if (s < 86400 * 30) return pt ? 'há ' + Math.floor(s / 86400) + ' dias' : Math.floor(s / 86400) + ' days ago';
     return fmtDate(ms);
   }
   function days(ms) { return Math.max(0, Math.floor((Date.now() - ms) / 86400000)); }
@@ -420,6 +423,7 @@
 
   function startApp() {
     $('#app').innerHTML = '<div class="loading"><svg class="spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><span>Counting the honey…</span></div>';
+    loadLang();
     Promise.all([loadOrders(), loadSettings(), loadFrames()]).then(function () {
       renderShell();
       route();
@@ -445,7 +449,7 @@
   }
   function footHTML() {
     return '<div class="side-foot"><span class="who" title="' + esc(S.user.email) + '">' + esc(S.user.email) + '</span>' +
-      '<div class="row"><button type="button" data-act="theme">' + themeLabel() + '</button><button type="button" data-act="signout">Sign out</button><a href="../" target="_blank" rel="noopener">View shop</a></div></div>';
+      '<div class="row"><button type="button" data-act="theme">' + themeLabel() + '</button><button type="button" data-act="lang" translate="no">' + (LANG() === 'pt' ? 'English' : 'Português') + '</button><button type="button" data-act="signout">Sign out</button><a href="../" target="_blank" rel="noopener">View shop</a></div></div>';
   }
   function renderShell() {
     S.shellReady = true;
@@ -599,6 +603,23 @@
     var t = themePref();
     if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
   }
+  /* language: each person's own, kept on their account (adminPrefs/{uid}) and on this device; Portuguese by default */
+  function LANG() { return window.LHHI18N ? LHHI18N.lang : 'en'; }
+  function saveLang(l) {
+    if (!S.db || !S.user) return Promise.resolve();
+    return S.db.collection('adminPrefs').doc(S.user.uid).set({ lang: l, at: new Date().toISOString() }, { merge: true });
+  }
+  function loadLang() {
+    if (!S.db || !S.user || !window.LHHI18N) return;
+    S.db.collection('adminPrefs').doc(S.user.uid).get().then(function (d) {
+      var l = d.exists ? d.data().lang : null;
+      if (l) LHHI18N.syncFromAccount(l); else saveLang(LHHI18N.lang).catch(function () {});
+    }).catch(function () { /* keeps this device's choice */ });
+  }
+  ACT.lang = function (el) {
+    var l = el && el.getAttribute('data-lang') || (LANG() === 'pt' ? 'en' : 'pt');
+    if (window.LHHI18N) LHHI18N.setLang(l, saveLang);
+  };
   ACT.theme = function (el) {
     var next = { auto: 'light', light: 'dark', dark: 'auto' }[themePref()];
     try { localStorage.setItem('lhh-admin-theme', next); } catch (e) {}
@@ -710,10 +731,10 @@
     var recent = S.orders.filter(R.isSale).slice(0, 8);
     var daily = h.daily.map(function (d) {
       var dt = new Date(d.day);
-      return { value: d.total, label: dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), tick: (dt.getMonth() + 1) + '/' + dt.getDate(), tip: dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + plural(d.orders, 'order') };
+      return { value: d.total, label: dt.toLocaleDateString(LOC(), { weekday: 'short', month: 'short', day: 'numeric' }), tick: (dt.getMonth() + 1) + '/' + dt.getDate(), tip: dt.toLocaleDateString(LOC(), { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + plural(d.orders, 'order') };
     });
     var html =
-      '<div class="hello"><p class="eyebrow">' + esc(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })) + '</p>' +
+      '<div class="hello"><p class="eyebrow">' + esc(new Date().toLocaleDateString(LOC(), { weekday: 'long', month: 'long', day: 'numeric' })) + '</p>' +
       '<h1>' + hi + (name ? ', ' + esc(name) : '') + '</h1>' +
       '<p>' + (h.toFulfil ? 'You have <b>' + plural(h.toFulfil, 'order') + '</b> to fulfil.' : 'Every order is out the door. Nice work.') + '</p></div>' +
       '<div class="tiles lead">' +
@@ -935,7 +956,7 @@
     call: call, refreshOrder: refreshOrder, loadOrders: loadOrders, loadCol: loadCol, loadSettings: loadSettings, loadFrames: loadFrames, chart: chart, hbars: hbars, tile: tile,
     orderTable: orderTable, itemsSummary: itemsSummary, carrierName: carrierName, updateBadges: updateBadges, route: route,
     CARRIERS: CARRIERS, TRACK_URL: TRACK_URL, STATUSES: STATUSES, STAGE_LABEL: STAGE_LABEL, EMAIL_KINDS: EMAIL_KINDS, FRAMES_URL: FRAMES_URL, ART_URL: ART_URL,
-    FRAME_ALIASES: FRAME_ALIASES, Z: Z, borderPicker: borderPicker, bpickValue: bpickValue, normColour: normColour } };
+    FRAME_ALIASES: FRAME_ALIASES, Z: Z, LANG: LANG, borderPicker: borderPicker, bpickValue: bpickValue, normColour: normColour } };
   /* the other views live in admin-order.js and admin-more.js; boot once they're loaded */
   var booted = false;
   function bootOnce() { if (!booted) { booted = true; boot(); } }
