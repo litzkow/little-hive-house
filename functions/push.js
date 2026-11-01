@@ -92,7 +92,7 @@ function message(kind, data) {
     case "admin_newsletter":
       return d.mode === "blocked"
         ? { title: "📬 E-mail automático não saiu", body: "Falta o endereço postal da loja (obrigatório nos e-mails de propaganda).", url: "/admin/#newsletter", tag: "newsletter-blocked", urgency: "normal" }
-        : { title: "📬 E-mail para os inscritos enviado", body: `${d.sent || 0} inscritos · ${clip(d.subject, 80)}`, url: "/admin/#newsletter", tag: `newsletter-${Date.now()}`, urgency: "low" };
+        : { title: "📬 E-mail automático enviado", body: `Foi para ${d.sent || 0} inscritos: ${clip(d.subject, 70)}. Nada a fazer.`, url: "/admin/#newsletter", tag: `newsletter-${Date.now()}`, urgency: "low" };
     case "admin_contact": {
       const c = d.contact || d;
       return { title: "💬 Mensagem de cliente", body: `${firstName(c.name) || "Alguém"}: ${clip(c.message, 120)}`, url: "/admin/#messages", tag: `msg-${d.messageId || Date.now()}`, urgency: "normal" };

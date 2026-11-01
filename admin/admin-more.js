@@ -507,7 +507,9 @@
       '<section class="card tint"><div class="card-head"><h2>Automatic emails</h2></div>' +
       '<label class="check"><input type="checkbox" id="nl-auto"' + (auto ? ' checked' : '') + '> <span><b>Send by themselves, twice a month</b></span></label>' +
       '<p class="small muted" style="margin-top:6px">The 1st: the designs of the season (Halloween, Christmas, Valentine’s…). The 15th: photo magnet ideas for the month. ' +
-      'You get a note on your phone when one goes out. Nothing to do. The form below is only for an extra email, if you ever want one.</p></section>' +
+      'They are written and sent for you: nothing to choose, nothing to write. You only get a note on your phone when one goes out.</p>' +
+      '<p class="small" id="nl-last" style="margin:10px 0 0"></p></section>' +
+      '<details class="panel" id="nl-extra" style="margin-top:14px"><summary>Send an extra email yourself (optional, rarely needed)</summary>' +
       '<div class="cols"><div><section class="card"><div class="card-head"><h2>Start from</h2></div><div class="row wrap" style="gap:8px">' +
       NL_TEMPLATES.map(function (t) { return '<button class="btn btn-ghost btn-sm" data-act="nlTemplate" data-key="' + t.key + '">' + esc(t.name) + '</button>'; }).join('') + '</div></section>' +
       '<section class="card"><form class="stack" id="nl-form" novalidate>' +
@@ -527,8 +529,8 @@
       '<div class="row wrap end" style="gap:8px"><button class="btn btn-ghost" type="button" data-act="nlPreview">Preview</button>' +
       '<button class="btn btn-ghost" type="button" data-act="nlTest">Send a test to me</button>' +
       '<button class="btn btn-honey" type="button" data-act="nlSend">Send to subscribers</button></div></form></section></div>' +
-      '<div><section class="card"><div class="card-head"><h2>Preview</h2><span class="small muted" id="nl-count"></span></div><div id="nl-preview"><p class="small muted">Tap Preview to see the email as subscribers will.</p></div></section>' +
-      '<section class="card"><div class="card-head"><h2>Sent before</h2></div><div id="nl-history"><p class="small muted">Loading…</p></div></section>' +
+      '<div><section class="card"><div class="card-head"><h2>Preview</h2><span class="small muted" id="nl-count"></span></div><div id="nl-preview"><p class="small muted">Tap Preview to see the email as subscribers will.</p></div></section></div></div></details>' +
+      '<div><section class="card"><div class="card-head"><h2>Sent before</h2></div><div id="nl-history"><p class="small muted">Loading…</p></div></section>' +
       '<p class="tiny faint">Every email includes an unsubscribe link and the shop’s mailing address, as US law (CAN-SPAM) requires. Once or twice a month is plenty.</p></div></div>';
     return {
       title: 'Email subscribers', html: html, after: function () {
@@ -548,6 +550,7 @@
         });
         h.call('adminNewsletter', { action: 'list' }).then(function (res) {
           var list = (res && res.campaigns) || [];
+          nlLast(list);
           $('#nl-history').innerHTML = list.length ? '<ul class="plain">' + list.map(function (x) {
             return '<li class="small"><b>' + esc(x.subject) + '</b><br><span class="muted">' + esc(h.fmtDate(x.sentAt || x.createdAt)) + ' · ' + h.plural(R.num(x.sent), 'email') + (x.failed ? ' · ' + x.failed + ' failed' : '') + '</span></li>';
           }).join('') + '</ul>' : '<p class="small muted">Nothing sent yet.</p>';
@@ -555,6 +558,17 @@
       }
     };
   };
+  /* the automatic emails at a glance: the last one and when the next one goes out */
+  function nlLast(list) {
+    var el = $('#nl-last'); if (!el) return;
+    var now = new Date(), next = now.getDate() < 15 ? new Date(now.getFullYear(), now.getMonth(), 15) : new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    var nextTxt = next.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (Number(S.settings.autoNewsletter) === 0) { el.innerHTML = '<span class="muted">Automatic emails are off.</span>'; return; }
+    var last = list.find(function (x) { return x.by === 'automatic'; });
+    if (last && last.status === 'blocked') { el.innerHTML = '⚠️ The last automatic email didn’t go out: the shop’s mailing address is missing. Next try: <b>' + esc(nextTxt) + '</b>.'; return; }
+    el.innerHTML = (last ? '✅ Last one went out on <b>' + esc(h.fmtDate(last.sentAt || last.createdAt)) + '</b> to ' + h.plural(R.num(last.sent), 'subscriber') + ': “' + esc(last.subject) + '”.<br>' : '') +
+      'Next one: <b>' + esc(nextTxt) + '</b>, by itself.';
+  }
   function nlErr(msg) { var e = $('#nl-err'); if (!e) return; e.textContent = msg || ''; e.hidden = !msg; }
   ACT.nlTemplate = function (btn) {
     var t = NL_TEMPLATES.find(function (x) { return x.key === btn.getAttribute('data-key'); });
