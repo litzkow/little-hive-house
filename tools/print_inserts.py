@@ -2,10 +2,10 @@
 
   print-files/thank-you-cards.pdf   4 thank-you cards per sheet (4.25 x 5.5 in each), cut on the small marks
   print-files/kraft-labels.pdf      2 in round labels for Koala N-RLK2-25 / Avery 22807 sheets (3 x 4, 12 per sheet):
-                                    page 1 alignment test (plain paper), page 2 a mix, then one page per design
+                                    page 1 alignment test (plain paper), page 2 the logo seal on all 12
   print-files/business-cards.pdf    3.5 x 2 in business cards, 10 per sheet in the Avery 8371 / 8871 layout (also fine
-                                    on plain card stock: cut on the grey marks). Page 1 the fronts, page 2 the backs
-                                    (print it on the other side, same edge first), page 3 a one-sided version.
+                                    on plain card stock: cut on the grey marks). Page 1 the fronts (logo and slogan),
+                                    page 2 the backs (the contacts and a QR code), printed on the other side.
   print-files/logo-magnets.pdf      the shop's own logo magnet, a free gift in each package: 9 per glossy sheet, laid out
                                     like the order sheets (functions/printsheet.js: 2.45 in punch, 2.02 in picture,
                                     the colour 0.12 in past the cut). Page 1 cream, page 2 honey.
@@ -283,14 +283,10 @@ def kraft_labels():
     c.setFont("Jost", 9)
     c.drawCentredString(4.25 * IN, 0.3 * IN, "Test page: print on PLAIN paper, hold it against a label sheet in front of a window: the red circles should sit on the labels.")
     c.showPage()
-    # page 2: a mix (3 of each), then one page per design
-    for i, (x, y) in enumerate(centres):
-        DESIGNS[i // 3][1](c, x, y)
+    # page 2: the logo seal on all 12 labels (the only design they use)
+    for x, y in centres:
+        lab_seal(c, x, y)
     c.showPage()
-    for _, fn in DESIGNS:
-        for x, y in centres:
-            fn(c, x, y)
-        c.showPage()
     c.save()
     return path
 
@@ -468,7 +464,7 @@ def business_cards():
     c = canvas.Canvas(str(path), pagesize=(8.5 * IN, 11 * IN))
     c.setTitle("Business cards · Little Hive House")
     c.setAuthor("Little Hive House")
-    for fn in (bc_front, bc_back, bc_single):
+    for fn in (bc_front, bc_back):
         for x, y in bc_slots():
             fn(c, x, y)
         bc_marks(c)
