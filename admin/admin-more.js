@@ -644,9 +644,9 @@
       '<div class="small muted" style="margin-top:4px">Our own magnet, a free gift in each package. 9 per glossy sheet, cut and pressed like the others. Page 1 cream, page 2 honey: print the one you like.</div></li>' +
       '<li><a class="btn btn-ghost btn-sm" href="../print-files/kraft-labels.pdf?v=2" target="_blank" rel="noopener">' + icon('print') + 'Round stickers (2 in)</a>' +
       '<div class="small muted" style="margin-top:4px">For the 2 in round label sheets (12 per sheet, Koala N-RLK2-25 or Avery 22807). Print page 1 on plain paper first and hold it against a label sheet in front of a window: the red circles should sit on the labels. Then print page 2 on the label sheet: 12 stickers with our logo. Paper type Plain paper, 100% (Actual size), one sheet at a time in the rear tray, label side up.</div></li>' +
-      '<li><a class="btn btn-ghost btn-sm" href="../print-files/business-cards.pdf?v=2" target="_blank" rel="noopener">' + icon('print') + 'Business cards</a>' +
+      '<li><a class="btn btn-ghost btn-sm" href="../print-files/business-cards.pdf?v=3" target="_blank" rel="noopener">' + icon('print') + 'Business cards</a>' +
       '<div class="small muted" style="margin-top:4px">3.5 × 2 in, 10 per sheet: Avery 8371 or 8871 business card sheets, or plain card stock cut on the grey marks. Print page 1 (the fronts: logo and slogan), put the same sheet back in the rear tray with the printed side down, and print page 2 (the backs: website, email and QR code). 100% (Actual size).</div></li>' +
-      '<li><a class="btn btn-ghost btn-sm" href="../print-files/thank-you-cards.pdf?v=1" target="_blank" rel="noopener">' + icon('print') + 'Thank-you cards</a>' +
+      '<li><a class="btn btn-ghost btn-sm" href="../print-files/thank-you-cards.pdf?v=2" target="_blank" rel="noopener">' + icon('print') + 'Thank-you cards</a>' +
       '<div class="small muted" style="margin-top:4px">4 cards per Letter sheet: cut on the small marks. Card stock or matte paper, 100% (Actual size).</div></li></ul></section>' +
       '<section class="card"><div class="card-head"><h2>Print it well</h2></div><ol class="small" style="padding-left:18px;margin:0;display:grid;gap:6px">' +
       '<li>Print from the <b>Canon PRINT</b> app (Wi-Fi Direct works), not the iPhone’s own Print button.</li>' +

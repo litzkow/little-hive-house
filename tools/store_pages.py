@@ -334,6 +334,7 @@ def page_contact():
           <li><strong>Where’s my order?</strong><span><a href="track.html">Track it here</a> with your order number and email.</span></li>
           <li><strong>Something arrived damaged?</strong><span>Send a photo and we’ll reprint it or refund you. See <a href="returns.html">returns</a>.</span></li>
           <li><strong>Have an idea for a design?</strong><span><a href="suggestions.html">Share it here</a>. We read every one.</span></li>
+          <li><strong>Follow along on Instagram</strong><span><a href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me">@littlehivehouse</a>: new designs and photos from our customers’ fridges.</span></li>
         </ul>
       </div>
       <div>

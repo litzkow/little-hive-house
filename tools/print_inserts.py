@@ -107,6 +107,19 @@ BODY = ("Thank you for supporting our little family business. Every magnet in th
         "packed by hand by the two of us, at home, one small batch at a time. It means the world to us that our work "
         "gets a spot on your fridge.")
 ASK = "Love how they turned out? A review or a photo of your fridge helps a small shop more than you know."
+INSTAGRAM = "@littlehivehouse"
+
+
+def ig_icon(c, x, y, s, color):
+    """The Instagram glyph, s points wide, lower-left at (x, y)."""
+    c.saveState()
+    c.setStrokeColor(color)
+    c.setFillColor(color)
+    c.setLineWidth(max(0.6, s * 0.09))
+    c.roundRect(x, y, s, s, s * 0.28, fill=0, stroke=1)
+    c.circle(x + s / 2, y + s / 2, s * 0.22, fill=0, stroke=1)
+    c.circle(x + s * 0.76, y + s * 0.76, s * 0.06, fill=1, stroke=0)
+    c.restoreState()
 
 
 def card(c, x0, y0):
@@ -132,6 +145,15 @@ def card(c, x0, y0):
     for line in wrap(ASK, "Jost", 7.6, W - 2 * m - 0.7 * IN):
         centred(c, line, cx, y, "Jost", 7.6, MUTED)
         y -= 10.6
+    # tag us on Instagram, with the glyph before it
+    y -= 5
+    label = "Tag us " + INSTAGRAM
+    tw = pdfmetrics.stringWidth(label, "Jost", 8.4)
+    gx = cx - (tw + 12) / 2
+    ig_icon(c, gx, y - 1.5, 8.5, HexColor("#B9770E"))
+    c.setFont("Jost", 8.4)
+    c.setFillColor(HexColor("#B9770E"))
+    c.drawString(gx + 12, y, label)
     # signature + QR
     qsize = 0.62 * IN
     w = qr.QrCodeWidget("https://littlehivehouse.com/")
@@ -397,10 +419,12 @@ def bc_back(c, x, y):
     logo(c, x + pad + 0.17 * IN, y + BC_H - pad - 0.12 * IN, 0.34 * IN, fill=honey, soft=HexColor("#F6D58A"), ink=cream)
     c.setFont("Serif", 15)
     c.setFillColor(cream)
-    c.drawString(x + pad, y + BC_H * 0.47, "littlehivehouse.com")
+    c.drawString(x + pad, y + BC_H * 0.52, "littlehivehouse.com")
     c.setFont("Jost", 8)
     c.setFillColor(HexColor("#E8D8BC"))
-    c.drawString(x + pad, y + BC_H * 0.34, "support@littlehivehouse.com")
+    c.drawString(x + pad, y + BC_H * 0.40, "support@littlehivehouse.com")
+    ig_icon(c, x + pad, y + BC_H * 0.285 - 1.5, 8, HexColor("#E8D8BC"))
+    c.drawString(x + pad + 11.5, y + BC_H * 0.285, INSTAGRAM)
     c.setFont("Caveat", 13)
     c.setFillColor(honey)
     c.drawString(x + pad, y + pad - 1, "Turn your favorite photos into magnets")

@@ -375,6 +375,10 @@ section.tight { padding-block: 28px 72px; }
 .foot-cols a:hover { color: var(--focus); }
 .foot-cols .brandcol svg { width: 84px; height: 84px; }
 .foot-cols .brandcol p { color: var(--muted); font-size: 15px; margin-top: 10px; max-width: 22em; }
+.social { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.foot-cols .social a, .social a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px 0 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); text-decoration: none; font-size: 14.5px; }
+.social a:hover { border-color: var(--focus); color: var(--focus); }
+.foot-cols .brandcol .social svg, .social svg { width: 20px; height: 20px; flex: none; }
 .foot-bottom { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 @media (max-width: 820px) { .foot-cols { grid-template-columns: 1fr 1fr; } .foot-cols .brandcol { grid-column: 1 / -1; } }
 @media (max-width: 520px) {

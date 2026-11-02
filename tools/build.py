@@ -4,6 +4,7 @@ Run from anywhere:  python3 tools/build.py
 Writes index.html, shop.html, photo-magnets.html, big-orders.html, 404.html and collections/*.html.
 """
 import html
+import json
 import pathlib
 import re
 
@@ -31,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "25"
+VERSION = "26"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -300,6 +301,18 @@ def vol_badge():
     return f'<span class="deal alt">{pct}% off {n}+ magnets</span>'
 
 
+# the shop's social accounts: (name, link, handle, icon). Facebook and TikTok go here when they exist.
+IG_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.4" cy="6.6" r="1.2" fill="currentColor"/></svg>'
+SOCIAL = [("Instagram", "https://www.instagram.com/littlehivehouse/", "@littlehivehouse", IG_ICON)]
+
+
+def social_links(cls="social"):
+    """Icon links to the shop's social accounts; on a phone with the app, the link opens the app."""
+    items = "".join(f'<a href="{u}" target="_blank" rel="noopener me" aria-label="Little Hive House on {n}">{icon}<span>{E(h)}</span></a>'
+                    for n, u, h, icon in SOCIAL)
+    return f'<div class="{cls}">{items}</div>' if SOCIAL else ""
+
+
 def footer(pg):
     cols = "\n".join(f'          <li><a href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a></li>' for c in COLLECTIONS)
     return f"""<footer>
@@ -308,6 +321,7 @@ def footer(pg):
       <div class="brandcol">
         {LOGO.replace('aria-hidden="true"', 'aria-hidden="true" class="foot-logo"')}
         <p>Handmade fridge magnets and little gifts, printed and pressed by hand in small batches.</p>
+        {social_links()}
       </div>
       <div>
         <h2>Shop</h2>
@@ -701,6 +715,7 @@ def page_home():
     ld = ('<script type="application/ld+json">{"@context":"https://schema.org","@graph":['
           '{"@type":"Organization","@id":"https://littlehivehouse.com/#org","name":"Little Hive House","url":"https://littlehivehouse.com/",'
           '"logo":"https://littlehivehouse.com/assets/icon-512.png","email":"support@littlehivehouse.com",'
+          '"sameAs":' + json.dumps([u for _, u, _, _ in SOCIAL]) + ','
           '"description":"Handmade fridge magnets and gifts, designed, printed and pressed in a small family studio near Atlanta, Georgia."},'
           '{"@type":"WebSite","name":"Little Hive House","url":"https://littlehivehouse.com/","publisher":{"@id":"https://littlehivehouse.com/#org"}}]}</script>\n')
     body = ld + body
