@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "27"
+VERSION = "28"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -122,7 +122,6 @@ def idea_strip(pg, lead="Don’t see your favorite?", text="Tell us the place, t
 
 IDEA_ART = (("places", "savannah"), ("furry-friends", "dog-mom"), ("kitchen-words", "but-first-coffee"),
             ("bee-kind", "bee-kind"), ("world", "santorini"))
-INSTA_ART = (("bee-kind", "bee-happy"), ("world", "amalfi-coast"), ("furry-friends", "bark-less-wag-more"))
 
 
 def head(pg, title, desc, path):
@@ -171,7 +170,7 @@ def header(pg, active):
         return line
     subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
-<div class="strip"><span>Free US shipping on orders over $35</span><span class="dot" aria-hidden="true">·</span><span>Handmade in small batches</span></div>
+<div class="strip"><span class="s1">Free US shipping on orders over $35</span><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span><span class="dot" aria-hidden="true">·</span><a class="strip-ig" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me" aria-label="Follow Little Hive House on Instagram">{IG_ICON}<span>@littlehivehouse</span></a></div>
 
 <header class="site-header">
   <div class="wrap header-row">
@@ -706,7 +705,7 @@ def page_home():
           <p>New designs before they hit the shop, behind the scenes at the press, and photos from your fridges. Tag us when your magnets arrive and we might share yours.</p>
           <div class="actions"><a class="btn btn-honey btn-ig" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me">{IG_ICON}Follow @littlehivehouse</a></div>
         </div>
-        <div class="band-art insta-art" aria-hidden="true">{"".join(f'<img class="ph" src="{pg.p}assets/art/{c}/{s}.webp" width="600" height="600" alt="" loading="lazy" decoding="async">' for c, s in INSTA_ART)}</div>
+        <a class="insta-badge" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me" aria-hidden="true" tabindex="-1"><span class="ib-icon">{IG_ICON}</span><span class="ib-handle">@littlehivehouse</span></a>
       </div>
     </div>
   </section>

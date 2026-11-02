@@ -62,7 +62,10 @@ a { color: inherit; }
 .strip { background: var(--ink); color: var(--bg); text-align: center; font-size: 14px; letter-spacing: .04em; padding: 8px 16px; }
 .strip span { white-space: nowrap; }
 .strip .dot { padding-inline: 10px; }
-@media (max-width: 640px) { .strip span { display: block; } .strip .dot { display: none; } }
+.strip a.strip-ig { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; vertical-align: middle; }
+.strip a.strip-ig:hover span { text-decoration: underline; }
+.strip a.strip-ig svg { width: 16px; height: 16px; flex: none; }
+@media (max-width: 640px) { .strip .s1 { display: block; } .strip .d1 { display: none; } .strip .long { display: none; } .strip .dot { padding-inline: 8px; } }
 .site-header {
   position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
@@ -957,7 +960,9 @@ html.studio-open { overflow: hidden; }
 .band.insta { background: linear-gradient(135deg, var(--surface), var(--bg)); border: 1.5px solid var(--line); }
 .btn-ig { display: inline-flex; align-items: center; gap: 10px; }
 .btn-ig svg { width: 22px; height: 22px; flex: none; }
-.insta-art { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.insta-art .ph { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 16px; box-shadow: 0 6px 18px rgba(43, 33, 24, .12); }
-.insta-art .ph:nth-child(2) { transform: translateY(-10px) rotate(2deg); }
-.insta-art .ph:nth-child(1) { transform: rotate(-2deg); }
+.insta-badge { justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 14px; text-decoration: none; color: var(--ink); }
+.insta-badge .ib-icon { width: 128px; height: 128px; border-radius: 34px; display: grid; place-items: center; color: #fff; background: radial-gradient(circle at 30% 110%, #fdd36b 0%, #f5a623 30%, #e1306c 62%, #833ab4 100%); box-shadow: 0 14px 30px -12px rgba(131, 58, 180, .45); transform: rotate(-4deg); transition: transform .2s; }
+.insta-badge:hover .ib-icon { transform: rotate(0) scale(1.04); }
+.insta-badge .ib-icon svg { width: 66px; height: 66px; }
+.insta-badge .ib-handle { font-weight: 700; font-size: 18px; letter-spacing: .01em; }
+@media (max-width: 760px) { .insta-badge .ib-icon { width: 96px; height: 96px; border-radius: 26px; } .insta-badge .ib-icon svg { width: 50px; height: 50px; } }
