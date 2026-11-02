@@ -3,6 +3,9 @@
   print-files/thank-you-cards.pdf   4 thank-you cards per sheet (4.25 x 5.5 in each), cut on the small marks
   print-files/kraft-labels.pdf      2 in round labels for Koala N-RLK2-25 / Avery 22807 sheets (3 x 4, 12 per sheet):
                                     page 1 alignment test (plain paper), page 2 a mix, then one page per design
+  print-files/business-cards.pdf    3.5 x 2 in business cards, 10 per sheet in the Avery 8371 / 8871 layout (also fine
+                                    on plain card stock: cut on the grey marks). Page 1 the fronts, page 2 the backs
+                                    (print it on the other side, same edge first), page 3 a one-sided version.
   print-files/logo-magnets.pdf      the shop's own logo magnet, a free gift in each package: 9 per glossy sheet, laid out
                                     like the order sheets (functions/printsheet.js: 2.45 in punch, 2.02 in picture,
                                     the colour 0.12 in past the cut). Page 1 cream, page 2 honey.
@@ -356,7 +359,126 @@ def logo_magnets():
     return path
 
 
+# ================================================================ business cards (Avery 8371 / 8871 layout)
+BC_W, BC_H = 3.5 * IN, 2 * IN
+BC_LEFT, BC_TOP = 0.75 * IN, 0.5 * IN
+DARK = HexColor("#2B2118")
+
+
+def bc_slots():
+    return [(BC_LEFT + col * BC_W, 11 * IN - BC_TOP - (r + 1) * BC_H) for r in range(5) for col in range(2)]
+
+
+def qr_at(c, url, x, y, size, color):
+    w = qr.QrCodeWidget(url)
+    w.barFillColor = color
+    b = w.getBounds()
+    d = Drawing(size, size, transform=[size / (b[2] - b[0]), 0, 0, size / (b[3] - b[1]), 0, 0])
+    d.add(w)
+    renderPDF.draw(d, c, x, y)
+
+
+def bc_front(c, x, y):
+    """Cream: the hive, the name, what we make, a honey rule."""
+    c.setFillColor(CREAM)
+    c.rect(x, y, BC_W, BC_H, fill=1, stroke=0)
+    cx = x + BC_W / 2
+    logo(c, cx, y + BC_H * 0.70, 0.46 * IN)
+    centred(c, "Little Hive House", cx, y + BC_H * 0.39, "Serif", 19, INK)
+    caps(c, "HANDMADE FRIDGE MAGNETS", cx, y + BC_H * 0.27, 6.2, MUTED, spacing=1.9)
+    c.setStrokeColor(HONEY)
+    c.setLineWidth(0.9)
+    c.line(cx - 0.32 * IN, y + BC_H * 0.19, cx + 0.32 * IN, y + BC_H * 0.19)
+    centred(c, "Your photos & our designs, made by hand", cx, y + BC_H * 0.095, "Garamond", 9, HexColor("#8A6A3A"))
+
+
+def bc_back(c, x, y):
+    """Dark: the address, the email and a QR code to the shop."""
+    c.setFillColor(DARK)
+    c.rect(x, y, BC_W, BC_H, fill=1, stroke=0)
+    pad = 0.24 * IN
+    honey, cream = HexColor("#F2A81D"), HexColor("#FFF6E5")
+    logo(c, x + pad + 0.17 * IN, y + BC_H - pad - 0.12 * IN, 0.34 * IN, fill=honey, soft=HexColor("#F6D58A"), ink=cream)
+    c.setFont("Serif", 15)
+    c.setFillColor(cream)
+    c.drawString(x + pad, y + BC_H * 0.47, "littlehivehouse.com")
+    c.setFont("Jost", 8)
+    c.setFillColor(HexColor("#E8D8BC"))
+    c.drawString(x + pad, y + BC_H * 0.34, "support@littlehivehouse.com")
+    c.setFont("Caveat", 13)
+    c.setFillColor(honey)
+    c.drawString(x + pad, y + pad - 1, "Turn your favorite photos into magnets")
+    q = 0.78 * IN
+    qx, qy = x + BC_W - pad - q, y + BC_H - pad - q - 0.02 * IN
+    c.setFillColor(cream)
+    c.roundRect(qx - 4, qy - 4, q + 8, q + 8, 4, fill=1, stroke=0)
+    qr_at(c, "https://littlehivehouse.com/", qx, qy, q, DARK)
+    c.setFont("Jost", 5.6)
+    c.setFillColor(HexColor("#E8D8BC"))
+    c.drawCentredString(qx + q / 2, qy - 12, "SCAN TO SHOP")
+
+
+def bc_single(c, x, y):
+    """One-sided: everything on the cream side."""
+    c.setFillColor(CREAM)
+    c.rect(x, y, BC_W, BC_H, fill=1, stroke=0)
+    pad = 0.24 * IN
+    c.setFillColor(HONEY)
+    c.rect(x, y, 0.09 * IN, BC_H, fill=1, stroke=0)
+    logo(c, x + pad + 0.3 * IN, y + BC_H * 0.66, 0.5 * IN)
+    c.setFont("Serif", 16)
+    c.setFillColor(INK)
+    c.drawString(x + pad + 0.66 * IN, y + BC_H * 0.66 - 4, "Little Hive House")
+    t = c.beginText()
+    t.setFont("Caps", 5.6)
+    t.setCharSpace(1.5)
+    t.setFillColor(MUTED)
+    t.setTextOrigin(x + pad + 0.67 * IN, y + BC_H * 0.66 - 15)
+    t.textOut("HANDMADE FRIDGE MAGNETS")
+    t.setCharSpace(0)
+    c.drawText(t)
+    c.setFont("Jost", 8.4)
+    c.setFillColor(INK)
+    c.drawString(x + pad, y + BC_H * 0.3, "littlehivehouse.com")
+    c.setFont("Jost", 7.4)
+    c.setFillColor(MUTED)
+    c.drawString(x + pad, y + BC_H * 0.3 - 11, "support@littlehivehouse.com")
+    q = 0.62 * IN
+    qr_at(c, "https://littlehivehouse.com/", x + BC_W - pad - q, y + pad - 2, q, INK)
+
+
+def bc_marks(c):
+    """Grey cut marks in the page margins, on the lines between the cards (for plain card stock)."""
+    c.setStrokeColor(HexColor("#9A9A9A"))
+    c.setLineWidth(0.4)
+    L = 0.2 * IN
+    xs = [BC_LEFT + i * BC_W for i in range(3)]
+    ys = [11 * IN - BC_TOP - i * BC_H for i in range(6)]
+    for x in xs:
+        c.line(x, 11 * IN - BC_TOP + 0.06 * IN, x, 11 * IN - BC_TOP + 0.06 * IN + L)
+        c.line(x, BC_TOP - 0.06 * IN, x, BC_TOP - 0.06 * IN - L)
+    for y in ys:
+        c.line(BC_LEFT - 0.06 * IN, y, BC_LEFT - 0.06 * IN - L, y)
+        c.line(8.5 * IN - BC_LEFT + 0.06 * IN, y, 8.5 * IN - BC_LEFT + 0.06 * IN + L, y)
+
+
+def business_cards():
+    OUT.mkdir(exist_ok=True)
+    path = OUT / "business-cards.pdf"
+    c = canvas.Canvas(str(path), pagesize=(8.5 * IN, 11 * IN))
+    c.setTitle("Business cards · Little Hive House")
+    c.setAuthor("Little Hive House")
+    for fn in (bc_front, bc_back, bc_single):
+        for x, y in bc_slots():
+            fn(c, x, y)
+        bc_marks(c)
+        c.showPage()
+    c.save()
+    return path
+
+
 if __name__ == "__main__":
     print(thank_you_cards())
     print(kraft_labels())
     print(logo_magnets())
+    print(business_cards())

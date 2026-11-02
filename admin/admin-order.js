@@ -447,7 +447,7 @@
       (tiles ? ' ' + h.plural(tiles, 'magnet') + ' on ' + h.plural(sheets, 'sheet') + '.' : ' Nothing to print from this order: the artwork is made by hand.'));
     if (special.length) steps.push('<b>Design the custom artwork.</b> ' + special.map(function (it) { return esc(it.title || 'Custom order'); }).join(', ') +
       ' — made from the details the customer emails you. Print it with the Terminal tool under More (<code>--copies</code> prints one artwork per magnet).');
-    steps.push('<b>Pack it.</b> Print the <b>Packing slip PDF</b> on plain paper' + (o.giftMessage ? ' (it has the gift message)' : '') + ' and pop it in the package, with a logo magnet, a thank-you card and a sticker on the envelope (<a href="#testprint">Test print › Package extras</a>).');
+    steps.push('<b>Pack it.</b> Print the <b>Packing slip PDF</b> on plain paper' + (o.giftMessage ? ' (it has the gift message)' : '') + ' and pop it in the package, with a logo magnet, a business card, a thank-you card and a sticker on the envelope (<a href="#testprint">Test print › Package extras</a>).');
     var more = '<details class="panel" id="print-more"><summary>More: the photos as a ZIP and the Terminal tool</summary><div class="stack">' +
       '<p class="small muted">The old way, if the PDF ever fails or you want to edit a photo first.</p>' +
       (hasPhotos ? '<p class="small"><button class="btn btn-ghost btn-sm" data-act="zipPhotos">' + icon('download') + 'Download the photos (.zip)</button> ' +
