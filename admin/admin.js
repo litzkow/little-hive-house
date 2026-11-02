@@ -422,7 +422,8 @@
   }
 
   function startApp() {
-    $('#app').innerHTML = '<div class="loading"><svg class="spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><span>Counting the honey…</span></div>';
+    $('#app').innerHTML = window.LHHBoot ? LHHBoot.html() : '<div class="loading"><span>Counting the honey…</span></div>';
+    if (window.LHHBoot) LHHBoot.start();
     loadLang();
     Promise.all([loadOrders(), loadSettings(), loadFrames()]).then(function () {
       renderShell();

@@ -945,3 +945,19 @@ html.studio-open { overflow: hidden; }
 /* five links in the header: switch to the Menu button a bit earlier so they never wrap */
 .nav a { white-space: nowrap; }
 @media (max-width: 1120px) { .nav a { display: none; } .nav a.acct-btn { display: inline-grid; } .menu-btn { display: inline-flex; } }
+
+/* Instagram: header button, menu link, home band */
+.ig-btn { width: 44px; height: 44px; border-radius: 999px; border: 1.5px solid var(--line); color: var(--ink); display: inline-grid; place-items: center; flex-shrink: 0; text-decoration: none; }
+.nav a.ig-btn { display: inline-grid; }
+.ig-btn:hover { border-color: var(--ink); color: var(--ink); }
+.ig-btn svg { width: 21px; height: 21px; }
+@media (max-width: 400px) { .nav a.ig-btn { display: none; } }
+.mobile-menu .ig-link { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.mobile-menu .ig-link svg { width: 22px; height: 22px; flex: none; }
+.band.insta { background: linear-gradient(135deg, var(--surface), var(--bg)); border: 1.5px solid var(--line); }
+.btn-ig { display: inline-flex; align-items: center; gap: 10px; }
+.btn-ig svg { width: 22px; height: 22px; flex: none; }
+.insta-art { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.insta-art .ph { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 16px; box-shadow: 0 6px 18px rgba(43, 33, 24, .12); }
+.insta-art .ph:nth-child(2) { transform: translateY(-10px) rotate(2deg); }
+.insta-art .ph:nth-child(1) { transform: rotate(-2deg); }

@@ -524,3 +524,27 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .bpick.small .bp-opt { font-size: 12px; padding: 3px 8px; }
 .tp-item { display: grid; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line, #E8DCC8); }
 .tp-item .tp-row { border: 0; padding: 0; }
+
+/* opening screen (boot.js): a honeycomb filling with honey, two bees flying round it */
+.boot { min-height: 70vh; min-height: 70dvh; display: grid; place-items: center; align-content: center; gap: 6px; padding: 24px; text-align: center; }
+.boot-art { width: 190px; height: auto; overflow: visible; }
+.boot .cell { fill: var(--honey-wash, #FDF0D2); stroke: var(--honey, #F2A81D); stroke-width: 2.2; stroke-linejoin: round; animation: lhh-fill 2.6s ease-in-out infinite; }
+@keyframes lhh-fill { 0%, 12% { fill: var(--honey-wash, #FDF0D2); } 38%, 70% { fill: var(--honey, #F2A81D); } 100% { fill: var(--honey-wash, #FDF0D2); } }
+.boot .drip { fill: var(--honey, #F2A81D); transform-origin: 80px 116px; animation: lhh-drip 2.6s ease-in infinite; }
+@keyframes lhh-drip { 0%, 45% { transform: translateY(-6px) scale(.2); opacity: 0; } 60% { opacity: 1; transform: translateY(0) scale(1); } 90% { transform: translateY(10px) scale(.9); opacity: 0; } 100% { opacity: 0; } }
+.boot .bee { animation: lhh-fly1 4.2s ease-in-out infinite; }
+.boot .bee.b2 { animation: lhh-fly2 5s ease-in-out infinite; animation-delay: -1.6s; }
+.boot .bee-bob { animation: lhh-bob .5s ease-in-out infinite alternate; }
+.boot .wing { fill: rgba(255, 255, 255, .85); stroke: rgba(43, 33, 24, .35); stroke-width: .8; transform-box: fill-box; transform-origin: 50% 100%; animation: lhh-flap .12s linear infinite alternate; }
+.boot .wing.w2 { animation-delay: .06s; }
+@keyframes lhh-flap { from { transform: scaleY(1); } to { transform: scaleY(.35); } }
+@keyframes lhh-bob { from { transform: translateY(-1.5px); } to { transform: translateY(1.5px); } }
+@keyframes lhh-fly1 { 0% { transform: translate(18px, 24px) rotate(-8deg); } 25% { transform: translate(78px, 6px) rotate(6deg); } 50% { transform: translate(140px, 30px) rotate(10deg) scaleX(-1); } 51% { transform: translate(140px, 30px) rotate(-10deg) scaleX(-1); } 75% { transform: translate(84px, 64px) rotate(-6deg) scaleX(-1); } 99% { transform: translate(18px, 24px) rotate(-8deg) scaleX(-1); } 100% { transform: translate(18px, 24px) rotate(-8deg); } }
+@keyframes lhh-fly2 { 0% { transform: translate(144px, 112px) rotate(8deg) scaleX(-.8) scaleY(.8); } 50% { transform: translate(20px, 104px) rotate(-6deg) scaleX(-.8) scaleY(.8); } 51% { transform: translate(20px, 104px) rotate(-6deg) scale(.8); } 100% { transform: translate(144px, 112px) rotate(8deg) scale(.8); } }
+.boot-txt { color: var(--muted, #6B5A48); font-size: 16px; font-weight: 500; letter-spacing: .01em; margin: 4px 0 0; transition: opacity .22s ease, transform .22s ease; }
+.boot-txt.out { opacity: 0; transform: translateY(4px); }
+@media (prefers-reduced-motion: reduce) {
+  .boot .cell, .boot .drip, .boot .bee, .boot .bee-bob, .boot .wing { animation: none; }
+  .boot .cell:nth-child(odd) { fill: var(--honey, #F2A81D); }
+  .boot .bee.b1 { transform: translate(126px, 22px); } .boot .bee.b2 { display: none; } .boot .drip { opacity: 0; }
+}

@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "26"
+VERSION = "27"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -122,6 +122,7 @@ def idea_strip(pg, lead="Don’t see your favorite?", text="Tell us the place, t
 
 IDEA_ART = (("places", "savannah"), ("furry-friends", "dog-mom"), ("kitchen-words", "but-first-coffee"),
             ("bee-kind", "bee-kind"), ("world", "santorini"))
+INSTA_ART = (("bee-kind", "bee-happy"), ("world", "amalfi-coast"), ("furry-friends", "bark-less-wag-more"))
 
 
 def head(pg, title, desc, path):
@@ -187,6 +188,7 @@ def header(pg, active):
         <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg>
         <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z"/></svg>
       </button>
+      <a class="ig-btn" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me" aria-label="Little Hive House on Instagram">{IG_ICON}</a>
       <!-- store: account icon (assets/store.js shows the signed-in initial) -->
       <a class="acct-btn" href="{pg.p}account.html" data-account aria-label="Your account">
         <svg class="i-person" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="7" r="3.4"/><path d="M3.6 17.2c.9-3.1 3.4-4.8 6.4-4.8s5.5 1.7 6.4 4.8"/></svg>
@@ -204,6 +206,7 @@ def header(pg, active):
       <a class="acct-link" href="{pg.p}account.html" data-account-menu>Your account</a>
       <a class="acct-link" href="{pg.p}favorites.html">Favorites</a>
       <a class="acct-link" href="{pg.p}track.html">Track an order</a>
+      <a class="acct-link ig-link" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me">{IG_ICON}Follow us on Instagram</a>
 {subs}
     </nav>
   </div>
@@ -690,6 +693,20 @@ def page_home():
           <div class="actions"><a class="btn btn-honey" href="suggestions.html">Share an idea</a></div>
         </div>
         <div class="band-art" aria-hidden="true">{"".join(f'<img class="ph" src="{pg.p}assets/art/{c}/{s}.webp" width="600" height="600" alt="" loading="lazy" decoding="async">' for c, s in IDEA_ART)}<span class="ph idea-tile">Your idea here</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight" id="instagram">
+    <div class="wrap">
+      <div class="band insta">
+        <div>
+          <p class="eyebrow">On Instagram</p>
+          <h2>Come see what’s on our fridge</h2>
+          <p>New designs before they hit the shop, behind the scenes at the press, and photos from your fridges. Tag us when your magnets arrive and we might share yours.</p>
+          <div class="actions"><a class="btn btn-honey btn-ig" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me">{IG_ICON}Follow @littlehivehouse</a></div>
+        </div>
+        <div class="band-art insta-art" aria-hidden="true">{"".join(f'<img class="ph" src="{pg.p}assets/art/{c}/{s}.webp" width="600" height="600" alt="" loading="lazy" decoding="async">' for c, s in INSTA_ART)}</div>
       </div>
     </div>
   </section>
