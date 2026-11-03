@@ -153,7 +153,7 @@ function planTiles(order) {
         const crop = Crop.clean(p.crop);
         const capStyle = typeof p.capStyle === "string" && p.capStyle ? p.capStyle : null;
         tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle, ...(border ? { border } : {}),
-          key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}` });
+          key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}${crop.f ? ",f" : ""}` : ""}` });
       });
     } else if (it.kind === "package") {
       skipped.push({ kind: "package", title: it.title || it.id || "Package", qty, size: toInt(it.size) * qty });
@@ -364,10 +364,24 @@ async function renderPhoto(tile, ctx) {
     const meta = await sharp(buf, opts).metadata();
     const turned = (meta.orientation || 1) >= 5;
     const W = turned ? meta.height : meta.width, H = turned ? meta.width : meta.height;
-    const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop);
-    let img = await sharp(buf, opts).rotate().extract(reg)
-      .resize(win.w, win.h, { fit: "fill", kernel: "lanczos3" })
-      .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    let img;
+    if (tile.crop && tile.crop.f) {
+      // free placement (test print): the visible part of the photo on white paper
+      const pl = Crop.placePx(W, H, win.w, win.h, tile.crop);
+      const layers = [];
+      if (pl) {
+        const part = await sharp(buf, opts).rotate().extract(pl.src).resize(pl.dst.w, pl.dst.h, { fit: "fill", kernel: "lanczos3" })
+          .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().png().toBuffer();
+        layers.push({ input: part, left: pl.dst.x, top: pl.dst.y });
+      }
+      img = await sharp({ create: { width: win.w, height: win.h, channels: 3, background: "#FFFFFF" } }).composite(layers)
+        .toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    } else {
+      const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop);
+      img = await sharp(buf, opts).rotate().extract(reg)
+        .resize(win.w, win.h, { fit: "fill", kernel: "lanczos3" })
+        .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    }
     if (ctx.enhance) {
       try { img = await enhancePhoto(sharp, img); } catch (err) { ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`); }
     }
