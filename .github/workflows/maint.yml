@@ -101,8 +101,28 @@ jobs:
         if: always() && inputs.task == 'check-shippo'
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: email }
         run: node tools/maint/check-shippo.js
+      - name: "Pedido: pedido encontrado"
+        if: always() && inputs.task == 'check-order'
+        env: { ORDER: "${{ inputs.value }}", CHECK: found, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
+        run: node tools/maint/check-order.js
+      - name: "Pedido: tem etiqueta comprada"
+        if: always() && inputs.task == 'check-order'
+        env: { ORDER: "${{ inputs.value }}", CHECK: label, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
+        run: node tools/maint/check-order.js
+      - name: "Pedido: está como enviado"
+        if: always() && inputs.task == 'check-order'
+        env: { ORDER: "${{ inputs.value }}", CHECK: shipped, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
+        run: node tools/maint/check-order.js
+      - name: "Pedido: cartão cobrado"
+        if: always() && inputs.task == 'check-order'
+        env: { ORDER: "${{ inputs.value }}", CHECK: charged, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
+        run: node tools/maint/check-order.js
+      - name: "Pedido: Shippo tem etiqueta comprada"
+        if: always() && inputs.task == 'check-order'
+        env: { ORDER: "${{ inputs.value }}", CHECK: shippo, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
+        run: node tools/maint/check-order.js
       - name: Run
-        if: inputs.task != 'check-shippo'
+        if: inputs.task != 'check-shippo' && inputs.task != 'check-order'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
