@@ -29,7 +29,7 @@ module.exports = function outForDelivery(data, { L }) {
   const trackBox = Lay.box(
     `<table ${Lay.T} width="100%"><tr>` +
       `<td class="stack" valign="top" style="padding:0 12px 0 0">${Lay.label("Carrier")}${Lay.bodyText(F.esc(carrier), { size: 17, lh: 24, weight: 600 })}</td>` +
-      `<td class="stack stack-top" valign="top" style="padding:0">${Lay.label("Tracking number")}${Lay.bodyText(`<span style="font-family:Menlo,Consolas,'Courier New',monospace;letter-spacing:.5px">${F.esc(tracking || "See the tracking page")}</span>`, { size: 17, lh: 24, weight: 600 })}</td>` +
+      `<td class="stack stack-top" valign="top" style="padding:0">${Lay.label("Tracking number")}${Lay.bodyText((tracking && url ? `<a href="${F.esc(url)}" style="font-family:Menlo,Consolas,'Courier New',monospace;letter-spacing:.5px;color:inherit;text-decoration:underline">${F.esc(tracking)}</a>` : `<span style="font-family:Menlo,Consolas,'Courier New',monospace;letter-spacing:.5px">${F.esc(tracking || "See the tracking page")}</span>`), { size: 17, lh: 24, weight: 600 })}</td>` +
     `</tr></table>` + scan,
     [`Carrier: ${carrier}`, `Tracking number: ${tracking || "see the tracking page"}`,
       lastText ? `Latest scan: ${lastText}${lastWhere || lastWhen ? ` (${[lastWhere, lastWhen].filter(Boolean).join(", ")})` : ""}` : ""].filter(Boolean).join("\n"),
