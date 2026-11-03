@@ -163,7 +163,7 @@ async function deliverOrder(ref, id, { at, by, onlyOnceEmail = false, strict = f
   });
   if (!changed) return { delivered: false, emailed: false };
   if (onlyOnceEmail && after.emails && after.emails.delivered) return { delivered: true, emailed: false };
-  const sent = await mail.send({ to: after.email, kind: "delivered_review", data: { order: O.emailOrder(id, after) } });
+  const sent = await mail.send({ to: after.email, kind: "delivered_review", data: { order: O.emailOrder(id, after), ...(await reviewExtras()) } });
   if (!sent.skipped) await ref.update({ "emails.delivered": nowIso() }).catch(() => {});
   return { delivered: true, emailed: !sent.skipped };
 }
@@ -240,7 +240,7 @@ async function adminResendEmail(data, auth) {
     await ref.update({ "emails.outForDelivery": nowIso() });
   } else if (kind === "delivered_review") {
     if (!order.fulfillment || !order.fulfillment.deliveredAt) fail("failed-precondition", "This order isn't marked delivered yet.");
-    await mail.send({ to: order.email, kind, data: base, required: true });
+    await mail.send({ to: order.email, kind, data: { ...base, ...(await reviewExtras()) }, required: true });
     await ref.update({ "emails.delivered": nowIso() });
   } else if (kind === "refund") {
     const last = (order.refunds || []).filter((r) => r.status !== "failed" && r.status !== "canceled").slice(-1)[0];
@@ -258,6 +258,15 @@ async function adminResendEmail(data, auth) {
   return { ok: true };
 }
 
+/** Extra links for the delivered + review email: the shop's Google review link (Settings › Reviews). */
+async function reviewExtras() {
+  try {
+    const snap = await deps.db().collection("settings").doc("store").get();
+    const u = snap.exists ? String(snap.data().googleReviewUrl || "") : "";
+    return u ? { googleReviewUrl: u } : {};
+  } catch (e) { return {}; }
+}
+
 /* ---------- what each customer email looks like for this order (Hive Admin › order › Emails to the customer) ---------- */
 const PREVIEW_KINDS = ["order_confirmation", "shipped", "out_for_delivery", "delivered_review", "refund", "payment_link"];
 async function adminPreviewEmail(data, auth) {
@@ -265,7 +274,7 @@ async function adminPreviewEmail(data, auth) {
   const { id, order } = await loadOrder(data && data.orderId);
   const kind = U.text(data && data.kind, 40);
   if (!PREVIEW_KINDS.includes(kind)) fail("invalid-argument", "Unknown email.");
-  const d = { order: O.emailOrder(id, order) };
+  const d = { order: O.emailOrder(id, order), ...(kind === "delivered_review" ? await reviewExtras() : {}) };
   let sample = false;
   if (kind === "refund") {
     const last = (order.refunds || []).filter((r) => r.status !== "failed" && r.status !== "canceled").slice(-1)[0];
@@ -425,6 +434,11 @@ async function adminSaveSettings(data, auth) {
     const c = require("./printsheet").borderColour(String(s.printBorderColor), null);
     if (!c) fail("invalid-argument", "The border colour should look like #FFFFFF.");
     out.printBorderColor = c;
+  }
+  if (s.googleReviewUrl !== undefined && s.googleReviewUrl !== null) {
+    const u = U.text(s.googleReviewUrl, 500);
+    if (u && !/^https:\/\/([a-z0-9-]+\.)*(google\.com|g\.page|goo\.gl|maps\.app\.goo\.gl)\//i.test(u)) fail("invalid-argument", "That doesn't look like a Google review link (it should start with https://g.page/ or https://search.google.com/).");
+    out.googleReviewUrl = u;
   }
   if (s.shipFrom && typeof s.shipFrom === "object") {
     const a = s.shipFrom, t = (k, max) => U.text(a[k], max);

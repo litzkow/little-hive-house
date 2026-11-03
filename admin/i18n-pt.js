@@ -1060,6 +1060,14 @@ window.LHH_PT = {
 "Tap an email to see it as the customer does.": "Toque num e-mail para ver como o cliente vê.",
 "Subject:": "Assunto:",
 "No refund on this order yet: this is how one would look.": "Este pedido ainda não teve reembolso: este é um exemplo de como ficaria.",
+"Google reviews": "Avaliações no Google",
+"Google review link": "Link de avaliação do Google",
+"Paste the shop’s Google review link and the “Delivered + review request” email gets a": "Cole o link de avaliação da loja no Google e o e-mail “Entregue + pedido de avaliação” ganha um botão",
+"Review us on Google": "Review us on Google",
+", under the stars of the shop’s own review. Leave it empty and the button doesn’t show.": ", embaixo das estrelinhas da avaliação do próprio site. Se deixar vazio, o botão não aparece.",
+"Saved. The review email now has the Google button.": "Salvo. O e-mail de avaliação já tem o botão do Google.",
+"Saved. The Google button is off.": "Salvo. O botão do Google foi desligado.",
+"That doesn't look like a Google review link (it should start with https://g.page/ or https://search.google.com/).": "Isso não parece um link de avaliação do Google (ele começa com https://g.page/ ou https://search.google.com/).",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

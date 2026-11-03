@@ -928,12 +928,13 @@
       '<p class="small muted" style="margin-top:8px">Admins are the emails in <code>ADMIN_EMAILS</code> (see SETUP.md). A new admin signs up on the shop’s account page, opens this page and taps “Activate admin access”.</p>' +
       '<div class="row gap-top"><button class="btn btn-ghost btn-sm" data-act="theme">' + esc(themeText()) + '</button><button class="btn btn-ghost btn-sm" data-act="signout">' + icon('logout') + 'Sign out</button></div></section>' +
       notifCard() + installCard() +
-      printCard(s) + shipCard(s) + '</div></div>';
+      printCard(s) + shipCard(s) + reviewCard(s) + '</div></div>';
     return {
       title: 'Settings', html: html, after: function () {
         loadNotif();
         wirePrint();
         wireShip();
+        wireReview();
         var f = $('#set-form');
         f.addEventListener('input', function () {
           var mc = Number(f.magnetUnitCost.value) || 0, pk = Number(f.packagingCost.value) || 0;
@@ -1005,6 +1006,26 @@
       '<label class="field"><span>Each magnet</span><span class="input-unit"><input class="input" name="magnetOz" type="number" inputmode="decimal" min="0" step="0.01" value="' + esc(String(s.magnetOz)) + '"> oz</span>' +
       '<span class="hint">Weigh 10 magnets and divide by 10.</span></label></div>' +
       '<p class="err" id="ship-set-err" hidden></p><div class="row end"><button class="btn btn-honey" type="submit">Save shipping</button></div></form></section>';
+  }
+  /* ---------- the Google review link for the delivered + review email ---------- */
+  function reviewCard(s) {
+    return '<section class="card"><div class="card-head"><h2>Google reviews</h2></div><form class="stack" id="review-set-form" novalidate>' +
+      '<p class="small muted" style="margin-top:0">Paste the shop’s Google review link and the “Delivered + review request” email gets a <b>Review us on Google</b> button, under the stars of the shop’s own review. Leave it empty and the button doesn’t show.</p>' +
+      '<label class="field"><span>Google review link</span><input class="input" name="googleReviewUrl" type="url" inputmode="url" placeholder="https://g.page/r/…/review" value="' + esc(s.googleReviewUrl || '') + '"></label>' +
+      '<p class="err" id="review-set-err" hidden></p><div class="row end"><button class="btn btn-honey" type="submit">Save</button></div></form></section>';
+  }
+  function wireReview() {
+    var f = $('#review-set-form'); if (!f) return;
+    f.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var err = $('#review-set-err'), out = { googleReviewUrl: f.googleReviewUrl.value.trim() };
+      err.hidden = true;
+      var btn = f.querySelector('button[type=submit]');
+      h.busy(btn, true, 'Saving…');
+      h.call('adminSaveSettings', out).then(function () {
+        S.settings = R.settingsWithDefaults(Object.assign({}, S.settings, out)); h.busy(btn, false); h.toast(out.googleReviewUrl ? 'Saved. The review email now has the Google button.' : 'Saved. The Google button is off.');
+      }).catch(function (e) { h.busy(btn, false); err.textContent = h.friendlyError(e); err.hidden = false; });
+    });
   }
   function wireShip() {
     var f = $('#ship-set-form'); if (!f) return;

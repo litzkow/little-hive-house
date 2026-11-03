@@ -12,6 +12,8 @@ module.exports = function shipped(data, { L }) {
   const carrier = F.carrierName(f.carrier, f.carrierName);
   const tracking = F.line(f.tracking, 60);
   const url = F.trackingUrl(f.carrier, tracking, f.url) || L.track(num);
+  // charge on ship: the card was charged just now, so this email is also the receipt (items, shipping, tax, total)
+  const charged = !!(order.payment && order.payment.state === "captured");
   const ad = O.address(order.shipping);
   const country = String((order.shipping && order.shipping.address && order.shipping.address.country) || "US").toUpperCase();
   const eta = F.arrival(f.shippedAt || new Date(), { shipped: true, country });
@@ -36,8 +38,10 @@ module.exports = function shipped(data, { L }) {
       Lay.progress(2),
       trackBox,
       Lay.buttons([{ href: url, label: "Track your package", variant: "honey" }], { full: true, pad: "0 0 28px" }),
-      Lay.h2("In the box"),
-      O.itemList(order, L, { prices: false }),
+      Lay.h2(charged ? "Your receipt" : "In the box"),
+      O.itemList(order, L, { prices: charged }),
+      charged ? O.totals(order) : null,
+      charged ? Lay.p([`Charged to your card today, when your order shipped${num ? ` (order ${num})` : ""}. Keep this email as your receipt.`], { muted: true, small: true }) : null,
       ad.lines.length ? Lay.columns([{ label: "Shipping to", html: Lay.bodyText(ad.html, { size: 15, lh: 23 }), text: ad.text }]) : null,
       f.autoUpdates ? Lay.p(["We'll email you again when it's out for delivery, and when it arrives. No need to keep checking!"], { small: true }) : null,
       Lay.p(["Tracking can take a day to wake up after we drop the package off. If anything looks stuck, just reply and we'll chase it for you."], { muted: true, small: true }),

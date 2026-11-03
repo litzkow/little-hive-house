@@ -57,6 +57,7 @@
     for (var k in DEFAULT_SETTINGS) out[k] = (s && s[k] != null && s[k] !== '' && isFinite(Number(s[k]))) ? Number(s[k]) : DEFAULT_SETTINGS[k];
     // the default border of the print sheets: a colour, or 'auto' (the picture's own edge colour)
     var b = s && typeof s.printBorderColor === 'string' ? s.printBorderColor : '';
+    out.googleReviewUrl = s && typeof s.googleReviewUrl === 'string' ? s.googleReviewUrl : '';
     // where USPS labels come from (functions/labels.js)
     var a = s && s.shipFrom && typeof s.shipFrom === 'object' ? s.shipFrom : {};
     out.shipFrom = { name: a.name || '', company: a.company || '', street1: a.street1 || '', street2: a.street2 || '', city: a.city || '', state: a.state || '', zip: a.zip || '', phone: a.phone || '' };

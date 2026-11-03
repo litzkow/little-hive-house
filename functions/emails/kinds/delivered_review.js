@@ -15,6 +15,7 @@ module.exports = function deliveredReview(data, { L }) {
   const codeText = code && F.line(code.code, 30);
   const off = code && F.offText(code);
   const reviewUrl = id ? `${L.order(id)}#review` : L.track(num);
+  const googleUrl = F.safeUrl(data.googleReviewUrl);   // Settings › Reviews: the shop's Google review link (empty: no button)
 
   return {
     subject: first ? `${first}, how do they look on your fridge?` : "How do they look on your fridge?",
@@ -28,7 +29,9 @@ module.exports = function deliveredReview(data, { L }) {
       Lay.progress(3),
       Lay.p([{ b: "How did we do?" }, " Tap a star to leave a quick review:"], { center: true, pad: "0 0 10px" }),
       id ? Lay.stars((n) => L.review(id, n)) : Lay.buttons([{ href: reviewUrl, label: "Leave a review" }], { center: true }),
-      Lay.p(["Your words help other people find handmade gifts, and they make our whole week."], { muted: true, small: true, center: true, pad: "0 0 26px" }),
+      Lay.p(["Your words help other people find handmade gifts, and they make our whole week."], { muted: true, small: true, center: true, pad: googleUrl ? "0 0 14px" : "0 0 26px" }),
+      googleUrl ? Lay.p(["Have one more minute? A review on Google helps a small shop get found."], { small: true, center: true, pad: "0 0 8px" }) : null,
+      googleUrl ? Lay.buttons([{ href: googleUrl, label: "Review us on Google", variant: "ghost" }], { center: true, pad: "0 0 26px" }) : null,
       Lay.h2("In your order"),
       O.itemList(order, L, { prices: false, compact: true }),
       Lay.box(

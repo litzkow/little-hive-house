@@ -30,5 +30,13 @@ test("every customer email can be previewed for an order, without sending it", a
   assert.equal(refund.sample, true);
   assert.equal(net.emails.length, 0, "nothing was sent");
   await assert.rejects(admin.adminPreviewEmail({ orderId: "o1", kind: "spam" }, ADMIN), (e) => e.code === "invalid-argument");
+  // the Google review button shows only once the link is saved in Settings
+  let d = await admin.adminPreviewEmail({ orderId: "o1", kind: "delivered_review" }, ADMIN);
+  assert.doesNotMatch(d.html, /Review us on Google/);
+  await assert.rejects(admin.adminSaveSettings({ settings: { googleReviewUrl: "https://evil.example/review" } }, ADMIN), (e) => e.code === "invalid-argument");
+  await admin.adminSaveSettings({ settings: { googleReviewUrl: "https://g.page/r/CabcdEFG123/review" } }, ADMIN);
+  d = await admin.adminPreviewEmail({ orderId: "o1", kind: "delivered_review" }, ADMIN);
+  assert.match(d.html, /Review us on Google/);
+  assert.match(d.html, /g\.page\/r\/CabcdEFG123\/review/);
   await assert.rejects(admin.adminPreviewEmail({ orderId: "o1", kind: "shipped" }, { uid: "x", token: {} }));
 });
