@@ -12,6 +12,7 @@
 
 Kraft labels print in one dark ink (light colours disappear on brown paper). Fonts come from tools/fonts.
 Run: python3 tools/print_inserts.py"""
+import json
 import math
 import pathlib
 
@@ -107,7 +108,9 @@ BODY = ("Thank you for supporting our little family business. Every magnet in th
         "packed by hand by the two of us, at home, one small batch at a time. It means the world to us that our work "
         "gets a spot on your fridge.")
 ASK = "Love how they turned out? A review or a photo of your fridge helps a small shop more than you know."
-INSTAGRAM = "@littlehivehouse"
+# the shop's social accounts, the same list the site reads (tools/social.json)
+SOCIAL = json.loads((pathlib.Path(__file__).resolve().parent / "social.json").read_text(encoding="utf-8"))["networks"]
+INSTAGRAM = SOCIAL[0]["handle"] if SOCIAL else ""
 
 
 def ig_icon(c, x, y, s, color):
@@ -120,6 +123,71 @@ def ig_icon(c, x, y, s, color):
     c.circle(x + s / 2, y + s / 2, s * 0.22, fill=0, stroke=1)
     c.circle(x + s * 0.76, y + s * 0.76, s * 0.06, fill=1, stroke=0)
     c.restoreState()
+
+
+def fb_icon(c, x, y, s, color):
+    """The Facebook glyph (an f in a rounded square), s points wide, lower-left at (x, y)."""
+    c.saveState()
+    c.setStrokeColor(color)
+    c.setLineWidth(max(0.6, s * 0.09))
+    c.setLineCap(1)
+    c.roundRect(x, y, s, s, s * 0.28, fill=0, stroke=1)
+    p = c.beginPath()
+    p.moveTo(x + s * 0.66, y + s * 0.78)
+    p.lineTo(x + s * 0.58, y + s * 0.78)
+    p.curveTo(x + s * 0.5, y + s * 0.78, x + s * 0.46, y + s * 0.72, x + s * 0.46, y + s * 0.64)
+    p.lineTo(x + s * 0.46, y)
+    c.drawPath(p, stroke=1, fill=0)
+    c.line(x + s * 0.33, y + s * 0.52, x + s * 0.64, y + s * 0.52)
+    c.restoreState()
+
+
+def tiktok_icon(c, x, y, s, color):
+    """The TikTok note, s points wide, lower-left at (x, y)."""
+    c.saveState()
+    c.setStrokeColor(color)
+    c.setLineWidth(max(0.6, s * 0.1))
+    c.setLineCap(1)
+    c.circle(x + s * 0.36, y + s * 0.26, s * 0.17, fill=0, stroke=1)
+    c.line(x + s * 0.53, y + s * 0.26, x + s * 0.53, y + s * 0.96)
+    p = c.beginPath()
+    p.moveTo(x + s * 0.53, y + s * 0.96)
+    p.curveTo(x + s * 0.58, y + s * 0.8, x + s * 0.72, y + s * 0.7, x + s * 0.9, y + s * 0.7)
+    c.drawPath(p, stroke=1, fill=0)
+    c.restoreState()
+
+
+ICONS = {"instagram": ig_icon, "facebook": fb_icon, "tiktok": tiktok_icon}
+
+
+def social_width(font, size, s, prefix=""):
+    """How wide social_line draws."""
+    handles = {n["handle"] for n in SOCIAL}
+    if len(handles) == 1:
+        return len(SOCIAL) * (s + 3.5) + pdfmetrics.stringWidth(prefix + handles.pop(), font, size)
+    return pdfmetrics.stringWidth(prefix, font, size) + sum(s + 3.5 + pdfmetrics.stringWidth(n["handle"], font, size) + 8 for n in SOCIAL) - 8
+
+
+def social_line(c, x, y, font, size, s, color, prefix=""):
+    """Every network's icon then the prefix and the shared @ (or the prefix, then each icon with its own @), baseline at y, from x."""
+    handles = {n["handle"] for n in SOCIAL}
+    c.setFont(font, size)
+    c.setFillColor(color)
+    if prefix and len(handles) > 1:
+        c.drawString(x, y, prefix)
+        x += pdfmetrics.stringWidth(prefix, font, size)
+    for n in SOCIAL:
+        ICONS.get(n["name"].lower(), ig_icon)(c, x, y - 1.5, s, color)
+        x += s + 3.5
+        if len(handles) > 1:
+            c.setFont(font, size)
+            c.setFillColor(color)
+            c.drawString(x, y, n["handle"])
+            x += pdfmetrics.stringWidth(n["handle"], font, size) + 8
+    if len(handles) == 1:
+        c.setFont(font, size)
+        c.setFillColor(color)
+        c.drawString(x, y, prefix + handles.pop())
 
 
 def card(c, x0, y0):
@@ -147,13 +215,9 @@ def card(c, x0, y0):
         y -= 10.6
     # tag us on Instagram, with the glyph before it
     y -= 5
-    label = "Tag us " + INSTAGRAM
-    tw = pdfmetrics.stringWidth(label, "Jost", 8.4)
-    gx = cx - (tw + 12) / 2
-    ig_icon(c, gx, y - 1.5, 8.5, HexColor("#B9770E"))
-    c.setFont("Jost", 8.4)
-    c.setFillColor(HexColor("#B9770E"))
-    c.drawString(gx + 12, y, label)
+    if SOCIAL:
+        tw = social_width("Jost", 8.4, 8.5, prefix="Tag us ")
+        social_line(c, cx - tw / 2, y, "Jost", 8.4, 8.5, HexColor("#B9770E"), prefix="Tag us ")
     # signature + QR
     qsize = 0.62 * IN
     w = qr.QrCodeWidget("https://littlehivehouse.com/")
@@ -423,8 +487,8 @@ def bc_back(c, x, y):
     c.setFont("Jost", 8)
     c.setFillColor(HexColor("#E8D8BC"))
     c.drawString(x + pad, y + BC_H * 0.40, "support@littlehivehouse.com")
-    ig_icon(c, x + pad, y + BC_H * 0.285 - 1.5, 8, HexColor("#E8D8BC"))
-    c.drawString(x + pad + 11.5, y + BC_H * 0.285, INSTAGRAM)
+    if SOCIAL:
+        social_line(c, x + pad, y + BC_H * 0.285, "Jost", 8, 8, HexColor("#E8D8BC"))
     c.setFont("Caveat", 13)
     c.setFillColor(honey)
     c.drawString(x + pad, y + pad - 1, "Turn your favorite photos into magnets")

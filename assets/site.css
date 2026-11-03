@@ -960,9 +960,20 @@ html.studio-open { overflow: hidden; }
 .band.insta { background: linear-gradient(135deg, var(--surface), var(--bg)); border: 1.5px solid var(--line); }
 .btn-ig { display: inline-flex; align-items: center; gap: 10px; }
 .btn-ig svg { width: 22px; height: 22px; flex: none; }
-.insta-badge { justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 14px; text-decoration: none; color: var(--ink); }
-.insta-badge .ib-icon { width: 128px; height: 128px; border-radius: 34px; display: grid; place-items: center; color: #fff; background: radial-gradient(circle at 30% 110%, #fdd36b 0%, #f5a623 30%, #e1306c 62%, #833ab4 100%); box-shadow: 0 14px 30px -12px rgba(131, 58, 180, .45); transform: rotate(-4deg); transition: transform .2s; }
-.insta-badge:hover .ib-icon { transform: rotate(0) scale(1.04); }
+.insta-badge { justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 14px; color: var(--ink); }
+.ib-row { display: flex; gap: 16px; justify-content: center; }
+.ib-icon[data-net="instagram"] { background: radial-gradient(circle at 30% 110%, #fdd36b 0%, #f5a623 30%, #e1306c 62%, #833ab4 100%); }
+.ib-icon[data-net="facebook"] { background: linear-gradient(160deg, #3b8cff, #1661d8); }
+.ib-icon[data-net="tiktok"] { background: linear-gradient(160deg, #2b2b2b, #050505); }
+.insta-badge .ib-icon { width: 128px; height: 128px; border-radius: 34px; display: grid; place-items: center; color: #fff; box-shadow: 0 14px 30px -12px rgba(43, 33, 24, .4); transform: rotate(-4deg); transition: transform .2s; }
+.insta-badge .ib-icon:nth-child(even) { transform: rotate(4deg); }
+.insta-badge .ib-icon:hover { transform: rotate(0) scale(1.04); }
 .insta-badge .ib-icon svg { width: 66px; height: 66px; }
+.insta-badge.many .ib-icon { width: 96px; height: 96px; border-radius: 26px; }
+.insta-badge.many .ib-icon svg { width: 50px; height: 50px; }
 .insta-badge .ib-handle { font-weight: 700; font-size: 18px; letter-spacing: .01em; }
-@media (max-width: 760px) { .insta-badge .ib-icon { width: 96px; height: 96px; border-radius: 26px; } .insta-badge .ib-icon svg { width: 50px; height: 50px; } }
+@media (max-width: 760px) { .insta-badge .ib-icon, .insta-badge.many .ib-icon { width: 84px; height: 84px; border-radius: 24px; } .insta-badge .ib-icon svg, .insta-badge.many .ib-icon svg { width: 44px; height: 44px; } }
+.band.insta .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.strip-soc { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; white-space: nowrap; }
+.strip-handle { font-weight: 600; }
+.nav a.ig-btn ~ a.ig-btn { display: none; }   /* the header keeps one button; every network is in the top strip */

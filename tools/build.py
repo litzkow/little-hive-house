@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "28"
+VERSION = "29"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -170,7 +170,7 @@ def header(pg, active):
         return line
     subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
-<div class="strip"><span class="s1">Free US shipping on orders over $35</span><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span><span class="dot" aria-hidden="true">·</span><a class="strip-ig" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me" aria-label="Follow Little Hive House on Instagram">{IG_ICON}<span>@littlehivehouse</span></a></div>
+<div class="strip"><span class="s1">Free US shipping on orders over $35</span><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span>{social_strip()}</div>
 
 <header class="site-header">
   <div class="wrap header-row">
@@ -187,7 +187,7 @@ def header(pg, active):
         <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.2M10 16v2.2M1.8 10H4M16 10h2.2M4.2 4.2l1.6 1.6M14.2 14.2l1.6 1.6M4.2 15.8l1.6-1.6M14.2 5.8l1.6-1.6"/></svg>
         <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z"/></svg>
       </button>
-      <a class="ig-btn" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me" aria-label="Little Hive House on Instagram">{IG_ICON}</a>
+      {social_header()}
       <!-- store: account icon (assets/store.js shows the signed-in initial) -->
       <a class="acct-btn" href="{pg.p}account.html" data-account aria-label="Your account">
         <svg class="i-person" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="7" r="3.4"/><path d="M3.6 17.2c.9-3.1 3.4-4.8 6.4-4.8s5.5 1.7 6.4 4.8"/></svg>
@@ -205,7 +205,7 @@ def header(pg, active):
       <a class="acct-link" href="{pg.p}account.html" data-account-menu>Your account</a>
       <a class="acct-link" href="{pg.p}favorites.html">Favorites</a>
       <a class="acct-link" href="{pg.p}track.html">Track an order</a>
-      <a class="acct-link ig-link" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me">{IG_ICON}Follow us on Instagram</a>
+{social_menu()}
 {subs}
     </nav>
   </div>
@@ -303,9 +303,65 @@ def vol_badge():
     return f'<span class="deal alt">{pct}% off {n}+ magnets</span>'
 
 
-# the shop's social accounts: (name, link, handle, icon). Facebook and TikTok go here when they exist.
+# the shop's social accounts live in tools/social.json: add a line there and every spot below picks it up
+# (top strip, header, phone menu, home band, footer, contact page, Google's sameAs, business and thank-you cards).
 IG_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.4" cy="6.6" r="1.2" fill="currentColor"/></svg>'
-SOCIAL = [("Instagram", "https://www.instagram.com/littlehivehouse/", "@littlehivehouse", IG_ICON)]
+FB_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15.6 7.4h-1.7c-1.4 0-2.2.9-2.2 2.3V21M9.6 12.6h5.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+TT_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.6 3.5v11.3a3.3 3.3 0 1 1-3.3-3.3M13.6 3.5c.4 2.6 2.2 4.4 4.9 4.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+SOCIAL_ICONS = {"instagram": IG_ICON, "facebook": FB_ICON, "tiktok": TT_ICON}
+SOCIAL_BG = ("instagram", "facebook", "tiktok")   # networks with their own colour in site.css (.ib-icon[data-net])
+_soc = json.loads((pathlib.Path(__file__).resolve().parent / "social.json").read_text(encoding="utf-8"))["networks"]
+SOCIAL = [(n["name"], n["url"], n["handle"], SOCIAL_ICONS.get(n["name"].lower(), IG_ICON)) for n in _soc]
+SOCIAL_HANDLES = sorted({h for _, _, h, _ in SOCIAL})
+
+
+def social_strip():
+    """The top strip: each network's icon, then the @ (the same @ everywhere) or the network's name."""
+    if not SOCIAL:
+        return ""
+    one = len(SOCIAL_HANDLES) == 1
+    links = "".join(f'<a class="strip-ig" href="{u}" target="_blank" rel="noopener me" aria-label="Follow Little Hive House on {n}">{icon}'
+                    f'{"" if one and len(SOCIAL) > 1 else f"<span>{E(h)}</span>"}</a>' for n, u, h, icon in SOCIAL)
+    tail = f'<span class="strip-handle">{E(SOCIAL_HANDLES[0])}</span>' if one and len(SOCIAL) > 1 else ""
+    return f'<span class="dot" aria-hidden="true">·</span><span class="strip-soc">{links}{tail}</span>'
+
+
+def social_header():
+    return "".join(f'<a class="ig-btn" href="{u}" target="_blank" rel="noopener me" aria-label="Little Hive House on {n}">{icon}</a>'
+                   for n, u, h, icon in SOCIAL)
+
+
+def social_menu():
+    return "\n".join(f'      <a class="acct-link ig-link" href="{u}" target="_blank" rel="noopener me">{icon}Follow us on {n}</a>'
+                     for n, u, h, icon in SOCIAL)
+
+
+def social_band(pg):
+    """The home-page band. With one network it speaks about that one; with more, about all of them."""
+    if not SOCIAL:
+        return ""
+    one = len(SOCIAL) == 1
+    eyebrow = f"On {SOCIAL[0][0]}" if one else "Follow along"
+    btns = "".join(f'<a class="btn {"btn-honey" if i == 0 else "btn-ghost"} btn-ig" href="{u}" target="_blank" rel="noopener me">{icon}'
+                   f'{"Follow " + E(h) if one else E(n)}</a>' for i, (n, u, h, icon) in enumerate(SOCIAL))
+    tiles = "".join(f'<a class="ib-icon" href="{u}" target="_blank" rel="noopener me" tabindex="-1" data-net="{n.lower() if n.lower() in SOCIAL_BG else "instagram"}">{icon}</a>'
+                    for n, u, h, icon in SOCIAL)
+    handle = E(SOCIAL_HANDLES[0]) if len(SOCIAL_HANDLES) == 1 else ""
+    return f"""  <section class="tight" id="instagram">
+    <div class="wrap">
+      <div class="band insta">
+        <div>
+          <p class="eyebrow">{eyebrow}</p>
+          <h2>Come see what’s on our fridge</h2>
+          <p>New designs before they hit the shop, behind the scenes at the press, and photos from your fridges. Tag us when your magnets arrive and we might share yours.</p>
+          <div class="actions">{btns}</div>
+        </div>
+        <div class="insta-badge{" many" if not one else ""}" aria-hidden="true"><div class="ib-row">{tiles}</div>{f'<span class="ib-handle">{handle}</span>' if handle else ""}</div>
+      </div>
+    </div>
+  </section>
+
+"""
 
 
 def social_links(cls="social"):
@@ -696,21 +752,7 @@ def page_home():
     </div>
   </section>
 
-  <section class="tight" id="instagram">
-    <div class="wrap">
-      <div class="band insta">
-        <div>
-          <p class="eyebrow">On Instagram</p>
-          <h2>Come see what’s on our fridge</h2>
-          <p>New designs before they hit the shop, behind the scenes at the press, and photos from your fridges. Tag us when your magnets arrive and we might share yours.</p>
-          <div class="actions"><a class="btn btn-honey btn-ig" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me">{IG_ICON}Follow @littlehivehouse</a></div>
-        </div>
-        <a class="insta-badge" href="https://www.instagram.com/littlehivehouse/" target="_blank" rel="noopener me" aria-hidden="true" tabindex="-1"><span class="ib-icon">{IG_ICON}</span><span class="ib-handle">@littlehivehouse</span></a>
-      </div>
-    </div>
-  </section>
-
-  <section class="about" id="about">
+{social_band(pg)}  <section class="about" id="about">
     <div class="wrap about-grid">
       <div>
         <p class="eyebrow">About us</p>
