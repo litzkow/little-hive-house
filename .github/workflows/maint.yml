@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "clear-test-orders (deletes Stripe TEST-mode orders and resets numbering) or set-print-image (printed picture size, value below)"
+        description: "clear-test-orders (deletes Stripe TEST-mode orders and resets numbering), set-print-image (printed picture size, value below) or check-shippo (tests the Shippo key)"
         default: "clear-test-orders"
       dry_run:
         description: "1 = only list what would change"
@@ -41,7 +41,24 @@ jobs:
         run: |
           echo '{"private":true}' > package.json
           npm install --no-audit --no-fund @google-cloud/firestore@7 @google-cloud/storage@7
+      - name: "Shippo: a chave existe"
+        if: inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: exists }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: a chave é live"
+        if: inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: live }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: o Shippo aceita a chave"
+        if: inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: accepted }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: a conta USPS está ativa"
+        if: inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: usps }
+        run: node tools/maint/check-shippo.js
       - name: Run
+        if: inputs.task != 'check-shippo'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
