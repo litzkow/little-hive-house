@@ -790,10 +790,11 @@
       var r = q.rate, n = R.magnetsOf(o);
       box.innerHTML = '<div class="labelq">' +
         (q.test ? '<p class="callout calm small">' + icon('info') + '<span>Test key: this makes a sample label, the order stays as it is.</span></p>' : '') +
-        '<div class="row wrap" style="align-items:flex-end;gap:10px"><label class="field" style="flex:1;min-width:140px"><span>Weight of the closed package <span class="hint">(ounces)</span></span>' +
-        '<input class="input" id="label-oz" type="number" inputmode="decimal" min="0.1" step="0.1" value="' + esc(String(q.oz)) + '"></label>' +
+        '<div class="row wrap" style="align-items:flex-end;gap:10px"><label class="field" style="flex:1;min-width:140px"><span>What the scale shows <span class="hint">(ounces, exactly)</span></span>' +
+        '<input class="input" id="label-oz" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="' + esc(String(q.suggestedOz)) + '" value="' + (q.scaleOz != null ? esc(String(q.scaleOz)) : '') + '"></label>' +
         '<button class="btn btn-ghost btn-sm" type="button" data-act="labelQuote">New price</button></div>' +
-        '<p class="small muted">' + (Math.abs(q.oz - q.suggestedOz) < 0.01 ? 'Suggested for ' + h.plural(n, 'magnet') + ' with the extras. Weighed it? Type the real weight, rounded up.' : 'Suggested: ' + esc(String(q.suggestedOz)) + ' oz.') + '</p>' +
+        '<p class="small">' + (q.scaleOz != null ? '<span>Scale: ' + esc(String(q.scaleOz)) + ' oz.</span> ' : '<span>Not weighed yet: the app’s guess for ' + h.plural(n, 'magnet') + ' with the extras is ' + esc(String(q.suggestedOz)) + ' oz.</span> ') +
+          '<b>The label goes out at ' + esc(String(q.oz)) + ' oz</b>, <span>the top of that USPS price band, with room for the label and the tape. Same price, never underpaid.</span></p>' +
         '<div class="row between wrap gap-top"><div><b class="big">' + money(r.amount) + '</b> <span class="small muted">' + esc(r.service) + (r.days ? ' · <span>about ' + h.plural(r.days, 'day') + '</span>' : '') + '</span></div>' +
         '<button class="btn btn-honey" type="button" data-act="labelBuy" data-rate="' + esc(r.rateId) + '" data-amount="' + esc(String(r.amount)) + '" data-oz="' + esc(String(q.oz)) + '">' + icon('truck') + 'Buy and ship · ' + money(r.amount) + '</button></div>' +
         '<p class="tiny muted">' + (held(o) ? 'Buying it charges their card ' + money(R.pricing(o).total) + ', marks the order shipped and emails them the tracking.' : 'Buying it marks the order shipped and emails them the tracking.') + '</p></div>';

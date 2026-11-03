@@ -102,6 +102,17 @@ function cleanOz(v, fallback) {
   return Math.ceil(n * 10) / 10;
 }
 
+/* USPS Ground Advantage charges by weight bands: up to 4, 8, 12 and 15.99 oz, then by the pound (rounded up). The owners
+   type what the scale shows; the label goes out at the top of the band that weight falls in, after a little room for the
+   label paper and the tape (SAFETY_OZ). Same price as the exact weight, and the post office never finds it underpaid. */
+const SAFETY_OZ = 0.3;
+const OZ_BANDS = [4, 8, 12, 15.99];
+function prudentOz(scaleOz) {
+  const w = Math.max(0.1, Number(scaleOz) || 0) + SAFETY_OZ;
+  for (const b of OZ_BANDS) if (w <= b) return b;
+  return Math.ceil(w / 16) * 16;
+}
+
 /** The USPS Ground Advantage rate (or the cheapest USPS one when Ground Advantage isn't offered). */
 function pickRate(rates) {
   const usps = (rates || []).filter((r) => r && /usps/i.test(r.provider || "") && r.object_id);
@@ -131,14 +142,15 @@ async function adminLabelQuote(data, auth) {
   if (!SHIPPABLE.includes(order.status)) fail("failed-precondition", `An order that is "${O.STATUS_LABELS[order.status] || order.status}" can't get a label.`);
   const s = await settings();
   const suggested = suggestOz(order, s);
-  const oz = cleanOz(data && data.oz, suggested);
+  const scale = cleanOz(data && data.oz, null);          // what the scale showed (empty: the app's guess)
+  const oz = prudentOz(scale == null ? suggested : scale);
   const shipment = await shippo("/shipments/", { address_from: fromAddress(s), address_to: toAddress(order), parcels: [parcel(s, oz)], async: false });
   const rate = pickRate(shipment.rates);
   if (!rate) {
     const msg = (shipment.messages || []).map((m) => m && m.text).filter(Boolean).join(" ");
     fail("unavailable", `USPS gave no price for this address${msg ? `: ${msg}` : "."} Check the address on the order.`);
   }
-  return { ok: true, oz, suggestedOz: suggested, test: isTestKey(), rate: rateView(rate, shipment.object_id) };
+  return { ok: true, oz, scaleOz: scale, suggestedOz: suggested, test: isTestKey(), rate: rateView(rate, shipment.object_id) };
 }
 
 /** Buys the label for {orderId, rateId, oz} and marks the order shipped with its tracking. */
@@ -231,4 +243,4 @@ async function adminLabelPdf(data, auth) {
   return { ok: true, url: link.url, half };
 }
 
-module.exports = { adminLabelPdf, setHalfSheet, halfSheetPdf, pngSize, FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };
+module.exports = { prudentOz, SAFETY_OZ, adminLabelPdf, setHalfSheet, halfSheetPdf, pngSize, FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };

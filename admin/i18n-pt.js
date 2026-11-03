@@ -1043,6 +1043,13 @@ window.LHH_PT = {
 "Open the label": "Abrir a etiqueta",
 "It prints on the top sticker of the sheet. Paper type Plain paper, 100% (Actual size). The link works for about an hour.": "Ela sai na etiqueta de cima da folha. Tipo de papel Papel comum, 100% (Tamanho real). O link funciona por mais ou menos uma hora.",
 "It prints on the bottom sticker of the sheet. Paper type Plain paper, 100% (Actual size). The link works for about an hour.": "Ela sai na etiqueta de baixo da folha. Tipo de papel Papel comum, 100% (Tamanho real). O link funciona por mais ou menos uma hora.",
+"What the scale shows": "O que a balança mostra",
+"(ounces, exactly)": "(em onças, o número exato)",
+"Scale: * oz.": "Balança: * oz.",
+"Not weighed yet: the app’s guess for * with the extras is * oz.": "Ainda não pesou: o app calcula * com os brindes em * oz.",
+"The label goes out at * oz": "A etiqueta vai com * oz",
+", the top of that USPS price band, with room for the label and the tape. Same price, never underpaid.": ", o máximo daquela faixa de preço da USPS, com folga para a etiqueta e a fita. Mesmo preço, e a postagem nunca fica abaixo do peso.",
+"the top of that USPS price band, with room for the label and the tape. Same price, never underpaid.": "o máximo daquela faixa de preço da USPS, com folga para a etiqueta e a fita. Mesmo preço, e a postagem nunca fica abaixo do peso.",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

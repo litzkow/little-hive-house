@@ -46,7 +46,7 @@ test("the price: USPS Ground Advantage for the suggested weight", async () => {
   const q = await labels.adminLabelQuote({ orderId: "o1" }, ADMIN);
   // 12 magnets: 2.5 + 12 x 0.45 = 7.9 oz
   assert.equal(q.suggestedOz, 7.9);
-  assert.equal(q.oz, 7.9);
+  assert.equal(q.oz, 12);                            // 7.9 oz + room for the label passes 8 oz: the 12 oz band
   assert.equal(q.rate.rateId, "rate_ga");
   assert.equal(q.rate.amount, 4.61);
   assert.equal(q.test, false);
@@ -54,9 +54,24 @@ test("the price: USPS Ground Advantage for the suggested weight", async () => {
   assert.equal(call.auth, "ShippoToken shippo_live_x");
   assert.equal(call.body.address_to.zip, "32801");
   assert.equal(call.body.address_from.street1, "100 Main St");
-  assert.equal(call.body.parcels[0].weight, "7.9");
-  const q2 = await labels.adminLabelQuote({ orderId: "o1", oz: "10.04" }, ADMIN);
-  assert.equal(q2.oz, 10.1);
+  assert.equal(call.body.parcels[0].weight, "12");
+  const q2 = await labels.adminLabelQuote({ orderId: "o1", oz: "2.9" }, ADMIN);
+  assert.equal(q2.scaleOz, 2.9);
+  assert.equal(q2.oz, 4);
+  assert.equal(shippo[1].body.parcels[0].weight, "4");
+});
+
+test("the scale weight goes out at the top of its USPS band, with room for the label and tape", () => {
+  const { prudentOz } = require("../labels");
+  assert.equal(prudentOz(2.9), 4);
+  assert.equal(prudentOz(3.7), 4);
+  assert.equal(prudentOz(3.8), 8);      // 3.8 + 0.3 would pass 4 oz
+  assert.equal(prudentOz(7.5), 8);
+  assert.equal(prudentOz(11), 12);
+  assert.equal(prudentOz(15), 15.99);
+  assert.equal(prudentOz(15.6), 15.99);
+  assert.equal(prudentOz(15.8), 32);    // past 15.99 oz it is priced by the pound, rounded up
+  assert.equal(prudentOz(20), 32);
 });
 
 test("buying marks the order shipped with the tracking, like the manual form", async () => {
