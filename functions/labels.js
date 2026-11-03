@@ -41,7 +41,7 @@ async function shippo(path, body) {
     const why = json && (json.detail || (Array.isArray(json.__all__) && json.__all__.join(" ")) || JSON.stringify(json).slice(0, 300));
     console.error(`[labels] Shippo ${path} ${res.status}`, why);
     if (res.status === 401 || res.status === 403) fail("failed-precondition", "Shippo didn't accept the key. Check SHIPPO_API_KEY.");
-    fail("unavailable", `Shippo said: ${why || res.status}`);
+    fail("aborted", `Shippo said: ${why || res.status}`);
   }
   return json || {};
 }
@@ -148,7 +148,7 @@ async function adminLabelQuote(data, auth) {
   const rate = pickRate(shipment.rates);
   if (!rate) {
     const msg = (shipment.messages || []).map((m) => m && m.text).filter(Boolean).join(" ");
-    fail("unavailable", `USPS gave no price for this address${msg ? `: ${msg}` : "."} Check the address on the order.`);
+    fail("aborted", `USPS gave no price for this address${msg ? `: ${msg}` : "."} Check the address on the order.`);
   }
   return { ok: true, oz, scaleOz: scale, suggestedOz: suggested, test: isTestKey(), rate: rateView(rate, shipment.object_id) };
 }
@@ -167,7 +167,8 @@ async function adminBuyLabel(data, auth) {
   const tx = await shippo("/transactions/", { rate: rateId, label_file_type: "PNG", async: false, metadata: `order ${id}` });
   if (tx.status !== "SUCCESS" || !tx.tracking_number || !tx.label_url) {
     const msg = (tx.messages || []).map((m) => m && m.text).filter(Boolean).join(" ");
-    fail("unavailable", `The label wasn't bought${msg ? `: ${msg}` : "."} Nothing was charged for it.`);
+    console.error("[labels] Shippo transaction", tx.status, JSON.stringify(tx.messages || []).slice(0, 800));
+    fail("aborted", `The label wasn't bought${msg ? `: ${msg}` : "."} Nothing was charged for it.`);
   }
   const test = isTestKey();
   const month = nowIso().slice(0, 7), statRef = deps.db().collection("labelStats").doc(month);

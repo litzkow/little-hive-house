@@ -136,7 +136,7 @@ test("clear messages when something is missing", async () => {
   s = setup({ key: "" });
   await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1" }, ADMIN), (e) => e.code === "failed-precondition" && /Shippo key/.test(e.message));
   s = setup({ rates: [] });
-  await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1" }, ADMIN), (e) => e.code === "unavailable");
+  await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1" }, ADMIN), (e) => e.code === "aborted" && /no price/.test(e.message));
   s = setup();
   await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1" }, { uid: "x", token: {} }));
   await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1", oz: "-2" }, ADMIN), (e) => e.code === "invalid-argument");

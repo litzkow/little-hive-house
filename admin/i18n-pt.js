@@ -1050,6 +1050,10 @@ window.LHH_PT = {
 "The label goes out at * oz": "A etiqueta vai com * oz",
 ", the top of that USPS price band, with room for the label and the tape. Same price, never underpaid.": ", o máximo daquela faixa de preço da USPS, com folga para a etiqueta e a fita. Mesmo preço, e a postagem nunca fica abaixo do peso.",
 "the top of that USPS price band, with room for the label and the tape. Same price, never underpaid.": "o máximo daquela faixa de preço da USPS, com folga para a etiqueta e a fita. Mesmo preço, e a postagem nunca fica abaixo do peso.",
+"The label wasn't bought: * Nothing was charged for it.": "A etiqueta não foi comprada: * Nada foi cobrado.",
+"The label wasn't bought. Nothing was charged for it.": "A etiqueta não foi comprada. Nada foi cobrado.",
+"Shippo said: *": "O Shippo respondeu: *",
+"USPS gave no price for this address: * Check the address on the order.": "A USPS não deu preço para este endereço: * Confira o endereço do pedido.",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };
