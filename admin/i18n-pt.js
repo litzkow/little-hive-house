@@ -1054,6 +1054,9 @@ window.LHH_PT = {
 "The label wasn't bought. Nothing was charged for it.": "A etiqueta não foi comprada. Nada foi cobrado.",
 "Shippo said: *": "O Shippo respondeu: *",
 "USPS gave no price for this address: * Check the address on the order.": "A USPS não deu preço para este endereço: * Confira o endereço do pedido.",
+"Phone (USPS asks for it; it isn’t printed on the label)": "Telefone (a USPS pede; não sai impresso na etiqueta)",
+"Type a phone number with the area code.": "Digite um telefone com o código de área.",
+"USPS needs a phone number for the shop (Settings › Shipping labels › Phone).": "A USPS precisa de um telefone da loja (Configurações › Etiquetas de envio › Telefone).",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

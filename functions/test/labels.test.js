@@ -6,7 +6,7 @@ const { FakeDB, FakeAuth, FakeBucket, fakeNet } = require("./fakes");
 const deps = require("../deps");
 
 const ADMIN = { uid: "admin1", token: { admin: true, email: "owner@lhh.com" } };
-const SHIP_FROM = { name: "Little Hive House", street1: "100 Main St", city: "Whitesburg", state: "GA", zip: "30185" };
+const SHIP_FROM = { name: "Little Hive House", street1: "100 Main St", city: "Whitesburg", state: "GA", zip: "30185", phone: "(404) 555-0123" };
 
 function setup({ key = "shippo_live_x", shipFrom = SHIP_FROM, rates } = {}) {
   Object.assign(process.env, { RESEND_API_KEY: "re_x", ADMIN_EMAILS: "owner@lhh.com", SITE_URL: "https://littlehivehouse.com",
@@ -54,6 +54,8 @@ test("the price: USPS Ground Advantage for the suggested weight", async () => {
   assert.equal(call.auth, "ShippoToken shippo_live_x");
   assert.equal(call.body.address_to.zip, "32801");
   assert.equal(call.body.address_from.street1, "100 Main St");
+  assert.equal(call.body.address_from.phone, "4045550123");
+  assert.equal(call.body.address_from.email, "support@littlehivehouse.com");
   assert.equal(call.body.parcels[0].weight, "12");
   const q2 = await labels.adminLabelQuote({ orderId: "o1", oz: "2.9" }, ADMIN);
   assert.equal(q2.scaleOz, 2.9);
@@ -133,6 +135,8 @@ test("a test key makes a sample label and leaves the order alone", async () => {
 test("clear messages when something is missing", async () => {
   let s = setup({ shipFrom: null });
   await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1" }, ADMIN), (e) => e.code === "failed-precondition" && /return address/.test(e.message));
+  s = setup({ shipFrom: { ...SHIP_FROM, phone: "" } });
+  await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1" }, ADMIN), (e) => e.code === "failed-precondition" && /phone/.test(e.message));
   s = setup({ key: "" });
   await assert.rejects(s.labels.adminLabelQuote({ orderId: "o1" }, ADMIN), (e) => e.code === "failed-precondition" && /Shippo key/.test(e.message));
   s = setup({ rates: [] });

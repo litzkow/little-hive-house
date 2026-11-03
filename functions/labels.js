@@ -55,10 +55,11 @@ async function settings() {
 function fromAddress(s) {
   const a = (s && s.shipFrom) || {};
   const out = { name: a.name || "Little Hive House", company: a.company || "", street1: a.street1 || "", street2: a.street2 || "",
-    city: a.city || "", state: a.state || "", zip: a.zip || "", country: "US", phone: a.phone || "", email: a.email || env("MAIL_ADMIN") || "" };
+    city: a.city || "", state: a.state || "", zip: a.zip || "", country: "US", phone: (a.phone || "").replace(/[^\d+]/g, ""), email: a.email || env("MAIL_ADMIN") || "support@littlehivehouse.com" };
   if (!out.street1 || !out.city || !out.state || !out.zip) {
     fail("failed-precondition", "The return address for labels isn't set yet (Settings › Shipping › Ship from).");
   }
+  if (out.phone.replace(/\D/g, "").length < 10) fail("failed-precondition", "USPS needs a phone number for the shop (Settings › Shipping labels › Phone).");
   return out;
 }
 

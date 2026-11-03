@@ -999,6 +999,7 @@
       fld('street2', 'Apt, site, suite (optional)', a.street2, ' autocomplete="address-line2"') +
       '<div class="grid-2">' + fld('city', 'City', a.city, ' autocomplete="address-level2"') +
       '<div class="grid-2">' + fld('state', 'State', a.state, ' maxlength="2" autocapitalize="characters" placeholder="GA"') + fld('zip', 'ZIP', a.zip, ' inputmode="numeric" maxlength="10"') + '</div></div>' +
+      fld('phone', 'Phone (USPS asks for it; it isn’t printed on the label)', a.phone, ' type="tel" inputmode="tel" autocomplete="tel"') +
       '<div class="grid-2"><label class="field"><span>Package with the extras</span><span class="input-unit"><input class="input" name="packageBaseOz" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(String(s.packageBaseOz)) + '"> oz</span>' +
       '<span class="hint">Mailer, thank-you card, business card, sticker and the logo magnet, without the order’s magnets.</span></label>' +
       '<label class="field"><span>Each magnet</span><span class="input-unit"><input class="input" name="magnetOz" type="number" inputmode="decimal" min="0" step="0.01" value="' + esc(String(s.magnetOz)) + '"> oz</span>' +
@@ -1011,8 +1012,9 @@
       ev.preventDefault();
       var err = $('#ship-set-err'), v = function (k) { return f[k].value.trim(); };
       err.hidden = true;
-      var sf = { name: v('name'), street1: v('street1'), street2: v('street2'), city: v('city'), state: v('state').toUpperCase(), zip: v('zip') };
+      var sf = { phone: v('phone'), name: v('name'), street1: v('street1'), street2: v('street2'), city: v('city'), state: v('state').toUpperCase(), zip: v('zip') };
       if (!sf.street1 || !sf.city || !/^[A-Z]{2}$/.test(sf.state) || !/^\d{5}(-\d{4})?$/.test(sf.zip)) { err.textContent = 'Fill in the street, city, a 2-letter state (like GA) and the ZIP code.'; err.hidden = false; return; }
+      if (sf.phone.replace(/\D/g, '').length < 10) { err.textContent = 'Type a phone number with the area code.'; err.hidden = false; return; }
       var out = { shipFrom: sf, packageBaseOz: Math.round(Number(f.packageBaseOz.value) * 10) / 10, magnetOz: Math.round(Number(f.magnetOz.value) * 100) / 100 };
       if (!(out.packageBaseOz >= 0) || !(out.magnetOz >= 0)) { err.textContent = 'The weights should be numbers in ounces.'; err.hidden = false; return; }
       var btn = f.querySelector('button[type=submit]');
