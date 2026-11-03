@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "clear-test-orders (deletes Stripe TEST-mode orders and resets numbering), set-print-image (printed picture size, value below) or check-shippo (tests the Shippo key)"
+        description: "clear-test-orders (deletes Stripe TEST-mode orders and resets numbering), set-print-image (printed picture size, value below) check-shippo (tests the Shippo key) or set-ship-from (label return address, JSON in value)"
         default: "clear-test-orders"
       dry_run:
         description: "1 = only list what would change"
@@ -67,5 +67,6 @@ jobs:
           case "${{ inputs.task }}" in
             clear-test-orders) node tools/maint/clear-test-orders.js ;;
             set-print-image) node tools/maint/set-print-image.js ;;
+            set-ship-from) node tools/maint/set-ship-from.js ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac
