@@ -320,7 +320,18 @@ async function orderBySession(data, auth, rawRequest) {
       }
     }
   }
-  return O.publicOrderView(orderId, o);
+  const view = O.publicOrderView(orderId, o);
+  // Google Customer Reviews (the thank-you page): only the buyer who just paid (they hold the Stripe session) gets
+  // their own email back, so Google can send the "how was it?" survey after the latest expected delivery day.
+  if (o.status !== "pending" && o.email) {
+    try {
+      const D = require("./delivery");
+      const country = String((o.shipping && o.shipping.address && o.shipping.address.country) || "US").toUpperCase();
+      const e = D.estimate(D.today("America/New_York"), { country });
+      view.reviewOptin = { email: o.email, country, estimatedDelivery: e[1].toISOString().slice(0, 10) };
+    } catch (err) { /* no survey for this one */ }
+  }
+  return view;
 }
 
 /** trackOrder({number, email}) -> public view (guest tracking). */

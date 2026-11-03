@@ -402,7 +402,25 @@
         var t = $('thanks-track'); if (t && o.number) t.href = BASE + 'track.html?n=' + encodeURIComponent(o.number) + (o.email ? '&e=' + encodeURIComponent(o.email) : '');
       });
       show('st-content');
+      reviewOptin(o);
     }).catch(function () { show('st-content'); });
+  }
+  /* Google Customer Reviews: Google asks the buyer (if they agree in its pop-up) to rate the shop after the delivery date */
+  var GCR_MERCHANT = 5898784901;
+  function reviewOptin(o) {
+    var r = o && o.reviewOptin;
+    if (!r || !r.email || !GCR_MERCHANT || window.__lhhOptin) return;
+    window.__lhhOptin = true;
+    window.renderOptIn = function () {
+      window.gapi.load('surveyoptin', function () {
+        window.gapi.surveyoptin.render({ merchant_id: GCR_MERCHANT, order_id: String(o.number || o.id || ''), email: r.email,
+          delivery_country: r.country || 'US', estimated_delivery_date: r.estimatedDelivery, opt_in_style: 'CENTER_DIALOG' });
+      });
+    };
+    var sc = document.createElement('script');
+    sc.src = 'https://apis.google.com/js/platform.js?onload=renderOptIn';
+    sc.async = true; sc.defer = true;
+    document.head.appendChild(sc);
   }
 
   window.LHHOrders = { card: card, chip: chip };
