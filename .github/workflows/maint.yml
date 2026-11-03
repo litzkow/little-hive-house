@@ -45,12 +45,34 @@ jobs:
         if: inputs.task == 'check-shippo'
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: exists }
         run: node tools/maint/check-shippo.js
+      - name: "Shippo: começa com shippo_"
+        if: inputs.task == 'check-shippo'
+        continue-on-error: true
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: shippo }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: é uma chave de teste"
+        if: inputs.task == 'check-shippo'
+        continue-on-error: true
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: test }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: tem aspas"
+        if: inputs.task == 'check-shippo'
+        continue-on-error: true
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: quoted }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: tem 30+ letras"
+        if: inputs.task == 'check-shippo'
+        continue-on-error: true
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: long }
+        run: node tools/maint/check-shippo.js
       - name: "Shippo: a chave é live"
         if: inputs.task == 'check-shippo'
+        continue-on-error: true
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: live }
         run: node tools/maint/check-shippo.js
       - name: "Shippo: o Shippo aceita a chave"
         if: inputs.task == 'check-shippo'
+        continue-on-error: true
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: accepted }
         run: node tools/maint/check-shippo.js
       - name: "Shippo: a conta USPS está ativa"

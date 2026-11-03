@@ -5,6 +5,10 @@ const check = process.env.CHECK;
 (async () => {
   if (check === "exists") process.exit(key ? 0 : 1);
   if (check === "live") process.exit(/^shippo_live_/.test(key) ? 0 : 1);
+  if (check === "test") process.exit(/^shippo_test_/.test(key) ? 0 : 1);
+  if (check === "shippo") process.exit(/^shippo_/.test(key) ? 0 : 1);
+  if (check === "quoted") process.exit(/^["']|["']$/.test(key) ? 0 : 1);
+  if (check === "long") process.exit(key.length >= 30 ? 0 : 1);
   const res = await fetch("https://api.goshippo.com/carrier_accounts/?results=50", { headers: { Authorization: `ShippoToken ${key}` } });
   if (check === "accepted") process.exit(res.ok ? 0 : 1);
   const j = await res.json().catch(() => ({}));
