@@ -738,7 +738,7 @@
     box.innerHTML = st.photos.map(function (p, i) {
       var f = S.frames && S.frames[p.frame], c = f && f.caption, styles = c && c.styles ? Object.keys(c.styles) : [];
       return '<div class="tp-photo"><div class="tp-adj"><div class="tp-mag" data-tpmag="' + i + '" title="Drag to move, pinch or scroll to zoom">' + tpMagnet(p) + '</div>' +
-        '<div class="tp-zoom"><input type="range" min="0.5" max="4" step="0.01" value="' + ((p.crop && p.crop.z) || 1) + '" data-tpzoom="' + i + '" aria-label="Zoom">' +
+        '<div class="tp-zoom"><input type="range" min="1" max="4" step="0.01" value="' + ((p.crop && p.crop.z) || 1) + '" data-tpzoom="' + i + '" aria-label="Zoom">' +
         '<button type="button" class="linkish small" data-tpcenter="' + i + '">Centre</button></div></div>' +
         '<div class="stack" style="gap:6px;flex:1;min-width:0">' +
         '<select class="input" data-tp="frame" data-i="' + i + '">' + frames.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === p.frame ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select>' +
@@ -764,21 +764,22 @@
     });
   }
   /* move and zoom a test photo like a customer does in the shop's photo builder: crop {x, y, z} (functions/crop.js) */
-  var TP_ZMAX = 4, TP_ZMIN = 0.5;   /* free placement (crop.f): the photo can go anywhere, smaller than the window; white paper around */
+  var TP_ZMAX = 4;
   function tpClamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
   function tpFrame(p) { return (S.frames && S.frames[p.frame]) || { id: 'none', window: [0, 0, 600, 600] }; }
   function tpRegion(p) {
     var w = tpFrame(p).window, c = p.crop || { x: 0.5, y: 0.5, z: 1 };
-    var s = Math.max(w[2] / p.w, w[3] / p.h) * tpClamp(c.z || 1, TP_ZMIN, TP_ZMAX);
-    var rw = w[2] / s, rh = w[3] / s;
-    return { left: c.x * p.w - rw / 2, top: c.y * p.h - rh / 2, width: rw, height: rh };
+    var s = Math.max(w[2] / p.w, w[3] / p.h) * tpClamp(c.z || 1, 1, TP_ZMAX);
+    var rw = Math.min(p.w, w[2] / s), rh = Math.min(p.h, w[3] / s);
+    return { left: tpClamp(c.x * p.w - rw / 2, 0, p.w - rw), top: tpClamp(c.y * p.h - rh / 2, 0, p.h - rh), width: rw, height: rh };
   }
   /* keeps the crop as the centre of what really shows (the region slides back inside the photo) */
   function tpCrop(p, c) {
     if (!p.w || !p.h) return;
-    var z = tpClamp(c.z || (p.crop && p.crop.z) || 1, TP_ZMIN, TP_ZMAX);
-    var x = tpClamp(c.x == null ? 0.5 : c.x, 0, 1), y = tpClamp(c.y == null ? 0.5 : c.y, 0, 1);
-    p.crop = Math.abs(x - 0.5) < 1e-4 && Math.abs(y - 0.5) < 1e-4 && Math.abs(z - 1) < 1e-4 ? null : { x: Math.round(x * 1e4) / 1e4, y: Math.round(y * 1e4) / 1e4, z: Math.round(z * 1e4) / 1e4, f: 1 };
+    var z = tpClamp(c.z || (p.crop && p.crop.z) || 1, 1, TP_ZMAX);
+    p.crop = { x: c.x == null ? 0.5 : c.x, y: c.y == null ? 0.5 : c.y, z: z };
+    var r = tpRegion(p), x = (r.left + r.width / 2) / p.w, y = (r.top + r.height / 2) / p.h;
+    p.crop = Math.abs(x - 0.5) < 1e-4 && Math.abs(y - 0.5) < 1e-4 && z === 1 ? null : { x: Math.round(x * 1e4) / 1e4, y: Math.round(y * 1e4) / 1e4, z: Math.round(z * 1e4) / 1e4 };
   }
   function tpMagnet(p) {
     var f = tpFrame(p);
