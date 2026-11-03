@@ -585,3 +585,7 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 /* a new version is ready (admin.js checkUpdate) */
 .newver { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 10px); z-index: 95; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); box-shadow: var(--shadow); font-weight: 600; font-size: 15px; }
 @media (min-width: 900px) { .newver { left: auto; width: 420px; } }
+
+/* Pirate Ship helper on the ship card (admin-order.js pirateBox) */
+.pirate { border: 1.5px dashed var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; margin-bottom: 14px; }
+.pirate .addr { font-size: 15px; line-height: 1.45; background: var(--surface); border-radius: 8px; padding: 8px 12px; border: 1px solid var(--line); }

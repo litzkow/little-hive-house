@@ -974,6 +974,15 @@ window.LHH_PT = {
 "· pictures * in": "· imagens de * pol",
 "⚠️ The last automatic email didn’t go out: the shop’s mailing address is missing. Next try:": "⚠️ O último e-mail automático não saiu: falta o endereço postal da loja. Próxima tentativa:",
 "✅ Last one went out on": "✅ O último saiu em",
+"1.": "1.",
+"Weigh the closed package.": "Pese o pacote fechado.",
+"2.": "2.",
+"Copy the address and buy the USPS Ground Advantage label on Pirate Ship.": "Copie o endereço e compre a etiqueta USPS Ground Advantage no Pirate Ship.",
+"3.": "3.",
+"Print it, then type the tracking below.": "Imprima e depois digite o rastreio aqui embaixo.",
+"Copy address": "Copiar endereço",
+"Open Pirate Ship": "Abrir Pirate Ship",
+"This order has no shipping address.": "Este pedido não tem endereço de entrega.",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

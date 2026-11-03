@@ -316,6 +316,15 @@
     }
     return html;
   }
+  /* the label is bought on Pirate Ship (free, USPS discount rates): copy the address, open it, then type the tracking below */
+  function pirateBox(o) {
+    var lines = addressLines(o.shipping);
+    return '<div class="pirate"><p class="small"><b>1.</b> Weigh the closed package. <b>2.</b> Copy the address and buy the USPS Ground Advantage label on Pirate Ship. <b>3.</b> Print it, then type the tracking below.</p>' +
+      (lines.length ? '<div class="addr" translate="no">' + lines.map(esc).join('<br>') + '</div>' : '<p class="err small">This order has no shipping address.</p>') +
+      '<div class="row wrap" style="gap:8px">' +
+      (lines.length ? '<button class="btn btn-ghost btn-sm" type="button" data-act="copy" data-copy="' + esc(lines.join('\n')) + '">' + icon('copy') + 'Copy address</button>' : '') +
+      '<a class="btn btn-ghost btn-sm" href="https://ship.pirateship.com/ship" target="_blank" rel="noopener">' + icon('external') + 'Open Pirate Ship</a></div></div>';
+  }
   function shipForm(o, again) {
     var f = o.fulfillment || {};
     var carrier = again ? f.carrier || 'usps' : 'usps';
@@ -354,11 +363,11 @@
     if (st === 'to_fulfil') {
       return '<section class="card tint"><div class="card-head"><div><h2>Make &amp; ship</h2><p class="sub">Paid ' + esc(h.ago(R.orderDate(o))) + ' · ' + h.plural(R.magnetsOf(o), 'magnet') + '</p></div>' +
         '<button class="btn btn-sm" data-act="startProd">Start production</button></div>' + holdBox(o) +
-        '<details class="panel" open><summary>Ready to ship? Add tracking</summary><div>' + shipForm(o) + '</div></details></section>';
+        '<details class="panel" open><summary>Ready to ship? Add tracking</summary><div>' + pirateBox(o) + shipForm(o) + '</div></details></section>';
     }
     if (st === 'in_production') {
       var since = (o.timeline || []).filter(function (t) { return t.status === 'in_production'; }).pop();
-      return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Add the tracking number when the parcel is ready.') + holdBox(o) + shipForm(o) + '</section>';
+      return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Add the tracking number when the parcel is ready.') + holdBox(o) + pirateBox(o) + shipForm(o) + '</section>';
     }
     if (st === 'shipped') {
       return '<section class="card">' + head('On its way', R.toMs(f.shippedAt) ? 'Shipped ' + esc(h.ago(f.shippedAt)) : '') + trackBox(o) + liveBox(o) +
