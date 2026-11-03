@@ -30,7 +30,7 @@ module.exports = function returnUpdate(data, { L }) {
     const trackUrl = F.trackingUrl("usps", lb.tracking);
     return {
       subject: `Your return label for ${num || "your order"}`,
-      preheader: "Show the QR code at any Post Office, or print the label. Your refund goes out as soon as it reaches us.",
+      preheader: "Show the QR code at the Post Office, or print the label. Your refund goes out as soon as it reaches us.",
       blocks: [
         Lay.hero({ eyebrow: num ? `Return · ${num}` : "Return", title: "Here's your return label", lead: [hi, "Pack the magnets in any envelope and drop it off with USPS. Your refund goes out by itself as soon as the package reaches us."] }),
         qr ? Lay.box(

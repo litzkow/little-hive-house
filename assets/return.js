@@ -76,7 +76,7 @@
   function labelBox(lb, est) {
     return h('div', { class: 'ret-label' },
       lb.qr ? h('figure', { class: 'ret-qr' }, h('img', { src: lb.qr, alt: 'USPS return QR code', width: 200, height: 200 }),
-        h('figcaption', { text: 'No printer? Show this at any Post Office counter or kiosk and they print the label for you.' })) : null,
+        h('figcaption', { text: 'No printer? Show this at the Post Office counter or kiosk and they print the label for you. Most Post Offices can.' })) : null,
       h('div', { class: 'row' }, h('a', { class: 'btn ' + (lb.qr ? 'btn-ghost' : 'btn-honey') + ' btn-small', href: lb.url, target: '_blank', rel: 'noopener' }, lb.qr ? 'Or print the label' : 'Print your return label'),
         lb.trackUrl ? h('a', { class: 'btn btn-ghost btn-small', href: lb.trackUrl, target: '_blank', rel: 'noopener' }, 'Track it') : null),
       est ? h('p', { class: 'muted small', text: 'Your refund: ' + money(est.refund) + ' (' + money(est.value) + ' for the magnets − ' + money(est.labelCost) + ' return shipping).' }) : null);
