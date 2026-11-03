@@ -78,6 +78,7 @@ exports.adminMarkDelivered = callable("adminMarkDelivered", admin);
 exports.adminRefund = callable("adminRefund", admin);
 exports.adminAddNote = callable("adminAddNote", admin);
 exports.adminResendEmail = callable("adminResendEmail", admin);
+exports.adminPreviewEmail = callable("adminPreviewEmail", admin);
 exports.adminCreatePaymentLink = callable("adminCreatePaymentLink", admin);
 exports.adminCreatePromo = callable("adminCreatePromo", admin);
 exports.adminListPromos = callable("adminListPromos", admin);

@@ -1057,6 +1057,9 @@ window.LHH_PT = {
 "Phone (USPS asks for it; it isn’t printed on the label)": "Telefone (a USPS pede; não sai impresso na etiqueta)",
 "Type a phone number with the area code.": "Digite um telefone com o código de área.",
 "USPS needs a phone number for the shop (Settings › Shipping labels › Phone).": "A USPS precisa de um telefone da loja (Configurações › Etiquetas de envio › Telefone).",
+"Tap an email to see it as the customer does.": "Toque num e-mail para ver como o cliente vê.",
+"Subject:": "Assunto:",
+"No refund on this order yet: this is how one would look.": "Este pedido ainda não teve reembolso: este é um exemplo de como ficaria.",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

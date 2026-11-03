@@ -258,6 +258,30 @@ async function adminResendEmail(data, auth) {
   return { ok: true };
 }
 
+/* ---------- what each customer email looks like for this order (Hive Admin › order › Emails to the customer) ---------- */
+const PREVIEW_KINDS = ["order_confirmation", "shipped", "out_for_delivery", "delivered_review", "refund", "payment_link"];
+async function adminPreviewEmail(data, auth) {
+  U.requireAdmin(auth);
+  const { id, order } = await loadOrder(data && data.orderId);
+  const kind = U.text(data && data.kind, 40);
+  if (!PREVIEW_KINDS.includes(kind)) fail("invalid-argument", "Unknown email.");
+  const d = { order: O.emailOrder(id, order) };
+  let sample = false;
+  if (kind === "refund") {
+    const last = (order.refunds || []).filter((r) => r.status !== "failed" && r.status !== "canceled").slice(-1)[0];
+    const total = (order.pricing && order.pricing.total) || 0;
+    const r = last || { amount: total, reason: "damaged", note: "" };
+    sample = !last;
+    d.refund = { amount: r.amount, reason: r.reason, reasonLabel: O.REFUND_REASONS[r.reason] || "Other", note: r.note || "",
+      full: last ? order.status === "refunded" : true, refundedTotal: last ? order.refundedTotal || 0 : total, remaining: last ? Math.max(0, total - (order.refundedTotal || 0)) : 0 };
+  } else if (kind === "payment_link") {
+    const item = (order.items || [])[0] || {};
+    d.paymentLink = { url: (order.stripe && order.stripe.paymentLinkUrl) || siteUrl(), title: item.title || "", amount: item.amount || 0, note: order.notes || "" };
+  }
+  const msg = mail.compose({ to: order.email || "customer@example.com", kind, data: d });
+  return { ok: true, subject: msg.subject, html: msg.html || "", text: msg.text || "", sample };
+}
+
 /* ---------- custom payment links (quotes) ---------- */
 async function adminCreatePaymentLink(data, auth) {
   U.requireAdmin(auth);
@@ -676,7 +700,7 @@ async function adminLastTestSheet(data, auth) {
 
 module.exports = {
   adminDeleteOrder, adminTestSheet, adminLastTestSheet, deletable,
-  claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
+  adminPreviewEmail, claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
   adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet,
   DEFAULT_SETTINGS, promoView, deliverOrder,
 };

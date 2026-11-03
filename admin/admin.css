@@ -593,3 +593,11 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .labelbuy { border: 1.5px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); display: grid; gap: 10px; margin-bottom: 12px; }
 .labelq { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
 .labelq .big { font-size: 22px; }
+
+/* order › Emails to the customer: each one opens a preview */
+.emails .mail-row { all: unset; display: grid; gap: 2px; cursor: pointer; flex: 1; min-width: 0; font: inherit; color: inherit; }
+.emails .mail-row:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.emails .mail-row b { display: inline-flex; align-items: center; gap: 6px; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.emails .mail-row[aria-busy="true"] { opacity: .5; }
+.mail-eye svg { width: 14px; height: 14px; opacity: .6; }
+.modal .mail-preview { height: 62vh; min-height: 360px; }

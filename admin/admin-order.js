@@ -631,14 +631,14 @@
     if (o.status === 'pending') {
       var plink = o.stripe && o.stripe.paymentLinkUrl;
       if (!plink || !o.email) return '';
-      return '<section class="card"><div class="card-head"><h2>Emails to the customer</h2></div><ul class="emails"><li><span><b>Payment link</b><small>Sent when you created the link</small></span>' +
+      return '<section class="card"><div class="card-head"><h2>Emails to the customer</h2></div><ul class="emails"><li><button type="button" class="mail-row" data-act="mailPreview" data-kind="payment_link" data-label="Payment link"><b>Payment link <span class="mail-eye">' + icon('external') + '</span></b><small>Sent when you created the link</small></button>' +
         '<button class="btn btn-ghost btn-sm" data-act="resend" data-kind="payment_link" data-label="Payment link">Resend</button></li></ul></section>';
     }
     return '<section class="card"><div class="card-head"><h2>Emails to the customer</h2></div><ul class="emails">' + A.h.EMAIL_KINDS.map(function (k) {
       var when = emailWhen(e[k[0]]);
-      return '<li><span><b>' + esc(k[2]) + '</b><small>' + esc(when || (allowed[k[0]] ? 'Not sent' : k[3])) + '</small></span>' +
+      return '<li><button type="button" class="mail-row" data-act="mailPreview" data-kind="' + k[1] + '" data-label="' + esc(k[2]) + '"><b>' + esc(k[2]) + ' <span class="mail-eye">' + icon('external') + '</span></b><small>' + esc(when || (allowed[k[0]] ? 'Not sent' : k[3])) + '</small></button>' +
         (allowed[k[0]] && o.email ? '<button class="btn btn-ghost btn-sm" data-act="resend" data-kind="' + k[1] + '" data-label="' + esc(k[2]) + '">Resend</button>' : '') + '</li>';
-    }).join('') + '</ul></section>';
+    }).join('') + '</ul><p class="tiny muted gap-top">Tap an email to see it as the customer does.</p></section>';
   }
   function notesCard(o) {
     var notes = (o.adminNotes || []).slice().sort(function (a, b) { return R.toMs(b.at) - R.toMs(a.at); });
@@ -827,6 +827,18 @@
         html: '<p class="small muted">' + (half === 'bottom' ? 'It prints on the bottom sticker of the sheet.' : 'It prints on the top sticker of the sheet.') + ' Paper type Plain paper, 100% (Actual size). The link works for about an hour.</p>' +
           '<p><a class="btn btn-honey" href="' + esc(res.url) + '" target="_blank" rel="noopener">' + icon('external') + 'Open the label</a></p>' });
     }).catch(function (e) { h.busy(el, false); h.toast(h.friendlyError(e), true); });
+  };
+  ACT.mailPreview = function (el) {
+    var o = current; if (!o) return;
+    var label = el.getAttribute('data-label') || 'Email';
+    el.setAttribute('aria-busy', 'true');
+    h.call('adminPreviewEmail', { orderId: o.id, kind: el.getAttribute('data-kind') }).then(function (res) {
+      el.removeAttribute('aria-busy');
+      h.dialog({ title: label, ok: false, cancel: 'Close', wide: true,
+        html: (res.sample ? '<p class="small muted">No refund on this order yet: this is how one would look.</p>' : '') +
+          '<p class="small"><span class="muted">Subject:</span> <b translate="no">' + esc(res.subject) + '</b></p>' +
+          '<iframe class="mail-preview" title="Email preview" sandbox="" translate="no" srcdoc="' + esc(res.html || ('<pre>' + esc(res.text) + '</pre>')) + '"></iframe>' });
+    }).catch(function (e) { el.removeAttribute('aria-busy'); h.toast(h.friendlyError(e), true); });
   };
   ACT.capture = function (el) {
     var o = current;
