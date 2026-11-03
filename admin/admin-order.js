@@ -4,6 +4,11 @@
 (function () {
   'use strict';
   var A = window.LHHAdmin, S = A.S, R = A.R, h = A.h, ACT = A.ACT;
+  /* email preview: the links (tracking, buttons) open in the browser, like in the customer's email app, not inside the little window */
+  function linksOut(html) {
+    var base = '<base target="_blank">';
+    return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + base; }) : base + html;
+  }
   var esc = h.esc, money = h.money, icon = h.icon;
   var current = null;   /* the order on screen */
 
@@ -837,7 +842,7 @@
       h.dialog({ title: label, ok: false, cancel: 'Close', wide: true,
         html: (res.sample ? '<p class="small muted">No refund on this order yet: this is how one would look.</p>' : '') +
           '<p class="small"><span class="muted">Subject:</span> <b translate="no">' + esc(res.subject) + '</b></p>' +
-          '<iframe class="mail-preview" title="Email preview" sandbox="" translate="no" srcdoc="' + esc(res.html || ('<pre>' + esc(res.text) + '</pre>')) + '"></iframe>' });
+          '<iframe class="mail-preview" title="Email preview" sandbox="allow-popups allow-popups-to-escape-sandbox" translate="no" srcdoc="' + esc(linksOut(res.html || ('<pre>' + esc(res.text) + '</pre>'))) + '"></iframe>' });
     }).catch(function (e) { el.removeAttribute('aria-busy'); h.toast(h.friendlyError(e), true); });
   };
   ACT.capture = function (el) {
