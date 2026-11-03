@@ -137,4 +137,6 @@ exports.salesTaxReminder = onSchedule({ region: REGION, schedule: "0 9 12 * *", 
 /* ---------- daily ---------- */
 exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09:00", timeZone: "America/New_York" }, async () => {
   await scheduled().deliveredFollowUp();
+  // customer photos older than 90 days (privacy page)
+  await scheduled().deletePhotos().catch((err) => console.warn("[deletePhotos] failed", err.message));
 });

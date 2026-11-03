@@ -120,6 +120,11 @@ class FakeAuth {
 
 class FakeBucket {
   constructor() { this.files = new Map(); this.name = "test-bucket"; this.signed = []; }
+  async getFiles({ prefix = "" } = {}) {
+    return [[...this.files.keys()].filter((p) => p.startsWith(prefix)).map((p) => {
+      const f = this.file(p); f.metadata = { name: p, timeCreated: (this.files.get(p).created || new Date().toISOString()) }; return f;
+    })];
+  }
   file(path) {
     const self = this;
     return {

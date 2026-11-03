@@ -65,4 +65,23 @@ async function backfillFees(limit = 40) {
   return { fixed };
 }
 
-module.exports = { deliveredFollowUp, backfillFees, lateShipments, DAYS };
+/* deletePhotos (daily): customer photos are kept 90 days after upload, then deleted, as the privacy page promises.
+   That leaves time to make, ship and reprint (problems are reported within 30 days of delivery). Goes with them: the
+   small copies the admin shows (thumbs/uploads/...) and the order print sheets (orders/<id>/...), which hold the photos. */
+const KEEP_DAYS = 90;
+async function deletePhotos(now = Date.now(), days = KEEP_DAYS) {
+  const bucket = deps.bucket(), cutoff = now - days * 86400000;
+  let deleted = 0;
+  for (const prefix of ["uploads/", "thumbs/uploads/", "orders/"]) {
+    const [files] = await bucket.getFiles({ prefix });
+    for (const f of files) {
+      const t = Date.parse((f.metadata && f.metadata.timeCreated) || "");
+      if (!Number.isFinite(t) || t > cutoff) continue;
+      try { await f.delete(); deleted += 1; } catch (err) { console.warn("[deletePhotos]", f.name, err.message); }
+    }
+  }
+  if (deleted) console.log(`[deletePhotos] deleted ${deleted} file(s) older than ${days} days`);
+  return { deleted };
+}
+
+module.exports = { deliveredFollowUp, backfillFees, lateShipments, deletePhotos, DAYS, KEEP_DAYS };
