@@ -144,7 +144,7 @@ test("checkout → paid → ship → deliver → partial refund → dashboard re
   // a second order gets the next number
   const r2 = await checkout.createCheckout({ cart: [{ kind: "design", id: "places/chicago", qty: 1 }] }, null);
   const sid2 = db.get(`orders/${r2.orderId}`).stripe.sessionId;
-  assert.equal(S.sessions[sid2].params["shipping_options[0][shipping_rate_data][fixed_amount][amount]"], "495");
+  assert.equal(S.sessions[sid2].params["shipping_options[0][shipping_rate_data][fixed_amount][amount]"], "549");
   pay(S, sid2, { email: "bo@example.com" });
   // the thank-you page arrives before the webhook: it confirms the payment itself
   const v2 = await checkout.orderBySession({ orderId: r2.orderId, sessionId: sid2 }, null, { ip: "1.1.1.1", headers: {} });

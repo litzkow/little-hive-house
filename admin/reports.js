@@ -433,7 +433,7 @@
      with the costs in Settings: magnets + packaging, the usual label (the store pays it; shipping charged counts as income)
      and the Stripe fee on the total. catalog = functions/catalog.json ({rules, packs}); PLAN_CATALOG when it can't load. */
   var PLAN_CATALOG = {
-    rules: { designPrice: 5, bundle: { size: 3, price: 12 }, volume: [{ min: 100, pct: 25 }, { min: 50, pct: 20 }, { min: 20, pct: 10 }], shipping: 4.95, freeShippingAt: 35 },
+    rules: { designPrice: 5, bundle: { size: 3, price: 12 }, volume: [{ min: 100, pct: 25 }, { min: 50, pct: 20 }, { min: 20, pct: 10 }], shipping: 5.49, freeShippingAt: 35 },
     packs: { 4: { size: 4, price: 14 }, 9: { size: 9, price: 25 }, 16: { size: 16, price: 40 }, 25: { size: 25, price: 65 }, 50: { size: 50, price: 120 } }
   };
   function planProducts(settings, catalog) {

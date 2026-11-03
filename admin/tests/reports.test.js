@@ -228,12 +228,12 @@ test('growth plan: each product priced like the cart (bundle, volume discount, f
   const s = { magnetUnitCost: 0.44, packagingCost: 1.5, defaultLabelCost: 5, stripePct: 2.9, stripeFixed: 0.3 };
   const P = R.planProducts(s, catalog), by = {};
   P.forEach((p) => { by[p.key] = p; });
-  assert.equal(by.design1.total, 9.95);              // $5 + $4.95 shipping
+  assert.equal(by.design1.total, 10.49);             // $5 + $5.49 shipping
   assert.equal(by.design3.price, 12);                // 3 for $12
   assert.equal(by.pack25.volPct, 10);
   assert.equal(by.pack25.total, 58.5);               // 10% off, ships free
   assert.equal(by.pack50.total, 96);                 // 20% off
-  assert.equal(by.pack9.left, 18.32);
+  assert.equal(by.pack9.left, 18.85);
   assert.deepEqual(R.planProducts(s, null).map((p) => p.total), P.map((p) => p.total), 'fallback prices match catalog.json');
   assert.equal(R.salesFor(100, { left: 18.32 }), 6);
   assert.equal(R.salesFor(100, { left: -1 }), Infinity);

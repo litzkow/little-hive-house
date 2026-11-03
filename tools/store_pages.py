@@ -499,7 +499,7 @@ def page_policies():
         ("delivery", "Delivery", """<p>We ship with <strong>USPS Ground Advantage</strong>, which usually arrives <strong>2 to 5 business days</strong> after it ships. Add the time to make your order and most packages arrive within one to two weeks.</p>
 <p>We ship to addresses in the United States (including APO/FPO) and Canada. Canadian orders travel with USPS international service, usually take 1 to 3 weeks, and any customs fees are paid on delivery.</p>"""),
         ("cost", "Shipping cost", """<ul>
-<li><strong>$4.95</strong> flat rate per order.</li>
+<li><strong>$5.49</strong> flat rate per order.</li>
 <li><strong>Free</strong> when your order is $35 or more after discounts.</li>
 </ul>
 <p>The cart shows exactly how much more you need for free shipping, and the total you see at checkout is the total you pay.</p>"""),
