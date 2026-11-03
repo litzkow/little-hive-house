@@ -1068,6 +1068,18 @@ window.LHH_PT = {
 "Saved. The review email now has the Google button.": "Salvo. O e-mail de avaliação já tem o botão do Google.",
 "Saved. The Google button is off.": "Salvo. O botão do Google foi desligado.",
 "That doesn't look like a Google review link (it should start with https://g.page/ or https://search.google.com/).": "Isso não parece um link de avaliação do Google (ele começa com https://g.page/ ou https://search.google.com/).",
+"Kraft envelopes": "Envelopes kraft",
+"(A7, 5.25 × 7.25 in, printed on the front, the side without the flap)": "(A7, 5,25 × 7,25 pol, impresso na frente, o lado sem a aba)",
+"Vintage label": "Etiqueta antiga",
+"Laurel": "Ramos",
+"To your fridge": "To your fridge",
+"With love": "With love",
+"One envelope at a time in the rear tray, standing up, front facing up and the flap closed on the left. Paper size": "Um envelope por vez na bandeja de trás, em pé, com a frente virada para cima e a aba fechada do lado esquerdo. Tamanho do papel",
+"5×7 in": "5×7 pol",
+"(or Envelope A7 if the app lists it), paper type": "(ou Envelope A7, se o app tiver), tipo de papel",
+"Envelope": "Envelope",
+"(or Plain paper), 100%. Dark ink only: kraft has no white. Let it dry a minute before putting the magnets in. The first time, try one envelope to see which way it goes in.": "(ou Papel comum), 100%. Só tinta escura: no kraft não existe branco. Espere secar um minuto antes de colocar os ímãs. Na primeira vez, teste com um envelope para ver de que lado ele entra.",
+"In the printed kraft envelope: the magnets, a logo magnet, a business card and a thank-you card; close it with the round sticker and put it in the bubble mailer (": "No envelope kraft impresso: os ímãs, um ímã da logo, um cartão de visita e um cartão de agradecimento; feche com o adesivo redondo e coloque no envelope acolchoado (",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

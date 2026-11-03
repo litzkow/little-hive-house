@@ -647,7 +647,12 @@
       '<li><a class="btn btn-ghost btn-sm" href="../print-files/business-cards.pdf?v=4" target="_blank" rel="noopener">' + icon('print') + 'Business cards</a>' +
       '<div class="small muted" style="margin-top:4px">3.5 × 2 in, 10 per sheet: Avery 8371 or 8871 business card sheets, or plain card stock cut on the grey marks. Print page 1 (the fronts: logo and slogan), put the same sheet back in the rear tray with the printed side down, and print page 2 (the backs: website, email and QR code). 100% (Actual size), paper type Plain paper, quality Standard: the dark back has a lot of ink, and the photo paper settings put on more than card stock can soak up. Let the backs dry 15 minutes before touching or cutting them. The colour runs a little past the cut lines, so the edges stay coloured even if the cut is a hair off.</div></li>' +
       '<li><a class="btn btn-ghost btn-sm" href="../print-files/thank-you-cards.pdf?v=2" target="_blank" rel="noopener">' + icon('print') + 'Thank-you cards</a>' +
-      '<div class="small muted" style="margin-top:4px">4 cards per Letter sheet: cut on the small marks. Card stock or matte paper, 100% (Actual size).</div></li></ul></section>' +
+      '<div class="small muted" style="margin-top:4px">4 cards per Letter sheet: cut on the small marks. Card stock or matte paper, 100% (Actual size).</div></li>' +
+      '<li><b>Kraft envelopes</b> <span class="small muted">(A7, 5.25 × 7.25 in, printed on the front, the side without the flap)</span>' +
+      '<div class="row wrap gap-top" style="gap:8px">' + [['label', 'Vintage label'], ['wreath', 'Laurel'], ['words', 'To your fridge'], ['corners', 'With love']].map(function (e) {
+        return '<a class="btn btn-ghost btn-sm" href="../print-files/envelope-' + e[0] + '.pdf?v=1" target="_blank" rel="noopener">' + icon('print') + esc(e[1]) + '</a>';
+      }).join('') + '</div>' +
+      '<div class="small muted" style="margin-top:6px">One envelope at a time in the rear tray, standing up, front facing up and the flap closed on the left. Paper size <b>5×7 in</b> (or Envelope A7 if the app lists it), paper type <b>Envelope</b> (or Plain paper), 100%. Dark ink only: kraft has no white. Let it dry a minute before putting the magnets in. The first time, try one envelope to see which way it goes in.</div></li></ul></section>' +
       '<section class="card"><div class="card-head"><h2>Print it well</h2></div><ol class="small" style="padding-left:18px;margin:0;display:grid;gap:6px">' +
       '<li>Print from the <b>Canon PRINT</b> app (Wi-Fi Direct works), not the iPhone’s own Print button.</li>' +
       '<li>Paper: <b>Letter</b>, media type <b>Photo Paper Plus Glossy II</b>, quality <b>High</b>, borderless <b>off</b>, Auto Photo Fix <b>off</b>.</li>' +

@@ -474,7 +474,7 @@
       (tiles ? ' ' + h.plural(tiles, 'magnet') + ' on ' + h.plural(sheets, 'sheet') + '.' : ' Nothing to print from this order: the artwork is made by hand.'));
     if (special.length) steps.push('<b>Design the custom artwork.</b> ' + special.map(function (it) { return esc(it.title || 'Custom order'); }).join(', ') +
       ' — made from the details the customer emails you. Print it with the Terminal tool under More (<code>--copies</code> prints one artwork per magnet).');
-    steps.push('<b>Pack it.</b> In the envelope: the magnets, a logo magnet, a business card and a thank-you card; the round sticker goes on the outside (<a href="#testprint">Test print › Package extras</a>). No need to print a receipt: the customer already has it by email.');
+    steps.push('<b>Pack it.</b> In the printed kraft envelope: the magnets, a logo magnet, a business card and a thank-you card; close it with the round sticker and put it in the bubble mailer (<a href="#testprint">Test print › Package extras</a>). No need to print a receipt: the customer already has it by email.');
     if (o.giftMessage) steps.push('<b>Gift message.</b> Write it on the back of the thank-you card: <i translate="no">“' + esc(o.giftMessage) + '”</i>. Or print the packing slip, it has the message.');
     var more = '<details class="panel" id="print-more"><summary>More: the photos as a ZIP and the Terminal tool</summary><div class="stack">' +
       '<p class="small muted">The old way, if the PDF ever fails or you want to edit a photo first.</p>' +
