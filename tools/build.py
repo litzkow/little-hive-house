@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "32"
+VERSION = "33"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -153,6 +153,7 @@ def head(pg, title, desc, path):
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
 <link rel="stylesheet" href="{pg.p}assets/site.css?v={VERSION}">
+{GA_TAG}
 </head>
 <body>
 """
@@ -302,6 +303,12 @@ def vol_badge():
     n, pct = VOLUME[-1]
     return f'<span class="deal alt">{pct}% off {n}+ magnets</span>'
 
+
+# Google Analytics 4 (Firebase project little-hive-house, property 562104666): visits for the Hive Admin's Visits page.
+GA_ID = "G-VHW80371B0"
+GA_TAG = (f'<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>\n'
+          f'<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag("js",new Date());'
+          f'gtag("config","{GA_ID}");window.lhhTrack=function(n,p){{try{{gtag("event",n,p||{{}});}}catch(e){{}}}};</script>')
 
 # the shop's social accounts live in tools/social.json: add a line there and every spot below picks it up
 # (top strip, header, phone menu, home band, footer, contact page, Google's sameAs, business and thank-you cards).

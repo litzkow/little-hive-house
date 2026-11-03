@@ -130,6 +130,8 @@
     var cart = L.cart();
     if (!cart.length) return;
     busy = true; setError(''); btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = 'One moment…';
+    if (window.lhhTrack) window.lhhTrack('begin_checkout', { currency: 'USD', value: cart.reduce(function (t, l) { return t + (Number(l.price) || 0) * (Number(l.qty) || 1); }, 0),
+      items: cart.map(function (l) { return { item_id: l.id, item_name: l.name, price: Number(l.price) || 0, quantity: Number(l.qty) || 1 }; }) });
     var packs = cart.filter(function (l) { return l.kind === 'custom' && Array.isArray(l.photos) && l.photos.length; });
     var who = null;
     S.ready()

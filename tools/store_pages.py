@@ -550,7 +550,9 @@ def page_policies():
 <li><strong>USPS</strong> receives your name and address to deliver your package.</li>
 <li><strong>Google Fonts</strong> serves the fonts on our website, which means your browser asks Google for them.</li>
 </ul>"""),
-        ("storage", "Cookies and storage on your device", """<p>We don’t use advertising or tracking cookies. Your browser keeps a few small things for you: your cart, your favorite designs, the light or dark theme, and, if you sign in, your sign-in session.</p>"""),
+        ("storage", "Cookies and storage on your device", """<p>We don’t use advertising cookies. Your browser keeps a few small things for you: your cart, your favorite designs, the light or dark theme, and, if you sign in, your sign-in session.</p>
+<p>We use Google Analytics to understand how people use the site, for example which collections are visited most, which pages are slow to lead anywhere, and roughly where visitors come from. It sets its own cookies and tells us things in totals, like how many visits came from a state; it doesn’t give us your name or email, and we don’t sell any of it. You can opt out with Google’s <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener">opt-out add-on</a> or your browser’s tracking protection.</p>
+<p>After you place an order, Google may ask you, in a small window on the thank-you page, whether you’d like to rate your experience with us (Google Customer Reviews). It’s optional; if you agree, Google emails you once after your order arrives.</p>"""),
         ("keep", "How long we keep things", """<ul>
 <li>Uploaded photos: 90 days, then deleted automatically.</li>
 <li>Order records: 7 years, because tax and accounting rules require it.</li>

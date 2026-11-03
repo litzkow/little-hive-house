@@ -167,6 +167,7 @@
       if (f.type.indexOf('image/') !== 0) return;
       var p = { name: f.name, url: URL.createObjectURL(f), blob: f, low: false, frame: defaultFrame, caption: '', capStyle: null, crop: null, w: 0, h: 0 };
       photos.push(p);
+      if (window.lhhTrack) window.lhhTrack('photo_added', { photos: photos.length });
       /* the size (upright, as the browser shows it) lets the customer move and zoom the photo;
          a 2 in magnet face is 600 px at 300 dpi, under that on the short side it prints soft */
       var probe = new Image();
@@ -430,6 +431,7 @@
     if (notes) orderNotes += '\nNotes: ' + notes;
     LHH.addCustom({ id: 'custom-' + Date.now(), count: size, name: 'Custom photo magnets', detail: detail, price: packPrice(),
                     photos: lines, notes: notes, orderNotes: orderNotes });
+    if (window.lhhTrack) window.lhhTrack('add_to_cart', { currency: 'USD', value: packPrice(), items: [{ item_id: 'photo-pack-' + size, item_name: 'Custom photo magnets (' + size + ')', item_category: 'Photo magnets', price: packPrice(), quantity: 1 }] });
     photos = []; $('notes').value = ''; $('rights').checked = false;
     renderBuilder();
   });

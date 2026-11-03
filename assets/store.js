@@ -231,6 +231,7 @@
     var name = (b.getAttribute('aria-label') || '').replace(/^Favorite: /, '');
     if (window.LHH) LHH.toast(on ? name + ' saved to your favorites' : name + ' removed from favorites');
     if (on) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+    if (on && window.lhhTrack) window.lhhTrack('add_to_wishlist', { items: [{ item_id: id, item_name: name }] });
   });
 
   /* ---------- header account icon ---------- */

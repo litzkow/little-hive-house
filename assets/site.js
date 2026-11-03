@@ -160,7 +160,9 @@
     if (line) line.qty += 1;
     else cart.push({ id: id, kind: 'design', name: name + ' magnet', detail: '2 × 2 in · ' + el.getAttribute('data-collection'), price: PRICE, qty: 1 });
     save(); render(); toast(name + ' added to cart');
+    track('add_to_cart', { currency: 'USD', value: PRICE, items: [{ item_id: id, item_name: name, item_category: el.getAttribute('data-collection') || '', price: PRICE, quantity: 1 }] });
   }
+  function track(n, p) { if (window.lhhTrack) window.lhhTrack(n, p); }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-add]');
     if (b) addDesign(b);
@@ -247,6 +249,7 @@
       col.setAttribute('href', btn.getAttribute('data-href'));
       ['data-add', 'data-name', 'data-collection'].forEach(function (a) { qvAdd.setAttribute(a, btn.getAttribute(a)); });
       qv.showModal();
+      if (window.lhhTrack) window.lhhTrack('view_item', { currency: 'USD', value: PRICE, items: [{ item_id: btn.getAttribute('data-add'), item_name: btn.getAttribute('data-name'), item_category: btn.getAttribute('data-collection') || '', price: PRICE }] });
     });
     $('qv-close').addEventListener('click', function () { qv.close(); });
     qv.addEventListener('click', function (e) { if (e.target === qv) qv.close(); });

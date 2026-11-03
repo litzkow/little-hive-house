@@ -403,6 +403,11 @@
       });
       show('st-content');
       reviewOptin(o);
+      if (window.lhhTrack && o.number && o.status !== 'pending') {
+        var pr = o.pricing || {};
+        window.lhhTrack('purchase', { transaction_id: String(o.number), currency: 'USD', value: Number(pr.total) || 0, shipping: Number(pr.shipping) || 0, tax: Number(pr.tax) || 0,
+          items: (o.items || []).map(function (it) { return { item_id: it.id || it.kind, item_name: it.title || it.kind, item_category: it.collection || '', quantity: Number(it.qty) || 1 }; }) });
+      }
     }).catch(function () { show('st-content'); });
   }
   /* Google Customer Reviews: Google asks the buyer (if they agree in its pop-up) to rate the shop after the delivery date */
