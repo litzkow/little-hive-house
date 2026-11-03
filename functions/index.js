@@ -24,6 +24,7 @@ const payments = lazy("./payments");
 const push = lazy("./push");
 const newsletter = lazy("./newsletter");
 const labels = lazy("./labels");
+const analytics = lazy("./analytics");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -94,6 +95,9 @@ exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeco
 exports.adminTestSheet = callable("adminTestSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
 exports.adminLastTestSheet = callable("adminLastTestSheet", admin);
 exports.adminDeleteOrder = callable("adminDeleteOrder", admin);
+// the "Visitas" page: Google Analytics (analytics.js)
+exports.adminAnalytics = callable("adminAnalytics", analytics, null, { timeoutSeconds: 60 });
+exports.adminAnalyticsLive = callable("adminAnalyticsLive", analytics, null, { timeoutSeconds: 30 });
 
 /* ---------- Stripe webhook (HTTP): marks orders paid and renders their print sheet (1 GiB, 300 s for the PDF) ---------- */
 exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 300, memory: "1GiB", maxInstances: 10 }, async (req, res) => {
@@ -118,6 +122,11 @@ exports.trackShipments = onSchedule({ region: REGION, schedule: "every 2 hours",
   await tracking().trackShipments();
   await payments().checkHolds().catch((err) => console.warn("[checkHolds] failed", err.message));
   await scheduled().backfillFees().catch((err) => console.warn("[backfillFees] failed", err.message));
+});
+
+/* ---------- every 3 hours: the 28-day visits report stays fresh (analytics.js warm) ---------- */
+exports.analyticsWarm = onSchedule({ region: REGION, schedule: "every 3 hours", timeZone: "America/New_York", timeoutSeconds: 120 }, async () => {
+  console.log("[analyticsWarm]", JSON.stringify(await analytics().warm()));
 });
 
 /* ---------- monthly: Georgia sales tax return reminder (due the 20th) ---------- */

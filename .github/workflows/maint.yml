@@ -36,37 +36,13 @@ jobs:
           service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
           create_credentials_file: true
           export_environment_variables: true
-      - name: "Analytics: liga a API de dados do Google Analytics"
+      - name: "Analytics: o servidor lê o Google Analytics agora"
         if: inputs.task == 'check-analytics'
-        run: gcloud services enable analyticsdata.googleapis.com --project "$PROJECT" || true
-      - name: "Analytics: chave com permissão de leitura"
-        if: inputs.task == 'check-analytics'
-        id: ga
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER || 'projects/752604920358/locations/global/workloadIdentityPools/github/providers/github' }}
-          service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
-          token_format: access_token
-          access_token_scopes: https://www.googleapis.com/auth/analytics.readonly
-      - name: "Analytics: o Google Analytics responde"
-        if: inputs.task == 'check-analytics'
-        env: { TOKEN: "${{ steps.ga.outputs.access_token }}" }
         run: |
-          code=$(curl -s -o /tmp/ga.json -w "%{http_code}" -X POST "https://analyticsdata.googleapis.com/v1beta/properties/562104666:runReport" \
-            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d '{"dateRanges":[{"startDate":"7daysAgo","endDate":"today"}],"metrics":[{"name":"activeUsers"}]}')
-          echo "$code" > /tmp/ga.code; [ "$code" = "200" ]
-      - name: "Analytics: erro é falta de permissão"
-        if: always() && inputs.task == 'check-analytics'
-        run: grep -q '"PERMISSION_DENIED"' /tmp/ga.json && ! grep -qi 'SERVICE_DISABLED\|has not been used' /tmp/ga.json
-      - name: "Analytics: erro é API desligada"
-        if: always() && inputs.task == 'check-analytics'
-        run: grep -qi 'SERVICE_DISABLED\|has not been used' /tmp/ga.json
-      - name: "Analytics: erro é escopo ou chave"
-        if: always() && inputs.task == 'check-analytics'
-        run: grep -q 'UNAUTHENTICATED\|ACCESS_TOKEN_SCOPE_INSUFFICIENT\|insufficient' /tmp/ga.json
+          gcloud scheduler jobs run firebase-schedule-analyticsWarm-us-east1 --location us-east1 --project "$PROJECT"
+          sleep 75
       - name: Install
-        if: inputs.task != 'check-analytics'
+        if: always()
         working-directory: tools/maint
         run: |
           echo '{"private":true}' > package.json
@@ -151,6 +127,22 @@ jobs:
         if: always() && inputs.task == 'check-order'
         env: { ORDER: "${{ inputs.value }}", CHECK: shippo, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
         run: node tools/maint/check-order.js
+      - name: "Analytics: a leitura aconteceu agora"
+        if: always() && inputs.task == 'check-analytics'
+        env: { CHECK: fresh }
+        run: node tools/maint/check-analytics.js
+      - name: "Analytics: deu certo"
+        if: always() && inputs.task == 'check-analytics'
+        env: { CHECK: ok }
+        run: node tools/maint/check-analytics.js
+      - name: "Analytics: erro é falta de acesso"
+        if: always() && inputs.task == 'check-analytics'
+        env: { CHECK: access }
+        run: node tools/maint/check-analytics.js
+      - name: "Analytics: erro é API desligada"
+        if: always() && inputs.task == 'check-analytics'
+        env: { CHECK: api }
+        run: node tools/maint/check-analytics.js
       - name: Run
         if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics'
         env:
