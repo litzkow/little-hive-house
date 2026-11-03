@@ -646,6 +646,8 @@ html.studio-open { overflow: hidden; }
 .co-bar span { display: block; height: 100%; width: 0; border-radius: inherit; background: repeating-linear-gradient(-45deg, var(--honey) 0 10px, color-mix(in srgb, var(--honey) 78%, #fff) 10px 20px); background-size: 28px 28px; transition: width .25s ease; animation: lhh-stripes 1s linear infinite; }
 @keyframes lhh-stripes { to { background-position: 28px 0; } }
 .co-error { padding: 10px 12px; border-radius: 10px; background: var(--clay-bg); color: var(--clay); font-size: 14px; font-weight: 500; }
+.builder-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; line-height: 1.45; }
+.builder-note a, .co-secure a { color: inherit; text-decoration: underline; }
 .co-secure { font-size: 13px; color: var(--muted); text-align: center; margin-top: 2px; }
 .totals .btn[aria-busy="true"] { opacity: .85; cursor: progress; }
 

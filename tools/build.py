@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "33"
+VERSION = "34"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -470,7 +470,7 @@ def chrome_end(pg, extra_js=()):
     </div>
     <!-- /store -->
     <button type="button" class="btn btn-honey" id="checkout" disabled>Checkout opens soon</button>
-    <p class="co-secure" id="co-secure" hidden>Secure payment with Stripe. You can review everything before you pay.</p>
+    <p class="co-secure" id="co-secure" hidden>Secure payment with Stripe. You can review everything before you pay. By checking out you agree to our <a href="terms.html">terms</a> and <a href="returns.html">returns policy</a>.</p>
   </div>
 </aside>
 
@@ -1047,6 +1047,7 @@ def page_photo():
           <span class="builder-total" id="builder-total">$25</span>
           <button type="submit" class="btn btn-honey" id="add-custom" disabled>Add to cart</button>
         </div>
+        <p class="builder-note">Made just for you, so photo magnets can’t be returned if you change your mind. If anything arrives damaged or we made a mistake, we reprint or refund it. <a href="returns.html">Returns &amp; refunds</a></p>
       </form>
       <dialog class="studio" id="studio" aria-labelledby="studio-title">
         <div class="studio-head">
