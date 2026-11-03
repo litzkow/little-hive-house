@@ -12,7 +12,7 @@ const CALLABLES = [
   "submitReview", "unsubscribe", "setMarketing", "myOrders", "myOrder", "sendVerifyEmail",
   "claimAdmin", "adminSetStatus", "adminShip", "adminCapture", "adminPush", "adminMarkDelivered", "adminRefund", "adminAddNote", "adminResendEmail",
   "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview", "adminNewsletter", "adminTestSheet", "adminLastTestSheet", "adminDeleteOrder",
-  "adminPrintSheet", "adminLabelQuote", "adminBuyLabel",
+  "adminPrintSheet", "adminLabelQuote", "adminBuyLabel", "adminLabelPdf",
 ];
 const HTTP = ["stripeWebhook"];
 const SCHEDULED = ["deliveredFollowUp", "trackShipments", "salesTaxReminder", "autoNewsletter"];

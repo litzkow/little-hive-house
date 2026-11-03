@@ -71,6 +71,7 @@ exports.adminSetStatus = callable("adminSetStatus", admin);
 exports.adminShip = callable("adminShip", admin);
 exports.adminLabelQuote = callable("adminLabelQuote", labels, null, { timeoutSeconds: 60 });
 exports.adminBuyLabel = callable("adminBuyLabel", labels, null, { timeoutSeconds: 120 });
+exports.adminLabelPdf = callable("adminLabelPdf", labels, null, { timeoutSeconds: 60, memory: "512MiB" });
 exports.adminCapture = callable("adminCapture", admin);
 exports.adminPush = callable("adminPush", push);
 exports.adminMarkDelivered = callable("adminMarkDelivered", admin);

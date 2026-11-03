@@ -338,7 +338,9 @@
     var L = (o.fulfillment || {}).label;
     if (!L || L.test || !L.url) return '';
     return '<div class="row between wrap gap-top"><span class="small muted">USPS label bought ' + esc(h.ago(L.at)) + (L.cost != null ? ' · ' + money(L.cost) : '') + (L.oz ? ' · ' + esc(String(L.oz)) + ' oz' : '') + '</span>' +
-      '<a class="btn btn-honey btn-sm" href="' + esc(L.url) + '" target="_blank" rel="noopener">' + icon('external') + 'Print label</a></div>';
+      '<div class="row wrap" style="gap:8px"><button class="btn btn-honey btn-sm" type="button" data-act="labelPdf" data-half="top">' + icon('print') + 'Print · top half</button>' +
+      '<button class="btn btn-ghost btn-sm" type="button" data-act="labelPdf" data-half="bottom">' + icon('print') + 'Print · bottom half</button></div></div>' +
+      '<p class="tiny muted">For the half-sheet labels (2 per sheet): pick the half that is still free. Paper type Plain paper, 100% (Actual size).</p>';
   }
   function shipForm(o, again) {
     var f = o.fulfillment || {};
@@ -813,6 +815,17 @@
         rerender();
       })
       .catch(function (e) { h.busy(el, false); err.textContent = h.friendlyError(e); err.hidden = false; });
+  };
+  ACT.labelPdf = function (el) {
+    var o = current; if (!o) return;
+    var half = el.getAttribute('data-half') === 'bottom' ? 'bottom' : 'top';
+    h.busy(el, true);
+    h.call('adminLabelPdf', { orderId: o.id, half: half }).then(function (res) {
+      h.busy(el, false);
+      h.dialog({ title: half === 'bottom' ? 'Label for the bottom half' : 'Label for the top half', ok: false, cancel: 'Close',
+        html: '<p class="small muted">' + (half === 'bottom' ? 'It prints on the bottom sticker of the sheet.' : 'It prints on the top sticker of the sheet.') + ' Paper type Plain paper, 100% (Actual size). The link works for about an hour.</p>' +
+          '<p><a class="btn btn-honey" href="' + esc(res.url) + '" target="_blank" rel="noopener">' + icon('external') + 'Open the label</a></p>' });
+    }).catch(function (e) { h.busy(el, false); h.toast(h.friendlyError(e), true); });
   };
   ACT.capture = function (el) {
     var o = current;

@@ -152,7 +152,7 @@ async function adminBuyLabel(data, auth) {
   if (prev && prev.tracking && !prev.test && !(data && data.again)) {
     fail("already-exists", "This order already has a label. Open it from the order, or buy a new one only if that one wasn't used.");
   }
-  const tx = await shippo("/transactions/", { rate: rateId, label_file_type: "PDF", async: false, metadata: `order ${id}` });
+  const tx = await shippo("/transactions/", { rate: rateId, label_file_type: "PNG", async: false, metadata: `order ${id}` });
   if (tx.status !== "SUCCESS" || !tx.tracking_number || !tx.label_url) {
     const msg = (tx.messages || []).map((m) => m && m.text).filter(Boolean).join(" ");
     fail("unavailable", `The label wasn't bought${msg ? `: ${msg}` : "."} Nothing was charged for it.`);
@@ -182,4 +182,53 @@ async function adminBuyLabel(data, auth) {
   }
 }
 
-module.exports = { FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };
+/* ---------- printing on half-sheet labels (8.5 x 5.5 in, 2 per Letter sheet) ----------
+   The USPS label is 4 x 6 in standing up; each half of the sheet is 8.5 x 5.5 lying down. The label is turned on its side
+   and centred in the top or the bottom half of a Letter page, so it lands on one sticker and the other stays for the next. */
+function pngSize(buf) {
+  if (!buf || buf.length < 24 || buf.readUInt32BE(0) !== 0x89504e47) return null;
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
+function halfSheetPdf(png, half) {
+  const PDFDocument = require("./printsheet")._internal.loadPdfkit();
+  const size = pngSize(png);
+  if (!size) throw new Error("the label image isn't a PNG");
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "LETTER", margin: 0, info: { Title: "USPS label · Little Hive House" } });
+    const out = [];
+    doc.on("data", (b) => out.push(b)); doc.on("end", () => resolve(Buffer.concat(out))); doc.on("error", reject);
+    const W = 612, HALF = 396, LW = 432, LH = 288;          // points: the page, half the page, the label lying down (6 x 4 in)
+    const x0 = (W - LW) / 2, y0 = (half === "bottom" ? HALF : 0) + (HALF - LH) / 2;
+    if (size.w > size.h) doc.image(png, x0, y0, { width: LW, height: LH });
+    else { doc.save(); doc.translate(x0 + LW, y0); doc.rotate(90); doc.image(png, 0, 0, { width: LH, height: LW }); doc.restore(); }
+    doc.end();
+  });
+}
+let makeHalf = halfSheetPdf;
+/** Tests swap the PDF maker (pdfkit is not installed there). */
+function setHalfSheet(fn) { makeHalf = fn || halfSheetPdf; }
+
+/** A fresh link to the order's label laid out for the top or the bottom half of a label sheet. {orderId, half} */
+async function adminLabelPdf(data, auth) {
+  U.requireAdmin(auth);
+  const half = data && data.half === "bottom" ? "bottom" : "top";
+  const { id, order } = await loadOrder(data && data.orderId);
+  const L = order.fulfillment && order.fulfillment.label;
+  if (!L || !L.url) fail("not-found", "This order has no label from the app.");
+  const printsheet = require("./printsheet");
+  const p = `labels/${id}-${half}.pdf`, bucket = deps.bucket();
+  let exists = false;
+  try { [exists] = await bucket.file(p).exists(); } catch (e) { exists = false; }
+  if (!exists || (L.builtFor && L.builtFor !== L.url)) {
+    const res = await globalThis.fetch(L.url);
+    if (!res.ok) fail("unavailable", `Couldn't get the label from Shippo (${res.status}). Try again in a minute.`);
+    const png = Buffer.from(await res.arrayBuffer());
+    const pdf = await makeHalf(png, half);
+    await bucket.file(p).save(pdf, { contentType: "application/pdf", resumable: false,
+      metadata: { cacheControl: "private, max-age=0", contentDisposition: `inline; filename="USPS-label-${order.number || id}.pdf"` } });
+  }
+  const link = await printsheet.downloadUrl(p, `USPS-label-${order.number || id}-${half}.pdf`);
+  return { ok: true, url: link.url, half };
+}
+
+module.exports = { adminLabelPdf, setHalfSheet, halfSheetPdf, pngSize, FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };

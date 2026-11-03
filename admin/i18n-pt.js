@@ -1032,6 +1032,17 @@ window.LHH_PT = {
 "Shippo didn't accept the key. Check SHIPPO_API_KEY.": "O Shippo não aceitou a chave. Fale com o Claude.",
 "This order already has a label. Open it from the order, or buy a new one only if that one wasn't used.": "Este pedido já tem etiqueta. Abra pelo pedido.",
 "The weight should be in ounces, like 4.5.": "O peso deve ser em onças, como 4.5.",
+"Print · top half": "Imprimir · metade de cima",
+"Print · bottom half": "Imprimir · metade de baixo",
+"For the half-sheet labels (2 per sheet): pick the half that is still free. Paper type Plain paper, 100% (Actual size).": "Para a folha de etiqueta com 2 por folha: escolha a metade que ainda está livre. Tipo de papel Papel comum, 100% (Tamanho real).",
+"Label for the top half": "Etiqueta para a metade de cima",
+"Label for the bottom half": "Etiqueta para a metade de baixo",
+"It prints on the top sticker of the sheet.": "Ela sai na etiqueta de cima da folha.",
+"It prints on the bottom sticker of the sheet.": "Ela sai na etiqueta de baixo da folha.",
+"Paper type Plain paper, 100% (Actual size). The link works for about an hour.": "Tipo de papel Papel comum, 100% (Tamanho real). O link funciona por mais ou menos uma hora.",
+"Open the label": "Abrir a etiqueta",
+"It prints on the top sticker of the sheet. Paper type Plain paper, 100% (Actual size). The link works for about an hour.": "Ela sai na etiqueta de cima da folha. Tipo de papel Papel comum, 100% (Tamanho real). O link funciona por mais ou menos uma hora.",
+"It prints on the bottom sticker of the sheet. Paper type Plain paper, 100% (Actual size). The link works for about an hour.": "Ela sai na etiqueta de baixo da folha. Tipo de papel Papel comum, 100% (Tamanho real). O link funciona por mais ou menos uma hora.",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

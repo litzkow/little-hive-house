@@ -751,5 +751,5 @@ module.exports = {
   pageCount, geometry, cutSize, imageSize, tilePositions, borderRect, borderColour, itemBorder, colourName, ringMean, WHITE, AUTO, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,
-  _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp },   // for diagnostics / visual checks
+  _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp, loadPdfkit },   // for diagnostics / visual checks
 };

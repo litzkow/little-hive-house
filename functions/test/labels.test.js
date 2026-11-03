@@ -84,6 +84,27 @@ test("after 30 labels in a month, the 7 cent Shippo fee goes into the label cost
   assert.equal(db.get(`labelStats/${new Date().toISOString().slice(0, 7)}`).count, 31);
 });
 
+test("the label PDF for the top or bottom half of a label sheet", async () => {
+  const { db, labels } = setup();
+  await labels.adminBuyLabel({ orderId: "o1", rateId: "rate_ga" }, ADMIN);
+  const made = [];
+  labels.setHalfSheet(async (png, half) => { made.push([png.length, half]); return Buffer.from(`%PDF-1.4 ${half}`); });
+  const base = globalThis.fetch;
+  globalThis.fetch = async (url, init) => (/shippo-delivery/.test(url)
+    ? { ok: true, status: 200, arrayBuffer: async () => new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]).buffer } : base(url, init));
+  const top = await labels.adminLabelPdf({ orderId: "o1" }, ADMIN);
+  const bottom = await labels.adminLabelPdf({ orderId: "o1", half: "bottom" }, ADMIN);
+  assert.equal(top.half, "top");
+  assert.equal(bottom.half, "bottom");
+  assert.ok(top.url && bottom.url);
+  await labels.adminLabelPdf({ orderId: "o1" }, ADMIN);   // made once, then reused
+  assert.deepEqual(made.map((m) => m[1]), ["top", "bottom"]);
+  assert.equal(labels.pngSize(Buffer.from("not a png")), null);
+  labels.setHalfSheet(null);
+  db.docs.set("orders/o2", { status: "paid" });
+  await assert.rejects(labels.adminLabelPdf({ orderId: "o2" }, ADMIN), (e) => e.code === "not-found");
+});
+
 test("a test key makes a sample label and leaves the order alone", async () => {
   const { db, labels } = setup({ key: "shippo_test_x" });
   const r = await labels.adminBuyLabel({ orderId: "o1", rateId: "rate_ga" }, ADMIN);

@@ -42,4 +42,14 @@ const fetchImpl = async (url) => {
   fs.writeFileSync(path.join(out, "LHH-SMOKE-magnets.pdf"), res.pdf);
   fs.writeFileSync(path.join(out, "LHH-SMOKE-packing-slip.pdf"), res.slip);
   console.log(`print sheet OK: ${res.tiles} magnets on ${res.sheets} sheets (${(res.pdf.length / 1048576).toFixed(1)} MB), slip ${res.slipPages} page(s); warnings: ${res.warnings.length}`);
+  // the USPS label laid on its side in the top / bottom half of a Letter page (functions/labels.js)
+  const L = require(path.join(ROOT, "functions", "labels.js"));
+  const label = await sharp({ create: { width: 1200, height: 1800, channels: 3, background: "#ffffff" } })
+    .composite([{ input: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800"><rect x="40" y="40" width="1120" height="300" fill="#000"/><text x="80" y="1000" font-size="120">USPS GROUND ADVANTAGE</text></svg>') }]).png().toBuffer();
+  for (const half of ["top", "bottom"]) {
+    const pdf = await L.halfSheetPdf(label, half);
+    if (head(pdf) !== "%PDF-") throw new Error(`the ${half} label PDF was not made`);
+    fs.writeFileSync(path.join(out, `label-${half}.pdf`), pdf);
+  }
+  console.log("label PDFs OK (top and bottom half)");
 })().catch((err) => { console.error("::error title=Print sheet broken::", err && err.stack || err); process.exit(1); });
