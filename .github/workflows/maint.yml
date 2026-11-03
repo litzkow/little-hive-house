@@ -36,7 +36,28 @@ jobs:
           service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
           create_credentials_file: true
           export_environment_variables: true
+      - name: "Analytics: liga a API de dados do Google Analytics"
+        if: inputs.task == 'check-analytics'
+        run: gcloud services enable analyticsdata.googleapis.com --project "$PROJECT" || true
+      - name: "Analytics: chave com permissão de leitura"
+        if: inputs.task == 'check-analytics'
+        id: ga
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER || 'projects/752604920358/locations/global/workloadIdentityPools/github/providers/github' }}
+          service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/analytics.readonly
+      - name: "Analytics: o Google Analytics responde"
+        if: inputs.task == 'check-analytics'
+        env: { TOKEN: "${{ steps.ga.outputs.access_token }}" }
+        run: |
+          code=$(curl -s -o /tmp/ga.json -w "%{http_code}" -X POST "https://analyticsdata.googleapis.com/v1beta/properties/562104666:runReport" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d '{"dateRanges":[{"startDate":"7daysAgo","endDate":"today"}],"metrics":[{"name":"activeUsers"}]}')
+          echo "HTTP $code"; head -c 300 /tmp/ga.json | sed 's/[0-9]\{6,\}/#/g'; [ "$code" = "200" ]
       - name: Install
+        if: inputs.task != 'check-analytics'
         working-directory: tools/maint
         run: |
           echo '{"private":true}' > package.json
@@ -122,7 +143,7 @@ jobs:
         env: { ORDER: "${{ inputs.value }}", CHECK: shippo, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
         run: node tools/maint/check-order.js
       - name: Run
-        if: inputs.task != 'check-shippo' && inputs.task != 'check-order'
+        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
