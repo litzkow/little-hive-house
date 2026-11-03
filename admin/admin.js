@@ -471,7 +471,73 @@
       '</div>';
     bindGlobal();
     updateBadges();
+    keepBarDown();
   }
+
+  /* iPhone: after the keyboard or the colour picker closes, iOS sometimes forgets where the bottom of the screen
+     is and leaves the bottom bar floating mid-screen until the next rotation. Pin the bar to what is really
+     on screen (visualViewport) and give the page a tiny scroll nudge so iOS recomputes its layout. */
+  var barTimer = null, barBound = false;
+  function placeBar() {
+    var bar = document.querySelector('.tabbar'), vv = window.visualViewport;
+    if (!bar) return;
+    var gap = vv ? Math.round(vv.offsetTop + vv.height - window.innerHeight) : 0;
+    bar.style.transform = gap > 0 ? 'translateY(' + gap + 'px)' : '';
+  }
+  function nudge() {
+    clearTimeout(barTimer);
+    barTimer = setTimeout(function () {
+      var a = document.activeElement;
+      if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox' && a.type !== 'radio' && a.type !== 'color') { placeBar(); return; }
+      var x = window.scrollX, y = window.scrollY;
+      window.scrollTo(x, y + 1);
+      requestAnimationFrame(function () { window.scrollTo(x, y); placeBar(); });
+    }, 120);
+  }
+  function keepBarDown() {
+    placeBar();
+    if (barBound) return;
+    barBound = true;
+    var vv = window.visualViewport;
+    if (vv) { vv.addEventListener('resize', function () { placeBar(); nudge(); }); vv.addEventListener('scroll', placeBar); }
+    window.addEventListener('resize', nudge);
+    window.addEventListener('orientationchange', nudge);
+    window.addEventListener('pageshow', nudge);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) nudge(); });
+    document.addEventListener('focusout', function () { nudge(); setTimeout(nudge, 450); });
+    document.addEventListener('change', function (e) { if (e.target && e.target.type === 'color') { nudge(); setTimeout(nudge, 450); } });
+  }
+  /* A new version of the app is on the site: an iPhone app that only goes to the background never reloads by itself.
+     When the app comes back to the screen, it checks; with nothing half-done it reloads on its own, otherwise it offers a
+     button (the test sheet in progress lives only in memory and would be lost). */
+  var MY_V = (function () { var el = document.querySelector('script[src*="admin.js?v="]'); var m = el && /\?v=(\d+)/.exec(el.getAttribute('src')); return m ? Number(m[1]) : 0; })();
+  var lastCheck = 0;
+  function busy() {
+    var t = S.ui && S.ui.testprint, a = document.activeElement;
+    if (t && ((t.photos && t.photos.length) || (t.designs && t.designs.length))) return true;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+    return !!document.querySelector('.drawer, .modal, dialog[open]');
+  }
+  function checkUpdate(fromBackground) {
+    if (!MY_V || Date.now() - lastCheck < 20000) return;
+    lastCheck = Date.now();
+    fetch('index.html?u=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (txt) {
+      var m = /admin\.js\?v=(\d+)/.exec(txt || ''), v = m ? Number(m[1]) : 0;
+      if (!v || v <= MY_V) return;
+      if (fromBackground && !busy()) { location.reload(); return; }
+      if (document.getElementById('newver')) return;
+      var bar = document.createElement('div');
+      bar.id = 'newver'; bar.className = 'newver'; bar.setAttribute('role', 'status');
+      bar.innerHTML = '<span>' + esc(LHHI18N_tr('A new version of the app is ready')) + '</span><button type="button" class="btn btn-honey btn-small">' + esc(LHHI18N_tr('Update now')) + '</button>';
+      bar.querySelector('button').addEventListener('click', function () { location.reload(); });
+      document.body.appendChild(bar);
+    }).catch(function () {});
+  }
+  function LHHI18N_tr(t) { return window.LHHI18N && LHHI18N.tr ? LHHI18N.tr(t) : t; }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) checkUpdate(true); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) checkUpdate(true); });
+  setInterval(function () { if (!document.hidden) checkUpdate(false); }, 5 * 60 * 1000);
+
   function updateBadges() {
     var c = { orders: S.orders.filter(function (o) { var s = R.stage(o); return s === 'to_fulfil' || s === 'in_production'; }).length,
               reviews: (S.reviews || []).filter(function (r) { return (r.status || 'pending') === 'pending'; }).length };

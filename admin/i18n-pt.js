@@ -973,5 +973,7 @@ window.LHH_PT = {
 "· photos touched up": "· fotos ajustadas",
 "· pictures * in": "· imagens de * pol",
 "⚠️ The last automatic email didn’t go out: the shop’s mailing address is missing. Next try:": "⚠️ O último e-mail automático não saiu: falta o endereço postal da loja. Próxima tentativa:",
-"✅ Last one went out on": "✅ O último saiu em"
+"✅ Last one went out on": "✅ O último saiu em",
+"A new version of the app is ready": "Uma versão nova do app está pronta",
+"Update now": "Atualizar agora"
 };
