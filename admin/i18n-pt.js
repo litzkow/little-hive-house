@@ -983,6 +983,11 @@ window.LHH_PT = {
 "Copy address": "Copiar endereço",
 "Open Pirate Ship": "Abrir Pirate Ship",
 "This order has no shipping address.": "Este pedido não tem endereço de entrega.",
+"In the envelope: the magnets, a logo magnet, a business card and a thank-you card; the round sticker goes on the outside (": "No envelope: os ímãs, um ímã da logo, um cartão de visita e um cartão de agradecimento; o adesivo redondo vai do lado de fora (",
+"). No need to print a receipt: the customer already has it by email.": "). Não precisa imprimir recibo: o cliente já recebeu por e-mail.",
+"Gift message.": "Mensagem de presente.",
+"Write it on the back of the thank-you card:": "Escreva no verso do cartão de agradecimento:",
+". Or print the packing slip, it has the message.": ". Ou imprima a nota do pacote, que já tem a mensagem.",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };
