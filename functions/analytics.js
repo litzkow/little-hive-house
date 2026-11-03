@@ -81,7 +81,7 @@ function requests(days) {
     [
       { dateRanges: periods(days), metrics: TOTALS.map((name) => ({ name })) },
       { dateRanges: cur, dimensions: [{ name: "date" }], metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "screenPageViews" }], orderBys: [{ dimension: { dimensionName: "date" } }], limit: 400 },
-      by("country", ["activeUsers", "sessions"], { limit: 30 }),
+      by(["country", "countryId"], ["activeUsers", "sessions"], { limit: 30 }),
       by("region", ["activeUsers"], { limit: 60, filter: { filter: { fieldName: "countryId", stringFilter: { value: "US" } } } }),
       by(["city", "region", "countryId"], ["activeUsers"], { limit: 30 }),
     ],
@@ -149,7 +149,7 @@ function shape(batches, days) {
     days, property: PROPERTY,
     totals: pick(tot.cur), previous: pick(tot.prev),
     series,
-    countries: list(A[2] || {}, "country", "activeUsers", 30),
+    countries: rows(A[2] || {}).filter((r) => !NOT_SET.has(r.country)).map((r) => ({ name: r.country, id: r.countryId, value: r.activeUsers })).sort((a, b) => b.value - a.value).slice(0, 30),
     states: list(A[3] || {}, "region", "activeUsers", 60),
     cities: rows(A[4] || {}).filter((r) => !NOT_SET.has(r.city)).map((r) => ({ name: r.city, region: NOT_SET.has(r.region) ? "" : r.region, country: r.countryId, value: r.activeUsers }))
       .sort((a, b) => b.value - a.value).slice(0, 25),
@@ -198,7 +198,7 @@ function shapeLive(answers) {
   rows(minutes || {}).forEach((r) => { const m = Number(r.minutesAgo); if (m >= 0 && m < 30) perMin[m] += r.activeUsers; });
   return {
     now: num((rows(total || {})[0] || {}).activeUsers),
-    places: rows(places || {}).filter((r) => !NOT_SET.has(r.country)).map((r) => ({ city: NOT_SET.has(r.city) ? "" : r.city, country: r.country, value: r.activeUsers }))
+    places: rows(places || {}).filter((r) => !NOT_SET.has(r.country)).map((r) => ({ city: NOT_SET.has(r.city) ? "" : r.city, country: r.country, id: r.countryId || "", value: r.activeUsers }))
       .sort((a, b) => b.value - a.value).slice(0, 10),
     pages: list(screens || {}, "unifiedScreenName", "activeUsers", 10),
     devices: list(devices || {}, "deviceCategory", "activeUsers", 5),
@@ -208,7 +208,7 @@ function shapeLive(answers) {
 async function adminAnalyticsLive(data, auth) {
   U.requireAdmin(auth);
   const rt = (dims) => ga("runRealtimeReport", { dimensions: dims.map((name) => ({ name })), metrics: [{ name: "activeUsers" }], limit: 50 });
-  const answers = await Promise.all([rt([]), rt(["city", "country"]), rt(["unifiedScreenName"]), rt(["minutesAgo"]), rt(["deviceCategory"])]);
+  const answers = await Promise.all([rt([]), rt(["city", "country", "countryId"]), rt(["unifiedScreenName"]), rt(["minutesAgo"]), rt(["deviceCategory"])]);
   return { ...shapeLive(answers), at: new Date().toISOString() };
 }
 

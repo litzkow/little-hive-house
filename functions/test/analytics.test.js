@@ -15,7 +15,7 @@ function answers(body) {
     const r = body.requests[i];
     if (!n) return rep(["dateRange"], r.metrics.map((m) => m.name), [["cur", 12, 9, 15, 60, 95.5, 0.62, 1400, 30, 1, 4], ["prev", 6, 6, 7, 20, 60, 0.5, 400, 0, 0, 1]]);
     if (n === "date") return rep(["date"], ["activeUsers", "sessions", "screenPageViews"], [["20261102", 4, 5, 20], ["20261103", 8, 10, 40]]);
-    if (n === "country") return rep(["country"], ["activeUsers", "sessions"], [["United States", 10, 12], ["Brazil", 2, 3], ["(not set)", 1, 1]]);
+    if (n === "country,countryId") return rep(["country", "countryId"], ["activeUsers", "sessions"], [["United States", "US", 10, 12], ["Brazil", "BR", 2, 3], ["(not set)", "", 1, 1]]);
     if (n === "region") return rep(["region"], ["activeUsers"], [["Georgia", 6], ["Florida", 4]]);
     if (n === "city,region,countryId") return rep(["city", "region", "countryId"], ["activeUsers"], [["Atlanta", "Georgia", "US", 5], ["(not set)", "", "US", 3]]);
     if (n === "userAgeBracket") return rep([n], ["activeUsers"], [["35-44", 3], ["25-34", 5]]);
@@ -46,7 +46,7 @@ function setup({ deny = false } = {}) {
     if (/runRealtimeReport$/.test(u.pathname)) {
       const d = (body.dimensions || []).map((x) => x.name).join(",");
       if (!d) return { ok: true, status: 200, json: async () => rep([], ["activeUsers"], [[3]]) };
-      if (d === "city,country") return { ok: true, status: 200, json: async () => rep(["city", "country"], ["activeUsers"], [["Orlando", "United States", 2], ["(not set)", "Brazil", 1]]) };
+      if (d === "city,country,countryId") return { ok: true, status: 200, json: async () => rep(["city", "country", "countryId"], ["activeUsers"], [["Orlando", "United States", "US", 2], ["(not set)", "Brazil", "BR", 1]]) };
       if (d === "minutesAgo") return { ok: true, status: 200, json: async () => rep(["minutesAgo"], ["activeUsers"], [["00", 2], ["05", 1]]) };
       return { ok: true, status: 200, json: async () => rep([d], ["activeUsers"], [["Fall magnets", 2]]) };
     }
@@ -66,7 +66,7 @@ test("the report: totals against the period before, places, collections, the fun
   assert.equal(r.previous.activeUsers, 6);
   assert.equal(r.totals.purchaseRevenue, 30);
   assert.deepEqual(r.series[1], { date: "2026-11-03", users: 8, visits: 10, views: 40 });
-  assert.deepEqual(r.countries.map((c) => c.name), ["United States", "Brazil"]);   // no "(not set)"
+  assert.deepEqual(r.countries.map((c) => c.id), ["US", "BR"]);   // no "(not set)"
   assert.equal(r.states[0].name, "Georgia");
   assert.deepEqual(r.cities, [{ name: "Atlanta", region: "Georgia", country: "US", value: 5 }]);
   assert.deepEqual(r.age.map((a) => a.name), ["25-34", "35-44"]);
@@ -109,7 +109,7 @@ test("live: visitors now, where they are, per minute", async () => {
   const { analytics } = setup();
   const l = await analytics.adminAnalyticsLive({}, ADMIN);
   assert.equal(l.now, 3);
-  assert.deepEqual(l.places, [{ city: "Orlando", country: "United States", value: 2 }, { city: "", country: "Brazil", value: 1 }]);
+  assert.deepEqual(l.places, [{ city: "Orlando", country: "United States", id: "US", value: 2 }, { city: "", country: "Brazil", id: "BR", value: 1 }]);
   assert.equal(l.perMinute.length, 30);
   assert.equal(l.perMinute[29], 2);   // this minute is last
   assert.equal(l.perMinute[24], 1);
