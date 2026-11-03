@@ -423,6 +423,8 @@ window.LHH_PT = {
 "Month by month": "Mês a mês",
 "Monthly fixed costs": "Custos fixos mensais",
 "Growth plan": "Projeção",
+"Centre": "Centralizar",
+"Drag to move, pinch or scroll to zoom": "Arraste para mover; afaste dois dedos ou role para dar zoom",
 "Money put into the shop": "Investido na loja",
 "Machines, supplies and everything else you bought to open the shop. The Growth plan shows how much of it the profit has paid back.": "Máquinas, materiais e tudo o mais que vocês compraram para abrir a loja. A Projeção mostra quanto disso o lucro já recuperou.",
 "More": "Mais",

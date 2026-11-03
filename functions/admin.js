@@ -607,10 +607,11 @@ async function adminTestSheet(data, auth) {
     const frame = U.text(p.frame, 40) || "none";
     const qty = Math.min(99, Math.max(1, Math.floor(Number(p.qty) || 1)));
     const caption = U.text(p.caption, 40), capStyle = U.text(p.capStyle, 20) || null;
+    const crop = require("./crop").clean(p.crop);   // moved / zoomed in the test print screen, same as a customer's
     count += qty;
     const pb = printsheet.borderColour(p.border, null);
-    items.push({ kind: "photos", packSize: qty, qty: 1, photos: [{ path, frame, caption, capStyle }], border: pb });
-    keep.push({ buf, name: U.text(p.name, 80) || `Photo ${n + 1}`, frame, caption, capStyle, qty, border: pb });
+    items.push({ kind: "photos", packSize: qty, qty: 1, photos: [{ path, frame, caption, capStyle, crop }], border: pb });
+    keep.push({ buf, name: U.text(p.name, 80) || `Photo ${n + 1}`, frame, caption, capStyle, crop, qty, border: pb });
   }
   if (!items.length) fail("invalid-argument", "Add at least one design or photo.");
   if (count > TEST_MAX_MAGNETS) fail("invalid-argument", `That is ${count} magnets; a test sheet holds up to ${TEST_MAX_MAGNETS} (3 sheets).`);
@@ -637,7 +638,7 @@ async function saveTestSheet(designs, photos, border) {
   for (let n = 0; n < photos.length; n++) {
     const p = photos[n], file = `tests/last/${n + 1}.jpg`;
     await bucket.file(file).save(p.buf, { ...opts, contentType: "image/jpeg" });
-    out.photos.push({ saved: file, name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle, qty: p.qty, border: p.border || null });
+    out.photos.push({ saved: file, name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle, crop: p.crop || null, qty: p.qty, border: p.border || null });
   }
   for (let n = photos.length + 1; n <= 9; n++) { try { await bucket.file(`tests/last/${n}.jpg`).delete(); } catch (e) { /* not there */ } }
   await bucket.file("tests/last.json").save(Buffer.from(JSON.stringify(out)), { ...opts, contentType: "application/json" });

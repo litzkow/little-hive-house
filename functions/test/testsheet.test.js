@@ -55,11 +55,11 @@ test("adminTestSheet: designs and photos into a PDF without an order", async () 
     await assert.rejects(A.adminTestSheet({ designs: [{ id: "nope/nope" }] }, ADMIN), /Unknown design/);
     await assert.rejects(A.adminTestSheet({ designs: [{ id: "places/new-york", qty: 30 }] }, ADMIN), /holds up to 27/);
     const png = Buffer.alloc(200, 7).toString("base64");
-    const r = await A.adminTestSheet({ designs: [{ id: "places/new-york", qty: 2 }], photos: [{ data: "data:image/jpeg;base64," + png, frame: "instant", caption: "Hi", capStyle: "classic", qty: 2 }] }, ADMIN);
+    const r = await A.adminTestSheet({ designs: [{ id: "places/new-york", qty: 2 }], photos: [{ data: "data:image/jpeg;base64," + png, frame: "instant", caption: "Hi", capStyle: "classic", crop: { x: 0.3, y: 0.6, z: 2 }, qty: 2 }] }, ADMIN);
     assert.equal(r.ok, true);
     assert.equal(seen.order.number, "TEST");
     assert.deepEqual(seen.order.items.map((i) => i.kind), ["design", "photos"]);
-    assert.deepEqual(seen.order.items[1].photos[0], { path: "test/1.jpg", frame: "instant", caption: "Hi", capStyle: "classic" });
+    assert.deepEqual(seen.order.items[1].photos[0], { path: "test/1.jpg", frame: "instant", caption: "Hi", capStyle: "classic", crop: { x: 0.3, y: 0.6, z: 2 } });   // moved / zoomed on the test print screen
     assert.equal(seen.photo.length, 200);
     assert.ok(bucket.files.has("tests/test-sheet.pdf"));
   } finally { P.buildPrintSheetDetailed = orig; void real; }

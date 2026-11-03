@@ -689,7 +689,7 @@
         S.ui.testprintRestored = true;
         st.designs = (res.sheet.designs || []).map(function (d) { return { id: d.id, name: d.name || d.id, qty: Math.max(1, Number(d.qty) || 1), border: d.border || '' }; });
         if (res.sheet.border) st.border = res.sheet.border === 'black' ? '#000000' : res.sheet.border === 'white' ? '#FFFFFF' : res.sheet.border;
-        st.photos = (res.sheet.photos || []).map(function (p) { return { name: p.name || 'Photo', data: p.url || '', saved: p.saved, frame: p.frame || 'none', caption: p.caption || '', capStyle: p.capStyle || '', qty: Math.max(1, Number(p.qty) || 1), border: p.border || '' }; });
+        st.photos = (res.sheet.photos || []).map(function (p) { return { name: p.name || 'Photo', data: p.url || '', saved: p.saved, crop: p.crop || null, frame: p.frame || 'none', caption: p.caption || '', capStyle: p.capStyle || '', qty: Math.max(1, Number(p.qty) || 1), border: p.border || '' }; });
         st.perItem = st.designs.concat(st.photos).some(function (x) { return x.border; });
         h.route();
         return;
@@ -737,7 +737,10 @@
     var frames = Object.keys(S.frames || {}).map(function (k) { return S.frames[k]; }).filter(function (f) { return !f.hidden; });
     box.innerHTML = st.photos.map(function (p, i) {
       var f = S.frames && S.frames[p.frame], c = f && f.caption, styles = c && c.styles ? Object.keys(c.styles) : [];
-      return '<div class="tp-photo"><img src="' + p.data + '" alt=""><div class="stack" style="gap:6px;flex:1;min-width:0">' +
+      return '<div class="tp-photo"><div class="tp-adj"><div class="tp-mag" data-tpmag="' + i + '" title="Drag to move, pinch or scroll to zoom">' + tpMagnet(p) + '</div>' +
+        '<div class="tp-zoom"><input type="range" min="1" max="4" step="0.01" value="' + ((p.crop && p.crop.z) || 1) + '" data-tpzoom="' + i + '" aria-label="Zoom">' +
+        '<button type="button" class="linkish small" data-tpcenter="' + i + '">Centre</button></div></div>' +
+        '<div class="stack" style="gap:6px;flex:1;min-width:0">' +
         '<select class="input" data-tp="frame" data-i="' + i + '">' + frames.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === p.frame ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select>' +
         (c ? '<input class="input" data-tp="caption" data-i="' + i + '" maxlength="' + (c.max || 24) + '" placeholder="Caption, e.g. ' + esc(c.placeholder || '') + '" value="' + esc(p.caption) + '">' : '') +
         (styles.length > 1 ? '<select class="input" data-tp="capStyle" data-i="' + i + '">' + styles.map(function (k) { return '<option value="' + k + '"' + ((p.capStyle || c.default) === k ? ' selected' : '') + '>' + esc(c.styles[k].name || k) + '</option>'; }).join('') + '</select>' : '') +
@@ -747,9 +750,94 @@
       el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () {
         var p = st.photos[Number(el.getAttribute('data-i'))], k = el.getAttribute('data-tp');
         p[k] = el.value;
-        if (k === 'frame') { p.capStyle = ''; tpPhotos(); }
+        if (k === 'frame') { p.capStyle = ''; tpCrop(p, p.crop || {}); tpPhotos(); }
+        else if (k === 'caption' || k === 'capStyle') tpRedraw(Number(el.getAttribute('data-i')));
       });
     });
+    st.photos.forEach(function (p, i) { if (!p.w) tpSize(p, i); });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-tpmag]'), tpGestures);
+    Array.prototype.forEach.call(box.querySelectorAll('[data-tpzoom]'), function (el) {
+      el.addEventListener('input', function () { var p = st.photos[Number(el.getAttribute('data-tpzoom'))], c = p.crop || { x: 0.5, y: 0.5 }; tpCrop(p, { x: c.x, y: c.y, z: Number(el.value) }); tpView(Number(el.getAttribute('data-tpzoom'))); });
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-tpcenter]'), function (el) {
+      el.addEventListener('click', function () { var i = Number(el.getAttribute('data-tpcenter')); st.photos[i].crop = null; tpRedraw(i); });
+    });
+  }
+  /* move and zoom a test photo like a customer does in the shop's photo builder: crop {x, y, z} (functions/crop.js) */
+  var TP_ZMAX = 4;
+  function tpClamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+  function tpFrame(p) { return (S.frames && S.frames[p.frame]) || { id: 'none', window: [0, 0, 600, 600] }; }
+  function tpRegion(p) {
+    var w = tpFrame(p).window, c = p.crop || { x: 0.5, y: 0.5, z: 1 };
+    var s = Math.max(w[2] / p.w, w[3] / p.h) * tpClamp(c.z || 1, 1, TP_ZMAX);
+    var rw = Math.min(p.w, w[2] / s), rh = Math.min(p.h, w[3] / s);
+    return { left: tpClamp(c.x * p.w - rw / 2, 0, p.w - rw), top: tpClamp(c.y * p.h - rh / 2, 0, p.h - rh), width: rw, height: rh };
+  }
+  /* keeps the crop as the centre of what really shows (the region slides back inside the photo) */
+  function tpCrop(p, c) {
+    if (!p.w || !p.h) return;
+    var z = tpClamp(c.z || (p.crop && p.crop.z) || 1, 1, TP_ZMAX);
+    p.crop = { x: c.x == null ? 0.5 : c.x, y: c.y == null ? 0.5 : c.y, z: z };
+    var r = tpRegion(p), x = (r.left + r.width / 2) / p.w, y = (r.top + r.height / 2) / p.h;
+    p.crop = Math.abs(x - 0.5) < 1e-4 && Math.abs(y - 0.5) < 1e-4 && z === 1 ? null : { x: Math.round(x * 1e4) / 1e4, y: Math.round(y * 1e4) / 1e4, z: Math.round(z * 1e4) / 1e4 };
+  }
+  function tpMagnet(p) {
+    var f = tpFrame(p);
+    if (A.order && A.order.magnetSVG && S.frames && S.frames[f.id]) return A.order.magnetSVG(p.data, f, p.caption, p.w ? p : null);
+    return '<img src="' + p.data + '" alt="">';
+  }
+  function tpView(i) {
+    var p = tpState().photos[i], el = document.querySelector('[data-tpmag="' + i + '"]'); if (!el || !p || !p.w) return;
+    var inner = el.querySelector('svg svg'), r = tpRegion(p);
+    if (inner) inner.setAttribute('viewBox', r.left + ' ' + r.top + ' ' + r.width + ' ' + r.height);
+    var z = document.querySelector('[data-tpzoom="' + i + '"]'); if (z && Math.abs(Number(z.value) - ((p.crop && p.crop.z) || 1)) > 1e-3) z.value = String((p.crop && p.crop.z) || 1);
+  }
+  function tpRedraw(i) {
+    var p = tpState().photos[i], el = document.querySelector('[data-tpmag="' + i + '"]'); if (!el || !p) return;
+    el.innerHTML = tpMagnet(p);
+    tpView(i);
+  }
+  /* photos restored from the saved sheet come without their size: read it from the picture */
+  function tpSize(p, i) {
+    if (p.sizing || !p.data) return;
+    p.sizing = true;
+    var im = new Image();
+    im.onload = function () { p.w = im.naturalWidth; p.h = im.naturalHeight; p.sizing = false; tpRedraw(i); };
+    im.onerror = function () { p.sizing = false; };
+    im.src = p.data;
+  }
+  function tpGestures(box) {
+    var i = Number(box.getAttribute('data-tpmag')), ptrs = {}, g = null;
+    var pts = function () { return Object.keys(ptrs).map(function (k) { return ptrs[k]; }); };
+    var mid = function () { var a = pts(), x = 0, y = 0; a.forEach(function (q) { x += q.x; y += q.y; }); return { x: x / a.length, y: y / a.length }; };
+    var spread = function () { var a = pts(); return a.length < 2 ? 0 : Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); };
+    function begin() {
+      var p = tpState().photos[i], w = tpFrame(p).window, r = tpRegion(p), rect = box.getBoundingClientRect();
+      g = { x: (r.left + r.width / 2) / p.w, y: (r.top + r.height / 2) / p.h, z: (p.crop && p.crop.z) || 1, k: (600 / rect.width) * (r.width / w[2]), at: mid(), d: spread() };
+    }
+    box.addEventListener('pointerdown', function (e) {
+      var p = tpState().photos[i]; if (!p || !p.w) return;
+      e.preventDefault();
+      try { box.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY }; begin(); box.classList.add('dragging');
+    });
+    box.addEventListener('pointermove', function (e) {
+      if (!ptrs[e.pointerId] || !g) return;
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var p = tpState().photos[i], now = mid();
+      var z = tpClamp(g.d > 0 && spread() > 0 ? g.z * spread() / g.d : g.z, 1, TP_ZMAX), k = g.k * g.z / z;
+      tpCrop(p, { x: g.x - (now.x - g.at.x) * k / p.w, y: g.y - (now.y - g.at.y) * k / p.h, z: z });
+      tpView(i);
+    });
+    function lift(e) { if (!ptrs[e.pointerId]) return; delete ptrs[e.pointerId]; if (pts().length) begin(); else { g = null; box.classList.remove('dragging'); } }
+    box.addEventListener('pointerup', lift);
+    box.addEventListener('pointercancel', lift);
+    box.addEventListener('wheel', function (e) {
+      var p = tpState().photos[i]; if (!p || !p.w) return;
+      e.preventDefault();
+      var c = p.crop || { x: 0.5, y: 0.5, z: 1 };
+      tpCrop(p, { x: c.x, y: c.y, z: (c.z || 1) * Math.exp(-e.deltaY * 0.002) }); tpView(i);
+    }, { passive: false });
   }
   function tpAddFiles(files) {
     var st = tpState();
@@ -760,7 +848,7 @@
         c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
         var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
         URL.revokeObjectURL(url);
-        st.photos.push({ name: file.name || 'Photo', data: c.toDataURL('image/jpeg', 0.9), frame: 'none', caption: '', capStyle: '', qty: 1 });
+        st.photos.push({ name: file.name || 'Photo', data: c.toDataURL('image/jpeg', 0.9), w: c.width, h: c.height, crop: null, frame: 'none', caption: '', capStyle: '', qty: 1 });
         tpPhotos(); tpList();
       };
       im.onerror = function () { URL.revokeObjectURL(url); h.toast('Couldn’t open ' + (file.name || 'that photo') + '. Try a JPG.', true); };
@@ -791,7 +879,7 @@
       border: st.border || '#FFFFFF',
       designs: st.designs.map(function (d) { return { id: d.id, qty: d.qty, border: st.perItem && d.border ? d.border : null }; }),
       photos: st.photos.map(function (p) {
-        var o = { name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle || null, qty: p.qty, border: st.perItem && p.border ? p.border : null };
+        var o = { name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle || null, crop: p.crop || null, qty: p.qty, border: st.perItem && p.border ? p.border : null };
         if (p.saved) o.saved = p.saved; else o.data = p.data;
         return o;
       })
