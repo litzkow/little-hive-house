@@ -65,23 +65,44 @@ async function backfillFees(limit = 40) {
   return { fixed };
 }
 
-/* deletePhotos (daily): customer photos are kept 90 days after upload, then deleted, as the privacy page promises.
-   That leaves time to make, ship and reprint (problems are reported within 30 days of delivery). Goes with them: the
-   small copies the admin shows (thumbs/uploads/...) and the order print sheets (orders/<id>/...), which hold the photos. */
-const KEEP_DAYS = 90;
-async function deletePhotos(now = Date.now(), days = KEEP_DAYS) {
-  const bucket = deps.bucket(), cutoff = now - days * 86400000;
+/* deletePhotos (daily), as the privacy page says: photos in a paid order are kept 1 year (time to make, ship, reprint
+   and order the same photos again), photos that never became an order (a checkout left halfway) only 30 days.
+   The small copies the admin shows (thumbs/uploads/...) follow their photo; print sheets (orders/<id>/...), which hold
+   the photos, and the photos sent with a return (returns/...) are kept 1 year. */
+const KEEP_ORDERED_DAYS = 365, KEEP_UNORDERED_DAYS = 30;
+const stem = (p) => String(p || "").replace(/^thumbs\//, "").replace(/\.[A-Za-z0-9]+$/, "");
+async function deletePhotos(now = Date.now()) {
+  const bucket = deps.bucket(), day = 86400000;
+  // every photo used in a paid order (reprints too) -> when it was paid
+  const paid = new Map();
+  const q = await deps.db().collection("orders").get();
+  q.docs.forEach((d) => {
+    const o = d.data();
+    const at = Date.parse(o.paidAt || "");
+    if (!Number.isFinite(at) || o.status === "pending") return;
+    (o.items || []).forEach((it) => (it.photos || []).forEach((ph) => {
+      const k = stem(ph && ph.path);
+      if (k && (!paid.has(k) || paid.get(k) < at)) paid.set(k, at);
+    }));
+  });
   let deleted = 0;
-  for (const prefix of ["uploads/", "thumbs/uploads/", "orders/"]) {
+  const drop = async (f) => { try { await f.delete(); deleted += 1; } catch (err) { console.warn("[deletePhotos]", f.name, err.message); } };
+  for (const prefix of ["uploads/", "thumbs/uploads/", "orders/", "returns/", "thumbs/returns/"]) {
     const [files] = await bucket.getFiles({ prefix });
     for (const f of files) {
-      const t = Date.parse((f.metadata && f.metadata.timeCreated) || "");
-      if (!Number.isFinite(t) || t > cutoff) continue;
-      try { await f.delete(); deleted += 1; } catch (err) { console.warn("[deletePhotos]", f.name, err.message); }
+      const made = Date.parse((f.metadata && f.metadata.timeCreated) || "");
+      if (!Number.isFinite(made)) continue;
+      let until;
+      if (prefix === "orders/" || /returns\//.test(prefix)) until = made + KEEP_ORDERED_DAYS * day;
+      else {
+        const paidAt = paid.get(stem(f.name));
+        until = paidAt ? paidAt + KEEP_ORDERED_DAYS * day : made + KEEP_UNORDERED_DAYS * day;
+      }
+      if (now > until) await drop(f);
     }
   }
-  if (deleted) console.log(`[deletePhotos] deleted ${deleted} file(s) older than ${days} days`);
+  if (deleted) console.log(`[deletePhotos] deleted ${deleted} old file(s)`);
   return { deleted };
 }
 
-module.exports = { deliveredFollowUp, backfillFees, lateShipments, deletePhotos, DAYS, KEEP_DAYS };
+module.exports = { deliveredFollowUp, backfillFees, lateShipments, deletePhotos, DAYS, KEEP_ORDERED_DAYS, KEEP_UNORDERED_DAYS };

@@ -180,8 +180,13 @@ async function adminRefund(data, auth) {
   U.requireAdmin(auth);
   need("STRIPE_SECRET_KEY");
   const { ref, id, order } = await loadOrder(data && data.orderId);
-  const reason = U.text(data && data.reason, 40);
-  const note = U.text(data && data.note, 1000);
+  return refundOrder(ref, id, order, { amount: data && data.amount, reason: U.text(data && data.reason, 40), note: U.text(data && data.note, 1000), by: U.who(auth) });
+}
+
+/** Refunds `amount` of an order through Stripe (adminRefund, and the returns in returns.js). */
+async function refundOrder(ref, id, order, { amount, reason, note = "", by = "admin" }) {
+  need("STRIPE_SECRET_KEY");
+  const data = { amount };
   let check;
   try { check = O.checkRefund(order, data && data.amount, reason); } catch (e) { fail("failed-precondition", e.message); }
   const pi = order.stripe && order.stripe.paymentIntent;
@@ -189,7 +194,7 @@ async function adminRefund(data, auth) {
   if (payments.isHeld(order)) {
     // not charged yet: a full refund just releases the card hold; part of it would need a charge first
     if (!check.full) fail("failed-precondition", "This order hasn't been charged yet. Refund the full amount to cancel it (the card hold is released), or tap \"Charge now\" first and then refund part of it.");
-    const r = await payments.releaseHold(ref, id, order, { by: U.who(auth), reason, note });
+    const r = await payments.releaseHold(ref, id, order, { by: by, reason, note });
     return { ok: true, released: true, amount: dollars(check.amountCents), refundedTotal: 0, status: "canceled", emailed: r.emailed };
   }
   const already = Math.round((order.refundedTotal || 0) * 100);
@@ -198,7 +203,7 @@ async function adminRefund(data, auth) {
     refund = await stripe.request("POST", "/refunds", {
       payment_intent: pi, amount: check.amountCents,
       reason: reason === "duplicate" ? "duplicate" : "requested_by_customer",
-      metadata: { orderId: id, orderNumber: order.number || "", reason, note: note.slice(0, 450), by: U.who(auth) },
+      metadata: { orderId: id, orderNumber: order.number || "", reason, note: note.slice(0, 450), by: by },
     }, { idempotencyKey: `refund-${id}-${already}-${check.amountCents}` });
   } catch (err) {
     throw stripe.friendly(err, "making the refund");
@@ -713,6 +718,7 @@ async function adminLastTestSheet(data, auth) {
 }
 
 module.exports = {
+  refundOrder, _internal: { photoUrl },
   adminDeleteOrder, adminTestSheet, adminLastTestSheet, deletable,
   adminPreviewEmail, claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
   adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet,

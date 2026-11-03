@@ -10,7 +10,7 @@ B = None   # the build module, set by build()
 E = None
 
 NOINDEX = '<meta name="robots" content="noindex">\n</head>'
-UPDATED = "October 10, 2026"
+UPDATED = "November 3, 2026"
 SUPPORT = "support@littlehivehouse.com"
 
 
@@ -245,6 +245,33 @@ def page_track():
 """
     page("track.html", "Track your order", "Track a Little Hive House order with your order number and email.", None, body, ("orders.js",))
 
+
+
+# ------------------------------------------------------------------ start a return (assets/return.js, functions/returns.js)
+def page_return():
+    body = f"""
+<main id="main" data-page="return">
+  {head_block([("Returns & refunds", "returns.html"), ("Start a return", None)], "Start a return", "Something wrong, or changed your mind? Sort it out here in a minute. Use the order number from your confirmation email (it looks like LHH&#8209;1042) and the email you ordered with.")}
+  <section class="tight">
+    <div class="wrap ret-wrap">
+      {NOSCRIPT}
+      {soon("Returns online are opening soon", f"Until then, email us at <a href=\"mailto:{SUPPORT}\">{SUPPORT}</a> with your order number and a photo if something is wrong. We reply within one business day.",
+            '<a class="btn btn-small" href="contact.html">Contact us</a><a class="btn btn-ghost btn-small" href="returns.html">Returns policy</a>')}
+      <div id="st-content" hidden>
+        <form class="panel track-form" id="ret-find" novalidate>
+          <div class="field"><label for="r-num">Order number</label><input id="r-num" name="number" placeholder="LHH-1042" autocomplete="off" autocapitalize="characters" spellcheck="false" required></div>
+          <div class="field"><label for="r-email">Email</label><input id="r-email" name="email" type="email" autocomplete="email" inputmode="email" required></div>
+          <button type="submit" class="btn btn-honey">Find my order</button>
+          <p class="msg err" id="ret-msg" role="alert" hidden></p>
+        </form>
+        <div id="ret-out" class="ret-out" hidden></div>
+        <p class="track-alt">How returns work: <a href="returns.html">returns &amp; refunds</a>.</p>
+      </div>
+    </div>
+  </section>
+</main>
+"""
+    page("return.html", "Start a return", "Start a return or report a problem with a Little Hive House order.", None, body, ("return.js",), noindex=True)
 
 def page_thanks():
     body = f"""
@@ -514,15 +541,17 @@ def page_policies():
         ("promise", "Our promise", """<p>If your order arrives <strong>damaged, misprinted, defective or isn’t what you ordered</strong>, contact us within <strong>30 days of delivery</strong> and we’ll send a free reprint or give you a full refund for those items, your choice. You don’t need to send anything back. A photo of the problem is all we need.</p>"""),
         ("custom", "Custom and photo items", """<p>Photo magnets and big-order packages are made just for you from your photos, names or artwork, so we can’t take them back if you change your mind. We’ll always reprint or refund them if they arrive damaged or have a defect we caused, such as a printing error, a misaligned frame or a wrong caption.</p>
 <p>Because we print exactly what you upload, blurry or low-resolution photos are not a defect. Our photo builder warns you when a photo looks too small, and if a photo looks like it will print poorly we try to let you know before we print it.</p>"""),
-        ("change", "Changed your mind?", """<p>Ready-made designs from the shop can be returned unused, in their original packaging, within <strong>30 days of delivery</strong>. <a href="contact.html">Write to us</a> first and we’ll send the return address. Return shipping is paid by you, and we refund the price of the returned items once they reach us. Original shipping isn’t refunded.</p>"""),
+        ("change", "Changed your mind?", """<p>Ready-made designs from the shop can be returned unused, in their original packaging, within <strong>30 days of delivery</strong>. <a href="return.html">Start a return</a> and we send you a prepaid USPS return label. The return shipping comes out of your refund, and we refund the price you paid for the returned magnets as soon as they reach us. Original shipping isn’t refunded.</p>"""),
         ("cancel", "Canceling an order", """<p>You can cancel for a full refund until we start making your order, usually within the first business day. Email us with your order number as soon as you can. Once printing has started we can’t cancel photo magnets or packages.</p>"""),
         ("how", "How refunds work", """<p>Refunds go back to your original payment method through Stripe, our payment processor. We email you when we issue a refund; it usually shows on your statement within <strong>5 to 10 business days</strong>, depending on your bank.</p>
 <p>If you used a discount code, the refund is the amount you actually paid for those items.</p>"""),
-        ("start", "Start a return or report a problem", """<ol>
-<li>Email <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a> or use the <a href="contact.html">contact form</a> within 30 days of delivery.</li>
-<li>Include your order number (it looks like LHH&#8209;1042) and a photo if something is damaged or wrong.</li>
-<li>We reply within one business day with a reprint, a refund or return instructions.</li>
-</ol>"""),
+        ("start", "Start a return or report a problem", """<p>Do it yourself in a minute on the <a href="return.html"><strong>start a return</strong></a> page, within 30 days of delivery. You’ll need your order number (it looks like LHH&#8209;1042) and the email you ordered with.</p>
+<ul>
+<li><strong>Something wrong?</strong> Add a photo and choose a free reprint or a refund. We reply within one business day, and you don’t send anything back.</li>
+<li><strong>Changed your mind about ready-made designs?</strong> You get a prepaid USPS return label right away, with a QR code you can show at any Post Office if you don’t have a printer. The return shipping comes out of your refund, and you see the amount before you confirm. Your refund goes out by itself as soon as the package reaches us.</li>
+</ul>
+<p><a class="btn btn-honey btn-small" href="return.html">Start a return</a></p>
+<p>Prefer to write? Email <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a> or use the <a href="contact.html">contact form</a>.</p>"""),
     ])
 
     policy("privacy.html", "Privacy", "How Little Hive House collects, uses and protects your information and photos.",
@@ -541,7 +570,7 @@ def page_policies():
 </ul>
 <p>We never sell or rent your information, and we don’t use advertising trackers.</p>"""),
         ("photos", "Your photos", """<p>Photos you upload are used <strong>only to print your order</strong>. We don’t share them, post them, use them in marketing or use them to train any AI. Only the two of us can see them.</p>
-<p>Uploaded photos are <strong>deleted automatically 90 days after upload</strong>, which gives us time to make, ship and reprint if needed. Want them gone sooner? Email us and we’ll delete them right away.</p>"""),
+<p>Photos in an order are kept for <strong>1 year</strong>, so we can reprint them if something goes wrong and you can order the same magnets again. Photos you upload but never order are <strong>deleted after 30 days</strong>. Both are deleted automatically. Want them gone sooner? Email us and we’ll delete them right away.</p>"""),
         ("partners", "Services we use", """<p>We use a few trusted services to run the shop. Each one only gets what it needs:</p>
 <ul>
 <li><strong>Google Firebase</strong> stores customer accounts, orders and uploaded photos on secure Google Cloud servers, and runs the small programs behind checkout.</li>
@@ -554,7 +583,7 @@ def page_policies():
 <p>We use Google Analytics to understand how people use the site, for example which collections are visited most, which pages are slow to lead anywhere, and roughly where visitors come from. It sets its own cookies and tells us things in totals, like how many visits came from a state; it doesn’t give us your name or email, and we don’t sell any of it. You can opt out with Google’s <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener">opt-out add-on</a> or your browser’s tracking protection.</p>
 <p>After you place an order, Google may ask you, in a small window on the thank-you page, whether you’d like to rate your experience with us (Google Customer Reviews). It’s optional; if you agree, Google emails you once after your order arrives.</p>"""),
         ("keep", "How long we keep things", """<ul>
-<li>Uploaded photos: 90 days, then deleted automatically.</li>
+<li>Photos in an order: 1 year, then deleted automatically. Photos never ordered: 30 days.</li>
 <li>Order records: 7 years, because tax and accounting rules require it.</li>
 <li>Your account: until you ask us to delete it.</li>
 <li>Email list: until you unsubscribe.</li>
@@ -589,6 +618,7 @@ def build(module):
     page_orders()
     page_order()
     page_track()
+    page_return()
     page_thanks()
     page_favorites()
     page_contact()

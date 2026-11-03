@@ -1081,6 +1081,7 @@ window.LHH_PT = {
 "(or Plain paper), 100%. Dark ink only: kraft has no white. Let it dry a minute before putting the magnets in. The first time, try one envelope to see which way it goes in.": "(ou Papel comum), 100%. Só tinta escura: no kraft não existe branco. Espere secar um minuto antes de colocar os ímãs. Na primeira vez, teste com um envelope para ver de que lado ele entra.",
 "In the printed kraft envelope: the magnets, a logo magnet, a business card and a thank-you card; close it with the round sticker and put it in the bubble mailer (": "No envelope kraft impresso: os ímãs, um ímã da logo, um cartão de visita e um cartão de agradecimento; feche com o adesivo redondo e coloque no envelope acolchoado (",
 "Visits": "Visitas",
+"Returns": "Devoluções",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

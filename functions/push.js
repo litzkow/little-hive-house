@@ -17,7 +17,7 @@ const U = require("./util");
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
   admin_new_order: "orders", admin_contact: "messages", admin_suggestion: "messages", admin_quote: "quotes", admin_dispute: "disputes",
-  admin_delivery_check: "delivery", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", push_test: null,
+  admin_delivery_check: "delivery", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", push_test: null,
 };
 const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
 const COLL = "adminPush";
@@ -132,6 +132,13 @@ function message(kind, data) {
       const zero = !(Number(s.gaSales) > 0) && !(Number(s.gaTax) > 0);
       return { title: `🧾 Sales tax de ${p.label || "o mês passado"}`, body: zero ? `Declarar zerado até ${p.dueLabel || "dia 20"} (sem vendas na Georgia).` : `Declarar ${money(s.gaTax)} de imposto até ${p.dueLabel || "dia 20"}. Passo a passo no e-mail.`,
         url: "/admin/#reports", tag: `sales-tax-${p.year}-${p.month}`, urgency: "normal" };
+    }
+    case "admin_return": {
+      const r = d.ret || {};
+      const n = Number(r.magnets) || 0, what = `${n} ${n === 1 ? "ímã" : "ímãs"}`;
+      return r.kind === "changed_mind"
+        ? { title: "↩️ Devolução iniciada", body: `${r.number || ""} · ${firstName(r.name) || "Cliente"} vai devolver ${what}. O reembolso sai sozinho quando chegar.`, url: "/admin/#returns", tag: `return-${r.id || Date.now()}`, urgency: "normal" }
+        : { title: "⚠️ Cliente relatou um problema", body: `${r.number || ""} · ${what} · ${clip(r.reasonLabel, 40)}. Veja as fotos e aprove.`, url: "/admin/#returns", tag: `return-${r.id || Date.now()}`, urgency: "high" };
     }
     case "push_test":
       return { title: "🐝 Notificações ativadas", body: "É assim que os avisos da Little Hive House vão chegar neste aparelho.", url: "/admin/#settings", tag: "push-test", urgency: "normal" };

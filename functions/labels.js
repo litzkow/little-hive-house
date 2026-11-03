@@ -245,4 +245,4 @@ async function adminLabelPdf(data, auth) {
   return { ok: true, url: link.url, half };
 }
 
-module.exports = { prudentOz, SAFETY_OZ, adminLabelPdf, setHalfSheet, halfSheetPdf, pngSize, FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };
+module.exports = { _internal: { settings, fromAddress, toAddress, parcel, pickRate }, prudentOz, SAFETY_OZ, adminLabelPdf, setHalfSheet, halfSheetPdf, pngSize, FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };

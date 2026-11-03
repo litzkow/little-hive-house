@@ -25,6 +25,7 @@ const push = lazy("./push");
 const newsletter = lazy("./newsletter");
 const labels = lazy("./labels");
 const analytics = lazy("./analytics");
+const returns = lazy("./returns");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -60,6 +61,10 @@ exports.requestQuote = callable("requestQuote", pub);
 exports.sendPasswordReset = callable("sendPasswordReset", pub);
 exports.welcome = callable("welcome", pub);
 exports.submitReview = callable("submitReview", pub);
+// returns from the site (returns.js): find the order, price a change-of-mind return, start it (label or photos)
+exports.returnLookup = callable("returnLookup", returns);
+exports.returnQuote = callable("returnQuote", returns, null, { timeoutSeconds: 60 });
+exports.returnStart = callable("returnStart", returns, null, { timeoutSeconds: 120 });
 
 /* ---------- signed-in customers (their own orders, email confirmation) ---------- */
 exports.myOrders = callable("myOrders", customer);
@@ -96,6 +101,8 @@ exports.adminTestSheet = callable("adminTestSheet", admin, null, { timeoutSecond
 exports.adminLastTestSheet = callable("adminLastTestSheet", admin);
 exports.adminDeleteOrder = callable("adminDeleteOrder", admin);
 // the "Visitas" page: Google Analytics (analytics.js)
+exports.adminReturnDecide = callable("adminReturnDecide", returns, null, { timeoutSeconds: 300, memory: "1GiB" });
+exports.adminReturnPhotos = callable("adminReturnPhotos", returns);
 exports.adminAnalytics = callable("adminAnalytics", analytics, null, { timeoutSeconds: 60 });
 exports.adminAnalyticsLive = callable("adminAnalyticsLive", analytics, null, { timeoutSeconds: 30 });
 
@@ -122,6 +129,7 @@ exports.trackShipments = onSchedule({ region: REGION, schedule: "every 2 hours",
   await tracking().trackShipments();
   await payments().checkHolds().catch((err) => console.warn("[checkHolds] failed", err.message));
   await scheduled().backfillFees().catch((err) => console.warn("[backfillFees] failed", err.message));
+  await returns().checkReturns().catch((err) => console.warn("[checkReturns] failed", err.message));
 });
 
 /* ---------- every 3 hours: the 28-day visits report stays fresh (analytics.js warm) ---------- */

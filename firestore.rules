@@ -33,6 +33,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // returns (functions/returns.js): admins only; customers see theirs through returnLookup. Only Cloud Functions write.
+    match /returns/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // reviews: published ones are public (query where('status', '==', 'published')); admins see all.
     match /reviews/{id} {
       allow read: if resource.data.status == 'published' || isAdmin();

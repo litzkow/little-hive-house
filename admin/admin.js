@@ -432,6 +432,7 @@
       route();
       /* background: badges for reviews */
       loadCol('reviews').then(updateBadges).catch(function () {});
+      loadCol('returns').then(updateBadges).catch(function () {});
     }).catch(function (e) {
       if (/permission/i.test((e.code || '') + e.message)) return gateNoAdmin('Firestore said no: ' + friendlyError(e) + ' Try “Activate admin access” again.');
       gate('<h1>Couldn’t load the orders</h1><p class="err">' + esc(friendlyError(e)) + '</p><button class="btn btn-honey" onclick="location.reload()">Try again</button>');
@@ -441,7 +442,7 @@
   /* ====================================================================== shell + router */
   var NAV = [
     ['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['customers', 'Customers', 'customers'], ['reports', 'Reports', 'reports'], ['visits', 'Visits', 'visits'], ['plan', 'Growth plan', 'growth'],
-    ['sep'], ['discounts', 'Discounts', 'discounts'], ['links', 'Payment links', 'links'], ['reviews', 'Reviews', 'reviews'],
+    ['sep'], ['discounts', 'Discounts', 'discounts'], ['links', 'Payment links', 'links'], ['returns', 'Returns', 'refund'], ['reviews', 'Reviews', 'reviews'],
     ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail'], ['sep'], ['testprint', 'Test print', 'print'], ['settings', 'Settings', 'settings']
   ];
   function navHTML() {
@@ -541,7 +542,8 @@
 
   function updateBadges() {
     var c = { orders: S.orders.filter(function (o) { var s = R.stage(o); return s === 'to_fulfil' || s === 'in_production'; }).length,
-              reviews: (S.reviews || []).filter(function (r) { return (r.status || 'pending') === 'pending'; }).length };
+              reviews: (S.reviews || []).filter(function (r) { return (r.status || 'pending') === 'pending'; }).length,
+              returns: (S.returns || []).filter(function (r) { return r.status === 'requested'; }).length };
     $$('[data-count]').forEach(function (el) {
       var n = c[el.getAttribute('data-count')];
       el.hidden = !n; el.textContent = n > 99 ? '99+' : n || '';
