@@ -16,7 +16,7 @@ function answers(body) {
     if (!n) return rep(["dateRange"], r.metrics.map((m) => m.name), [["cur", 12, 9, 15, 60, 95.5, 0.62, 1400, 30, 1, 4], ["prev", 6, 6, 7, 20, 60, 0.5, 400, 0, 0, 1]]);
     if (n === "date") return rep(["date"], ["activeUsers", "sessions", "screenPageViews"], [["20261102", 4, 5, 20], ["20261103", 8, 10, 40]]);
     if (n === "country,countryId") return rep(["country", "countryId"], ["activeUsers", "sessions"], [["United States", "US", 10, 12], ["Brazil", "BR", 2, 3], ["(not set)", "", 1, 1]]);
-    if (n === "region") return rep(["region"], ["activeUsers"], [["Georgia", 6], ["Florida", 4]]);
+    if (n === "region,countryId") return rep(["region", "countryId"], ["activeUsers"], [["Georgia", "US", 6], ["State of Sao Paulo", "BR", 1], ["Florida", "US", 4], ["(not set)", "CA", 1]]);
     if (n === "city,region,countryId") return rep(["city", "region", "countryId"], ["activeUsers"], [["Atlanta", "Georgia", "US", 5], ["(not set)", "", "US", 3]]);
     if (n === "userAgeBracket") return rep([n], ["activeUsers"], [["35-44", 3], ["25-34", 5]]);
     if (n === "pagePath") return rep(["pagePath"], ["screenPageViews", "activeUsers", "userEngagementDuration"],
@@ -67,7 +67,7 @@ test("the report: totals against the period before, places, collections, the fun
   assert.equal(r.totals.purchaseRevenue, 30);
   assert.deepEqual(r.series[1], { date: "2026-11-03", users: 8, visits: 10, views: 40 });
   assert.deepEqual(r.countries.map((c) => c.id), ["US", "BR"]);   // no "(not set)"
-  assert.equal(r.states[0].name, "Georgia");
+  assert.deepEqual(r.states.map((x) => [x.name, x.id]), [["Georgia", "US"], ["Florida", "US"], ["State of Sao Paulo", "BR"]]);
   assert.deepEqual(r.cities, [{ name: "Atlanta", region: "Georgia", country: "US", value: 5 }]);
   assert.deepEqual(r.age.map((a) => a.name), ["25-34", "35-44"]);
   // /collections/fall.html and /collections/fall are the same page; ?x=1 is dropped

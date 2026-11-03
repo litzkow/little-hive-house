@@ -82,7 +82,7 @@ function requests(days) {
       { dateRanges: periods(days), metrics: TOTALS.map((name) => ({ name })) },
       { dateRanges: cur, dimensions: [{ name: "date" }], metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "screenPageViews" }], orderBys: [{ dimension: { dimensionName: "date" } }], limit: 400 },
       by(["country", "countryId"], ["activeUsers", "sessions"], { limit: 30 }),
-      by("region", ["activeUsers"], { limit: 60, filter: { filter: { fieldName: "countryId", stringFilter: { value: "US" } } } }),
+      by(["region", "countryId"], ["activeUsers"], { limit: 100 }),
       by(["city", "region", "countryId"], ["activeUsers"], { limit: 30 }),
     ],
     [
@@ -150,7 +150,7 @@ function shape(batches, days) {
     totals: pick(tot.cur), previous: pick(tot.prev),
     series,
     countries: rows(A[2] || {}).filter((r) => !NOT_SET.has(r.country)).map((r) => ({ name: r.country, id: r.countryId, value: r.activeUsers })).sort((a, b) => b.value - a.value).slice(0, 30),
-    states: list(A[3] || {}, "region", "activeUsers", 60),
+    states: rows(A[3] || {}).filter((r) => !NOT_SET.has(r.region)).map((r) => ({ name: r.region, id: r.countryId, value: r.activeUsers })).sort((a, b) => b.value - a.value).slice(0, 60),
     cities: rows(A[4] || {}).filter((r) => !NOT_SET.has(r.city)).map((r) => ({ name: r.city, region: NOT_SET.has(r.region) ? "" : r.region, country: r.countryId, value: r.activeUsers }))
       .sort((a, b) => b.value - a.value).slice(0, 25),
     age: list(B[0] || {}, "userAgeBracket", "activeUsers").sort((a, b) => a.name.localeCompare(b.name)),

@@ -235,8 +235,8 @@
 
     var where = '<div class="three gap-top">' +
       card(T('Countries', 'Países'), esc(T('Visitors', 'Visitantes')), bars(d.countries, { label: function (c) { return flag(c.id) + countryName(c); } })) +
-      card(T('US states', 'Estados dos EUA'), esc(T('Visitors from the US', 'Visitantes dos EUA')), bars(d.states)) +
-      card(T('Cities', 'Cidades'), esc(T('Visitors', 'Visitantes')), bars(d.cities, { label: function (c) { return c.name + (c.region ? ', ' + c.region : ''); }, sub: function (c) { return c.country !== 'US' ? c.country : ''; } })) +
+      card(T('States and regions', 'Estados e regiões'), esc(T('Visitors, every country', 'Visitantes, de todos os países')), bars(d.states, { n: 12, label: function (x) { return flag(x.id) + String(x.name).replace(/^State of /, ''); }, sub: function (x) { return x.id ? countryName({ id: x.id, name: x.id }) : ''; } })) +
+      card(T('Cities', 'Cidades'), esc(T('Visitors', 'Visitantes')), bars(d.cities, { label: function (c) { return flag(c.country) + c.name + (c.region ? ', ' + String(c.region).replace(/^State of /, '') : ''); }, sub: function (c) { return c.country ? countryName({ id: c.country, name: c.country }) : ''; } })) +
       '</div>';
 
     var noDemo = !(d.age || []).length && !(d.gender || []).length;
