@@ -58,6 +58,18 @@ Só precisa se você mandar pacotes por UPS, FedEx ou DHL. Sem isso, esses conti
 3. Clique em **Generate Token** na parte **Live** (começa com `shippo_live_`).
 4. Ela vai no `FUNCTIONS_ENV` (passo 4.6) como `SHIPPO_API_KEY`. Não cole em chat.
 
+## 3e. Etiquetas USPS compradas pelo Hive Admin (Shippo)
+
+Com isso, o pedido ganha o botão **Comprar etiqueta**: o app sugere o peso, mostra o preço da USPS Ground Advantage, compra, guarda o PDF da etiqueta e marca o pedido como enviado (cobra o cartão e manda o rastreio ao cliente). As 30 primeiras etiquetas do mês não têm taxa do Shippo; depois, 7 centavos cada, que entram no custo da etiqueta nos relatórios.
+
+1. Crie a conta grátis em https://goshippo.com e cadastre um cartão em **Settings** → **Billing** (é ele que paga as postagens).
+2. **Settings** → **Advanced** → **API** → **Generate Token** na parte **Live** (começa com `shippo_live_`).
+3. No GitHub: **Settings** → **Secrets and variables** → **Actions** → secret `SHIPPO_API_KEY` (crie ou edite). Não cole em chat.
+4. **Actions** → **Deploy store backend (Firebase)** → **Run workflow** (ou peça para o Claude rodar).
+5. No Hive Admin: **Configurações** → **Etiquetas de envio**: o endereço de remetente (pode ser PO Box) e o peso do pacote.
+
+Uma chave de teste (`shippo_test_…`) faz etiquetas de exemplo que não podem ser postadas, e o pedido não muda.
+
 ## 3d. Dois valores para os e-mails
 
 1. `MAIL_POSTAL_ADDRESS`: o endereço postal da loja. A lei dos EUA (CAN-SPAM) exige um endereço físico nos e-mails de marketing. Pode ser uma caixa postal (PO Box) ou caixa de correio privada, se não quiserem mostrar o endereço de casa.

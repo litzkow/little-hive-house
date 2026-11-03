@@ -325,6 +325,21 @@
       (lines.length ? '<button class="btn btn-ghost btn-sm" type="button" data-act="copy" data-copy="' + esc(lines.join('\n')) + '">' + icon('copy') + 'Copy address</button>' : '') +
       '<a class="btn btn-ghost btn-sm" href="https://ship.pirateship.com/ship" target="_blank" rel="noopener">' + icon('external') + 'Open Pirate Ship</a></div></div>';
   }
+  /* USPS label bought right here (functions/labels.js, Shippo): price first, then buy; tracking, charge and email follow */
+  function labelBox(o) {
+    var L = (o.fulfillment || {}).label;
+    return '<div class="labelbuy">' +
+      (L && L.test ? '<p class="small muted">Test label made ' + esc(h.ago(L.at)) + ' (a sample, it can’t be mailed). <a href="' + esc(L.url) + '" target="_blank" rel="noopener">Open it</a></p>' : '') +
+      '<div class="row between wrap"><div class="stack" style="gap:2px;min-width:0;flex:1"><b>USPS label</b><span class="small muted">Buy it and print it here. The tracking, the charge and the customer’s email happen by themselves.</span></div>' +
+      '<button class="btn btn-honey" type="button" data-act="labelQuote">' + icon('truck') + 'Buy label</button></div>' +
+      '<div id="label-quote" hidden></div><p class="err" id="label-err" hidden></p></div>';
+  }
+  function labelPrint(o) {
+    var L = (o.fulfillment || {}).label;
+    if (!L || L.test || !L.url) return '';
+    return '<div class="row between wrap gap-top"><span class="small muted">USPS label bought ' + esc(h.ago(L.at)) + (L.cost != null ? ' · ' + money(L.cost) : '') + (L.oz ? ' · ' + esc(String(L.oz)) + ' oz' : '') + '</span>' +
+      '<a class="btn btn-honey btn-sm" href="' + esc(L.url) + '" target="_blank" rel="noopener">' + icon('external') + 'Print label</a></div>';
+  }
   function shipForm(o, again) {
     var f = o.fulfillment || {};
     var carrier = again ? f.carrier || 'usps' : 'usps';
@@ -363,14 +378,15 @@
     if (st === 'to_fulfil') {
       return '<section class="card tint"><div class="card-head"><div><h2>Make &amp; ship</h2><p class="sub">Paid ' + esc(h.ago(R.orderDate(o))) + ' · ' + h.plural(R.magnetsOf(o), 'magnet') + '</p></div>' +
         '<button class="btn btn-sm" data-act="startProd">Start production</button></div>' + holdBox(o) +
-        '<details class="panel" open><summary>Ready to ship? Add tracking</summary><div>' + pirateBox(o) + shipForm(o) + '</div></details></section>';
+        labelBox(o) + '<details class="panel" open><summary>Bought the label somewhere else? Type the tracking</summary><div>' + pirateBox(o) + shipForm(o) + '</div></details></section>';
     }
     if (st === 'in_production') {
       var since = (o.timeline || []).filter(function (t) { return t.status === 'in_production'; }).pop();
-      return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Add the tracking number when the parcel is ready.') + holdBox(o) + pirateBox(o) + shipForm(o) + '</section>';
+      return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Close the parcel, then buy the label.') + holdBox(o) + labelBox(o) +
+        '<details class="panel" open><summary>Bought the label somewhere else? Type the tracking</summary><div>' + pirateBox(o) + shipForm(o) + '</div></details></section>';
     }
     if (st === 'shipped') {
-      return '<section class="card">' + head('On its way', R.toMs(f.shippedAt) ? 'Shipped ' + esc(h.ago(f.shippedAt)) : '') + trackBox(o) + liveBox(o) +
+      return '<section class="card">' + head('On its way', R.toMs(f.shippedAt) ? 'Shipped ' + esc(h.ago(f.shippedAt)) : '') + trackBox(o) + labelPrint(o) + liveBox(o) +
         '<div class="row between gap-top"><span class="small muted">' + (f.lastCheckedAt ? 'Delivered already? You can mark it yourself: the customer gets a short note asking for a review.' : 'When tracking says delivered, mark it: the customer gets a short note asking for a review.') + '</span>' +
         '<button class="btn btn-honey btn-sm" data-act="delivered">' + icon('check') + 'Mark delivered</button></div>' +
         '<details class="panel"><summary>Fix the tracking number</summary><div>' + shipForm(o, true) + '</div></details></section>';
@@ -760,6 +776,44 @@
       });
     });
   }
+  ACT.labelQuote = function (el) {
+    var o = current; if (!o) return;
+    var box = document.getElementById('label-quote'), err = document.getElementById('label-err'), ozEl = document.getElementById('label-oz');
+    var data = { orderId: o.id };
+    if (ozEl && ozEl.value !== '') data.oz = Number(ozEl.value);
+    err.hidden = true;
+    h.busy(el, true);
+    h.call('adminLabelQuote', data).then(function (q) {
+      h.busy(el, false);
+      var r = q.rate, n = R.magnetsOf(o);
+      box.innerHTML = '<div class="labelq">' +
+        (q.test ? '<p class="callout calm small">' + icon('info') + '<span>Test key: this makes a sample label, the order stays as it is.</span></p>' : '') +
+        '<div class="row wrap" style="align-items:flex-end;gap:10px"><label class="field" style="flex:1;min-width:140px"><span>Weight of the closed package <span class="hint">(ounces)</span></span>' +
+        '<input class="input" id="label-oz" type="number" inputmode="decimal" min="0.1" step="0.1" value="' + esc(String(q.oz)) + '"></label>' +
+        '<button class="btn btn-ghost btn-sm" type="button" data-act="labelQuote">New price</button></div>' +
+        '<p class="small muted">' + (Math.abs(q.oz - q.suggestedOz) < 0.01 ? 'Suggested for ' + h.plural(n, 'magnet') + ' with the extras. Weighed it? Type the real weight, rounded up.' : 'Suggested: ' + esc(String(q.suggestedOz)) + ' oz.') + '</p>' +
+        '<div class="row between wrap gap-top"><div><b class="big">' + money(r.amount) + '</b> <span class="small muted">' + esc(r.service) + (r.days ? ' · <span>about ' + h.plural(r.days, 'day') + '</span>' : '') + '</span></div>' +
+        '<button class="btn btn-honey" type="button" data-act="labelBuy" data-rate="' + esc(r.rateId) + '" data-amount="' + esc(String(r.amount)) + '" data-oz="' + esc(String(q.oz)) + '">' + icon('truck') + 'Buy and ship · ' + money(r.amount) + '</button></div>' +
+        '<p class="tiny muted">' + (held(o) ? 'Buying it charges their card ' + money(R.pricing(o).total) + ', marks the order shipped and emails them the tracking.' : 'Buying it marks the order shipped and emails them the tracking.') + '</p></div>';
+      box.hidden = false;
+    }).catch(function (e) { h.busy(el, false); err.textContent = h.friendlyError(e); err.hidden = false; });
+  };
+  ACT.labelBuy = function (el) {
+    var o = current; if (!o) return;
+    var err = document.getElementById('label-err');
+    err.hidden = true;
+    h.busy(el, true);
+    h.call('adminBuyLabel', { orderId: o.id, rateId: el.getAttribute('data-rate'), amount: Number(el.getAttribute('data-amount')), oz: Number(el.getAttribute('data-oz')) })
+      .then(function (res) { return h.refreshOrder(o.id).then(function () { return res; }); })
+      .then(function (res) {
+        h.updateBadges();
+        if (res.test) h.toast('Test label made. Open it from the order.');
+        else if (res.shipped) h.toast(held(o) ? 'Label bought, card charged and marked shipped. Print the label.' : 'Label bought and marked shipped. Print the label.');
+        else h.toast('Label bought, but marking it shipped failed: ' + (res.shipError || '') + ' Use the tracking form with ' + res.label.tracking + '.', true);
+        rerender();
+      })
+      .catch(function (e) { h.busy(el, false); err.textContent = h.friendlyError(e); err.hidden = false; });
+  };
   ACT.capture = function (el) {
     var o = current;
     if (!o) return;
