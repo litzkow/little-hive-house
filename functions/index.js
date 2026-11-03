@@ -23,6 +23,7 @@ const tracking = lazy("./tracking");
 const payments = lazy("./payments");
 const push = lazy("./push");
 const newsletter = lazy("./newsletter");
+const labels = lazy("./labels");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -68,6 +69,8 @@ exports.sendVerifyEmail = callable("sendVerifyEmail", customer);
 exports.claimAdmin = callable("claimAdmin", admin);
 exports.adminSetStatus = callable("adminSetStatus", admin);
 exports.adminShip = callable("adminShip", admin);
+exports.adminLabelQuote = callable("adminLabelQuote", labels, null, { timeoutSeconds: 60 });
+exports.adminBuyLabel = callable("adminBuyLabel", labels, null, { timeoutSeconds: 120 });
 exports.adminCapture = callable("adminCapture", admin);
 exports.adminPush = callable("adminPush", push);
 exports.adminMarkDelivered = callable("adminMarkDelivered", admin);

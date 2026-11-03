@@ -585,3 +585,8 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 /* a new version is ready (admin.js checkUpdate) */
 .newver { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 10px); z-index: 95; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); box-shadow: var(--shadow); font-weight: 600; font-size: 15px; }
 @media (min-width: 900px) { .newver { left: auto; width: 420px; } }
+
+/* USPS label (admin-order.js labelBox) */
+.labelbuy { border: 1.5px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); display: grid; gap: 10px; margin-bottom: 12px; }
+.labelq { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.labelq .big { font-size: 22px; }

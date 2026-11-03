@@ -15,7 +15,7 @@ const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = requi
 const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, startupInvestment: 1112.92, stripeTaxPct: 0.5, incomeTaxPct: 25,
-  printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
+  printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1, packageBaseOz: 2.5, magnetOz: 0.45 };   // labels: the package and each magnet (oz)   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -401,6 +401,15 @@ async function adminSaveSettings(data, auth) {
     const c = require("./printsheet").borderColour(String(s.printBorderColor), null);
     if (!c) fail("invalid-argument", "The border colour should look like #FFFFFF.");
     out.printBorderColor = c;
+  }
+  if (s.shipFrom && typeof s.shipFrom === "object") {
+    const a = s.shipFrom, t = (k, max) => U.text(a[k], max);
+    const sf = { name: t("name", 60), company: t("company", 60), street1: t("street1", 80), street2: t("street2", 80), city: t("city", 50),
+      state: t("state", 20).toUpperCase(), zip: t("zip", 10), phone: t("phone", 20) };
+    if (!sf.street1 || !sf.city || !/^[A-Z]{2}$/.test(sf.state) || !/^\d{5}(-\d{4})?$/.test(sf.zip)) {
+      fail("invalid-argument", "The return address needs a street, a city, a 2-letter state (like GA) and a ZIP code.");
+    }
+    out.shipFrom = sf;
   }
   if (!Object.keys(out).length) fail("invalid-argument", "Nothing to save.");
   out.updatedAt = nowIso();

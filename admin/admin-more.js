@@ -928,11 +928,12 @@
       '<p class="small muted" style="margin-top:8px">Admins are the emails in <code>ADMIN_EMAILS</code> (see SETUP.md). A new admin signs up on the shop’s account page, opens this page and taps “Activate admin access”.</p>' +
       '<div class="row gap-top"><button class="btn btn-ghost btn-sm" data-act="theme">' + esc(themeText()) + '</button><button class="btn btn-ghost btn-sm" data-act="signout">' + icon('logout') + 'Sign out</button></div></section>' +
       notifCard() + installCard() +
-      printCard(s) + '</div></div>';
+      printCard(s) + shipCard(s) + '</div></div>';
     return {
       title: 'Settings', html: html, after: function () {
         loadNotif();
         wirePrint();
+        wireShip();
         var f = $('#set-form');
         f.addEventListener('input', function () {
           var mc = Number(f.magnetUnitCost.value) || 0, pk = Number(f.packagingCost.value) || 0;
@@ -983,6 +984,41 @@
       h.busy(btn, true, 'Saving…');
       h.call('adminSaveSettings', out).then(function () {
         S.settings = R.settingsWithDefaults(Object.assign({}, S.settings, out)); h.busy(btn, false); h.toast('Saved. New print sheets use it.');
+      }).catch(function (e) { h.busy(btn, false); err.textContent = h.friendlyError(e); err.hidden = false; });
+    });
+  }
+  /* ---------- USPS labels (functions/labels.js reads these) ---------- */
+  function shipCard(s) {
+    var a = s.shipFrom || {}, fld = function (name, label, val, extra) {
+      return '<label class="field"><span>' + esc(label) + '</span><input class="input" name="' + name + '" value="' + esc(val || '') + '"' + (extra || '') + '></label>';
+    };
+    return '<section class="card"><div class="card-head"><h2>Shipping labels</h2></div><form class="stack" id="ship-set-form" novalidate>' +
+      '<p class="small muted" style="margin-top:0">The return address printed on the USPS labels you buy from an order (a PO Box works too), and what a package weighs, so the app can suggest the weight.</p>' +
+      fld('name', 'Name on the label', a.name || 'Little Hive House', ' autocomplete="organization"') +
+      fld('street1', 'Street address or PO Box', a.street1, ' autocomplete="address-line1"') +
+      fld('street2', 'Apt, site, suite (optional)', a.street2, ' autocomplete="address-line2"') +
+      '<div class="grid-2">' + fld('city', 'City', a.city, ' autocomplete="address-level2"') +
+      '<div class="grid-2">' + fld('state', 'State', a.state, ' maxlength="2" autocapitalize="characters" placeholder="GA"') + fld('zip', 'ZIP', a.zip, ' inputmode="numeric" maxlength="10"') + '</div></div>' +
+      '<div class="grid-2"><label class="field"><span>Package with the extras</span><span class="input-unit"><input class="input" name="packageBaseOz" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(String(s.packageBaseOz)) + '"> oz</span>' +
+      '<span class="hint">Mailer, thank-you card, business card, sticker and the logo magnet, without the order’s magnets.</span></label>' +
+      '<label class="field"><span>Each magnet</span><span class="input-unit"><input class="input" name="magnetOz" type="number" inputmode="decimal" min="0" step="0.01" value="' + esc(String(s.magnetOz)) + '"> oz</span>' +
+      '<span class="hint">Weigh 10 magnets and divide by 10.</span></label></div>' +
+      '<p class="err" id="ship-set-err" hidden></p><div class="row end"><button class="btn btn-honey" type="submit">Save shipping</button></div></form></section>';
+  }
+  function wireShip() {
+    var f = $('#ship-set-form'); if (!f) return;
+    f.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var err = $('#ship-set-err'), v = function (k) { return f[k].value.trim(); };
+      err.hidden = true;
+      var sf = { name: v('name'), street1: v('street1'), street2: v('street2'), city: v('city'), state: v('state').toUpperCase(), zip: v('zip') };
+      if (!sf.street1 || !sf.city || !/^[A-Z]{2}$/.test(sf.state) || !/^\d{5}(-\d{4})?$/.test(sf.zip)) { err.textContent = 'Fill in the street, city, a 2-letter state (like GA) and the ZIP code.'; err.hidden = false; return; }
+      var out = { shipFrom: sf, packageBaseOz: Math.round(Number(f.packageBaseOz.value) * 10) / 10, magnetOz: Math.round(Number(f.magnetOz.value) * 100) / 100 };
+      if (!(out.packageBaseOz >= 0) || !(out.magnetOz >= 0)) { err.textContent = 'The weights should be numbers in ounces.'; err.hidden = false; return; }
+      var btn = f.querySelector('button[type=submit]');
+      h.busy(btn, true, 'Saving…');
+      h.call('adminSaveSettings', out).then(function () {
+        S.settings = R.settingsWithDefaults(Object.assign({}, S.settings, out)); h.busy(btn, false); h.toast('Saved. New labels use it.');
       }).catch(function (e) { h.busy(btn, false); err.textContent = h.friendlyError(e); err.hidden = false; });
     });
   }
