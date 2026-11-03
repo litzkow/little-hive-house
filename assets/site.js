@@ -3,7 +3,7 @@
   var PRICE = 5, BUNDLE_N = 3, BUNDLE_PRICE = 12;
   var SHIPPING = 4.95, FREE_SHIP_AT = 35;
   var VOLUME = [[100, 25], [50, 20], [20, 10]];
-  /* when an order placed today arrives (assets/delivery.js), shown in the top strip, the quick view and the cart */
+  /* when an order placed today arrives (assets/delivery.js), shown in the quick view, the cart and the shipping page */
   var ETA = '';
   try { if (window.LHHDelivery) ETA = LHHDelivery.arrival(); } catch (e) { ETA = ''; }
   if (ETA) document.querySelectorAll('[data-eta]').forEach(function (el) { el.textContent = 'about ' + ETA; });

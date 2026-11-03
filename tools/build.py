@@ -170,7 +170,7 @@ def header(pg, active):
         return line
     subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
-<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><a class="s2" href="{pg.p}shipping.html">Order today, arrives <span data-eta>in about 1–2 weeks</span></a><span class="dot d3" aria-hidden="true">·</span><span class="s3">Handmade in small batches</span>{social_strip()}</div>
+<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span>{social_strip()}</div>
 
 <header class="site-header">
   <div class="wrap header-row">
