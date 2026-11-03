@@ -152,7 +152,7 @@ async function adminBuyLabel(data, auth) {
   if (prev && prev.tracking && !prev.test && !(data && data.again)) {
     fail("already-exists", "This order already has a label. Open it from the order, or buy a new one only if that one wasn't used.");
   }
-  const tx = await shippo("/transactions/", { rate: rateId, label_file_type: "PDF_4x6", async: false, metadata: `order ${id}` });
+  const tx = await shippo("/transactions/", { rate: rateId, label_file_type: "PDF", async: false, metadata: `order ${id}` });
   if (tx.status !== "SUCCESS" || !tx.tracking_number || !tx.label_url) {
     const msg = (tx.messages || []).map((m) => m && m.text).filter(Boolean).join(" ");
     fail("unavailable", `The label wasn't bought${msg ? `: ${msg}` : "."} Nothing was charged for it.`);
