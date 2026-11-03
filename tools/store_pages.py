@@ -493,7 +493,8 @@ def policy(path, title, desc, lede, sections):
 def page_policies():
     policy("shipping.html", "Shipping", "How Little Hive House makes and ships your order: production times, USPS Ground Advantage, costs and tracking.",
            "Every order is made by hand in our little house near Atlanta, Georgia, then sent with USPS.", [
-        ("making", "How long it takes to make", """<p>Most orders are printed, pressed and packed within <strong>3 to 5 business days</strong> (Monday to Friday, not counting US holidays). Photo magnets take the same time.</p>
+        ("making", "How long it takes to make", """<p class="eta-callout">Ordering today? Most US orders arrive <strong data-eta>in about 1–2 weeks</strong>.</p>
+<p>Most orders are printed, pressed and packed within <strong>3 to 5 business days</strong> (Monday to Friday, not counting US holidays). Photo magnets take the same time.</p>
 <p>Big-order packages (weddings, businesses, parties, teams) ship <strong>7 to 10 business days after you approve the proof</strong>. If you have a date in mind, tell us when you order and we’ll say honestly whether we can make it.</p>"""),
         ("delivery", "Delivery", """<p>We ship with <strong>USPS Ground Advantage</strong>, which usually arrives <strong>2 to 5 business days</strong> after it ships. Add the time to make your order and most packages arrive within one to two weeks.</p>
 <p>We ship to addresses in the United States (including APO/FPO) and Canada. Canadian orders travel with USPS international service, usually take 1 to 3 weeks, and any customs fees are paid on delivery.</p>"""),

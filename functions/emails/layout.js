@@ -280,7 +280,7 @@ function page(opts) {
       `<p class="lh-t" style="margin:14px 0 0;font-family:${FD};font-weight:700;font-size:13px;line-height:18px;letter-spacing:2.6px;text-transform:uppercase;color:${C.ink}">Little Hive House</p>` +
       small("Handmade fridge magnets and little gifts, made by hand in small batches.", "6px 0 0") +
       small(`Questions? Just reply, or write to ${a(`mailto:${SUPPORT}`, SUPPORT)}`) +
-      small(a(L.site, L.host)) +
+      small(a(L.site, L.host) + (L.shipping ? ` · ${a(L.shipping, "Shipping")}` : "") + (L.returns ? ` · ${a(L.returns, "Returns")}` : "")) +
       (opts.reason ? small(esc(opts.reason)) : "") +
       (unsub ? small(`${a(unsub, "Unsubscribe")} from these emails at any time.`) : "") +
       (postal ? small(esc(postal)) : "");
@@ -326,7 +326,7 @@ ${blocks.map((b) => b.html).join("\n")}
   const textBody = blocks.map((b) => b.text).filter(Boolean).join("\n\n");
   const footerText = admin
     ? `--\nLittle Hive House store alert\n${L.adminHome}`
-    : ["--", "Little Hive House · handmade fridge magnets and little gifts", `Questions? Just reply, or write to ${SUPPORT}`, L.site,
+    : ["--", "Little Hive House · handmade fridge magnets and little gifts", `Questions? Just reply, or write to ${SUPPORT}`, L.site, L.shipping ? `Shipping: ${L.shipping}` : "", L.returns ? `Returns: ${L.returns}` : "",
       opts.reason || "", unsub ? `Unsubscribe: ${unsub.replace(/^mailto:/, "")}` : "", postal].filter(Boolean).join("\n");
   const text = `${admin ? "LITTLE HIVE HOUSE · STORE ALERT" : "LITTLE HIVE HOUSE"}\n\n${textBody}\n\n${footerText}\n`;
   return { html, text: text.replace(/\n{3,}/g, "\n\n") };

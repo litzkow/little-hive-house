@@ -6,6 +6,7 @@ const deps = require("./deps");
 const stripe = require("./stripe");
 const mail = require("./mail");
 const { priceCart, allocate, dollars, cents } = require("./pricing");
+const Delivery = require("./delivery");
 const O = require("./orders");
 const U = require("./util");
 let printsheetMod = null;
@@ -65,7 +66,7 @@ function sessionParams({ orderId, priced, email, tax = false }) {
       shipping_rate_data: {
         type: "fixed_amount", fixed_amount: { amount: ship, currency: "usd" },
         display_name: ship ? "Standard shipping" : "Free shipping",
-        delivery_estimate: { minimum: { unit: "business_day", value: 3 }, maximum: { unit: "business_day", value: 10 } },
+        delivery_estimate: { minimum: { unit: "business_day", value: Delivery.MAKE[0] + Delivery.SHIP[0] }, maximum: { unit: "business_day", value: Delivery.MAKE[1] + Delivery.SHIP[1] } },
         ...(tax ? { tax_behavior: "exclusive", tax_code: TAX_SHIPPING } : {}),
       },
     }],

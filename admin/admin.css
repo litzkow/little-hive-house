@@ -548,3 +548,27 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
   .boot .cell:nth-child(odd) { fill: var(--honey, #F2A81D); }
   .boot .bee.b1 { transform: translate(126px, 22px); } .boot .bee.b2 { display: none; } .boot .drip { opacity: 0; }
 }
+
+/* Growth plan (admin-plan.js) */
+.plan-bar { height: 10px; border-radius: 999px; background: var(--sunk); overflow: hidden; margin: 4px 0 6px; }
+.plan-bar span { display: block; height: 100%; background: var(--honey, #E8A93B); border-radius: inherit; }
+.plan-why { display: block; font-size: 12.5px; color: var(--muted); font-weight: 400; white-space: nowrap; }
+.plan-need { display: block; white-space: normal; font-size: 13px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+.plan table.t td:first-child { white-space: normal; min-width: 130px; }
+.plan table.t th { white-space: normal; }
+.plan .plan-why { white-space: normal; }
+/* phone: each row becomes a small card, the column name on the left of each number */
+@media (max-width: 640px) {
+  .plan .table-wrap { overflow: visible; }
+  .plan table.t thead { display: none; }
+  .plan table.t, .plan table.t tbody, .plan table.t tr, .plan table.t td { display: block; width: 100%; }
+  .plan table.t tr { padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+  .plan table.t tbody tr:last-child { border-bottom: 0; }
+  .plan table.t td { border: 0; padding: 3px 0; }
+  .plan table.t td:first-child { padding-bottom: 6px; min-width: 0; }
+  .plan table.t td.num { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; text-align: right; white-space: normal; }
+  .plan table.t td.num::before { content: attr(data-label); color: var(--muted); font-size: 13.5px; text-align: left; }
+  .plan table.t td.num .v { text-align: right; }
+}
+.plan-h3 { font-size: 16px; margin: 18px 0 8px; }
+.plan-list { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }

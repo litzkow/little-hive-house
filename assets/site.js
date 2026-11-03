@@ -3,6 +3,10 @@
   var PRICE = 5, BUNDLE_N = 3, BUNDLE_PRICE = 12;
   var SHIPPING = 4.95, FREE_SHIP_AT = 35;
   var VOLUME = [[100, 25], [50, 20], [20, 10]];
+  /* when an order placed today arrives (assets/delivery.js), shown in the top strip, the quick view and the cart */
+  var ETA = '';
+  try { if (window.LHHDelivery) ETA = LHHDelivery.arrival(); } catch (e) { ETA = ''; }
+  if (ETA) document.querySelectorAll('[data-eta]').forEach(function (el) { el.textContent = 'about ' + ETA; });
   var KEY = 'lhh-cart';
   /* store: a package line, or a photo pack already uploaded to the store (it survives a canceled checkout) */
   function keep(l) { return l && (l.kind === 'package' || (l.kind === 'custom' && !!l.uploaded && Array.isArray(l.photos))); }
@@ -123,6 +127,21 @@
     var sn = $('ship-note');
     if (t.ship) { sn.textContent = 'Add ' + money(FREE_SHIP_AT - t.goods) + ' more for free US shipping.'; sn.classList.remove('free'); }
     else { sn.textContent = 'Your order ships free.'; sn.classList.add('free'); }
+    etaNote();
+  }
+
+  /* when it arrives (assets/delivery.js): the strip, the quick view and the cart all show the same dates */
+  function etaNote() {
+    var en = $('eta-note'); if (!en) return;
+    var pkg = cart.some(function (l) { return l.kind === 'package'; });
+    var other = cart.some(function (l) { return l.kind !== 'package'; });
+    en.textContent = '';
+    var txt = [];
+    if (other) txt.push(ETA ? 'Order today and it arrives about ' + ETA + ' in the US.' : 'Made by hand in 3–5 business days, then 2–5 days in the mail.');
+    if (pkg) txt.push('Big orders ship 7–10 business days after you approve the proof.');
+    en.appendChild(document.createTextNode(txt.join(' ') + ' '));
+    var a = document.createElement('a'); a.href = ROOT + 'shipping.html'; a.textContent = 'Shipping details';
+    en.appendChild(a);
   }
 
   var lastFocus = null;

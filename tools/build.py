@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "29"
+VERSION = "30"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -109,7 +109,7 @@ def seal(idp):
 
 NAV = [("shop.html", "Shop all", "shop"), ("collections/index.html", "Collections", "collections"),
        ("photo-magnets.html", "Photo magnets", "photo"), ("big-orders.html", "Big orders", "big"),
-       ("suggestions.html", "Share an idea", "ideas")]
+       ("shipping.html", "Shipping", "shipping"), ("suggestions.html", "Share an idea", "ideas")]
 
 
 def idea_strip(pg, lead="Don’t see your favorite?", text="Tell us the place, the pet or the saying and we might draw it next."):
@@ -170,7 +170,7 @@ def header(pg, active):
         return line
     subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
-<div class="strip"><span class="s1">Free US shipping on orders over $35</span><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span>{social_strip()}</div>
+<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><a class="s2" href="{pg.p}shipping.html">Order today, arrives <span data-eta>in about 1–2 weeks</span></a><span class="dot d3" aria-hidden="true">·</span><span class="s3">Handmade in small batches</span>{social_strip()}</div>
 
 <header class="site-header">
   <div class="wrap header-row">
@@ -420,7 +420,7 @@ def footer(pg):
 
 
 def chrome_end(pg, extra_js=()):
-    scripts = "\n".join(f'<script src="{pg.p}assets/{s}?v={VERSION}"></script>' for s in ("firebase-config.js", "site.js", "store.js", "checkout.js") + tuple(extra_js))
+    scripts = "\n".join(f'<script src="{pg.p}assets/{s}?v={VERSION}"></script>' for s in ("firebase-config.js", "delivery.js", "site.js", "store.js", "checkout.js") + tuple(extra_js))
     return f"""
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" hidden>
@@ -443,6 +443,7 @@ def chrome_end(pg, extra_js=()):
     <div class="tax-row"><span>Sales tax</span><span>Added at checkout</span></div>
     <div class="grand"><span>Total before tax</span><span id="t-total">$0</span></div>
     <p class="ship-note" id="ship-note"></p>
+    <p class="ship-note eta-note" id="eta-note"></p>
     <p class="ship-note" id="vol-note" hidden></p>
     <!-- store: checkout extras (assets/checkout.js shows them once the store is connected) -->
     <div class="co" id="co" hidden>
@@ -479,7 +480,8 @@ def chrome_end(pg, extra_js=()):
       <ul>
         <li>2 × 2 inch square magnet with rounded corners</li>
         <li>Glossy, scratch-resistant front and a strong magnet back</li>
-        <li>Printed, pressed and packed by hand</li>
+        <li>Printed, pressed and packed by hand in 3–5 business days</li>
+        <li class="qv-eta">Order today, it arrives <strong data-eta>in about 1–2 weeks</strong> in the US · <a href="{pg.p}shipping.html">Shipping details</a></li>
         <li>{deal().replace('<span class="deal">', '').replace('</span>', '')}, mix any collections</li>
       </ul>
       <button type="button" class="btn btn-honey" id="qv-add">Add to cart</button>

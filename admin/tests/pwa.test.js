@@ -120,7 +120,7 @@ test('offline: the cached shell is served; old shell caches are removed on activ
   handlers.activate({ waitUntil: (p) => { done = p; } });
   await done;
   assert.ok(store.get('deleted:hive-admin-shell-v0'));
-  assert.ok(!store.get('deleted:hive-admin-shell-v29'), 'current cache kept');
+  assert.ok(!store.get('deleted:' + /var CACHE = '([^']+)'/.exec(fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8'))[1]), 'current cache kept');
   assert.ok(!store.get('deleted:someone-else'), 'other caches untouched');
 });
 

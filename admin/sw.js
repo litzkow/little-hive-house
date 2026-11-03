@@ -6,8 +6,8 @@
    It also shows the owners' notifications (Web Push from functions/push.js: new orders, messages, card holds…). */
 'use strict';
 
-var CACHE = 'hive-admin-shell-v29';
-var SHELL = ['./', 'index.html', 'admin.css', 'boot.js', 'i18n-pt.js', 'i18n.js', 'reports.js', 'zip.js', 'admin.js', 'admin-order.js', 'admin-more.js',
+var CACHE = 'hive-admin-shell-v30';
+var SHELL = ['./', 'index.html', 'admin.css', 'boot.js', 'i18n-pt.js', 'i18n.js', 'reports.js', 'zip.js', 'admin.js', 'admin-order.js', 'admin-more.js', 'admin-plan.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', '../assets/favicon.svg'];
 
 function shellPaths() {

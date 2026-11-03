@@ -21,7 +21,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };
+  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, startupInvestment: 1112.92, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1 };
   var SALE_STATUSES = ['paid', 'in_production', 'shipped', 'delivered', 'refunded', 'partially_refunded'];
   var REASONS = [
     ['not_delivered', 'Never arrived'],
@@ -427,6 +427,49 @@
     return [head].concat(body).join('\r\n') + '\r\n';
   }
 
+
+  /* ---------- growth plan (admin-plan.js) ----------
+     What one sale of each product leaves, worked out like the cart does (bundle, volume discount, free shipping at $35)
+     with the costs in Settings: magnets + packaging, the usual label (the store pays it; shipping charged counts as income)
+     and the Stripe fee on the total. catalog = functions/catalog.json ({rules, packs}); PLAN_CATALOG when it can't load. */
+  var PLAN_CATALOG = {
+    rules: { designPrice: 5, bundle: { size: 3, price: 12 }, volume: [{ min: 100, pct: 25 }, { min: 50, pct: 20 }, { min: 20, pct: 10 }], shipping: 4.95, freeShippingAt: 35 },
+    packs: { 4: { size: 4, price: 14 }, 9: { size: 9, price: 25 }, 16: { size: 16, price: 40 }, 25: { size: 25, price: 65 }, 50: { size: 50, price: 120 } }
+  };
+  function planProducts(settings, catalog) {
+    var s = settingsWithDefaults(settings);
+    var c = catalog && catalog.rules && catalog.packs ? catalog : PLAN_CATALOG, r = c.rules;
+    var cents = function (d) { return Math.round(num(d) * 100); };
+    var vol = (r.volume || []).map(function (v) { return [num(v.min), num(v.pct)]; }).sort(function (a, b) { return b[0] - a[0]; });
+    var list = [{ key: 'design1', kind: 'design', n: 1, sub: cents(r.designPrice), bundle: 0 }];
+    if (r.bundle && r.bundle.size > 1) list.push({ key: 'design' + r.bundle.size, kind: 'design', n: num(r.bundle.size), sub: cents(r.designPrice) * r.bundle.size, bundle: cents(r.designPrice) * r.bundle.size - cents(r.bundle.price) });
+    Object.keys(c.packs).map(function (k) { return c.packs[k]; }).sort(function (a, b) { return a.size - b.size; }).forEach(function (pk) {
+      list.push({ key: 'pack' + pk.size, kind: 'photos', n: num(pk.size), sub: cents(pk.price), bundle: 0 });
+    });
+    return list.map(function (x) {
+      var tier = vol.find(function (v) { return x.n >= v[0]; }), pct = tier ? tier[1] : 0;
+      var goods = x.sub - x.bundle - Math.round((x.sub - x.bundle) * pct / 100);
+      var ship = goods >= cents(r.freeShippingAt) ? 0 : cents(r.shipping);
+      var total = goods + ship;
+      var make = x.n * s.magnetUnitCost + s.packagingCost, label = s.defaultLabelCost;
+      var fee = total / 100 * s.stripePct / 100 + s.stripeFixed;
+      var left = total / 100 - make - label - fee;
+      return { key: x.key, kind: x.kind, n: x.n, list: x.sub / 100, price: goods / 100, volPct: pct, shipCharged: ship / 100, total: total / 100,
+               make: round2(make), label: round2(label), fee: round2(fee), left: round2(left), perMagnet: round2(left / x.n) };
+    });
+  }
+  /* the shop so far: profit since the first sale and what is still missing to pay back what was put in */
+  function planSoFar(orders, settings, now) {
+    var s = settingsWithDefaults(settings);
+    var m = summarize(orders, s, { from: 0, to: (now || Date.now()) + 1 }, { months: 1200 });
+    var invested = s.startupInvestment;
+    return { invested: invested, profit: m.profit, magnets: m.magnets, orders: m.orders, netSales: m.netSales,
+             perMagnet: m.magnets ? round2(m.profit / m.magnets) : null, left: round2(Math.max(0, invested - m.profit)),
+             paidPct: invested > 0 ? Math.max(0, Math.min(100, round2(m.profit / invested * 100))) : 100 };
+  }
+  /* sales of one product needed to make `goal` dollars of profit (Infinity when the product loses money) */
+  function salesFor(goal, product) { return product.left > 0 ? Math.ceil(goal / product.left - 1e-9) : Infinity; }
+
   return {
     DEFAULT_SETTINGS: DEFAULT_SETTINGS, REASONS: REASONS, REASON_LABEL: REASON_LABEL, HOUR: HOUR, DAY: DAY,
     num: num, round2: round2, toMs: toMs, settingsWithDefaults: settingsWithDefaults, perSheet: perSheet,
@@ -436,6 +479,6 @@
     wasShipped: wasShipped, stage: stage, matchesTab: matchesTab, customerKey: customerKey, collectionOf: collectionOf,
     summarize: summarize, taxLines: taxLines, monthMetrics: monthMetrics, monthly: monthly, totalsOf: totalsOf, refundsByReason: refundsByReason, topItems: topItems,
     salesBetween: salesBetween, refundsBetween: refundsBetween, dailySales: dailySales, home: home, customers: customers,
-    csvCell: csvCell, toCSV: toCSV
+    csvCell: csvCell, toCSV: toCSV, PLAN_CATALOG: PLAN_CATALOG, planProducts: planProducts, planSoFar: planSoFar, salesFor: salesFor
   };
 });

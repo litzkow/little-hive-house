@@ -137,6 +137,14 @@ function refundReason(code) {
   return Object.prototype.hasOwnProperty.call(REFUND_REASONS, code) ? REFUND_REASONS[code] : "";
 }
 
+/** "Nov 9–17": when a package should arrive (../delivery.js). from = the order or ship date; opts {shipped, country}. "" when unknown. */
+function arrival(from, opts = {}) {
+  const d = toDate(from);
+  if (!d) return "";
+  const D = require("../delivery");
+  return D.arrival({ ...opts, from: D.today(STORE_TZ, d) });
+}
+
 /** Site links. `site` has no trailing slash. */
 function links(site) {
   const s = site;
@@ -186,6 +194,6 @@ function siteUrl(data) {
 
 module.exports = {
   DEFAULT_SITE, SUPPORT, COLLECTION_NAMES, FRAME_NAMES, CARRIERS, REFUND_REASONS,
-  esc, str, line, safeUrl, isEmail, num, money, toDate, fmtDate, daysSince, firstName, pretty, collectionName, frameName,
+  esc, str, line, safeUrl, isEmail, num, money, toDate, fmtDate, arrival, daysSince, firstName, pretty, collectionName, frameName,
   plural, carrierName, trackingUrl, refundReason, links, siteUrl, offText,
 };

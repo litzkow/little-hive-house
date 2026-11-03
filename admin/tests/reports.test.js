@@ -222,3 +222,21 @@ test('sales tax stays out of sales and profit; refunds give tax back in proporti
   assert.equal(year.taxOwed, 2.27);
   assert.equal(year.incomeTaxReserve, R.round2(year.profit * 0.3));
 });
+
+test('growth plan: each product priced like the cart (bundle, volume discount, free shipping) with the Settings costs', () => {
+  const catalog = require('../../functions/catalog.json');
+  const s = { magnetUnitCost: 0.44, packagingCost: 1.5, defaultLabelCost: 5, stripePct: 2.9, stripeFixed: 0.3 };
+  const P = R.planProducts(s, catalog), by = {};
+  P.forEach((p) => { by[p.key] = p; });
+  assert.equal(by.design1.total, 9.95);              // $5 + $4.95 shipping
+  assert.equal(by.design3.price, 12);                // 3 for $12
+  assert.equal(by.pack25.volPct, 10);
+  assert.equal(by.pack25.total, 58.5);               // 10% off, ships free
+  assert.equal(by.pack50.total, 96);                 // 20% off
+  assert.equal(by.pack9.left, 18.32);
+  assert.deepEqual(R.planProducts(s, null).map((p) => p.total), P.map((p) => p.total), 'fallback prices match catalog.json');
+  assert.equal(R.salesFor(100, { left: 18.32 }), 6);
+  assert.equal(R.salesFor(100, { left: -1 }), Infinity);
+  const so = R.planSoFar([], { startupInvestment: 1000 });
+  assert.equal(so.left, 1000); assert.equal(so.paidPct, 0);
+});

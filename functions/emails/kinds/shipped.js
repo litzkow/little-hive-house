@@ -13,6 +13,8 @@ module.exports = function shipped(data, { L }) {
   const tracking = F.line(f.tracking, 60);
   const url = F.trackingUrl(f.carrier, tracking, f.url) || L.track(num);
   const ad = O.address(order.shipping);
+  const country = String((order.shipping && order.shipping.address && order.shipping.address.country) || "US").toUpperCase();
+  const eta = F.arrival(f.shippedAt || new Date(), { shipped: true, country });
 
   const trackBox = Lay.box(
     `<table ${Lay.T} width="100%"><tr>` +
@@ -28,7 +30,8 @@ module.exports = function shipped(data, { L }) {
       Lay.hero({
         eyebrow: num ? `Order ${num}` : "Shipped",
         title: "They're on their way!",
-        lead: [first ? `Good news, ${first}! ` : "Good news! ", "Your magnets are packed snug and headed your way. The tracking page shows the expected delivery date."],
+        lead: [first ? `Good news, ${first}! ` : "Good news! ", "Your magnets are packed snug and headed your way. ",
+          eta ? (country === "CA" ? ["Canadian packages usually take 1 to 3 weeks, so expect it about ", { b: eta }, "."] : ["USPS usually delivers in 2 to 5 business days, so expect it about ", { b: eta }, "."]) : "The tracking page shows the expected delivery date."].flat(),
       }),
       Lay.progress(2),
       trackBox,

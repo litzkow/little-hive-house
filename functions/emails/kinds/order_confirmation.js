@@ -16,6 +16,12 @@ module.exports = function orderConfirmation(data, { L }) {
   // Guests (uid === null) have no account page; the backend may omit uid, then both buttons show.
   const viewUrl = order.uid === null || !id ? "" : L.order(id);
   const held = !!(order.payment && order.payment.state === "authorized");     // charge on ship
+  const country = String((order.shipping && order.shipping.address && order.shipping.address.country) || "US").toUpperCase();
+  const eta = O.items(order).some((i) => i.kind !== "package") ? F.arrival(order.paidAt || order.createdAt || new Date(), { country }) : "";
+  const etaBox = eta || hasPackage ? Lay.box(
+    `${Lay.label("Estimated arrival")}${Lay.bodyText(eta ? `<strong style="font-weight:600">${F.esc(eta)}</strong>` : "About 2 weeks after you approve the proof", { size: 18, lh: 26 })}` +
+    Lay.bodyText(F.esc(eta && hasPackage ? "Your big-order package ships 7 to 10 business days after you approve the proof." : country === "CA" ? "Canadian orders travel with USPS international and usually take 1 to 3 weeks." : "Made by hand in 3 to 5 business days, then 2 to 5 business days with USPS."), { size: 14, lh: 21, muted: true, margin: "6px 0 0" }),
+    `Estimated arrival: ${eta || "about 2 weeks after you approve the proof"}`, "honey", { pad: "18px 22px" }) : null;
 
   const next = [
     hasPackage
@@ -39,6 +45,7 @@ module.exports = function orderConfirmation(data, { L }) {
         lead: ["Your order is in and our hands are already itching to start. ", count ? `Here's everything that's coming your way${placed ? `, ordered ${placed}` : ""}.` : ""],
       }),
       Lay.progress(0),
+      etaBox,
       Lay.h2("Your order"),
       O.itemList(order, L),
       O.totals(order),
@@ -48,6 +55,7 @@ module.exports = function orderConfirmation(data, { L }) {
       order.notes ? Lay.p([{ b: "Your note to us: " }, F.line(order.notes, 400)], { muted: true, small: true }) : null,
       Lay.h2("What happens next"),
       Lay.steps(next),
+      Lay.p(["Shipping times, costs and what to do if a package is late: ", { a: "our shipping page", href: L.shipping }, "."], { muted: true, small: true }),
       Lay.buttons([
         viewUrl ? { href: viewUrl, label: "View your order", variant: "honey" } : null,
         { href: L.track(num), label: viewUrl ? "Track it" : "Track your order", variant: viewUrl ? "ghost" : "honey" },
