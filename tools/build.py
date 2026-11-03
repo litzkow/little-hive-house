@@ -53,7 +53,12 @@ DECOR_JS = "[" + ",".join(f"[{a},{b},'{c}']" for a, b, c in DECOR) + "]"
 
 BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
 CUR = ' aria-current="page"'
-TOTAL = sum(len(c["order"]) for c in COLLECTIONS)
+def count(c):
+    """Every design of a collection: the first ones and the ones behind "See more"."""
+    return len(c["order"]) + len(more_of(c))
+
+
+TOTAL = None   # set below, once more_of() exists
 
 
 class Page:
@@ -216,10 +221,10 @@ def header(pg, active):
 
 
 def tabs_links(pg, active):
-    items = [f'<a class="tab" href="{pg.p}shop.html"{CUR if active == "all" else ""}>All <small>{TOTAL}</small></a>']
+    items = [f'<a class="tab" href="{pg.p}shop.html"{CUR if active == "all" else ""}>All <small>{TOTAL_TEXT}</small></a>']
     for c in COLLECTIONS:
         cur = ' aria-current="page"' if c["slug"] == active else ""
-        items.append(f'<a class="tab"{season_attr(c)} href="{pg.p}collections/{c["slug"]}.html"{cur}>{E(c["name"])} <small>{len(c["order"])}</small></a>')
+        items.append(f'<a class="tab"{season_attr(c)} href="{pg.p}collections/{c["slug"]}.html"{cur}>{E(c["name"])} <small>{count(c)}</small></a>')
     return f"""<div class="tabs-bar">
   <nav class="wrap tabs" aria-label="Collections">
     {chr(10).join("    " + i for i in items).strip()}
@@ -229,9 +234,9 @@ def tabs_links(pg, active):
 
 
 def tabs_filters():
-    items = [f'<button type="button" class="tab" data-filter="all" aria-pressed="true">All <small>{TOTAL}</small></button>']
+    items = [f'<button type="button" class="tab" data-filter="all" aria-pressed="true">All <small>{TOTAL_TEXT}</small></button>']
     for c in COLLECTIONS:
-        items.append(f'<button type="button" class="tab" data-filter="{c["slug"]}" aria-pressed="false">{E(c["name"])} <small>{len(c["order"])}</small></button>')
+        items.append(f'<button type="button" class="tab" data-filter="{c["slug"]}" aria-pressed="false">{E(c["name"])} <small>{count(c)}</small></button>')
     return f"""<div class="tabs-bar">
   <div class="wrap tabs" role="group" aria-label="Filter by collection">
     {chr(10).join("    " + i for i in items).strip()}
@@ -276,7 +281,7 @@ def col_card(pg, col):
             picks += [(k["slug"], k["order"][depth]) for k in kids if depth < len(k["order"])]
             depth += 1
         fan = "".join(f'<span class="m">{pg.svg(c, sl, cls="fan-svg")}</span>' for c, sl in picks[:3])
-        n = sum(len(k["order"]) for k in kids)
+        n = sum(count(k) for k in kids)
         return f"""<li><a class="col-card" href="{pg.p}collections/{col["slug"]}.html">
   <div class="fan" aria-hidden="true">{fan}</div>
   <div class="col-body">
@@ -290,7 +295,7 @@ def col_card(pg, col):
   <div class="fan" aria-hidden="true">{fan}</div>
   <div class="col-body">
     <h3>{E(col["name"])}</h3>
-    <p>{E(col["tag"])} · {len(col["order"])} designs</p>
+    <p>{E(col["tag"])} · {count(col)} designs</p>
     <span class="more">Shop the collection →</span>
   </div>
 </a></li>"""
@@ -303,6 +308,11 @@ def has_art(col_slug, slug):
 def more_of(col):
     """The archived designs of a collection that come back behind "See more" (only those with a picture)."""
     return [s for s in col.get("more", []) if has_art(col["slug"], s)]
+
+
+TOTAL = sum(count(c) for c in COLLECTIONS)
+# what the site says (owners: "more than 1000", not the exact number)
+TOTAL_TEXT = f"{TOTAL // 100 * 100:,}+" if TOTAL >= 1000 else str(TOTAL)
 
 
 def more_button(n, what="designs"):
@@ -618,7 +628,7 @@ def doors(pg):
           <div class="fan" aria-hidden="true">{ours}</div>
           <div class="col-body">
             <p class="eyebrow">Our designs</p>
-            <h2>{TOTAL} original magnets</h2>
+            <h2>{TOTAL_TEXT} original magnets</h2>
             <p>Travel posters, skylines, seasons, star signs and more, drawn by us. ${PRICE} each.</p>
             <span class="btn">Shop our designs</span>
           </div>
@@ -649,7 +659,7 @@ def page_home():
       <div>
         <p class="eyebrow">Handmade magnets &amp; photo gifts</p>
         <h1>Our designs or your photos, <em>made by hand.</em></h1>
-        <p class="lede">{TOTAL} original magnet designs, and custom magnets made from your own pictures: weddings, grandkids, pets, trips. Each one is printed, pressed and packed in our little house.</p>
+        <p class="lede">{TOTAL_TEXT} original magnet designs, and custom magnets made from your own pictures: weddings, grandkids, pets, trips. Each one is printed, pressed and packed in our little house.</p>
         <div class="hero-actions">
           <a class="btn" href="shop.html">Shop our designs</a>
           <a class="btn" href="photo-magnets.html">Make photo magnets</a>
@@ -704,7 +714,7 @@ def page_home():
           <p class="eyebrow">Fresh from the hive</p>
           <h2>A few of our favorites</h2>
         </div>
-        <a class="btn btn-ghost btn-small" href="shop.html">See all {TOTAL} designs</a>
+        <a class="btn btn-ghost btn-small" href="shop.html">See all {TOTAL_TEXT} designs</a>
       </div>
       <div class="fridge">
         <ul class="products four">
@@ -801,7 +811,7 @@ def page_home():
           '"description":"Handmade fridge magnets and gifts, designed, printed and pressed in a small family studio near Atlanta, Georgia."},'
           '{"@type":"WebSite","name":"Little Hive House","url":"https://littlehivehouse.com/","publisher":{"@id":"https://littlehivehouse.com/#org"}}]}</script>\n')
     body = ld + body
-    write("index.html", head(pg, None, f"Handmade fridge magnets: {TOTAL} original designs in {len(COLLECTIONS)} collections, plus custom photo magnets and big orders for weddings and businesses.", "") + body + chrome_end(pg))
+    write("index.html", head(pg, None, f"Handmade fridge magnets: {TOTAL_TEXT} original designs in {len(COLLECTIONS)} collections, plus custom photo magnets and big orders for weddings and businesses.", "") + body + chrome_end(pg))
 
 
 def photo_tiles():
@@ -825,14 +835,14 @@ def page_shop():
   <div class="wrap page-head">
     <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Shop all</li></ol>
     <h1>All designs</h1>
-    <p class="lede">Pick a collection or search for a city, a sign or a saying.</p>
+    <p class="lede">Every magnet in the shop, {TOTAL_TEXT} designs in {len(COLLECTIONS)} collections. Pick a collection or search for a city, a sign or a saying.</p>
     <div class="head-row">
       <label class="search"><span class="visually-hidden">Search designs</span>
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6"/><path d="M13 13l5 5"/></svg>
         <input type="search" id="search" placeholder="Search designs" autocomplete="off">
       </label>
       {deal()} {vol_badge()}
-      <span class="count" id="result-count" aria-live="polite">{TOTAL} designs</span>
+      <span class="count" id="result-count" aria-live="polite" data-all="{TOTAL_TEXT} designs">{TOTAL_TEXT} designs</span>
     </div>
   </div>
 {tabs_filters()}
@@ -850,7 +860,7 @@ def page_shop():
   </section>
 </main>
 {footer(pg)}"""
-    write("shop.html", head(pg, "Shop all designs", f"All {TOTAL} Little Hive House magnet designs. Filter by collection or search.", "shop.html") + body + chrome_end(pg))
+    write("shop.html", head(pg, "Shop all designs", f"All {TOTAL_TEXT} Little Hive House magnet designs. Filter by collection or search.", "shop.html") + body + chrome_end(pg))
 
 
 def page_collections_index():
@@ -863,7 +873,7 @@ def page_collections_index():
   <div class="wrap page-head">
     <ol class="crumbs"><li><a href="../index.html">Home</a></li><li aria-current="page">Collections</li></ol>
     <h1>Collections</h1>
-    <p class="lede">From colorful travel posters to black and white skylines. Mix any of them: {BUNDLE[0]} designs for ${BUNDLE[1]}.</p>
+    <p class="lede">{len(COLLECTIONS)} collections, from colorful travel posters to black and white skylines. Mix any of them: {BUNDLE[0]} designs for ${BUNDLE[1]}.</p>
   </div>
 {tabs_links(pg, None)}
   <section class="tight">
@@ -882,8 +892,8 @@ def page_collections_index():
 def page_group(g):
     pg = Page("../")
     kids = group_kids(g)
-    n = sum(len(k["order"]) for k in kids)
-    chips = "".join(f'<a class="tab" href="{k["slug"]}.html">{E(k["name"])} <small>{len(k["order"])}</small></a>' for k in kids)
+    n = sum(count(k) for k in kids)
+    chips = "".join(f'<a class="tab" href="{k["slug"]}.html">{E(k["name"])} <small>{count(k)}</small></a>' for k in kids)
     cards = "\n".join(col_card(pg, k) for k in kids)
     extra_kids = [c for c in MORE_COLLECTIONS if c["slug"] in g.get("all", [])]
     cards += "\n" + "\n".join(col_card(pg, k).replace("<li", "<li data-more hidden", 1) for k in extra_kids)
@@ -897,7 +907,7 @@ def page_group(g):
           <p class="eyebrow">{E(k["tag"])}</p>
           <h2>{E(k["name"])}</h2>
         </div>
-        <a class="btn btn-ghost btn-small" href="{k["slug"]}.html">See all {len(k["order"])}</a>
+        <a class="btn btn-ghost btn-small" href="{k["slug"]}.html">See all {count(k)}</a>
       </div>
       <div class="fridge">
         <ul class="products">
@@ -955,7 +965,7 @@ def page_collection(col):
     <p class="eyebrow">{E(col["tag"])}</p>
     <h1>{E(col["name"])}</h1>
     <p class="lede">{E(col["blurb"])}</p>
-    <div class="head-row">{deal()} {vol_badge()}<span class="count">{len(col["order"])} designs · ${PRICE} each</span></div>
+    <div class="head-row">{deal()} {vol_badge()}<span class="count">{count(col)} designs · ${PRICE} each</span></div>
   </div>
 {tabs_links(pg, col["slug"])}
   <section class="tight">

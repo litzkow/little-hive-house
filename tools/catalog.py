@@ -488,3 +488,9 @@ for _arch in ALL_COLLECTIONS:
     _col = _copy.deepcopy(_arch)
     _col["order"], _col["more"] = _col["order"][:MORE_FIRST], _col["order"][MORE_FIRST:]
     MORE_COLLECTIONS.append(_col)
+
+# 3 Nov 2026, later: every collection is visible like the others (no "See more collections"), and Heritage has all its
+# countries again, Brasil included. Inside a collection the owners' picks still come first, the rest behind "See more".
+COLLECTIONS.extend(MORE_COLLECTIONS)
+MORE_COLLECTIONS = []
+GROUPS[0]["children"] = list(HERITAGE_ALL)

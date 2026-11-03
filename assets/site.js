@@ -288,15 +288,16 @@
       var term = (q.value || '').trim().toLowerCase();
       var shown = 0;
       items.forEach(function (it) {
-        var ok = (current === 'all' || it.getAttribute('data-collection') === current) &&
-                 (!term || it.getAttribute('data-search').indexOf(term) !== -1) &&
-                 (expanded || !!term || !it.hasAttribute('data-more'));   /* a search looks through every design */
-        it.hidden = !ok; if (ok) shown++;
+        var match = (current === 'all' || it.getAttribute('data-collection') === current) &&
+                    (!term || it.getAttribute('data-search').indexOf(term) !== -1);
+        /* the rest wait behind "See more" only on the full list: a collection or a search shows everything */
+        var ok = match && (expanded || !!term || current !== 'all' || !it.hasAttribute('data-more'));
+        it.hidden = !ok; if (match) shown++;
       });
       tabs.forEach(function (t) { t.setAttribute('aria-pressed', String(t.getAttribute('data-filter') === current)); });
-      countEl.textContent = shown + (shown === 1 ? ' design' : ' designs');
+      countEl.textContent = current === 'all' && !term && countEl.getAttribute('data-all') ? countEl.getAttribute('data-all') : shown + (shown === 1 ? ' design' : ' designs');
       none.hidden = shown !== 0;
-      if (moreBtn && !expanded) moreBtn.parentNode.hidden = !!term;
+      if (moreBtn && !expanded) moreBtn.parentNode.hidden = !!term || current !== 'all';
       var ask = $('no-results-idea');
       if (ask) ask.href = 'suggestions.html?kind=place' + (term ? '&idea=' + encodeURIComponent(q.value.trim()) : '');
     }
