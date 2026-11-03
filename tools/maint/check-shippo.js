@@ -9,6 +9,14 @@ const check = process.env.CHECK;
   if (check === "shippo") process.exit(/^shippo_/.test(key) ? 0 : 1);
   if (check === "quoted") process.exit(/^["']|["']$/.test(key) ? 0 : 1);
   if (check === "long") process.exit(key.length >= 30 ? 0 : 1);
+  if (check === "jwt") process.exit(/^ey/.test(key) ? 0 : 1);
+  if (check === "dots") process.exit(key.includes(".") ? 0 : 1);
+  if (check === "space") process.exit(/\s/.test(key) ? 0 : 1);
+  if (check === "long100") process.exit(key.length >= 100 ? 0 : 1);
+  if (check === "bearer") {
+    const r = await fetch("https://api.goshippo.com/carrier_accounts/?results=5", { headers: { Authorization: `Bearer ${key}` } });
+    process.exit(r.ok ? 0 : 1);
+  }
   const res = await fetch("https://api.goshippo.com/carrier_accounts/?results=50", { headers: { Authorization: `ShippoToken ${key}` } });
   if (check === "accepted") process.exit(res.ok ? 0 : 1);
   const j = await res.json().catch(() => ({}));

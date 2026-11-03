@@ -73,6 +73,26 @@ jobs:
         if: always() && inputs.task == 'check-shippo'
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: usps }
         run: node tools/maint/check-shippo.js
+      - name: "Shippo: parece um token (ey…)"
+        if: always() && inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: jwt }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: tem pontos"
+        if: always() && inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: dots }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: tem espaço no meio"
+        if: always() && inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: space }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: tem 100+ letras"
+        if: always() && inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: long100 }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: o Shippo aceita como Bearer"
+        if: always() && inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: bearer }
+        run: node tools/maint/check-shippo.js
       - name: Run
         if: inputs.task != 'check-shippo'
         env:
