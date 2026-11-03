@@ -445,6 +445,14 @@ def logo_magnets():
 BC_W, BC_H = 3.5 * IN, 2 * IN
 BC_LEFT, BC_TOP = 0.75 * IN, 0.5 * IN
 DARK = HexColor("#2B2118")
+# the colour runs past the outer cut lines, so a sheet that feeds a little crooked, or a cut a hair off, never leaves a
+# white edge on the cards along the sides of the sheet (the inner edges always meet the next card's colour)
+BC_BLEED = 0.125 * IN
+
+
+def bc_bleed(c, colour):
+    c.setFillColor(colour)
+    c.rect(BC_LEFT - BC_BLEED, BC_TOP - BC_BLEED, 2 * BC_W + 2 * BC_BLEED, 5 * BC_H + 2 * BC_BLEED, fill=1, stroke=0)
 
 
 def bc_slots():
@@ -536,14 +544,15 @@ def bc_marks(c):
     c.setStrokeColor(HexColor("#9A9A9A"))
     c.setLineWidth(0.4)
     L = 0.2 * IN
+    g = BC_BLEED + 0.04 * IN    # the marks start just outside the coloured area
     xs = [BC_LEFT + i * BC_W for i in range(3)]
     ys = [11 * IN - BC_TOP - i * BC_H for i in range(6)]
     for x in xs:
-        c.line(x, 11 * IN - BC_TOP + 0.06 * IN, x, 11 * IN - BC_TOP + 0.06 * IN + L)
-        c.line(x, BC_TOP - 0.06 * IN, x, BC_TOP - 0.06 * IN - L)
+        c.line(x, 11 * IN - BC_TOP + g, x, 11 * IN - BC_TOP + g + L)
+        c.line(x, BC_TOP - g, x, BC_TOP - g - L)
     for y in ys:
-        c.line(BC_LEFT - 0.06 * IN, y, BC_LEFT - 0.06 * IN - L, y)
-        c.line(8.5 * IN - BC_LEFT + 0.06 * IN, y, 8.5 * IN - BC_LEFT + 0.06 * IN + L, y)
+        c.line(BC_LEFT - g, y, BC_LEFT - g - L, y)
+        c.line(8.5 * IN - BC_LEFT + g, y, 8.5 * IN - BC_LEFT + g + L, y)
 
 
 def business_cards():
@@ -552,7 +561,8 @@ def business_cards():
     c = canvas.Canvas(str(path), pagesize=(8.5 * IN, 11 * IN))
     c.setTitle("Business cards · Little Hive House")
     c.setAuthor("Little Hive House")
-    for fn in (bc_front, bc_back):
+    for fn, colour in ((bc_front, CREAM), (bc_back, DARK)):
+        bc_bleed(c, colour)
         for x, y in bc_slots():
             fn(c, x, y)
         bc_marks(c)
