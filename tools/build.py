@@ -10,7 +10,7 @@ import re
 
 import datetime
 
-from catalog import ALL_COLLECTIONS, BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, PRICE, SEASONAL, SEASONS, VOLUME, title_for
+from catalog import ALL_COLLECTIONS, BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, HERITAGE_ALL, MORE_COLLECTIONS, PRICE, SEASONAL, SEASONS, VOLUME, title_for
 BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
 PARENT = {ch: g for g in GROUPS for ch in g["children"]}
 
@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "34"
+VERSION = "35"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -240,13 +240,14 @@ def tabs_filters():
 """
 
 
-def product(pg, col, slug, show_col=True):
+def product(pg, col, slug, show_col=True, more=False):
     t = title_for(col, slug)
     href = f'{pg.p}collections/{col["slug"]}.html'
     meta = (f'<p class="col"><a href="{href}">{E(col["name"])}</a></p>' if show_col
             else '<p class="spec">2 × 2 in magnet</p>')
     search = E(f'{t} {col["name"]} {col["tag"]}'.lower())
-    return f"""<li class="product" data-collection="{col["slug"]}" data-search="{search}">
+    extra = " data-more hidden" if more else ""
+    return f"""<li class="product" data-collection="{col["slug"]}" data-search="{search}"{extra}>
   <button type="button" class="product-art" data-view aria-label="See {E(t)} larger">{pg.svg(col["slug"], slug)}</button>
   <div class="product-info">
     <h3>{E(t)}</h3>
@@ -293,6 +294,20 @@ def col_card(pg, col):
     <span class="more">Shop the collection →</span>
   </div>
 </a></li>"""
+
+
+def has_art(col_slug, slug):
+    return (ROOT / f"assets/art/{col_slug}/{slug}.webp").exists()
+
+
+def more_of(col):
+    """The archived designs of a collection that come back behind "See more" (only those with a picture)."""
+    return [s for s in col.get("more", []) if has_art(col["slug"], s)]
+
+
+def more_button(n, what="designs"):
+    return (f'<div class="see-more"><button type="button" class="btn btn-ghost" data-see-more aria-expanded="false">'
+            f'See {n} more {what}</button></div>') if n else ""
 
 
 def deal():
@@ -803,12 +818,14 @@ def photo_tiles():
 def page_shop():
     pg = Page("")
     items = "\n".join(product(pg, c, s) for c in COLLECTIONS for s in c["order"])
+    extras = [(c, s) for c in COLLECTIONS for s in more_of(c)] + [(c, s) for c in MORE_COLLECTIONS for s in c["order"] + more_of(c) if has_art(c["slug"], s)]
+    items += "\n" + "\n".join(product(pg, c, s, more=True) for c, s in extras)
     body = f"""{header(pg, "shop")}
 <main id="main">
   <div class="wrap page-head">
     <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Shop all</li></ol>
     <h1>All designs</h1>
-    <p class="lede">Every magnet in the shop, {TOTAL} designs in {len(COLLECTIONS)} collections. Pick a collection or search for a city, a sign or a saying.</p>
+    <p class="lede">Pick a collection or search for a city, a sign or a saying.</p>
     <div class="head-row">
       <label class="search"><span class="visually-hidden">Search designs</span>
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6"/><path d="M13 13l5 5"/></svg>
@@ -825,6 +842,7 @@ def page_shop():
         <ul class="products four" id="all-products">
 {items}
         </ul>
+        {more_button(len(extras))}
         <p class="empty-results" id="no-results" hidden>No designs match that search. Try a city, a zodiac sign or a word like “coffee”, or <a id="no-results-idea" href="suggestions.html?kind=place">ask us to draw it</a>.</p>
       </div>
 {idea_strip(pg, "Looking for something we don’t have yet?")}
@@ -838,12 +856,14 @@ def page_shop():
 def page_collections_index():
     pg = Page("../")
     cards = "\n".join(col_card(pg, c) for c in top_level())
+    extra_cols = [c for c in MORE_COLLECTIONS if c["slug"] not in HERITAGE_ALL]
+    cards += "\n" + "\n".join(col_card(pg, c).replace("<li", "<li data-more hidden", 1) for c in extra_cols)
     body = f"""{header(pg, "collections")}
 <main id="main">
   <div class="wrap page-head">
     <ol class="crumbs"><li><a href="../index.html">Home</a></li><li aria-current="page">Collections</li></ol>
     <h1>Collections</h1>
-    <p class="lede">{len(COLLECTIONS)} collections, from colorful travel posters to black and white skylines. Mix any of them: {BUNDLE[0]} designs for ${BUNDLE[1]}.</p>
+    <p class="lede">From colorful travel posters to black and white skylines. Mix any of them: {BUNDLE[0]} designs for ${BUNDLE[1]}.</p>
   </div>
 {tabs_links(pg, None)}
   <section class="tight">
@@ -851,6 +871,7 @@ def page_collections_index():
       <ul class="col-grid">
 {cards}
       </ul>
+      {more_button(len(extra_cols), "collections")}
     </div>
   </section>
 </main>
@@ -864,6 +885,8 @@ def page_group(g):
     n = sum(len(k["order"]) for k in kids)
     chips = "".join(f'<a class="tab" href="{k["slug"]}.html">{E(k["name"])} <small>{len(k["order"])}</small></a>' for k in kids)
     cards = "\n".join(col_card(pg, k) for k in kids)
+    extra_kids = [c for c in MORE_COLLECTIONS if c["slug"] in g.get("all", [])]
+    cards += "\n" + "\n".join(col_card(pg, k).replace("<li", "<li data-more hidden", 1) for k in extra_kids)
     rows = []
     for k in kids:
         items = "\n".join(product(pg, k, s, show_col=False) for s in k["order"][:8])
@@ -903,6 +926,7 @@ def page_group(g):
       <ul class="col-grid">
 {cards}
       </ul>
+      {more_button(len(extra_kids), "countries")}
     </div>
   </section>
 {chr(10).join(rows)}
@@ -915,10 +939,12 @@ def page_group(g):
 def page_collection(col):
     pg = Page("../")
     items = "\n".join(product(pg, col, s, show_col=False) for s in col["order"])
-    idx = COLLECTIONS.index(col)
+    extra = more_of(col)
+    items += "\n" + "\n".join(product(pg, col, s, show_col=False, more=True) for s in extra)
+    idx = COLLECTIONS.index(col) if col in COLLECTIONS else -1
     others = [COLLECTIONS[(idx + k) % len(COLLECTIONS)] for k in (1, 2, 3)]
     more = "\n".join(col_card(pg, c) for c in others)
-    grp = PARENT.get(col["slug"])
+    grp = PARENT.get(col["slug"]) or next((g for g in GROUPS if col["slug"] in g.get("all", [])), None)
     parent_crumb = f'<li><a href="{grp["slug"]}.html">{E(grp["name"])}</a></li>' if grp else ""
     if grp:
         more = "\n".join(col_card(pg, c) for c in group_kids(grp) if c is not col)
@@ -939,6 +965,7 @@ def page_collection(col):
 {items}
         </ul>
       </div>
+      {more_button(len(extra))}
 {idea_strip(pg)}
     </div>
   </section>
@@ -1283,9 +1310,9 @@ def write_sitemap():
                ("photo-magnets.html", "0.8", ""), ("big-orders.html", "0.8", "")]
     for g in GROUPS:
         entries.append((f"collections/{g['slug']}.html", "0.8", ""))
-    for c in COLLECTIONS:
+    for c in COLLECTIONS + MORE_COLLECTIONS:
         imgs = "".join(img(c["slug"], s, c["titles"].get(s) or s.replace("-", " ").title())
-                       for s in c["order"] if (ROOT / f"assets/art/{c['slug']}/{s}.webp").exists())
+                       for s in c["order"] + c.get("more", []) if (ROOT / f"assets/art/{c['slug']}/{s}.webp").exists())
         entries.append((f"collections/{c['slug']}.html", "0.8", imgs))
     for p in ("contact.html", "suggestions.html", "shipping.html", "returns.html", "track.html", "privacy.html", "terms.html"):
         if (ROOT / p).exists():
@@ -1301,7 +1328,7 @@ def write_sitemap():
 
 def write_archived_redirects():
     """Collections taken off the site (kept in the archive) answer old links with a redirect to all collections."""
-    shown = {c["slug"] for c in COLLECTIONS} | {g["slug"] for g in GROUPS}
+    shown = {c["slug"] for c in COLLECTIONS + MORE_COLLECTIONS} | {g["slug"] for g in GROUPS}
     for c in ALL_COLLECTIONS:
         if c["slug"] not in shown:
             write(f"collections/{c['slug']}.html", '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -1314,7 +1341,7 @@ if __name__ == "__main__":
     page_home()
     page_shop()
     page_collections_index()
-    for c in COLLECTIONS:
+    for c in COLLECTIONS + MORE_COLLECTIONS:
         page_collection(c)
     for g in GROUPS:
         page_group(g)

@@ -256,13 +256,30 @@
     qvAdd.addEventListener('click', function () { setTimeout(function () { qv.close(); }, 150); });
   }
 
+  // "See more": the rest of the designs (or collections) come back behind one button (tools/build.py more_button)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-see-more]');
+    if (!b) return;
+    var box = b.closest('.wrap') || document;
+    if (box.querySelector('#all-products')) return;   /* the shop's own list: handled below with the search */
+    var first = null;
+    Array.prototype.forEach.call(box.querySelectorAll('[data-more]'), function (el) { el.hidden = false; el.removeAttribute('data-more'); if (!first) first = el; });
+    b.parentNode.remove();
+    if (first) { var f = first.querySelector('a, button'); if (f) f.focus({ preventScroll: true }); }
+  });
+
   // shop page: collection filter + search
   var grid = $('all-products');
   if (grid) {
     var items = Array.prototype.slice.call(grid.querySelectorAll('.product'));
     var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-filter]'));
     var q = $('search'), countEl = $('result-count'), none = $('no-results');
-    var current = 'all';
+    var current = 'all', expanded = false;
+    var moreBtn = grid.parentNode.querySelector('[data-see-more]');
+    if (moreBtn) moreBtn.addEventListener('click', function () {
+      expanded = true; moreBtn.parentNode.hidden = true; apply();
+      var first = grid.querySelector('[data-more]:not([hidden]) button'); if (first) first.focus({ preventScroll: true });
+    });
     var params = new URLSearchParams(location.search);
     var fromUrl = params.get('c');
     if (params.get('q')) q.value = params.get('q');
@@ -272,12 +289,14 @@
       var shown = 0;
       items.forEach(function (it) {
         var ok = (current === 'all' || it.getAttribute('data-collection') === current) &&
-                 (!term || it.getAttribute('data-search').indexOf(term) !== -1);
+                 (!term || it.getAttribute('data-search').indexOf(term) !== -1) &&
+                 (expanded || !!term || !it.hasAttribute('data-more'));   /* a search looks through every design */
         it.hidden = !ok; if (ok) shown++;
       });
       tabs.forEach(function (t) { t.setAttribute('aria-pressed', String(t.getAttribute('data-filter') === current)); });
       countEl.textContent = shown + (shown === 1 ? ' design' : ' designs');
       none.hidden = shown !== 0;
+      if (moreBtn && !expanded) moreBtn.parentNode.hidden = !!term;
       var ask = $('no-results-idea');
       if (ask) ask.href = 'suggestions.html?kind=place' + (term ? '&idea=' + encodeURIComponent(q.value.trim()) : '');
     }

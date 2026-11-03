@@ -1046,3 +1046,7 @@ html.studio-open { overflow: hidden; }
   .ret-qty { grid-column: 2; }
 }
 .ret-form .field .ret-radio input { width: 20px; height: 20px; min-height: 0; padding: 0; flex: none; }
+
+/* "See more" (tools/build.py more_button) */
+.see-more { display: flex; justify-content: center; margin: 22px 0 6px; }
+.see-more .btn { min-width: 220px; }

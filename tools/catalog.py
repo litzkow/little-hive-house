@@ -467,6 +467,24 @@ for _slug, _order in SHOWN.items():
     _col["order"] = list(_order)
     COLLECTIONS.append(_col)
 DISPLAY = list(SHOWN)
+HERITAGE_ALL = list(GROUPS[0]["children"])   # every heritage country in the archive
+GROUPS[0]["all"] = HERITAGE_ALL
 GROUPS[0]["children"] = list(HERITAGE)
 FEATURED = list(VITRINE)
 SEASONAL = {k: v for k, v in SEASONAL.items() if k in SHOWN}
+
+
+# ---- "See more" (owners, 3 Nov 2026): every archived design is back, behind a "See more" button. The owners' selection
+# above still comes first and is all a visitor sees at first; collections that weren't selected show their first
+# MORE_FIRST designs, then the rest behind the button, and the collections themselves sit behind "See more collections".
+MORE_FIRST = 9
+for _col in COLLECTIONS:
+    _arch = next(c for c in ALL_COLLECTIONS if c["slug"] == _col["slug"])
+    _col["more"] = [s for s in _arch["order"] if s not in _col["order"]]
+MORE_COLLECTIONS = []
+for _arch in ALL_COLLECTIONS:
+    if _arch["slug"] in SHOWN:
+        continue
+    _col = _copy.deepcopy(_arch)
+    _col["order"], _col["more"] = _col["order"][:MORE_FIRST], _col["order"][MORE_FIRST:]
+    MORE_COLLECTIONS.append(_col)
