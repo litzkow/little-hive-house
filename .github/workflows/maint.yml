@@ -93,6 +93,14 @@ jobs:
         if: always() && inputs.task == 'check-shippo'
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: bearer }
         run: node tools/maint/check-shippo.js
+      - name: "Shippo: é um link"
+        if: always() && inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: url }
+        run: node tools/maint/check-shippo.js
+      - name: "Shippo: tem @ (e-mail)"
+        if: always() && inputs.task == 'check-shippo'
+        env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: email }
+        run: node tools/maint/check-shippo.js
       - name: Run
         if: inputs.task != 'check-shippo'
         env:
