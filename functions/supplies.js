@@ -174,14 +174,34 @@ function cleanSupply(d) {
 }
 
 /** Writes the current estimate down as the new starting point, then applies `fn` to the quantity. */
-async function rebase(id, fn, extra = {}) {
+/* Learning: when the owners say what is really left ("Acabou", "Contei", "Ainda tem"), compare it with what the orders
+   were estimated to use since the last count, and move the rule halfway towards the real use. Only when the orders
+   used a fair part of it (noise otherwise), and never more than 4x up or down at once. */
+function learn(s, est, realLeft) {
+  if (s.per === "manual" || est.waiting) return null;
+  const extra = num(s.usedExtra), byOrders = est.used - extra, real = num(s.qty) - extra - realLeft;
+  if (!(byOrders > 0) || byOrders < Math.max(1, 0.15 * num(s.qty)) || !(real > 0)) return null;
+  const factor = Math.max(0.25, Math.min(4, real / byOrders));
+  if (Math.abs(factor - 1) < 0.05) return null;
+  return Math.round(num(s.rate) * (0.5 + 0.5 * factor) * 10000) / 10000;
+}
+
+/** Writes the current estimate down as the new starting point, then applies `fn` to the quantity.
+   teach: the new quantity is what is really there (counted, ran out, still have), so the rule can learn from it. */
+async function rebase(id, fn, extra = {}, teach = false) {
   const { list, cfg } = await load();
   const s = list.find((x) => x.id === id);
   if (!s) fail("not-found", "Material não encontrado.");
   const uses = usageList(await ordersSince(new Date(Date.parse(s.since || nowIso()) - 60 * 86400000).toISOString()), cfg);
-  const left = estimateIn(s, list, uses).left;
+  const est = estimateIn(s, list, uses);
   const at = nowIso();
-  const upd = { qty: r2(Math.max(0, fn(left))), since: at, usedExtra: 0, alertedAt: null, setAt: at, updatedAt: at, ...extra };
+  const qty = r2(Math.max(0, fn(est.left)));
+  const upd = { qty, since: at, usedExtra: 0, alertedAt: null, setAt: at, updatedAt: at, ...extra };
+  const rate = teach ? learn(s, est, qty) : null;
+  if (rate != null) {
+    upd.rate = rate;
+    upd.learned = (Array.isArray(s.learned) ? s.learned : []).concat([{ at, from: num(s.rate), to: rate }]).slice(-12);
+  }
   await deps.db().collection("supplies").doc(id).set(upd, { merge: true });
   return upd;
 }
@@ -205,7 +225,7 @@ async function adminSupplies(data, auth) {
     case "list": return view();
     case "bought": {
       if (!(q > 0)) fail("invalid-argument", "Quanto vocês compraram?");
-      await rebase(id, (left) => left + q, { lastBought: at });
+      await rebase(id, (left) => left + q, { lastBought: at, full: q });
       if (num(data.cost) > 0) {
         await db.collection("purchases").add({ date: U.text(data.date, 10) || at.slice(0, 10), item: U.text(data.item, 120) || "", supplyId: id, qty: q,
           cost: r2(num(data.cost)), store: U.text(data.store, 40) || "", by: who, createdAt: at });
@@ -213,8 +233,8 @@ async function adminSupplies(data, auth) {
       }
       return view();
     }
-    case "out": await rebase(id, () => 0); return view();
-    case "counted": if (q < 0) fail("invalid-argument", "Quantidade inválida."); await rebase(id, () => q); return view();
+    case "out": await rebase(id, () => 0, {}, true); return view();
+    case "counted": if (q < 0) fail("invalid-argument", "Quantidade inválida."); await rebase(id, () => q, {}, true); return view();
     case "used": if (!(q > 0)) fail("invalid-argument", "Quanto foi usado?"); await rebase(id, (left) => left - q); return view();
     case "save": {
       const s = cleanSupply(data.supply || {});

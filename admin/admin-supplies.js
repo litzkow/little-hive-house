@@ -34,12 +34,14 @@
     return '<section class="card sp-card sp-' + s.status + '">' +
       '<div class="sp-top"><b>' + esc(s.name) + '</b><span class="sp-pill">' + esc(T(label[0], label[1])) + '</span></div>' +
       (s.status === 'unset' ? '' : '<div class="sp-bar"><i style="width:' + Math.max(2, s.pct) + '%"></i></div>') +
-      '<p class="small">' + est + '</p><p class="tiny muted">' + esc(rule(s)) + (s.lastBought ? ' · ' + T('bought ', 'comprado em ') + esc(h.fmtDate(s.lastBought)) : '') + '</p>' +
+      '<p class="small">' + est + '</p><p class="tiny muted">' + esc(rule(s)) + (s.lastBought ? ' · ' + T('bought ', 'comprado em ') + esc(h.fmtDate(s.lastBought)) : '') +
+      ((s.learned || []).length ? ' · ' + esc(T('adjusted from your corrections ' + s.learned.length + 'x', 'ajustado com as correções de vocês ' + s.learned.length + 'x')) : '') + '</p>' +
       '<div class="row sp-acts">' +
       '<button class="btn btn-honey btn-sm" data-act="spBought" data-id="' + esc(s.id) + '"' + b + '>' + T('Bought', 'Comprei') + '</button>' +
       '<button class="btn btn-ghost btn-sm" data-act="spCounted" data-id="' + esc(s.id) + '"' + b + '>' + T('Counted', 'Contei') + '</button>' +
-      (s.status !== 'unset' ? '<button class="btn btn-ghost btn-sm" data-act="spUsed" data-id="' + esc(s.id) + '"' + b + '>' + T('Used', 'Usei') + '</button>' +
-        '<button class="btn btn-ghost btn-sm" data-act="spOut" data-id="' + esc(s.id) + '"' + b + '>' + T('Ran out', 'Acabou') + '</button>' : '') +
+      (s.status === 'low' || s.status === 'out' ? '<button class="btn btn-ghost btn-sm" data-act="spStill" data-id="' + esc(s.id) + '"' + b + '>' + T('Still have some', 'Ainda tem') + '</button>' : '') +
+      (s.status !== 'unset' ? '<button class="btn btn-ghost btn-sm" data-act="spUsed" data-id="' + esc(s.id) + '"' + b + '>' + T('Used', 'Usei') + '</button>' : '') +
+      (s.status !== 'unset' && s.status !== 'out' ? '<button class="btn btn-ghost btn-sm" data-act="spOut" data-id="' + esc(s.id) + '"' + b + '>' + T('Ran out', 'Acabou') + '</button>' : '') +
       '<button class="btn btn-ghost btn-sm" data-act="spEdit" data-id="' + esc(s.id) + '"' + b + ' aria-label="' + T('Edit', 'Editar') + '">' + T('Edit', 'Editar') + '</button>' +
       '</div></section>';
   }
@@ -48,8 +50,8 @@
     if (!st.data && !st.loading && !st.err) { st.loading = true; load('list'); }
     var d = st.data;
     var head = '<div class="page-head"><div><p class="eyebrow">' + T('Shop', 'Loja') + '</p><h1>' + T('Materials', 'Materiais') + '</h1>' +
-      '<p class="sub">' + T('Every order uses its materials up by itself. Tap Bought when you buy more; if something runs out sooner, tap Ran out and the count fixes itself.',
-        'Cada pedido desconta sozinho o que usou. Quando comprarem, toquem em Comprei; se algo acabar antes, toquem em Acabou e a conta se corrige.') + '</p></div>' +
+      '<p class="sub">' + T('Every order uses its materials up by itself. Tap Bought when you buy more. If something runs out sooner, tap Ran out; if there is still some, tap Still have some. The app learns from it and estimates better each time.',
+        'Cada pedido desconta sozinho o que usou. Quando comprarem, toquem em Comprei. Se acabar antes, toquem em Acabou; se ainda tiver, toquem em Ainda tem. O app aprende com isso e estima melhor a cada vez.') + '</p></div>' +
       '<div class="actions"><button class="btn btn-ghost btn-sm" data-act="spNew">' + T('+ New material', '+ Novo material') + '</button></div></div>';
     if (!d) return { title: T('Materials', 'Materiais'), html: '<div translate="no">' + head + (st.err ? '<p class="err">' + esc(st.err) + '</p>' : '<div class="loading"><span>' + T('Loading…', 'Carregando…') + '</span></div>') + '</div>' };
     var buy = d.supplies.filter(function (s) { return s.status === 'out'; }).length, low = d.supplies.filter(function (s) { return s.status === 'low'; }).length;
@@ -115,6 +117,20 @@
     var s = sup(el.getAttribute('data-id')); if (!s) return;
     ask(s.name, '<p class="small">' + T('Used outside the orders (magnets for yourselves, tests).', 'Usado fora dos pedidos (ímãs para vocês, testes).') + '</p>' + field('qty', T('How many ', 'Quantos ') + s.unit + '?', '', 'number'), T('Save', 'Salvar'))
       .then(function (v) { if (v && v.qty) load('used', { id: s.id, qty: v.qty }); });
+  };
+  /* the estimate said it ran out (or is low) but there's more: a rough amount is enough, and the app learns from it */
+  ACT.spStill = function (el) {
+    var s = sup(el.getAttribute('data-id')); if (!s) return;
+    var full = Number(s.full) || Number(s.qty) || 0;
+    var opts = [[0.1, T('Almost gone', 'Quase no fim')], [0.25, T('About a quarter', 'Mais ou menos ¼')], [0.5, T('About half', 'Mais ou menos metade')], [0.75, T('Still plenty', 'Ainda bastante')]];
+    ask(T('How much is left of ', 'Quanto ainda tem de ') + s.name + '?', '<p class="small">' + T('A rough guess is fine. The app uses it to estimate better next time.', 'Pode ser no olho. O app usa isso para estimar melhor das próximas vezes.') + '</p>' +
+      (full ? '<label class="field"><span>' + T('Roughly', 'Mais ou menos') + '</span><select class="input" name="frac">' + opts.map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + ' (≈ ' + n2(Math.round(full * o[0])) + ' ' + esc(s.unit) + ')</option>'; }).join('') + '<option value="">' + T('I’ll type the number', 'Vou digitar o número') + '</option></select></label>' : '') +
+      field('qty', T('Or the number of ', 'Ou o número de ') + s.unit + T(' (optional)', ' (opcional)'), '', 'number'), T('Save', 'Salvar'))
+      .then(function (v) {
+        if (!v) return;
+        var q = v.qty !== '' && v.qty != null ? Number(v.qty) : (v.frac ? Math.round(full * Number(v.frac)) : NaN);
+        if (isFinite(q) && q >= 0) load('counted', { id: s.id, qty: q });
+      });
   };
   ACT.spOut = function (el) {
     var s = sup(el.getAttribute('data-id')); if (!s) return;

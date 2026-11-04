@@ -13,14 +13,16 @@ const OCT7 = "2026-10-07T12:00:00.000Z", NOV1 = "2026-11-01T12:00:00.000Z", NOV2
 const SUPPLIES = [
   // the machine kit came with 200; about 20 went on test sheets and magnets for home (usedExtra)
   { id: "magnet-kits", name: "Kits de ímã 2x2 (ímã + capa)", unit: "jogos", per: "magnet", rate: 1, low: 40, group: "Ímãs", qty: 200, since: OCT7, usedExtra: 20 },
-  { id: "photo-paper", name: "Papel fotográfico brilhante", unit: "folhas", per: "sheet", rate: 1, low: 15, group: "Ímãs" },
+  // Koala glossy thin inkjet paper, 100 sheets, bought 6 Oct; about 8 sheets went on test prints
+  { id: "photo-paper", name: "Papel fotográfico Koala brilhante", unit: "folhas", per: "sheet", rate: 1, low: 15, group: "Ímãs", qty: 100, since: "2026-10-06T12:00:00.000Z", usedExtra: 8 },
   { id: "ink", name: "Tinta da impressora", unit: "% da carga", per: "sheet", rate: 0.4, low: 20, group: "Ímãs", qty: 100, since: OCT7, usedExtra: 5 },
   { id: "plastic-bags", name: "Saquinhos transparentes 3x3 (1 por ímã)", unit: "saquinhos", per: "magnet", rate: 1, low: 30, group: "Embalagem", qty: 200, since: NOV1 },
   { id: "tissue", name: "Papel de seda creme 14x20", unit: "folhas", per: "order", rate: 1, low: 15, group: "Embalagem", after: "plastic-bags", qty: 120, since: NOV2 },
   { id: "filler", name: "Enchimento de papel picado (300 g)", unit: "% do pacote", per: "order", rate: 2.5, low: 20, group: "Embalagem", after: "plastic-bags", qty: 100, since: NOV2 },
   { id: "cardstock", name: "Papel cartão Neenah (4 cartões de agradecimento por folha)", unit: "folhas", per: "order", rate: 0.25, low: 10, group: "Embalagem", qty: 250, since: NOV2 },
   { id: "business-cards", name: "Cartões de visita Avery", unit: "cartões", per: "order", rate: 1, low: 15, group: "Embalagem", qty: 90, since: NOV2 },
-  { id: "stickers", name: "Adesivos redondos (selo)", unit: "adesivos", per: "order", rate: 1, low: 10, group: "Embalagem" },
+  // Koala 2 in round kraft labels, 300, bought 6 Oct
+  { id: "stickers", name: "Adesivos redondos kraft 2\" (selo)", unit: "adesivos", per: "order", rate: 1, low: 20, group: "Embalagem", qty: 300, since: "2026-10-06T12:00:00.000Z" },
   { id: "copy-paper", name: "Papel sulfite Amazon Basics (lista do pacote)", unit: "folhas", per: "order", rate: 1, low: 50, group: "Embalagem", qty: 500, since: NOV2 },
   { id: "kraft-envelopes", name: "Envelopes kraft A7 imprimíveis", unit: "envelopes", per: "small_order", rate: 1, low: 15, group: "Envio", qty: 100, since: NOV2 },
   { id: "mailer-boxes", name: "Caixinhas kraft 9x6x2 (pedidos grandes)", unit: "caixas", per: "big_order", rate: 1, low: 5, group: "Envio", qty: 60, since: NOV2 },

@@ -104,3 +104,29 @@ test("new materials can be added, changed and removed", async () => {
   v = await S.adminSupplies({ action: "remove", id: box.id }, ADMIN);
   assert.ok(!v.supplies.some((s) => s.id === box.id));
 });
+
+test("it learns: ran out sooner or lasted longer than estimated moves the rule towards the real use", async () => {
+  const { db, S } = setup();
+  await S.adminSupplies({ action: "list" }, ADMIN);
+  await S.adminSupplies({ action: "counted", id: "photo-paper", qty: 20 }, ADMIN);
+  // 4 orders of 9 photos: estimated 4 x (1 + 1/9) = 4.44 sheets... but the paper ran out (test prints, reprints)
+  for (let i = 0; i < 4; i++) order(db, "p" + i, { magnets: 9, kind: "photos", ago: -60000 * (i + 1) });
+  let v = await S.adminSupplies({ action: "out", id: "photo-paper" }, ADMIN);
+  let p = v.supplies.find((s) => s.id === "photo-paper");
+  assert.equal(p.rate, 2.5);                       // real 20 vs 4.44 estimated: capped at 4x, moved halfway
+  assert.equal(p.learned.length, 1);
+  // the cards lasted longer: still 60 of 100 after 80 estimated
+  await S.adminSupplies({ action: "counted", id: "business-cards", qty: 100 }, ADMIN);
+  for (let i = 0; i < 80; i++) order(db, "b" + i, { magnets: 1, ago: -60000 * (i + 10) });
+  v = await S.adminSupplies({ action: "counted", id: "business-cards", qty: 60 }, ADMIN);
+  p = v.supplies.find((s) => s.id === "business-cards");
+  // real 40 vs 84 estimated (the 4 photo orders came after this count too): halfway towards 40/84
+  assert.equal(p.rate, Math.round((0.5 + 0.5 * 40 / 84) * 10000) / 10000);
+  // a count when the orders barely used it teaches nothing
+  const fresh = setup();
+  await fresh.S.adminSupplies({ action: "list" }, ADMIN);
+  await fresh.S.adminSupplies({ action: "bought", id: "stickers", qty: 300 }, ADMIN);
+  order(fresh.db, "s1", { magnets: 2, ago: -60000 });
+  v = await fresh.S.adminSupplies({ action: "counted", id: "stickers", qty: 250 }, ADMIN);
+  assert.equal(v.supplies.find((s) => s.id === "stickers").rate, 1);
+});
