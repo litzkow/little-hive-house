@@ -1082,6 +1082,8 @@ window.LHH_PT = {
 "In the printed kraft envelope: the magnets, a logo magnet, a business card and a thank-you card; close it with the round sticker and put it in the bubble mailer (": "No envelope kraft impresso: os ímãs, um ímã da logo, um cartão de visita e um cartão de agradecimento; feche com o adesivo redondo e coloque no envelope acolchoado (",
 "Visits": "Visitas",
 "Returns": "Devoluções",
+"What you bought before the Materials list. Purchases you log in Materials are added on top, and the Growth plan shows how much of it all the profit has paid back.": "O que vocês compraram antes da lista de Materiais. As compras registradas em Materiais somam por cima, e a Projeção mostra quanto disso tudo o lucro já recuperou.",
+"Supplies": "Materiais",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
 "Update now": "Atualizar agora"
 };

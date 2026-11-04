@@ -46,7 +46,7 @@
 
     /* 1. paying back */
     var payback = '<div class="tiles">' +
-      h.tile(T('Put into the shop', 'Investido na loja'), money(so.invested), T('Change it in Settings', 'Mude em Configurações'), false, '#settings') +
+      h.tile(T('Put into the shop', 'Investido na loja'), money(so.invested), T('Purchases are in Materials', 'Compras ficam em Materiais'), false, '#supplies') +
       h.tile(T('Profit so far', 'Lucro até agora'), '<span class="' + (so.profit < 0 ? 'neg' : '') + '">' + h.signedMoney(so.profit) + '</span>',
         so.orders ? T(n0(so.orders) + ' orders · ' + n0(so.magnets) + ' magnets', n0(so.orders) + ' pedidos · ' + n0(so.magnets) + ' ímãs') : T('No sales yet', 'Nenhuma venda ainda'), true) +
       h.tile(T('Still to pay back', 'Falta recuperar'), money(so.left), T(Math.round(so.paidPct) + '% paid back', Math.round(so.paidPct) + '% recuperado')) +

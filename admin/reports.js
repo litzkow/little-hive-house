@@ -58,6 +58,8 @@
     // the default border of the print sheets: a colour, or 'auto' (the picture's own edge colour)
     var b = s && typeof s.printBorderColor === 'string' ? s.printBorderColor : '';
     out.googleReviewUrl = s && typeof s.googleReviewUrl === 'string' ? s.googleReviewUrl : '';
+    // purchases logged in Materiais (functions/supplies.js) add to the money put into the shop
+    out.purchasesTotal = s && isFinite(Number(s.purchasesTotal)) ? Number(s.purchasesTotal) : 0;
     // where USPS labels come from (functions/labels.js)
     var a = s && s.shipFrom && typeof s.shipFrom === 'object' ? s.shipFrom : {};
     out.shipFrom = { name: a.name || '', company: a.company || '', street1: a.street1 || '', street2: a.street2 || '', city: a.city || '', state: a.state || '', zip: a.zip || '', phone: a.phone || '' };
@@ -466,7 +468,7 @@
   function planSoFar(orders, settings, now) {
     var s = settingsWithDefaults(settings);
     var m = summarize(orders, s, { from: 0, to: (now || Date.now()) + 1 }, { months: 1200 });
-    var invested = s.startupInvestment;
+    var invested = Math.round(((s.startupInvestment || 0) + (s.purchasesTotal || 0)) * 100) / 100;
     return { invested: invested, profit: m.profit, magnets: m.magnets, orders: m.orders, netSales: m.netSales,
              perMagnet: m.magnets ? round2(m.profit / m.magnets) : null, left: round2(Math.max(0, invested - m.profit)),
              paidPct: invested > 0 ? Math.max(0, Math.min(100, round2(m.profit / invested * 100))) : 100 };

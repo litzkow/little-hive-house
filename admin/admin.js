@@ -107,6 +107,7 @@
     links: '<path d="M10 14a4 4 0 0 0 5.7 0l3.1-3.1a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3.1 3.1a4 4 0 0 0 5.7 5.7l1-1"/>',
     growth: '<path d="M3 17.5 9 11.5l4 4 8-8M15 7.5h6v6"/>',
     visits: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    supplies: '<path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="M4 8.5 12 13l8-4.5M12 13v7"/>',
     reports: '<path d="M3 21h18M6.5 17v-5M11 17V7M15.5 17v-8M20 17V4"/>',
     reviews: '<path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/>',
     messages: '<path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1z"/>',
@@ -443,7 +444,7 @@
   var NAV = [
     ['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['customers', 'Customers', 'customers'], ['reports', 'Reports', 'reports'], ['visits', 'Visits', 'visits'], ['plan', 'Growth plan', 'growth'],
     ['sep'], ['discounts', 'Discounts', 'discounts'], ['links', 'Payment links', 'links'], ['returns', 'Returns', 'refund'], ['reviews', 'Reviews', 'reviews'],
-    ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail'], ['sep'], ['testprint', 'Test print', 'print'], ['settings', 'Settings', 'settings']
+    ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail'], ['sep'], ['supplies', 'Supplies', 'supplies'], ['testprint', 'Test print', 'print'], ['settings', 'Settings', 'settings']
   ];
   function navHTML() {
     return NAV.map(function (n) {

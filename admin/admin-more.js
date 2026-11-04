@@ -908,7 +908,7 @@
     ['defaultLabelCost', 'Usual shipping label', 'money', 'Pre-filled when you ship, and used in reports for shipped orders without a label cost.'],
     ['stripePct', 'Stripe fee (percent)', 'pct', 'Stripe’s standard US card fee is 2.9% + 30¢. Only used when Stripe didn’t send the real fee.'],
     ['stripeFixed', 'Stripe fee (fixed)', 'money', 'The fixed part of the Stripe fee per payment.'],
-    ['startupInvestment', 'Money put into the shop', 'money', 'Machines, supplies and everything else you bought to open the shop. The Growth plan shows how much of it the profit has paid back.'],
+    ['startupInvestment', 'Money put into the shop', 'money', 'What you bought before the Materials list. Purchases you log in Materials are added on top, and the Growth plan shows how much of it all the profit has paid back.'],
     ['monthlyFixedCosts', 'Monthly fixed costs', 'money', 'Things you pay every month no matter how much you sell: website, Etsy plan, printer lease, software. Subtracted from each month’s profit.'],
     ['stripeTaxPct', 'Stripe Tax fee (percent)', 'pct', 'Stripe charges this on each order where it calculates sales tax. Counted as a cost in reports.'],
     ['incomeTaxPct', 'Set aside for income tax', 'pct', 'Share of each month’s profit to put aside for federal, state and self-employment tax. Ask your accountant for the right number; 25% to 30% is a common starting point.']

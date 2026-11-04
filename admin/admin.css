@@ -658,3 +658,28 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .rt-pick input { position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; accent-color: var(--ink); }
 .rt-pick input:checked + img { border-color: var(--honey); }
 .rt-pick span { position: absolute; bottom: 4px; right: 6px; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000; }
+
+/* ---------- Materials (admin-supplies.js) ---------- */
+.sp-h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 22px 0 10px; }
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.sp-card { display: grid; gap: 6px; }
+.sp-card p { margin: 0; }
+.sp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sp-pill { font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
+.sp-ok .sp-pill { color: var(--ok); }
+.sp-low .sp-pill { background: var(--honey-wash); color: var(--ink); border: 1px solid var(--honey); }
+.sp-out .sp-pill { background: var(--danger); color: #fff; }
+.sp-out { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.sp-bar { height: 8px; border-radius: 4px; background: var(--sunk); overflow: hidden; }
+.sp-bar i { display: block; height: 100%; background: var(--ok); border-radius: 4px; }
+.sp-low .sp-bar i { background: var(--honey); }
+.sp-out .sp-bar i { background: var(--danger); }
+.sp-acts { margin-top: 4px; gap: 6px; flex-wrap: wrap; }
+.sp-gift { margin: 4px 0 0; }
+.linkish { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; font: inherit; }
+.linkish.danger { color: var(--danger); }
+.sp-buys { list-style: none; margin: 0 0 12px; padding: 0; }
+.sp-buys li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+.sp-buys li span:first-child { display: grid; min-width: 0; }
+.sp-buys small { color: var(--muted); }
+.sp-cost { display: flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
