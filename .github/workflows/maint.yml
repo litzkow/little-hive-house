@@ -154,5 +154,6 @@ jobs:
             clear-test-orders) node tools/maint/clear-test-orders.js ;;
             set-print-image) node tools/maint/set-print-image.js ;;
             set-ship-from) node tools/maint/set-ship-from.js ;;
+            seed-supplies) node tools/maint/seed-supplies.js ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac

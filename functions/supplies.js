@@ -15,23 +15,26 @@ const { fail, nowIso } = require("./config");
 const deps = require("./deps");
 const U = require("./util");
 
-const PER = ["magnet", "sheet", "order", "shipment", "manual"];
+const PER = ["magnet", "sheet", "order", "small_order", "big_order", "shipment", "manual"];
 const SHEET = 9;   // magnets on one printed sheet (printsheet.js 3 x 3)
 const SALE = new Set(["paid", "in_production", "shipped", "delivered", "refunded", "partially_refunded"]);
 
-/** What the shop starts with (the owners change quantities, rules and add more in the app). */
+/** What the shop starts with (the owners change quantities, rules and add more in the app).
+   `after`: starts being used only when that one runs out (the paper wrapping replaces the plastic bags). */
 const DEFAULTS = [
   { id: "magnet-kits", name: "Kits de ímã 2x2 (ímã + capa)", unit: "jogos", per: "magnet", rate: 1, low: 40, group: "Ímãs" },
   { id: "photo-paper", name: "Papel fotográfico brilhante", unit: "folhas", per: "sheet", rate: 1, low: 15, group: "Ímãs" },
   { id: "ink", name: "Tinta da impressora", unit: "% da carga", per: "sheet", rate: 0.4, low: 20, group: "Ímãs" },
-  { id: "sleeves", name: "Envelopinho de papel por ímã", unit: "unidades", per: "magnet", rate: 1, low: 40, group: "Embalagem" },
-  { id: "filler", name: "Enchimento (papel picado)", unit: "% do pacote", per: "order", rate: 2, low: 20, group: "Embalagem" },
-  { id: "kraft-envelopes", name: "Envelopes kraft A7", unit: "envelopes", per: "order", rate: 1, low: 10, group: "Embalagem" },
-  { id: "thank-you-cards", name: "Cartões de agradecimento", unit: "cartões", per: "order", rate: 1, low: 10, group: "Embalagem" },
-  { id: "business-cards", name: "Cartões de visita", unit: "cartões", per: "order", rate: 1, low: 10, group: "Embalagem" },
+  { id: "plastic-bags", name: "Saquinhos transparentes 3x3 (1 por ímã)", unit: "saquinhos", per: "magnet", rate: 1, low: 30, group: "Embalagem" },
+  { id: "tissue", name: "Papel de seda creme 14x20", unit: "folhas", per: "order", rate: 1, low: 15, group: "Embalagem", after: "plastic-bags" },
+  { id: "filler", name: "Enchimento de papel picado", unit: "% do pacote", per: "order", rate: 2.5, low: 20, group: "Embalagem", after: "plastic-bags" },
+  { id: "cardstock", name: "Papel cartão Neenah (cartões de agradecimento)", unit: "folhas", per: "order", rate: 0.25, low: 10, group: "Embalagem" },
+  { id: "business-cards", name: "Cartões de visita Avery", unit: "cartões", per: "order", rate: 1, low: 15, group: "Embalagem" },
   { id: "stickers", name: "Adesivos redondos (selo)", unit: "adesivos", per: "order", rate: 1, low: 10, group: "Embalagem" },
-  { id: "mailers", name: "Envelopes de bolha (envio)", unit: "envelopes", per: "shipment", rate: 1, low: 10, group: "Envio" },
-  { id: "label-sheets", name: "Folhas de etiqueta (2 por folha)", unit: "folhas", per: "shipment", rate: 0.5, low: 5, group: "Envio" },
+  { id: "copy-paper", name: "Papel sulfite (lista do pacote)", unit: "folhas", per: "order", rate: 1, low: 50, group: "Embalagem" },
+  { id: "kraft-envelopes", name: "Envelopes kraft A7", unit: "envelopes", per: "small_order", rate: 1, low: 15, group: "Envio" },
+  { id: "mailer-boxes", name: "Caixinhas kraft 9x6x2 (pedidos grandes)", unit: "caixas", per: "big_order", rate: 1, low: 5, group: "Envio" },
+  { id: "label-sheets", name: "Folhas de etiqueta LabelMore (2 por folha)", unit: "folhas", per: "shipment", rate: 0.5, low: 20, group: "Envio" },
   { id: "tape", name: "Fita adesiva", unit: "rolos", per: "manual", rate: 0, low: 1, group: "Envio" },
 ];
 
@@ -53,25 +56,52 @@ function made(o) {
   return !(o.payment && (o.payment.state === "released" || o.payment.state === "expired"));
 }
 
-/** Pure: what each order used, as {at, shippedAt, magnets, sheets} (the logo magnet gift counts as a magnet). */
+/** Pure: what each order used, as {at, shippedAt, magnets, sheets, big} (the logo magnet gift counts as a magnet).
+   big: the order has cfg.bigOrder magnets or more (it goes in a box, not an envelope); until the owners set that
+   number, every order is small. */
 function usageList(orders, cfg = {}) {
-  const gift = num(cfg.giftMagnets == null ? 1 : cfg.giftMagnets);
+  const gift = num(cfg.giftMagnets == null ? 1 : cfg.giftMagnets), bigAt = num(cfg.bigOrder);
   return (orders || []).filter(made).map((o) => {
-    const m = magnetsOf(o) + gift;
-    return { at: Date.parse(o.paidAt || o.createdAt || ""), shippedAt: Date.parse((o.fulfillment || {}).shippedAt || ""), magnets: m, sheets: Math.ceil(magnetsOf(o) / SHEET) + gift / SHEET };
-  });
+    const own = magnetsOf(o);
+    return { at: Date.parse(o.paidAt || o.createdAt || ""), shippedAt: Date.parse((o.fulfillment || {}).shippedAt || ""), magnets: own + gift,
+      sheets: Math.ceil(own / SHEET) + gift / SHEET, big: bigAt > 0 && own >= bigAt };
+  }).sort((a, b) => a.at - b.at);
+}
+function useOf(s, u) {
+  const rate = num(s.rate);
+  switch (s.per) {
+    case "magnet": return rate * u.magnets;
+    case "sheet": return rate * u.sheets;
+    case "order": return rate;
+    case "small_order": return u.big ? 0 : rate;
+    case "big_order": return u.big ? rate : 0;
+    default: return 0;
+  }
+}
+/** When a material runs out by the estimate (ms), or Infinity: the one that replaces it starts then. */
+function runsOutAt(s, uses) {
+  const since = Date.parse(s.since || "") || 0;
+  let left = num(s.qty) - num(s.usedExtra);
+  if (left <= 0) return since;
+  for (const u of uses) {
+    const t = s.per === "shipment" ? u.shippedAt : u.at;
+    if (!(t >= since)) continue;
+    left -= s.per === "shipment" ? num(s.rate) : useOf(s, u);
+    if (left <= 0) return t;
+  }
+  return Infinity;
 }
 
 /** Pure: one material's estimate: {left, used, status: ok | low | out, pct} */
-function estimate(s, uses) {
-  const since = Date.parse(s.since || "") || 0;
+function estimate(s, uses, from = 0) {
+  const since = Math.max(Date.parse(s.since || "") || 0, from);
   const rate = num(s.rate);
   let used = 0;
-  if (s.per !== "manual") {
+  if (s.per !== "manual" && from !== Infinity) {
     for (const u of uses) {
       if (s.per === "shipment") { if (u.shippedAt >= since) used += rate; continue; }
       if (!(u.at >= since)) continue;
-      used += s.per === "magnet" ? rate * u.magnets : s.per === "sheet" ? rate * u.sheets : rate;
+      used += useOf(s, u);
     }
   }
   used += num(s.usedExtra);
@@ -83,9 +113,16 @@ function estimate(s, uses) {
   let perOrder = null;
   if (uses.length && s.per !== "manual") {
     const avgM = uses.reduce((t, u) => t + u.magnets, 0) / uses.length, avgS = uses.reduce((t, u) => t + u.sheets, 0) / uses.length;
-    perOrder = s.per === "magnet" ? rate * avgM : s.per === "sheet" ? rate * avgS : rate;
+    perOrder = s.per === "magnet" ? rate * avgM : s.per === "sheet" ? rate * avgS : s.per === "big_order" ? null : rate;
   }
-  return { left: r2(left), used: r2(used), status, pct: Math.round(Math.min(100, (left / full) * 100)), ordersLeft: perOrder ? Math.floor(left / perOrder) : null };
+  return { left: r2(left), used: r2(used), status, pct: Math.round(Math.min(100, (left / full) * 100)), ordersLeft: perOrder ? Math.floor(left / perOrder) : null,
+    waiting: from === Infinity };
+}
+
+/** The estimate of `s` in its list: one that comes `after` another starts when that one runs out. */
+function estimateIn(s, list, uses) {
+  const prev = s.after && list.find((x) => x.id === s.after && x.active !== false);
+  return estimate(s, uses, prev ? runsOutAt(prev, uses) : 0);
 }
 
 async function load() {
@@ -122,8 +159,8 @@ async function view() {
   const before = num((st.exists && st.data().startupInvestment) != null ? st.data().startupInvestment : 1112.92);
   const logged = r2(purchases.reduce((t, p) => t + num(p.cost), 0));
   return {
-    ok: true, cfg: { giftMagnets: num(cfg.giftMagnets == null ? 1 : cfg.giftMagnets) },
-    supplies: list.filter((s) => s.active !== false).map((s) => ({ ...s, ...estimate(s, uses) }))
+    ok: true, cfg: { giftMagnets: num(cfg.giftMagnets == null ? 1 : cfg.giftMagnets), bigOrder: num(cfg.bigOrder) },
+    supplies: list.filter((s) => s.active !== false).map((s) => ({ ...s, ...estimateIn(s, list, uses) }))
       .sort((a, b) => (["out", "low", "unset", "ok"].indexOf(a.status) - ["out", "low", "unset", "ok"].indexOf(b.status)) || String(a.group).localeCompare(String(b.group)) || String(a.name).localeCompare(String(b.name))),
     purchases, invested: { before, logged, total: r2(before + logged) },
   };
@@ -132,7 +169,7 @@ async function view() {
 function cleanSupply(d) {
   const per = PER.includes(d.per) ? d.per : "manual";
   const name = U.text(d.name, 80, { required: true, field: "o nome" });
-  return { name, unit: U.text(d.unit, 30) || "unidades", per, rate: Math.max(0, num(d.rate)), low: Math.max(0, num(d.low)), group: U.text(d.group, 30) || "Outros",
+  return { name, unit: U.text(d.unit, 30) || "unidades", per, after: U.text(d.after, 64) || "", rate: Math.max(0, num(d.rate)), low: Math.max(0, num(d.low)), group: U.text(d.group, 30) || "Outros",
     note: U.text(d.note, 300), link: /^https:\/\//.test(String(d.link || "")) ? String(d.link).slice(0, 500) : "" };
 }
 
@@ -142,7 +179,7 @@ async function rebase(id, fn, extra = {}) {
   const s = list.find((x) => x.id === id);
   if (!s) fail("not-found", "Material não encontrado.");
   const uses = usageList(await ordersSince(new Date(Date.parse(s.since || nowIso()) - 60 * 86400000).toISOString()), cfg);
-  const left = estimate(s, uses).left;
+  const left = estimateIn(s, list, uses).left;
   const at = nowIso();
   const upd = { qty: r2(Math.max(0, fn(left))), since: at, usedExtra: 0, alertedAt: null, setAt: at, updatedAt: at, ...extra };
   await deps.db().collection("supplies").doc(id).set(upd, { merge: true });
@@ -198,7 +235,13 @@ async function adminSupplies(data, auth) {
       return view();
     }
     case "removePurchase": await db.collection("purchases").doc(id).delete(); await syncTotal(); return view();
-    case "config": await db.collection("settings").doc("supplies").set({ giftMagnets: Math.max(0, Math.min(5, num(data.giftMagnets))) }, { merge: true }); return view();
+    case "config": {
+      const upd = {};
+      if (data.giftMagnets !== undefined) upd.giftMagnets = Math.max(0, Math.min(5, num(data.giftMagnets)));
+      if (data.bigOrder !== undefined) upd.bigOrder = Math.max(0, Math.min(10000, Math.round(num(data.bigOrder))));
+      await db.collection("settings").doc("supplies").set(upd, { merge: true });
+      return view();
+    }
     default: fail("invalid-argument", "Ação desconhecida.");
   }
 }
@@ -213,4 +256,4 @@ async function checkSupplies() {
   return { alerted: fresh.length };
 }
 
-module.exports = { adminSupplies, checkSupplies, estimate, usageList, magnetsOf, made, DEFAULTS, PER };
+module.exports = { adminSupplies, checkSupplies, estimate, estimateIn, runsOutAt, usageList, magnetsOf, made, DEFAULTS, PER };

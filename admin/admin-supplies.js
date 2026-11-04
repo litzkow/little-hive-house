@@ -8,7 +8,7 @@
   function T(en, pt) { return h.LANG() === 'pt' ? pt : en; }
   var st = { data: null, err: null, loading: false, busy: false };
 
-  function n2(v) { v = Math.round((Number(v) || 0) * 10) / 10; return v.toLocaleString(h.LANG() === 'pt' ? 'pt-BR' : 'en-US'); }
+  function n2(v) { v = Math.round((Number(v) || 0) * 100) / 100; return v.toLocaleString(h.LANG() === 'pt' ? 'pt-BR' : 'en-US'); }
   function load(action, args) {
     st.busy = true;
     return h.call('adminSupplies', Object.assign({ action: action || 'list' }, args || {})).then(function (d) { st.data = d; st.err = null; })
@@ -16,7 +16,8 @@
       .then(function () { st.busy = false; st.loading = false; if (A.parseHash().view === 'supplies') { var y = scrollY; h.route(); scrollTo(0, y); } });
   }
   var STATUS = { ok: ['Plenty', 'Tem bastante'], low: ['Running low', 'Acabando'], out: ['Buy now', 'Comprar'], unset: ['How many?', 'Quanto tem?'] };
-  var PER = { magnet: ['per magnet', 'por ímã'], sheet: ['per printed sheet', 'por folha impressa'], order: ['per order', 'por pedido'], shipment: ['per shipment', 'por envio'], manual: ['', ''] };
+  var PER = { magnet: ['per magnet', 'por ímã'], sheet: ['per printed sheet', 'por folha impressa'], order: ['per order', 'por pedido'], small_order: ['per small order', 'por pedido pequeno'],
+    big_order: ['per big order', 'por pedido grande'], shipment: ['per shipment', 'por envio'], manual: ['', ''] };
 
   function rule(s) {
     if (s.per === 'manual') return T('Not tied to orders: tap Used when you use some', 'Não depende dos pedidos: toque em Usei quando usar');
@@ -24,7 +25,10 @@
   }
   function card(s) {
     var label = STATUS[s.status] || STATUS.ok;
+    var prev = s.after && ((st.data && st.data.supplies) || []).find(function (x) { return x.id === s.after; });
     var est = s.status === 'unset' ? T('Tell us how many you have, or tap Bought.', 'Diga quanto vocês têm, ou toque em Comprei.')
+      : s.waiting && prev ? '≈ <b>' + n2(s.left) + '</b> ' + esc(s.unit) + ' · ' + esc(T('starts when “' + prev.name + '” run out', 'começa quando acabar “' + prev.name + '”'))
+      : s.per === 'big_order' && !st.data.cfg.bigOrder ? '≈ <b>' + n2(s.left) + '</b> ' + esc(s.unit) + ' · ' + esc(T('set the size of a big order below', 'falta dizer quando um pedido é grande (embaixo)'))
       : '≈ <b>' + n2(s.left) + '</b> ' + esc(s.unit) + (s.ordersLeft != null ? ' · ' + T('about ' + s.ordersLeft + ' more orders', 'dá para uns ' + s.ordersLeft + ' pedidos') : '');
     var b = st.busy ? ' disabled' : '';
     return '<section class="card sp-card sp-' + s.status + '">' +
@@ -60,11 +64,13 @@
     var lists = order.filter(function (g) { return groups[g]; }).map(function (g) {
       return '<h2 class="sp-h2">' + esc(g) + '</h2><div class="sp-grid">' + groups[g].map(card).join('') + '</div>';
     }).join('');
-    var gift = '<p class="small muted sp-gift">' + T('Logo magnet gift in each order: ', 'Ímã de logo de brinde em cada pedido: ') + '<b>' + d.cfg.giftMagnets + '</b> · <button class="linkish" data-act="spGift">' + T('change', 'mudar') + '</button></p>';
+    var gift = '<p class="small muted sp-gift">' + T('Logo magnet gift in each order: ', 'Ímã de logo de brinde em cada pedido: ') + '<b>' + d.cfg.giftMagnets + '</b> · ' +
+      T('Big order (goes in a box): ', 'Pedido grande (vai em caixinha): ') + '<b>' + (d.cfg.bigOrder ? T(d.cfg.bigOrder + '+ magnets', 'a partir de ' + d.cfg.bigOrder + ' ímãs') : T('not set yet', 'ainda não definido')) + '</b> · ' +
+      '<button class="linkish" data-act="spGift">' + T('change', 'mudar') + '</button></p>';
     var purchases = '<section class="card gap-top"><div class="card-head"><div><h2>' + T('Purchases', 'Compras') + '</h2><p class="sub">' + T('Machines, supplies, everything you buy for the shop', 'Máquinas, materiais, tudo o que comprarem para a loja') + '</p></div>' +
       '<button class="btn btn-ghost btn-sm" data-act="spPurchase">' + T('+ Log a purchase', '+ Registrar compra') + '</button></div>' +
       (d.purchases.length ? '<ul class="sp-buys">' + d.purchases.map(function (p) {
-        return '<li><span><b>' + esc(p.item || T('Purchase', 'Compra')) + '</b><small>' + esc(h.fmtDate(p.date)) + (p.store ? ' · ' + esc(p.store) : '') + '</small></span><span class="sp-cost">' + money(p.cost) +
+        return '<li><span><b>' + esc(p.item || T('Purchase', 'Compra')) + '</b><small>' + esc(h.fmtDate(/^\d{4}-\d{2}-\d{2}$/.test(p.date || '') ? p.date + 'T12:00:00' : p.date)) + (p.store ? ' · ' + esc(p.store) : '') + '</small></span><span class="sp-cost">' + money(p.cost) +
           '<button class="icon-btn" data-act="spDelBuy" data-id="' + esc(p.id) + '" aria-label="' + T('Remove', 'Apagar') + '">' + icon('trash') + '</button></span></li>';
       }).join('') + '</ul>' : '<p class="small muted">' + T('Nothing logged yet.', 'Nada registrado ainda.') + '</p>') +
       '<p class="small"><b>' + T('Total put into the shop: ', 'Total investido na loja: ') + money(d.invested.total) + '</b> <span class="muted">(' + T(money(d.invested.before) + ' from before, in Settings', money(d.invested.before) + ' de antes, nas Configurações') + ')</span></p></section>';
@@ -117,7 +123,8 @@
   };
   function editForm(s) {
     s = s || { per: 'order', rate: 1, unit: 'unidades', group: 'Embalagem', low: 5 };
-    var opts = [['magnet', T('Each magnet made', 'Cada ímã feito')], ['sheet', T('Each printed sheet (9 magnets)', 'Cada folha impressa (9 ímãs)')], ['order', T('Each order', 'Cada pedido')], ['shipment', T('Each shipment', 'Cada envio')], ['manual', T('Not tied to orders', 'Não depende dos pedidos')]];
+    var opts = [['magnet', T('Each magnet made', 'Cada ímã feito')], ['sheet', T('Each printed sheet (9 magnets)', 'Cada folha impressa (9 ímãs)')], ['order', T('Each order', 'Cada pedido')],
+      ['small_order', T('Each small order', 'Cada pedido pequeno')], ['big_order', T('Each big order', 'Cada pedido grande')], ['shipment', T('Each shipment', 'Cada envio')], ['manual', T('Not tied to orders', 'Não depende dos pedidos')]];
     return field('name', T('Name', 'Nome'), s.name) + field('unit', T('Counted in (boxes, sheets, units…)', 'Contado em (caixas, folhas, unidades…)'), s.unit) +
       '<label class="field"><span>' + T('Used by', 'Gasta com') + '</span><select class="input" name="per">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (s.per === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>' +
       field('rate', T('How much each time', 'Quanto gasta cada vez'), s.rate, 'number') + field('low', T('Warn me when there are this many left', 'Avisar quando sobrar'), s.low, 'number') +
@@ -142,7 +149,8 @@
     h.dialog({ title: T('Remove this purchase?', 'Apagar esta compra?'), html: '', ok: T('Remove', 'Apagar'), danger: true }).then(function (ok) { if (ok) load('removePurchase', { id: id }); });
   };
   ACT.spGift = function () {
-    ask(T('Logo magnet gift', 'Ímã de logo de brinde'), field('giftMagnets', T('Magnets given in each order', 'Ímãs de brinde em cada pedido'), st.data.cfg.giftMagnets, 'number'), T('Save', 'Salvar'))
-      .then(function (v) { if (v) load('config', { giftMagnets: v.giftMagnets }); });
+    ask(T('Orders', 'Pedidos'), field('giftMagnets', T('Logo magnets given in each order', 'Ímãs de logo de brinde em cada pedido'), st.data.cfg.giftMagnets, 'number') +
+      field('bigOrder', T('A big order (in a box) has at least this many magnets (0 = not set)', 'Pedido grande (em caixinha) a partir de quantos ímãs (0 = ainda não)'), st.data.cfg.bigOrder || '', 'number'), T('Save', 'Salvar'))
+      .then(function (v) { if (v) load('config', { giftMagnets: v.giftMagnets, bigOrder: v.bigOrder || 0 }); });
   };
 })();
