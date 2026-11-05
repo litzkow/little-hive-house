@@ -1,6 +1,20 @@
 {
   "_como_usar": "As redes da loja. Para acrescentar uma, copie uma linha e troque nome, link e @. Nomes que já têm ícone: Instagram, Facebook, TikTok. O site e os cartões leem daqui.",
   "networks": [
-    {"name": "Instagram", "url": "https://www.instagram.com/littlehivehouse/", "handle": "@littlehivehouse"}
+    {
+      "name": "Instagram",
+      "url": "https://www.instagram.com/littlehivehouse/",
+      "handle": "@littlehivehouse"
+    },
+    {
+      "name": "TikTok",
+      "url": "https://www.tiktok.com/@littlehivehouse",
+      "handle": "@littlehivehouse"
+    },
+    {
+      "name": "Facebook",
+      "url": "https://www.facebook.com/share/1DxSCC5TzP/",
+      "handle": "@littlehivehouse"
+    }
   ]
 }
