@@ -166,6 +166,36 @@ function planTiles(order) {
   return { tiles: list, sheets: pageCount(list.length), skipped, truncated, total: tiles.length };
 }
 
+/* ---------- "Print together" (Hive Admin, Orders: several orders on shared sheets) ---------- */
+const LOGO_STYLES = { cream: "#FFF6E5", honey: "#F2A81D" };
+const MAX_BATCH_ORDERS = 30, MAX_LOGOS = 45;
+/** The shop's logo magnet (assets/print/_shop/logo-<style>.jpg, tools/logo_faces.py), its own colour all round. */
+function logoTile(style) {
+  const s = LOGO_STYLES[style] ? style : "cream";
+  return { kind: "design", id: `_shop/logo-${s}`, collection: "_shop", slug: `logo-${s}`, title: "Logo magnet", key: `design:_shop/logo-${s}`, border: LOGO_STYLES[s], label: "Logo" };
+}
+/**
+ * Pure: the magnets of several orders, one after the other on shared sheets (each piece labelled with its order
+ * number), then exactly `logos` logo magnets (none unless asked). {tiles, sheets, skipped, truncated, total, numbers, logos, spaces}.
+ */
+function planBatch(entries, { logos = 0, logoStyle = "cream", perPage = PER_PAGE } = {}) {
+  const tiles = [], skipped = [], numbers = [];
+  for (const e of entries || []) {
+    const order = (e && e.order) || {};
+    const num = String(order.number || e.id || "");
+    numbers.push(num);
+    const p = planTiles(order);
+    p.tiles.forEach((t) => tiles.push({ ...t, label: num, order: num }));
+    p.skipped.forEach((x) => skipped.push({ ...x, order: num }));
+  }
+  const n = Math.min(MAX_LOGOS, toInt(logos));
+  for (let i = 0; i < n; i++) tiles.push(logoTile(logoStyle));
+  const truncated = tiles.length > MAX_TILES;
+  const list = truncated ? tiles.slice(0, MAX_TILES) : tiles;
+  const sheets = pageCount(list.length, perPage);
+  return { tiles: list, sheets, skipped, truncated, total: tiles.length, numbers, logos: n, spaces: sheets * perPage - list.length };
+}
+
 /** Which sheet and slot each tile lands on: [{page, slot, ...tile}]. */
 function placeTiles(tiles, perPage = PER_PAGE) {
   return tiles.map((t, i) => ({ ...t, page: Math.floor(i / perPage), slot: i % perPage }));
@@ -459,10 +489,10 @@ async function edgeColour(sharp, jpeg) {
 /** Pure: a name for a colour on the sheet's footer. */
 function colourName(c) { return c === WHITE ? "white" : c === "#000000" ? "black" : c === AUTO ? "picture-coloured" : c; }
 
-function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, border, edges }) {
+function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, border, edges, labels }) {
   doc.addPage({ size: "LETTER", margin: 0 });
   const num = order.number || "";
-  const left = `Little Hive House · Order ${num}${order.name ? ` · ${String(order.name).slice(0, 40)}` : ""}`;
+  const left = labels ? `Little Hive House · ${num}` : `Little Hive House · Order ${num}${order.name ? ` · ${String(order.name).slice(0, 40)}` : ""}`;
   const right = `Sheet ${page + 1} of ${sheets} · ${date} · glossy photo paper · 100% (Actual size)`;
   const L = geo.left;
   doc.font(F.body).fontSize(7.5).fillColor("#2B2118");
@@ -478,6 +508,15 @@ function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, bor
     if (c === AUTO) c = (edges && edges.get(t.key)) || WHITE;
     if (c !== WHITE) { const r = borderRect(slots[t.slot], geo); doc.rect(r.x, r.y, r.size, r.size).fill(c); }
     if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
+  }
+  // "Print together": the order each piece belongs to, small, in the white space under the piece (outside the cut)
+  if (labels) {
+    doc.font(F.body).fontSize(5.5).fillColor("#6B5A48");
+    for (const t of placed) {
+      if (!t.label) continue;
+      const sl = slots[t.slot];
+      doc.text(t.label, sl.x, sl.y + sl.size + geo.gapPt / 2 - 2.6, { width: sl.size, align: "center", lineBreak: false });
+    }
   }
   doc.font(F.body).fontSize(6.5).fillColor("#8A7A66");
   doc.text(`${placed.length} of ${geo.perPage} magnets · each picture ${geo.image.toFixed(2)} in with ${used.size === 1 ? colourName([...used][0]) : "coloured"} paper around it for the edge · centre the picture in the punch`,
@@ -675,6 +714,88 @@ async function buildPrintSheetDetailed(orderId, order, opts = {}) {
   return { ...out, sheets: plan.sheets, perPage: ctx.geo.perPage, tiles: plan.tiles.length, cut: ctx.geo.cut, image: ctx.geo.image, enhance: ctx.enhance, border: ctx.border, warnings: ctx.warnings.slice(0, 10) };
 }
 
+/**
+ * "Print together": one magnets PDF for several orders (shared sheets, order numbers under the pieces) and one PDF with
+ * every order's packing slip. entries [{id, order}]; opts {logos, logoStyle, cut, image, enhance, border, fetchImpl, ...}.
+ */
+async function buildBatchDetailed(entries, opts = {}) {
+  const all = { items: [] };
+  entries.forEach((e) => (e.order.items || []).forEach((it) => all.items.push(it)));
+  const ctx = makeContext(all, opts);
+  const plan = planBatch(entries, { logos: opts.logos, logoStyle: opts.logoStyle, perPage: ctx.geo.perPage });
+  ctx.frames = ctx.packs ? await loadFrames(ctx) : { none: NONE_FRAME };
+  const uniq = new Map();
+  for (const t of plan.tiles) if (!uniq.has(t.key)) uniq.set(t.key, t);
+  const images = new Map();
+  await pool(Array.from(uniq.values()), CONCURRENCY, async (t) => {
+    images.set(t.key, await (t.kind === "design" ? renderDesign(t, ctx) : renderPhoto(t, ctx)));
+  });
+  let edges = null;
+  if (ctx.border === AUTO || plan.tiles.some((t) => t.border === AUTO)) {
+    edges = new Map();
+    const sharp = loadSharp();
+    for (const [key, jpeg] of images) { try { edges.set(key, await edgeColour(sharp, jpeg)); } catch (e) { /* white */ } }
+  }
+  const warnings = ctx.warnings;
+  if (plan.truncated) warnings.push(`These orders have ${plan.total} magnets but the sheets stop at ${MAX_TILES}. Print the rest in a second batch.`);
+  const date = fmtDate(nowIso());
+  let pdf = null, pages = 0;
+  if (plan.sheets) {
+    const s = newDoc(`Magnets · ${plan.numbers.join(", ")}`, `Fridge magnets for ${plan.numbers.length} orders, ${ctx.geo.perPage} per sheet`);
+    const embedded = new Map();
+    for (const [key, jpeg] of images) { try { embedded.set(key, s.doc.openImage(jpeg)); } catch (e) { warnings.push(`A tile could not be embedded (${e.message}).`); } }
+    const placed = placeTiles(plan.tiles, ctx.geo.perPage);
+    for (let p = 0; p < plan.sheets; p++) {
+      const on = placed.filter((t) => t.page === p);
+      const nums = [...new Set(on.map((t) => t.order).filter(Boolean))];
+      const logos = on.filter((t) => t.label === "Logo").length;
+      const head = (nums.length ? `${nums.length === 1 ? "Order" : "Orders"} ${nums.join(", ")}` : "") + (logos ? `${nums.length ? " + " : ""}${plural(logos, "logo magnet")}` : "");
+      drawSheet(s.doc, s.F, { order: { number: head }, page: p, sheets: plan.sheets, placed: on, images: embedded, date, geo: ctx.geo, border: ctx.border, edges, labels: true });
+    }
+    s.doc.end();
+    pdf = await s.done;
+    pages = s.state.pages;
+  }
+  let slip = null, slipPages = 0;
+  if (entries.length) {
+    const k = newDoc(`Packing slips · ${plan.numbers.join(", ")}`, "Packing slips (plain paper)");
+    if (warnings.length) drawNotesPage(k.doc, k.F, warnings);
+    for (const e of entries) drawSlip(k.doc, k.F, { order: e.order, frames: ctx.frames, skipped: planTiles(e.order).skipped, date: fmtDate(e.order.paidAt || e.order.createdAt) });
+    k.doc.end();
+    slip = await k.done;
+    slipPages = k.state.pages;
+  }
+  return { pdf, slip, pages, slipPages, sheets: plan.sheets, perPage: ctx.geo.perPage, tiles: plan.tiles.length, spaces: plan.spaces, logos: plan.logos,
+    numbers: plan.numbers, warnings: warnings.slice(0, 10) };
+}
+let batchBuilder = buildBatchDetailed;
+/** Tests swap the batch renderer too. */
+function setBatchBuilder(fn) { batchBuilder = fn || buildBatchDetailed; }
+
+/**
+ * Builds and saves a "Print together" batch at orders/_batches/<stamp>/ (kept like the orders' own sheets) and returns
+ * short-lived links: {url (magnets, null when nothing prints), slipUrl, sheets, perPage, tiles, spaces, logos, warnings}.
+ */
+async function generateBatch(entries, { by = "admin", logos = 0, logoStyle = "cream" } = {}) {
+  const settings = await printSettings();
+  const out = await batchBuilder(entries, { logos, logoStyle, cut: settings.cut, image: settings.image, enhance: settings.enhance, border: settings.border });
+  const bucket = deps.bucket();
+  const stamp = `${nowIso().replace(/[-:.TZ]/g, "").slice(0, 14)}-${crypto.randomBytes(3).toString("hex")}`;
+  const dir = `orders/_batches/${stamp}`;
+  const label = { number: out.numbers && out.numbers.length ? out.numbers.join("-") : "logo-magnets" };
+  let url = null, slipUrl = null;
+  if (out.pdf) {
+    await savePdf(bucket, `${dir}/print-sheet.pdf`, out.pdf, label, stamp, by, "sheet");
+    url = (await downloadUrl(`${dir}/print-sheet.pdf`, `LHH-print-together-${stamp.slice(0, 8)}.pdf`)).url;
+  }
+  if (out.slip) {
+    await savePdf(bucket, `${dir}/packing-slips.pdf`, out.slip, label, stamp, by, "slip");
+    slipUrl = (await downloadUrl(`${dir}/packing-slips.pdf`, `LHH-packing-slips-${stamp.slice(0, 8)}.pdf`)).url;
+  }
+  console.log(`[printsheet] batch ${stamp}: ${(out.numbers || []).length} orders, ${out.tiles} tiles, ${out.sheets} sheets`);
+  return { url, slipUrl, sheets: out.sheets, perPage: out.perPage || PER_PAGE, tiles: out.tiles, spaces: out.spaces, logos: out.logos, warnings: out.warnings || [] };
+}
+
 /** buildPrintSheet(orderId, order) -> Buffer (the magnets PDF). */
 async function buildPrintSheet(orderId, order, opts) { return (await buildPrintSheetDetailed(orderId, order, opts)).pdf; }
 
@@ -751,5 +872,6 @@ module.exports = {
   pageCount, geometry, cutSize, imageSize, tilePositions, borderRect, borderColour, itemBorder, colourName, ringMean, WHITE, AUTO, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,
+  LOGO_STYLES, MAX_BATCH_ORDERS, MAX_LOGOS, logoTile, planBatch, buildBatchDetailed, generateBatch, setBatchBuilder,
   _internal: { renderDesign, renderPhoto, makeContext, loadFrames, assemblePdf, enhancePhoto, loadSharp, loadPdfkit },   // for diagnostics / visual checks
 };

@@ -97,6 +97,7 @@ exports.adminModerateReview = callable("adminModerateReview", admin);
 exports.adminNewsletter = callable("adminNewsletter", newsletter, null, { timeoutSeconds: 540, memory: "512MiB" });
 // builds the print-ready PDF (sharp + pdfkit) on demand: more memory and time than the other callables
 exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
+exports.adminPrintBatch = callable("adminPrintBatch", admin, null, { timeoutSeconds: 540, memory: "2GiB" });
 // a test PDF of designs / photos without an order, and deleting test orders
 exports.adminTestSheet = callable("adminTestSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
 exports.adminLastTestSheet = callable("adminLastTestSheet", admin);

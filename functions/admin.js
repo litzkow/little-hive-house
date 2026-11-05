@@ -536,6 +536,36 @@ async function adminPhotoUrls(data, auth) {
  * Returns a short-lived link to the magnets PDF (orders/<id>/print-sheet.pdf, glossy paper) or, with which "slip",
  * the packing slip (packing-slip.pdf, plain paper); makes (or remakes, with rebuild) the PDFs first when needed.
  */
+/**
+ * adminPrintBatch({orderIds, logos?, logoStyle?: "cream" | "honey"}) -> {url, slipUrl, sheets, perPage, tiles, spaces, logos}
+ * "Print together": the magnets of several paid orders on shared sheets (each piece with its order number under it), plus
+ * exactly the number of logo magnets the owner asked for (0 by default), and one PDF with all their packing slips.
+ */
+async function adminPrintBatch(data, auth) {
+  U.requireAdmin(auth);
+  const printsheet = require("./printsheet");
+  const ids = [...new Set((Array.isArray(data && data.orderIds) ? data.orderIds : []).map(String).filter(Boolean))];
+  if (ids.length > printsheet.MAX_BATCH_ORDERS) fail("invalid-argument", `Print up to ${printsheet.MAX_BATCH_ORDERS} orders together.`);
+  const logos = Math.max(0, Math.min(printsheet.MAX_LOGOS, Math.floor(Number(data && data.logos) || 0)));
+  const logoStyle = data && data.logoStyle === "honey" ? "honey" : "cream";
+  if (!ids.length && !logos) fail("invalid-argument", "Pick at least one order, or some logo magnets.");
+  const entries = [];
+  for (const orderId of ids) {
+    const { id, order } = await loadOrder(orderId);
+    if (order.status === "pending") fail("failed-precondition", `${order.number || id} hasn't been paid yet, so there is nothing to print.`);
+    entries.push({ id, order });
+  }
+  // oldest first, so the pieces follow the order list
+  entries.sort((a, b) => String(a.order.paidAt || a.order.createdAt || "").localeCompare(String(b.order.paidAt || b.order.createdAt || "")));
+  try {
+    return { ok: true, ...(await printsheet.generateBatch(entries, { by: U.who(auth), logos, logoStyle })) };
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    console.error("[adminPrintBatch] build failed", ids, err);
+    fail("unavailable", `The sheets could not be made (${(err && err.message) || "unknown error"}). Try again in a minute.`);
+  }
+}
+
 async function adminPrintSheet(data, auth) {
   U.requireAdmin(auth);
   const printsheet = require("./printsheet");
@@ -721,6 +751,6 @@ module.exports = {
   refundOrder, _internal: { photoUrl },
   adminDeleteOrder, adminTestSheet, adminLastTestSheet, deletable,
   adminPreviewEmail, claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
-  adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet,
+  adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet, adminPrintBatch,
   DEFAULT_SETTINGS, promoView, deliverOrder,
 };

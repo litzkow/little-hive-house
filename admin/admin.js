@@ -860,7 +860,7 @@
     opts = opts || {};
     if (!list.length) return '<div class="empty">' + icon('orders') + '<b>' + esc(opts.emptyTitle || 'No orders yet') + '</b>' + esc(opts.emptyText || 'They’ll show up here as soon as someone checks out.') + '</div>';
     var sel = opts.select ? S.ui.orders.sel : null;
-    var eligible = function (o) { return R.stage(o) === 'to_fulfil'; };
+    var eligible = function (o) { var st = R.stage(o); return st === 'to_fulfil' || st === 'in_production'; };
     var anyEligible = sel && list.some(eligible);
     var wide = '<div class="table-wrap only-wide"><table class="t' + (opts.compact ? ' compact' : '') + '"><thead><tr>' +
       (anyEligible ? '<th class="cb"><label class="check"><input type="checkbox" data-act="selall" aria-label="Select all orders to fulfil"></label></th>' : '') +
@@ -962,17 +962,70 @@
   function renderBulk() {
     var ids = Object.keys(S.ui.orders.sel).filter(function (k) { return S.ui.orders.sel[k]; });
     var b = $('#o-bulk'); if (!b) return;
-    b.innerHTML = ids.length ? '<div class="bulk"><b>' + plural(ids.length, 'order') + ' selected</b><button class="btn btn-sm" data-act="bulkProd">Mark in production</button><button class="linkish" data-act="selnone">Clear</button></div>' : '';
+    var toStart = ids.filter(function (id) { var o = findOrder(id); return o && R.stage(o) === 'to_fulfil'; }).length;
+    b.innerHTML = ids.length ? '<div class="bulk"><b>' + plural(ids.length, 'order') + ' selected</b>' +
+      '<button class="btn btn-honey btn-sm" data-act="bulkPrint">' + icon('print') + 'Print together</button>' +
+      (toStart ? '<button class="btn btn-sm" data-act="bulkProd">Mark in production</button>' : '') +
+      '<button class="linkish" data-act="selnone">Clear</button></div>' : '';
   }
   ACT.moreOrders = function () { S.ui.orders.limit += 100; renderOrderList(); };
   ACT.sel = function (el, ev) { ev.stopPropagation(); S.ui.orders.sel[el.getAttribute('data-id')] = el.checked; var tr = el.closest('tr'); if (tr) tr.classList.toggle('sel', el.checked); renderBulk(); };
   ACT.selall = function (el) {
-    filteredOrders().slice(0, S.ui.orders.limit).forEach(function (o) { if (R.stage(o) === 'to_fulfil') S.ui.orders.sel[o.id] = el.checked; });
+    filteredOrders().slice(0, S.ui.orders.limit).forEach(function (o) { var st = R.stage(o); if (st === 'to_fulfil' || st === 'in_production') S.ui.orders.sel[o.id] = el.checked; });
     renderOrderList(); var a = $('[data-act="selall"]'); if (a) a.checked = el.checked;
   };
   ACT.selnone = function () { S.ui.orders.sel = {}; renderOrderList(); };
-  ACT.bulkProd = function (el) {
+  /* "Print together": the selected orders share the magnet sheets (functions adminPrintBatch); logo magnets only if asked */
+  function printableOf(o) {
+    return (o.items || []).reduce(function (a, it) {
+      if (!it) return a;
+      var q = Math.max(1, R.num(it.qty) || 1);
+      if (it.kind === 'design') return a + q;
+      if (it.kind === 'photos') return a + (R.num(it.packSize) * q || (it.photos || []).length);
+      return a;
+    }, 0);
+  }
+  ACT.bulkPrint = function (el) {
     var ids = Object.keys(S.ui.orders.sel).filter(function (k) { return S.ui.orders.sel[k]; });
+    var orders = ids.map(findOrder).filter(Boolean).sort(function (a, b) { return (R.orderDate(a) || R.toMs(a.createdAt)) - (R.orderDate(b) || R.toMs(b.createdAt)); });
+    var mags = orders.reduce(function (a, o) { return a + printableOf(o); }, 0);
+    var per = R.perSheet(S.settings && S.settings.printCutIn);
+    var st = { logos: 0, style: 'cream' };
+    var summary = function () {
+      var n = mags + st.logos, sheets = Math.ceil(n / per), empty = sheets * per - n;
+      var apart = orders.reduce(function (a, o) { return a + Math.ceil(printableOf(o) / per); }, 0) + Math.ceil(st.logos / per);
+      return '<b>' + plural(n, 'magnet') + '</b> · <b>' + plural(sheets, 'sheet') + '</b>' + (sheets ? '<span> · ' + plural(empty, 'empty space') + '</span>' : '') +
+        (apart > sheets ? '<span class="ok-text"> · ' + plural(apart - sheets, 'sheet') + ' saved</span>' : '');
+    };
+    var list = orders.map(function (o) { return '<li><b>' + esc(orderNo(o)) + '</b> <span class="muted">' + esc(custName(o)) + ' · ' + plural(printableOf(o), 'magnet') + '</span></li>'; }).join('');
+    dialog({ title: 'Print together', ok: 'Make the sheets', html:
+      '<p class="small muted">These orders share the magnet sheets, one after the other. Each piece has its order number printed small under it, outside the cut.</p>' +
+      '<ul class="pb-list">' + list + '</ul>' +
+      '<div class="pb-logo"><span><b>Logo magnets</b><span class="tiny muted">Only the ones you add here</span></span>' +
+      '<span class="stepper"><button type="button" class="btn btn-ghost btn-sm" data-pb="-1" aria-label="One less logo magnet">−</button><output id="pb-logos" aria-live="polite">0</output><button type="button" class="btn btn-ghost btn-sm" data-pb="1" aria-label="One more logo magnet">+</button></span></div>' +
+      '<div class="pb-style" role="radiogroup" aria-label="Logo magnet colour"><label><input type="radio" name="pb-style" value="cream" checked> Cream</label><label><input type="radio" name="pb-style" value="honey"> Honey</label></div>' +
+      '<p class="small" id="pb-sum">' + summary() + '</p>' }).then(function (ok) {
+      if (!ok) return;
+      busy(el, true, 'Making the sheets…');
+      call('adminPrintBatch', { orderIds: orders.map(function (o) { return o.id; }), logos: st.logos, logoStyle: st.style }).then(function (res) {
+        busy(el, false);
+        var a = function (url, label) { return url ? '<a class="btn btn-honey" href="' + esc(url) + '" target="_blank" rel="noopener">' + icon('external') + label + '</a>' : ''; };
+        dialog({ title: 'Sheets ready', ok: false, cancel: 'Close', html:
+          '<p class="small muted">' + plural(R.num(res.sheets), 'sheet') + ' of ' + (R.num(res.perPage) || 9) + ' magnets: ' + plural(R.num(res.tiles), 'magnet') + ' and ' + plural(R.num(res.spaces), 'empty space') + '. Print the magnets on glossy photo paper at 100%, and the packing slips on plain paper. The links work for about an hour.</p>' +
+          '<p class="row">' + a(res.url, 'Magnets PDF') + a(res.slipUrl, 'Packing slips') + '</p>' });
+      }).catch(function (e) { busy(el, false); toast('Couldn’t make the sheets: ' + friendlyError(e), true); });
+    });
+    var d = document.querySelector('dialog.modal:last-of-type');
+    if (!d) return;
+    var sync = function () { d.querySelector('#pb-logos').textContent = String(st.logos); d.querySelector('#pb-sum').innerHTML = summary(); };
+    Array.prototype.forEach.call(d.querySelectorAll('[data-pb]'), function (b) {
+      b.addEventListener('click', function () { st.logos = Math.max(0, Math.min(45, st.logos + Number(b.getAttribute('data-pb')))); sync(); });
+    });
+    Array.prototype.forEach.call(d.querySelectorAll('input[name="pb-style"]'), function (r) { r.addEventListener('change', function () { if (r.checked) st.style = r.value; }); });
+  };
+  ACT.bulkProd = function (el) {
+    var ids = Object.keys(S.ui.orders.sel).filter(function (k) { return S.ui.orders.sel[k]; })
+      .filter(function (id) { var o = findOrder(id); return o && R.stage(o) === 'to_fulfil'; });
     dialog({ title: 'Start production?', html: '<p>Mark <b>' + plural(ids.length, 'order') + '</b> as <b>In production</b>. Customers aren’t emailed; this just helps you keep track.</p>', ok: 'Mark in production' }).then(function (ok) {
       if (!ok) return;
       busy(el, true, 'Updating 0/' + ids.length + '…');

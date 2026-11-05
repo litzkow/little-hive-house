@@ -692,3 +692,13 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .track .trk-meta, .track .trk-meta span { font-size: 13.5px; color: var(--muted); }
 .track .trk-meta { display: flex; flex-wrap: wrap; column-gap: 5px; }
 .track .trk-meta > span { white-space: nowrap; }
+/* Print together (Orders › select) */
+.pb-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 4px; max-height: 180px; overflow: auto; font-size: 14px; }
+.pb-logo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.pb-logo > span:first-child { display: flex; flex-direction: column; }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper .btn { min-width: 40px; justify-content: center; font-size: 18px; }
+.stepper output { min-width: 2ch; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pb-style { display: flex; gap: 16px; font-size: 14px; padding-bottom: 8px; }
+.pb-style label { display: inline-flex; align-items: center; gap: 6px; }
+.ok-text { color: var(--ok, #3E7A3A); }

@@ -93,7 +93,7 @@
   }
 
   /* plural words for h.plural() */
-  var WORDS = { magnet: ['ímã', 'ímãs'], sheet: ['folha', 'folhas'], order: ['pedido', 'pedidos'], customer: ['cliente', 'clientes'], day: ['dia', 'dias'],
+  var WORDS = { magnet: ['ímã', 'ímãs'], sheet: ['folha', 'folhas'], 'empty space': ['espaço vazio', 'espaços vazios'], 'logo magnet': ['ímã com o logo', 'ímãs com o logo'], order: ['pedido', 'pedidos'], customer: ['cliente', 'clientes'], day: ['dia', 'dias'],
     email: ['e-mail', 'e-mails'], link: ['link', 'links'], parcel: ['pacote', 'pacotes'], photo: ['foto', 'fotos'], refund: ['reembolso', 'reembolsos'],
     review: ['avaliação', 'avaliações'], subscriber: ['inscrito', 'inscritos'], thing: ['coisa', 'coisas'], 'abandoned checkout': ['pagamento abandonado', 'pagamentos abandonados'],
     'card hold': ['reserva no cartão', 'reservas no cartão'], 'shipped order': ['pedido enviado', 'pedidos enviados'], design: ['design', 'designs'], item: ['item', 'itens'],
