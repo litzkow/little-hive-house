@@ -1060,3 +1060,19 @@ html.studio-open { overflow: hidden; }
 /* "See more" (tools/build.py more_button) */
 .see-more { display: flex; justify-content: center; margin: 22px 0 6px; }
 .see-more .btn { min-width: 220px; }
+
+/* a design on its own page (m/<collection>/<slug>.html) */
+.product-info h3 a { color: inherit; text-decoration: none; }
+.product-info h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pdp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 56px); align-items: start; }
+.pdp-art { padding: clamp(28px, 6vw, 64px); display: grid; place-items: center; }
+.pdp-art .mag { width: min(100%, 420px); height: auto; aspect-ratio: 1; border-radius: 7%; box-shadow: var(--shadow); }
+.pdp-info { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pdp-info h1 { font-size: clamp(30px, 5vw, 44px); }
+.pdp-info .eyebrow a { color: inherit; text-decoration: none; }
+.pdp-price { font-family: var(--display); font-weight: 700; font-size: 28px; }
+.pdp-price span { font-family: var(--body); font-weight: 400; font-size: 15px; color: var(--muted); margin-left: 8px; }
+.pdp-info .btn-honey { align-self: flex-start; min-width: 220px; justify-content: center; }
+.pdp-eta { font-size: 15px; color: var(--muted); }
+.pdp-facts { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+@media (max-width: 720px) { .pdp { grid-template-columns: 1fr; } .pdp-info .btn-honey { align-self: stretch; } }
