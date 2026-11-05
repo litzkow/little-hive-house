@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "38"
+VERSION = "39"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -255,7 +255,7 @@ def product(pg, col, slug, show_col=True, more=False):
     return f"""<li class="product" data-collection="{col["slug"]}" data-search="{search}"{extra}>
   <button type="button" class="product-art" data-view aria-label="See {E(t)} larger">{pg.svg(col["slug"], slug)}</button>
   <div class="product-info">
-    <h3>{E(t)}</h3>
+    <h3><a href="{pg.p}m/{col["slug"]}/{slug}.html">{E(t)}</a></h3>
     {meta}
     <p class="price">${PRICE}</p>
   </div>
@@ -863,6 +863,151 @@ def page_shop():
     write("shop.html", head(pg, "Shop all designs", f"All {TOTAL_TEXT} Little Hive House magnet designs. Filter by collection or search.", "shop.html") + body + chrome_end(pg))
 
 
+def shop_designs():
+    """Every design on sale, in shop order: [(collection, slug)] (the same set as shop.html)."""
+    out = [(c, s) for c in COLLECTIONS for s in c["order"]] + [(c, s) for c in COLLECTIONS for s in more_of(c)]
+    out += [(c, s) for c in MORE_COLLECTIONS for s in c["order"] + more_of(c) if has_art(c["slug"], s)]
+    return out
+
+
+def design_image(col_slug, slug):
+    """The biggest picture of a design: the 1200 px print render when there is one, else the 600 px website WebP."""
+    if (ROOT / f"assets/print/{col_slug}/{slug}.jpg").exists():
+        return f"assets/print/{col_slug}/{slug}.jpg", 1200
+    return f"assets/art/{col_slug}/{slug}.webp", 600
+
+
+def design_text(col, t):
+    return (f"{t}, a 2 x 2 inch fridge magnet from our {col['name']} collection. {col['blurb']} "
+            "Printed, pressed and packed by hand, with a glossy front and a strong magnet back.")
+
+
+def page_product(col, slug, siblings):
+    """m/<collection>/<slug>.html: one design on its own page (Google Shopping and search land here)."""
+    pg = Page("../../")
+    t = title_for(col, slug)
+    img, size = design_image(col["slug"], slug)
+    href = f'{pg.p}collections/{col["slug"]}.html'
+    grp = PARENT.get(col["slug"]) or next((g for g in GROUPS if col["slug"] in g.get("all", [])), None)
+    parent_crumb = f'<li><a href="{pg.p}collections/{grp["slug"]}.html">{E(grp["name"])}</a></li>' if grp else ""
+    path = f'm/{col["slug"]}/{slug}.html'
+    url = f"https://littlehivehouse.com/{path}"
+    desc = design_text(col, t)
+    ld = {
+        "@context": "https://schema.org/", "@type": "Product", "name": f"{t} magnet", "sku": f'{col["slug"]}/{slug}',
+        "image": f"https://littlehivehouse.com/{img}", "description": desc, "brand": {"@type": "Brand", "name": "Little Hive House"},
+        "category": f'Fridge magnets > {col["name"]}',
+        "offers": {"@type": "Offer", "url": url, "priceCurrency": "USD", "price": f"{PRICE:.2f}", "availability": "https://schema.org/InStock",
+                   "itemCondition": "https://schema.org/NewCondition",
+                   "shippingDetails": {"@type": "OfferShippingDetails",
+                                       "shippingRate": {"@type": "MonetaryAmount", "value": f"{STORE_SHIPPING:.2f}", "currency": "USD"},
+                                       "shippingDestination": {"@type": "DefinedRegion", "addressCountry": "US"},
+                                       "deliveryTime": {"@type": "ShippingDeliveryTime",
+                                                        "handlingTime": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 2, "unitCode": "DAY"},
+                                                        "transitTime": {"@type": "QuantitativeValue", "minValue": 2, "maxValue": 5, "unitCode": "DAY"}}},
+                   "hasMerchantReturnPolicy": {"@type": "MerchantReturnPolicy", "applicableCountry": "US",
+                                               "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow", "merchantReturnDays": 30,
+                                               "returnMethod": "https://schema.org/ReturnByMail", "returnFees": "https://schema.org/ReturnShippingFees"}},
+    }
+    import json as _json
+    more = "\n".join(product(pg, col, x, show_col=False) for x in siblings)
+    body = f"""{header(pg, "shop")}
+<main id="main">
+  <div class="wrap page-head">
+    <ol class="crumbs"><li><a href="{pg.p}index.html">Home</a></li><li><a href="{pg.p}collections/index.html">Collections</a></li>{parent_crumb}<li><a href="{href}">{E(col["name"])}</a></li><li aria-current="page">{E(t)}</li></ol>
+  </div>
+  <section class="tight">
+    <div class="wrap pdp">
+      <div class="pdp-art fridge"><img class="mag" src="{pg.p}{img}" width="{size}" height="{size}" alt="{E(t)} fridge magnet" decoding="async"></div>
+      <div class="pdp-info">
+        <p class="eyebrow"><a href="{href}">{E(col["name"])}</a></p>
+        <h1>{E(t)}</h1>
+        <p class="pdp-price">${PRICE} <span>2 × 2 in magnet</span></p>
+        <div class="head-row">{deal()} {vol_badge()}</div>
+        <button type="button" class="btn btn-honey" data-add="{col["slug"]}/{slug}" data-name="{E(t)}" data-collection="{E(col["name"])}" data-href="{href}">Add to cart</button>
+        <p class="pdp-eta">Ships in 1–2 business days. Order today and it arrives <strong data-eta>in about a week</strong> in the US.</p>
+        <p>{E(col["blurb"])}</p>
+        <ul class="pdp-facts">
+          <li>2 × 2 inch square with soft rounded corners</li>
+          <li>Glossy front and a strong magnet back</li>
+          <li>Printed, pressed and packed by hand, made to order</li>
+          <li>Free US shipping on orders of ${STORE_FREE_SHIP_AT} or more</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head">
+        <div><p class="eyebrow">Pick a few more</p><h2>More from {E(col["name"])}</h2></div>
+        <a class="btn btn-ghost btn-small" href="{href}">All {E(col["name"])} designs</a>
+      </div>
+      <div class="fridge">
+        <ul class="products four">
+{more}
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+{footer(pg)}"""
+    ld_tag = '<script type="application/ld+json">' + _json.dumps(ld, ensure_ascii=False).replace("</", "<\\/") + "</script>\n"
+    html = head(pg, f"{t} magnet", f"{t}: a handmade 2 x 2 in fridge magnet from the {col['name']} collection. ${PRICE}, ships in 1 to 2 business days.", path)
+    html = html.replace("</head>", ld_tag + "</head>", 1)
+    write(path, html + body + chrome_end(pg))
+
+
+def page_products():
+    """A page for every design on sale (m/<collection>/<slug>.html); old pages of designs no longer on sale are removed."""
+    import shutil as _shutil
+    live = shop_designs()
+    by_col = {}
+    for c, x in live:
+        by_col.setdefault(c["slug"], (c, []))[1].append(x)
+    for c, x in live:
+        sib = [y for y in by_col[c["slug"]][1] if y != x]
+        page_product(c, x, sib[:8])
+    keep = {f'{c["slug"]}/{x}.html' for c, x in live}
+    base = ROOT / "m"
+    for f in base.glob("*/*.html"):
+        if f"{f.parent.name}/{f.name}" not in keep:
+            f.unlink()
+    for d in base.glob("*"):
+        if d.is_dir() and not any(d.iterdir()):
+            _shutil.rmtree(d)
+
+
+def write_google_feed():
+    """google-products.xml: every design (and the photo packs) for Google Merchant Center, read by Google every day."""
+    site = "https://littlehivehouse.com/"
+    def item(pid, title, desc, link, image, price, ptype, label):
+        return ("  <item>\n"
+                f"    <g:id>{E(pid)}</g:id>\n    <g:title>{E(title)}</g:title>\n    <g:description>{E(desc)}</g:description>\n"
+                f"    <g:link>{E(link)}</g:link>\n    <g:image_link>{E(image)}</g:image_link>\n"
+                f"    <g:availability>in_stock</g:availability>\n    <g:price>{price:.2f} USD</g:price>\n"
+                "    <g:condition>new</g:condition>\n    <g:brand>Little Hive House</g:brand>\n    <g:identifier_exists>no</g:identifier_exists>\n"
+                "    <g:google_product_category>696</g:google_product_category>\n"
+                f"    <g:product_type>{E(ptype)}</g:product_type>\n    <g:custom_label_0>{E(label)}</g:custom_label_0>\n"
+                "    <g:shipping_weight>1 oz</g:shipping_weight>\n"
+                "  </item>")
+    rows = []
+    for c, x in shop_designs():
+        t = title_for(c, x)
+        img, _ = design_image(c["slug"], x)
+        grp = PARENT.get(c["slug"]) or next((g for g in GROUPS if c["slug"] in g.get("all", [])), None)
+        ptype = "Fridge magnets > " + (f'{grp["name"]} > ' if grp else "") + c["name"]
+        rows.append(item(f'{c["slug"]}-{x}', f"{t} Fridge Magnet, Handmade 2x2 in, {c['name']} Collection"[:150], design_text(c, t),
+                         f'{site}m/{c["slug"]}/{x}.html', site + img, PRICE, ptype, c["name"]))
+    for n, price in STORE_PHOTO_PACKS:
+        rows.append(item(f"photo-pack-{n}", f"Custom Photo Magnets, Pack of {n}, Personalized 2x2 in Fridge Magnets",
+                         f"{n} glossy 2 x 2 inch fridge magnets made by hand from your own photos, with a frame and a caption if you like. "
+                         "Printed, pressed and packed by hand, ships in 1 to 2 business days.",
+                         f"{site}photo-magnets.html", f"{site}assets/og-image.jpg", price, "Fridge magnets > Photo magnets", "Photo magnets"))
+    write("google-products.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n<channel>\n'
+          "  <title>Little Hive House</title>\n  <link>https://littlehivehouse.com/</link>\n  <description>Handmade fridge magnets</description>\n"
+          + "\n".join(rows) + "\n</channel>\n</rss>\n")
+
+
 def page_collections_index():
     pg = Page("../")
     cards = "\n".join(col_card(pg, c) for c in top_level())
@@ -1324,6 +1469,8 @@ def write_sitemap():
         imgs = "".join(img(c["slug"], s, c["titles"].get(s) or s.replace("-", " ").title())
                        for s in c["order"] + c.get("more", []) if (ROOT / f"assets/art/{c['slug']}/{s}.webp").exists())
         entries.append((f"collections/{c['slug']}.html", "0.8", imgs))
+    for c, x in shop_designs():
+        entries.append((f'm/{c["slug"]}/{x}.html', "0.6", img(c["slug"], x, title_for(c, x))))
     for p in ("contact.html", "suggestions.html", "shipping.html", "returns.html", "track.html", "privacy.html", "terms.html"):
         if (ROOT / p).exists():
             entries.append((p, "0.4", ""))
@@ -1364,6 +1511,8 @@ if __name__ == "__main__":
     store_pages.build(_sys.modules[__name__])
     export_store_catalog()   # store backend prices -> functions/catalog.json
     write_archived_redirects()
+    page_products()          # m/<collection>/<slug>.html: a page for every design
+    write_google_feed()      # google-products.xml for Google Merchant Center
     write_sitemap()          # sitemap.xml + robots.txt for Google
     import admin_icons       # admin/icons/*.png for the installable admin (only drawn when missing)
     admin_icons.main()
