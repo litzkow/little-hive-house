@@ -973,7 +973,17 @@ html.studio-open { overflow: hidden; }
 .insta-badge.many .ib-icon svg { width: 50px; height: 50px; }
 .insta-badge .ib-handle { font-weight: 700; font-size: 18px; letter-spacing: .01em; }
 @media (max-width: 760px) { .insta-badge .ib-icon, .insta-badge.many .ib-icon { width: 84px; height: 84px; border-radius: 24px; } .insta-badge .ib-icon svg, .insta-badge.many .ib-icon svg { width: 44px; height: 44px; } }
-.band.insta .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* the network buttons side by side, all the same: up to 3 in a row, a 4th starts the next row */
+.band.insta .actions { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, max-content)); gap: 10px; }
+.band.insta .actions[data-n="1"] { --n: 1; }
+.band.insta .actions[data-n="2"] { --n: 2; }
+.band.insta .actions[data-n="3"] { --n: 3; }
+.band.insta .actions .btn-ig { justify-content: center; }
+@media (max-width: 560px) {
+  .band.insta .actions { grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 8px; }
+  .band.insta .actions .btn-ig { padding: 0 6px; gap: 5px; font-size: 14px; min-width: 0; letter-spacing: 0; }
+  .band.insta .actions .btn-ig svg { width: 16px; height: 16px; }
+}
 .strip-soc { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; white-space: nowrap; }
 .strip-handle { font-weight: 600; }
 .nav a.ig-btn ~ a.ig-btn { display: none; }   /* the header keeps one button; every network is in the top strip */

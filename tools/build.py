@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "36"
+VERSION = "37"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -374,7 +374,7 @@ def social_band(pg):
         return ""
     one = len(SOCIAL) == 1
     eyebrow = f"On {SOCIAL[0][0]}" if one else "Follow along"
-    btns = "".join(f'<a class="btn {"btn-honey" if i == 0 else "btn-ghost"} btn-ig" href="{u}" target="_blank" rel="noopener me">{icon}'
+    btns = "".join(f'<a class="btn btn-honey btn-ig" href="{u}" target="_blank" rel="noopener me">{icon}'
                    f'{"Follow " + E(h) if one else E(n)}</a>' for i, (n, u, h, icon) in enumerate(SOCIAL))
     tiles = "".join(f'<a class="ib-icon" href="{u}" target="_blank" rel="noopener me" tabindex="-1" data-net="{n.lower() if n.lower() in SOCIAL_BG else "instagram"}">{icon}</a>'
                     for n, u, h, icon in SOCIAL)
@@ -386,7 +386,7 @@ def social_band(pg):
           <p class="eyebrow">{eyebrow}</p>
           <h2>Come see what’s on our fridge</h2>
           <p>New designs before they hit the shop, behind the scenes at the press, and photos from your fridges. Tag us when your magnets arrive and we might share yours.</p>
-          <div class="actions">{btns}</div>
+          <div class="actions" data-n="{min(3, len(SOCIAL))}">{btns}</div>
         </div>
         <div class="insta-badge{" many" if not one else ""}" aria-hidden="true"><div class="ib-row">{tiles}</div>{f'<span class="ib-handle">{handle}</span>' if handle else ""}</div>
       </div>
