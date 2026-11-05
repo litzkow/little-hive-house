@@ -24,11 +24,12 @@
   });
   pats.sort(function (a, b) { return b.lit - a.lit; });
 
-  /** The Portuguese for one text (whitespace around it kept), or null when there is none. */
-  function tr(s) {
-    var core = norm(s);
+  /** The Portuguese for one text without its outer spaces, or null. A part that fills a * (a status, a saved note, a
+     reason) is translated too, the same way; a text that starts with "· " (the dot between two facts) is looked up
+     without it. */
+  function trCore(core, depth) {
     if (!core || !/[A-Za-z]/.test(core)) return null;
-    if (core in cache) return cache[core] === null ? null : s.replace(/^(\s*)[\s\S]*?(\s*)$/, '$1' + cache[core].replace(/\$/g, '$$$$') + '$2');
+    if (core in cache) return cache[core];
     var out = exact[core];
     if (out === undefined) {
       out = null;
@@ -38,14 +39,23 @@
         var parts = pats[i].pt.split('*'), r = parts[0];
         for (var j = 1; j < parts.length; j++) {
           var cap = m[j] !== undefined ? m[j] : '', c = norm(cap);
-          // a known text inside (a status, "(it has the gift message)"…) is translated too, its spaces kept
-          if (c && exact[c] !== undefined) cap = cap.replace(c, exact[c]);
+          var t = c && depth < 3 ? trCore(c, depth + 1) : null;
+          if (t !== null) cap = cap.replace(c, t);
           r += cap + parts[j];
         }
         out = r; break;
       }
+      if (out === null) {
+        var dot = /^·\s+([\s\S]+)$/.exec(core);
+        if (dot) { var rest = trCore(dot[1], depth + 1); if (rest !== null) out = '· ' + rest; }
+      }
     }
     cache[core] = out;
+    return out;
+  }
+  /** The Portuguese for one text (whitespace around it kept), or null when there is none. */
+  function tr(s) {
+    var out = trCore(norm(s), 0);
     return out === null ? null : s.replace(/^(\s*)[\s\S]*?(\s*)$/, '$1' + out.replace(/\$/g, '$$$$') + '$2');
   }
   function skip(el) {

@@ -289,8 +289,8 @@
   function trackBox(o) {
     var f = o.fulfillment || {}, link = trackingLink(f);
     return '<div class="track">' + icon('truck') + '<div class="trk-text"><b>' + esc(h.carrierName(f.carrier) || 'Shipped') + '</b>' + (f.tracking ? '<span class="trk-num" translate="no">' + esc(f.tracking) + '</span>' : '') +
-      '<span>Shipped ' + esc(h.fmtDT(f.shippedAt)) + (f.labelCost != null && f.labelCost !== '' ? ' · label ' + money(f.labelCost) : '') +
-      (R.toMs(f.deliveredAt) ? ' · delivered ' + esc(h.fmtDT(f.deliveredAt)) : '') + '</span></div>' +
+      '<span class="trk-meta"><span>Shipped ' + esc(h.fmtDT(f.shippedAt)) + '</span>' + (f.labelCost != null && f.labelCost !== '' ? '<span> · label ' + money(f.labelCost) + '</span>' : '') +
+      (R.toMs(f.deliveredAt) ? '<span> · delivered ' + esc(h.fmtDT(f.deliveredAt)) + '</span>' : '') + '</span></div>' +
       (link ? '<a class="btn btn-ghost btn-sm" href="' + esc(link) + '" target="_blank" rel="noopener">Track ' + icon('external') + '</a>' : '') + '</div>';
   }
   /* automatic tracking (functions/tracking.js fills these every 2 hours) */

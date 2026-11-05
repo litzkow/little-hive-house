@@ -60,8 +60,8 @@
       return '<span class="' + (good ? 'pos' : 'neg') + '">' + (up ? '▲ ' : '▼ ') + h.moneyShort(Math.abs(d)).replace('−', '') + '</span> vs last month';
     };
     var estNote = m.feesEstimated || m.labelsEstimated ? '<div class="callout calm">' + icon('info') + '<p class="small">' +
-      (m.feesEstimated ? h.plural(m.feesEstimated, 'order') + ' had no Stripe fee saved, so the fee is estimated (' + S.settings.stripePct + '% + ' + money(S.settings.stripeFixed) + '). ' : '') +
-      (m.labelsEstimated ? h.plural(m.labelsEstimated, 'shipped order') + ' had no label cost, so ' + money(S.settings.defaultLabelCost) + ' each is used. ' : '') +
+      (m.feesEstimated ? '<span>' + h.plural(m.feesEstimated, 'order') + ' had no Stripe fee saved, so the fee is estimated (' + S.settings.stripePct + '% + ' + money(S.settings.stripeFixed) + ').</span> ' : '') +
+      (m.labelsEstimated ? '<span>' + h.plural(m.labelsEstimated, 'shipped order') + ' had no label cost, so ' + money(S.settings.defaultLabelCost) + ' each is used.</span> ' : '') +
       'Change these in <a href="#settings">Settings</a>.</p></div>' : '';
     var pl = [
       ['Gross sales', m.grossSales, 'Price of everything sold, before discounts'],

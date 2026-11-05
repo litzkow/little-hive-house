@@ -689,3 +689,6 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .track .trk-text { flex: 1 1 180px; min-width: 0; }
 .track .trk-num { display: block; font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 14.5px; color: var(--ink); letter-spacing: .02em; overflow-wrap: anywhere; margin: 2px 0; }
 .track > .btn { flex: none; margin-left: auto; }
+.track .trk-meta, .track .trk-meta span { font-size: 13.5px; color: var(--muted); }
+.track .trk-meta { display: flex; flex-wrap: wrap; column-gap: 5px; }
+.track .trk-meta > span { white-space: nowrap; }
