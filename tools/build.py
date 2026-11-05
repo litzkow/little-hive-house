@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "37"
+VERSION = "38"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -512,8 +512,8 @@ def chrome_end(pg, extra_js=()):
       <ul>
         <li>2 × 2 inch square magnet with rounded corners</li>
         <li>Glossy, scratch-resistant front and a strong magnet back</li>
-        <li>Printed, pressed and packed by hand in 3–5 business days</li>
-        <li class="qv-eta">Order today, it arrives <strong data-eta>in about 1–2 weeks</strong> in the US · <a href="{pg.p}shipping.html">Shipping details</a></li>
+        <li>Made by hand and shipped in 1–2 business days</li>
+        <li class="qv-eta">Order today, it arrives <strong data-eta>in about a week</strong> in the US · <a href="{pg.p}shipping.html">Shipping details</a></li>
         <li>{deal().replace('<span class="deal">', '').replace('</span>', '')}, mix any collections</li>
       </ul>
       <button type="button" class="btn btn-honey" id="qv-add">Add to cart</button>
@@ -1136,7 +1136,7 @@ def page_photo():
         <details><summary>Which photos work best?</summary><p>Use the original photo from your camera roll. Screenshots and photos saved from chat apps are often too small and print blurry; the builder warns you when a photo looks too small.</p></details>
         <details><summary>Can every photo have a different frame?</summary><p>Yes. Tap any photo in the builder to pick its own frame and caption, or use "Apply this frame to all photos" to frame the whole pack the same way in one tap.</p></details>
         <details><summary>Will you crop my photos?</summary><p>Yes, every photo is cropped to a square. Tell us in the notes if someone must stay in the frame and we will crop around them.</p></details>
-        <details><summary>How long does it take?</summary><p>Most packs ship within 3 to 5 business days. Shipping is $5.49 and free on US orders over $35.</p></details>
+        <details><summary>How long does it take?</summary><p>Most packs ship within 1 to 2 business days. Shipping is $5.49 and free on US orders over $35.</p></details>
         <details><summary>Can I mix my photos with your designs?</summary><p>Yes. Add photo packs and any designs from the <a href="shop.html">shop</a> to the same cart. Orders with 20 or more magnets get 10% off automatically, 50 or more get 20% off and 100 or more get 25% off.</p></details>
         <details><summary>Need a custom design for an event?</summary><p>See our <a href="big-orders.html">big order packages</a> for weddings, parties, teams and businesses.</p></details>
       </div>
@@ -1251,7 +1251,7 @@ def page_big():
     <div class="wrap">
       <div class="section-head"><div><p class="eyebrow">Questions</p><h2>Orders &amp; shipping</h2></div></div>
       <div class="faq">
-        <details><summary>How long do big orders take?</summary><p>Most big orders ship 7 to 10 business days after you approve the proof. Need them sooner? Ask us and we will tell you honestly if we can make it.</p></details>
+        <details><summary>How long do big orders take?</summary><p>Most big orders ship 3 to 5 business days after you approve the proof. Need them sooner? Ask us and we will tell you honestly if we can make it.</p></details>
         <details><summary>Can I use your designs instead of my own?</summary><p>Yes. Any design from the shop can be ordered in bulk at package prices, and we can add your names or date to most of them.</p></details>
         <details><summary>Do you have envelopes for save the dates?</summary><p>Yes, kraft envelopes can be added for $0.25 each. Postage is not included.</p></details>
         <details><summary>How much is shipping?</summary><p>Shipping in the US is $5.49 and free on orders over $35, so almost every big order ships free.</p></details>

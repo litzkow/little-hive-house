@@ -159,7 +159,7 @@
                  delivered: 'Delivered', canceled: 'This order was canceled', refunded: 'This order was refunded',
                  partially_refunded: 'Part of this order was refunded', pending: 'Waiting for payment' }[st] || 'Order status';
     var lead = {
-      paid: 'We’ll start printing soon. Most orders ship within 3 to 5 business days, and we email you the tracking link when it ships.',
+      paid: 'We’ll start printing soon. Most orders ship within 1 to 2 business days, and we email you the tracking link when it ships.',
       in_production: 'Your magnets are being printed, pressed and packed by hand. We email you the tracking link when it ships.',
       shipped: ofd ? carrierName(f.carrier, f) + ' has your package out for delivery. Keep an eye on the porch!'
         : 'Your package is with ' + carrierName(f.carrier, f) + '.' + (f.shippedAt ? ' It shipped on ' + day(f.shippedAt, { month: 'long', day: 'numeric' }) + '.' : '') +

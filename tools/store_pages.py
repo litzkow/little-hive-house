@@ -291,7 +291,7 @@ def page_thanks():
           <div>
             <h2 class="sub-h">What happens next</h2>
             <ol class="steps">
-              <li><div><h3>We make your magnets</h3><p>We print, press and pack every magnet by hand. Most orders ship within 3 to 5 business days.</p></div></li>
+              <li><div><h3>We make your magnets</h3><p>We print, press and pack every magnet by hand. Most orders ship within 1 to 2 business days.</p></div></li>
               <li id="thanks-pkg" hidden><div><h3>We plan your design together</h3><p>For big-order packages we email you within one business day to get your names, date, logo or photos, and send a proof to approve before we print.</p></div></li>
               <li><div><h3>You get a tracking link</h3><p>When your package ships we email you the USPS tracking link.</p></div></li>
               <li><div><h3>It arrives at your door</h3><p>Something not right? Tell us within 30 days and we’ll fix it. See our <a href="returns.html">returns policy</a>.</p></div></li>
@@ -521,9 +521,9 @@ def page_policies():
     policy("shipping.html", "Shipping", "How Little Hive House makes and ships your order: production times, USPS Ground Advantage, costs and tracking.",
            "Every order is made by hand in our little house near Atlanta, Georgia, then sent with USPS.", [
         ("making", "How long it takes to make", """<p class="eta-callout">Ordering today? Most US orders arrive <strong data-eta>in about 1–2 weeks</strong>.</p>
-<p>Most orders are printed, pressed and packed within <strong>3 to 5 business days</strong> (Monday to Friday, not counting US holidays). Photo magnets take the same time.</p>
-<p>Big-order packages (weddings, businesses, parties, teams) ship <strong>7 to 10 business days after you approve the proof</strong>. If you have a date in mind, tell us when you order and we’ll say honestly whether we can make it.</p>"""),
-        ("delivery", "Delivery", """<p>We ship with <strong>USPS Ground Advantage</strong>, which usually arrives <strong>2 to 5 business days</strong> after it ships. Add the time to make your order and most packages arrive within one to two weeks.</p>
+<p>Most orders are printed, pressed, packed and shipped within <strong>1 to 2 business days</strong>. Order before 5 pm Eastern and it usually goes out the next day. We ship Monday to Saturday, not counting US holidays. Photo magnets take the same time.</p>
+<p>Big-order packages (weddings, businesses, parties, teams) ship <strong>3 to 5 business days after you approve the proof</strong>. If you have a date in mind, tell us when you order and we’ll say honestly whether we can make it.</p>"""),
+        ("delivery", "Delivery", """<p>We ship with <strong>USPS Ground Advantage</strong>, which usually arrives <strong>2 to 5 business days</strong> after it ships. Add the time to make your order and most packages arrive within about a week.</p>
 <p>We ship to addresses in the United States (including APO/FPO) and Canada. Canadian orders travel with USPS international service, usually take 1 to 3 weeks, and any customs fees are paid on delivery.</p>"""),
         ("cost", "Shipping cost", """<ul>
 <li><strong>$5.49</strong> flat rate per order.</li>

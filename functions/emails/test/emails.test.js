@@ -89,10 +89,10 @@ test("order confirmation shows totals, links and thumbnails", () => {
   assert.match(r.html, /https:\/\/example\.test\/assets\/email\/thumbs\/frames\/instant\.jpg/);
   assert.match(r.html, /https:\/\/example\.test\/assets\/email\/logo\.png/);
   assert.match(r.text, /Happy birthday, Mom!/);
-  assert.match(r.text, /3 to 5 business days|1 business day/);
+  assert.match(r.text, /1 to 2 business days|1 business day/);
   const g = render("order_confirmation", { order: small });
   assert.match(g.text, /Shipping: \$4\.95/);
-  assert.match(g.text, /3 to 5 business days/);
+  assert.match(g.text, /1 to 2 business days/);
   assert.match(g.text, /Canada/);
 });
 

@@ -66,7 +66,7 @@ function sessionParams({ orderId, priced, email, tax = false }) {
       shipping_rate_data: {
         type: "fixed_amount", fixed_amount: { amount: ship, currency: "usd" },
         display_name: ship ? "Standard shipping" : "Free shipping",
-        delivery_estimate: { minimum: { unit: "business_day", value: Delivery.MAKE[0] + Delivery.SHIP[0] }, maximum: { unit: "business_day", value: Delivery.MAKE[1] + Delivery.SHIP[1] } },
+        delivery_estimate: { minimum: { unit: "business_day", value: Delivery.MAKE[0] + Delivery.SHIP[0] }, maximum: { unit: "business_day", value: Delivery.MAKE[1] + 1 + Delivery.SHIP[1] } },
         ...(tax ? { tax_behavior: "exclusive", tax_code: TAX_SHIPPING } : {}),
       },
     }],
@@ -327,7 +327,7 @@ async function orderBySession(data, auth, rawRequest) {
     try {
       const D = require("./delivery");
       const country = String((o.shipping && o.shipping.address && o.shipping.address.country) || "US").toUpperCase();
-      const e = D.estimate(D.today("America/New_York"), { country });
+      const e = D.estimateAt(new Date(), { country });
       view.reviewOptin = { email: o.email, country, estimatedDelivery: e[1].toISOString().slice(0, 10) };
     } catch (err) { /* no survey for this one */ }
   }

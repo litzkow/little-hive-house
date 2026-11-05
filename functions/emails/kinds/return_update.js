@@ -63,7 +63,7 @@ module.exports = function returnUpdate(data, { L }) {
       blocks: [
         Lay.hero({ eyebrow: num ? `Order ${num}` : "Reprint", title: "New ones are on the way", lead: [hi, "Thanks for the photos and sorry about that. We're printing new magnets for you, free, and you don't need to send anything back."] }),
         list(ret),
-        Lay.p(["They ship within 3 to 5 business days", data.reprintNumber ? [" as order ", { b: F.line(data.reprintNumber, 30) }] : "", ", and we email you the tracking link when they do."].flat()),
+        Lay.p(["They ship within 1 to 2 business days", data.reprintNumber ? [" as order ", { b: F.line(data.reprintNumber, 30) }] : "", ", and we email you the tracking link when they do."].flat()),
         Lay.buttons([{ href: returnPage, label: "See your return", variant: "honey" }]),
       ],
       reason,

@@ -19,14 +19,14 @@ module.exports = function orderConfirmation(data, { L }) {
   const country = String((order.shipping && order.shipping.address && order.shipping.address.country) || "US").toUpperCase();
   const eta = O.items(order).some((i) => i.kind !== "package") ? F.arrival(order.paidAt || order.createdAt || new Date(), { country }) : "";
   const etaBox = eta || hasPackage ? Lay.box(
-    `${Lay.label("Estimated arrival")}${Lay.bodyText(eta ? `<strong style="font-weight:600">${F.esc(eta)}</strong>` : "About 2 weeks after you approve the proof", { size: 18, lh: 26 })}` +
-    Lay.bodyText(F.esc(eta && hasPackage ? "Your big-order package ships 7 to 10 business days after you approve the proof." : country === "CA" ? "Canadian orders travel with USPS international and usually take 1 to 3 weeks." : "Made by hand in 3 to 5 business days, then 2 to 5 business days with USPS."), { size: 14, lh: 21, muted: true, margin: "6px 0 0" }),
-    `Estimated arrival: ${eta || "about 2 weeks after you approve the proof"}`, "honey", { pad: "18px 22px" }) : null;
+    `${Lay.label("Estimated arrival")}${Lay.bodyText(eta ? `<strong style="font-weight:600">${F.esc(eta)}</strong>` : "About 1 to 2 weeks after you approve the proof", { size: 18, lh: 26 })}` +
+    Lay.bodyText(F.esc(eta && hasPackage ? "Your big-order package ships 3 to 5 business days after you approve the proof." : country === "CA" ? "Canadian orders travel with USPS international and usually take 1 to 3 weeks." : "Made by hand in 1 to 2 business days, then 2 to 5 business days with USPS."), { size: 14, lh: 21, muted: true, margin: "6px 0 0" }),
+    `Estimated arrival: ${eta || "about 1 to 2 weeks after you approve the proof"}`, "honey", { pad: "18px 22px" }) : null;
 
   const next = [
     hasPackage
       ? { title: "We send you a proof", body: "Within 1 business day we'll email you to collect your names, date, logo or photos, then send a proof to approve before anything is printed." }
-      : { title: "We make them by hand", body: hasPhotos ? "We print your photos, frame them and press every magnet by hand. That takes 3 to 5 business days." : "We print and press every magnet by hand. That takes 3 to 5 business days." },
+      : { title: "We make them by hand", body: hasPhotos ? "We print your photos, frame them and press every magnet by hand. That takes 1 to 2 business days." : "We print and press every magnet by hand. That takes 1 to 2 business days." },
     { title: "We ship them to you", body: held ? "Your card is charged when your order ships, and you get an email with your tracking number the moment it leaves the hive." : "You'll get an email with your tracking number the moment they leave the hive." },
     { title: "Fridge time", body: "Unwrap, stick, smile. Tag us on Instagram if you share a photo, we love seeing them." },
   ];

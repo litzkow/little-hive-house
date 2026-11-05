@@ -23,7 +23,7 @@ module.exports = function quoteReceived(data, { L }) {
       Lay.steps([
         { title: "We reply with a quote", body: "With your volume price, plus a secure payment link whenever you're ready." },
         { title: "You approve a proof", body: "We design it with your names, date, logo or photos. Nothing prints until you say yes." },
-        { title: "We make and ship", body: "Printed and pressed by hand. Most big orders ship 7 to 10 business days after you approve the proof." },
+        { title: "We make and ship", body: "Printed and pressed by hand. Most big orders ship 3 to 5 business days after you approve the proof." },
       ]),
       Lay.p(["Have photos, a logo or a color palette? Reply to this email and attach them."], { muted: true, small: true }),
       Lay.buttons([{ href: L.big, label: "See packages and prices", variant: "ghost" }]),

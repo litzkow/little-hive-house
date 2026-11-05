@@ -137,8 +137,8 @@
     var other = cart.some(function (l) { return l.kind !== 'package'; });
     en.textContent = '';
     var txt = [];
-    if (other) txt.push(ETA ? 'Order today and it arrives about ' + ETA + ' in the US.' : 'Made by hand in 3–5 business days, then 2–5 days in the mail.');
-    if (pkg) txt.push('Big orders ship 7–10 business days after you approve the proof.');
+    if (other) txt.push(ETA ? 'Order today and it arrives about ' + ETA + ' in the US.' : 'Made by hand in 1–2 business days, then 2–5 days in the mail.');
+    if (pkg) txt.push('Big orders ship 3–5 business days after you approve the proof.');
     en.appendChild(document.createTextNode(txt.join(' ') + ' '));
     var a = document.createElement('a'); a.href = ROOT + 'shipping.html'; a.textContent = 'Shipping details';
     en.appendChild(a);

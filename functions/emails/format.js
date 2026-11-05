@@ -142,7 +142,7 @@ function arrival(from, opts = {}) {
   const d = toDate(from);
   if (!d) return "";
   const D = require("../delivery");
-  return D.arrival({ ...opts, from: D.today(STORE_TZ, d) });
+  return opts.shipped ? D.arrival({ ...opts, from: D.today(STORE_TZ, d) }) : D.arrival({ ...opts, now: d });
 }
 
 /** Site links. `site` has no trailing slash. */
