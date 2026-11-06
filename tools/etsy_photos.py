@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 
+import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -157,7 +158,7 @@ def magnet_face(img, size):
     return Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8))
 
 
-def lifestyle(scene, magnets, seed=1, shadow=0.42, size_out=(LW, LH)):
+def lifestyle(scene, magnets, seed=1, shadow=0.42, size_out=(LW, LH), scale=1.0):
     """magnets: [(PIL image, cx, cy, angle)] with cx, cy as fractions of the photo; the size is 2 in, real scale."""
     sc = SCENE[scene]
     rng = np.random.default_rng(seed)
@@ -165,7 +166,7 @@ def lifestyle(scene, magnets, seed=1, shadow=0.42, size_out=(LW, LH)):
     bg = Image.open(SCENES / sc["file"]).convert("RGB").crop(sc["crop"]).resize(size_out, Image.LANCZOS)
     bg = bg.filter(ImageFilter.UnsharpMask(radius=2, percent=40, threshold=2))
     Wo, Ho = size_out
-    size = int(round(2 * sc["inch"] * BIGGER * Wo / (x1c - x0c)))
+    size = int(round(2 * sc["inch"] * BIGGER * scale * Wo / (x1c - x0c)))
     light = sc["light"]
     shade = _shade_map(bg)
     canvas = np.asarray(bg, dtype=np.float32)
@@ -204,7 +205,77 @@ def mag_frac(scene, size_out=(LW, LH)):
     return px / size_out[0], px / size_out[1]
 
 
-def grid_spots(n, cx, cy, gap_x, gap_y, seed):
+# ---------- where the table is free (owners: a magnet never sits on the cup, the cookies or the flowers) ----------
+def prop_mask(bg):
+    """True where something sits on the table (a prop), from colours that the empty middle of the scene doesn't have."""
+    a = np.asarray(bg.convert("RGB").resize((640, 360), Image.LANCZOS))
+    lab = cv2.cvtColor(a, cv2.COLOR_RGB2LAB)
+    q = (lab // np.array([16, 8, 8])).astype(np.int32)
+    key = q[..., 0] * 10000 + q[..., 1] * 100 + q[..., 2]
+    c = key[126:234, 208:432]           # the middle: the prompt asked for it empty
+    vals, cnt = np.unique(c, return_counts=True)
+    freq = dict(zip(vals.tolist(), (cnt / cnt.sum()).tolist()))
+    f = np.vectorize(lambda k: freq.get(k, 0.0))(key)
+    common = cv2.GaussianBlur(f.astype(np.float32), (0, 0), 3)
+    m = (common < 0.0025).astype(np.uint8)
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+    return m
+
+
+SAFE_X = (0.5 - 0.5 * 720 / 1280 + 0.015, 0.5 + 0.5 * 720 / 1280 - 0.015)   # Etsy's app shows a square from the middle
+
+
+def free_layout(scene, n, seed, size_out=(LW, LH)):
+    """[(cx, cy, angle)] and a size factor for n magnets in a loose grid that touches no prop and stays in the middle
+    square. Biggest size first (down to true size), then the roomiest gaps, then closest to the centre."""
+    sc = SCENE[scene]
+    bg = Image.open(SCENES / sc["file"]).convert("RGB").crop(sc["crop"])
+    m = prop_mask(bg)
+    m = cv2.dilate(m, np.ones((13, 13), np.uint8))                    # a little air around every prop
+    mh, mw = m.shape
+    integ = cv2.integral(m)
+    def busy(x0, y0, x1, y1):
+        x0, y0 = max(0, int(x0 * mw)), max(0, int(y0 * mh)); x1, y1 = min(mw, int(np.ceil(x1 * mw))), min(mh, int(np.ceil(y1 * mh)))
+        if x1 <= x0 or y1 <= y0: return 1
+        return integ[y1, x1] - integ[y0, x1] - integ[y1, x0] + integ[y0, x0]
+    fx0, fy0 = mag_frac(scene, size_out)
+    cols = 3 if n > 4 else 2 if n > 1 else 1
+    rows = (n + cols - 1) // cols
+    best, least = None, None
+    for k in np.arange(1.0, 0.68, -0.04):
+        fx, fy = fx0 * k, fy0 * k
+        for g in (1.2, 1.14, 1.09):
+            for cy in np.arange(0.30, 0.71, 0.01):
+                for cx in np.arange(0.30, 0.71, 0.01):
+                    ok, hit = True, 0
+                    for i in range(n):
+                        r, c = divmod(i, cols)
+                        in_row = min(cols, n - r * cols)
+                        x = cx + (c - (in_row - 1) / 2) * fx * g
+                        y = cy + (r - (rows - 1) / 2) * fy * g
+                        hx, hy = fx * 0.56, fy * 0.56                     # half a magnet, turned a little
+                        if x - hx < SAFE_X[0] or x + hx > SAFE_X[1] or y - hy < 0.03 or y + hy > 0.97:
+                            ok = False; hit = 1e9; break
+                        b = busy(x - hx, y - hy, x + hx, y + hy)
+                        if b:
+                            ok = False; hit += b
+                    if not ok and k < 0.73 and hit < 1e9 and (least is None or hit < least[0]):
+                        least = (hit, cx, cy, g)
+                    if ok:
+                        d = (cx - 0.5) ** 2 + (cy - 0.52) ** 2
+                        if best is None or d < best[0]:
+                            best = (d, cx, cy, g)
+            if best: break
+        if best: break
+    if not best:                                       # nothing is fully free: true size, where it touches least
+        k, best = 0.72, (least or (0, 0.5, 0.52, 1.08))
+    _, cx, cy, g = best
+    fx, fy = fx0 * k, fy0 * k
+    return grid_spots(n, cx, cy, fx * g, fy * g, seed, jitter=0.25), float(k)
+
+
+def grid_spots(n, cx, cy, gap_x, gap_y, seed, jitter=1.0):
     """Up to 6 magnets in a loose grid (2 rows), each a little turned, like set down by hand."""
     rng = np.random.default_rng(seed)
     cols = 3 if n > 4 else 2 if n > 1 else 1
@@ -213,9 +284,9 @@ def grid_spots(n, cx, cy, gap_x, gap_y, seed):
     for i in range(n):
         r, c = divmod(i, cols)
         in_row = min(cols, n - r * cols)
-        x = cx + (c - (in_row - 1) / 2) * gap_x + rng.uniform(-0.008, 0.008)
-        y = cy + (r - (rows - 1) / 2) * gap_y + rng.uniform(-0.012, 0.012)
-        spots.append((x, y, float(rng.uniform(-4.5, 4.5))))
+        x = cx + (c - (in_row - 1) / 2) * gap_x + rng.uniform(-0.008, 0.008) * jitter
+        y = cy + (r - (rows - 1) / 2) * gap_y + rng.uniform(-0.012, 0.012) * jitter
+        spots.append((x, y, float(rng.uniform(-3.5, 3.5))))
     return spots
 
 
@@ -381,10 +452,11 @@ def build(listing, keep_last):
         imgs = [Image.open(arts[s]) for s, _ in designs]
         sc = COLLECTION_SCENE[lid]
         first = imgs[:6]
-        fx, fy = mag_frac(sc)
-        photos.append(lifestyle(sc, [(im, x, y, a) for im, (x, y, a) in zip(first, grid_spots(len(first), 0.52, 0.52, fx * 1.2, fy * 1.2, 7))], seed=3))
+        spots, k = free_layout(sc, len(first), 7)
+        photos.append(lifestyle(sc, [(im, x, y, a) for im, (x, y, a) in zip(first, spots)], seed=3, scale=k))
         nxt = imgs[6:11] if len(imgs) >= 11 else imgs[-5:]
-        photos.append(lifestyle("fridge", [(im, x, y, a) for im, (x, y, a) in zip(nxt, fridge_spots(len(nxt), 5))], seed=4, shadow=0.3))
+        spots, k = free_layout("fridge", len(nxt), 5)
+        photos.append(lifestyle("fridge", [(im, x, y, a) for im, (x, y, a) in zip(nxt, spots)], seed=4, shadow=0.3, scale=k))
         photos += design_charts(listing["name"], designs, arts)
         photos.append(size_photo(imgs[0]))
         listing["variations"][0]["options"] = [option_name(i + 1, n) for i, (_, n) in enumerate(designs)]
@@ -392,10 +464,11 @@ def build(listing, keep_last):
         a, b = PHOTO_SETS[lid]
         sh = lambda k: Image.open(ROOT / "assets" / "showcase" / f"{k}.webp")
         fl = [sh(k) for k in b]          # the cover: on the table, close enough to see the photos
-        fx, fy = mag_frac(PHOTO_SCENE[lid])
-        photos.append(lifestyle(PHOTO_SCENE[lid], [(im, x, y, ang) for im, (x, y, ang) in zip(fl, grid_spots(len(fl), 0.52, 0.52, fx * 1.2, fy * 1.2, 9))], seed=6))
+        spots, k = free_layout(PHOTO_SCENE[lid], len(fl), 9)
+        photos.append(lifestyle(PHOTO_SCENE[lid], [(im, x, y, ang) for im, (x, y, ang) in zip(fl, spots)], seed=6, scale=k))
         fr = [sh(k) for k in a]
-        photos.append(lifestyle("fridge", [(im, x, y, ang) for im, (x, y, ang) in zip(fr, fridge_spots(len(fr), 2))], seed=5, shadow=0.3))
+        spots, k = free_layout("fridge", len(fr), 2)
+        photos.append(lifestyle("fridge", [(im, x, y, ang) for im, (x, y, ang) in zip(fr, spots)], seed=5, shadow=0.3, scale=k))
         photos.append(frame_chart())
         packs = [int(o.split()[0]) for o in listing["variations"][0]["options"]]
         photos.append(pack_chart(packs))
