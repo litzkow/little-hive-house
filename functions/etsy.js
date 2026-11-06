@@ -150,6 +150,29 @@ function inventory(l, readinessStateId) {
   return { products, price_on_property: v.prices ? [CUSTOM_PROPERTY] : [], quantity_on_property: [], sku_on_property: [CUSTOM_PROPERTY], readiness_state_on_property: [] };
 }
 
+/** Sends the listing's photos from number `from` on, in order (retrying a dropped upload). */
+async function uploadImages(l, shopId, id, from = 0) {
+  for (let i = from; i < l.images; i++) {
+    const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${LISTINGS.imagesVersion || 1}`);
+    for (let attempt = 1; ; attempt++) {
+      const fd = new FormData();
+      fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
+      fd.append("rank", String(i + 1));
+      fd.append("alt_text", `${l.alt || l.title}`.slice(0, 250));
+      try { await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd }); break; } catch (err) {
+        if (attempt >= 3) throw err;
+        await new Promise((r) => setTimeout(r, PAUSE_MS * attempt));   // Etsy's photo service sometimes drops a connection
+      }
+    }
+  }
+}
+/** New photos for a listing already on Etsy (the photo set changed: imagesVersion): the old ones out, the new ones in. */
+async function replaceImages(l, shopId, id) {
+  const old = (await call("GET", `/listings/${id}/images`)).results || [];
+  for (const im of old) await call("DELETE", `/shops/${shopId}/listings/${id}/images/${im.listing_image_id}`);
+  await uploadImages(l, shopId, id, 0);
+}
+
 async function publishOne(l, shopId, s, fetchImage, resumeId) {
   const minPrice = r2(Math.min(...(l.variations[0].prices || [l.price])));
   const form = {
@@ -172,22 +195,10 @@ async function publishOne(l, shopId, s, fetchImage, resumeId) {
     id = (await call("POST", `/shops/${shopId}/listings`, { form })).listing_id;
     await col().doc("listings").set({ [l.id]: { listingId: id, state: "draft", at: nowIso() } }, { merge: true });
   }
-  for (let i = have; i < l.images; i++) {
-    const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg`);
-    for (let attempt = 1; ; attempt++) {
-      const fd = new FormData();
-      fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
-      fd.append("rank", String(i + 1));
-      fd.append("alt_text", `${l.alt || l.title}`.slice(0, 250));
-      try { await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd }); break; } catch (err) {
-        if (attempt >= 3) throw err;
-        await new Promise((r) => setTimeout(r, PAUSE_MS * attempt));   // Etsy's photo service sometimes drops a connection
-      }
-    }
-  }
+  await uploadImages(l, shopId, id, have);
   await call("PUT", `/listings/${id}/inventory`, { json: inventory(l, s.readinessStateId) });
   const live = await call("PATCH", `/shops/${shopId}/listings/${id}`, { form: { state: "active" } });
-  const row = { listingId: id, state: live.state || "active", url: live.url || `https://www.etsy.com/listing/${id}`, at: nowIso(), error: "" };
+  const row = { listingId: id, state: live.state || "active", imagesV: LISTINGS.imagesVersion || 1, url: live.url || `https://www.etsy.com/listing/${id}`, at: nowIso(), error: "" };
   await col().doc("listings").set({ [l.id]: row }, { merge: true });
   return row;
 }
@@ -206,7 +217,11 @@ async function status() {
   return {
     keystring: !!k.keystring, secret: !!k.secret, connected: !!(a && a.refresh), shop: a && a.shopId ? { id: a.shopId, name: a.shopName || "", url: a.shopUrl || "" } : null,
     category: s.taxonomyPath || "",
-    listings: LISTINGS.listings.map((l) => ({ id: l.id, name: l.name, section: l.section, images: l.images, ...(done[l.id] || { state: "" }) })),
+    listings: LISTINGS.listings.map((l) => {
+      const d = done[l.id] || { state: "" };
+      return { id: l.id, name: l.name, section: l.section, images: l.images, ...d,
+        newPhotos: d.state === "active" && Number(d.imagesV || 1) < Number(LISTINGS.imagesVersion || 1) };
+    }),
   };
 }
 
@@ -246,12 +261,18 @@ async function adminEtsy(data, auth) {
       const a = await readDoc("auth");
       if (!a || !a.shopId) fail("failed-precondition", "Etsy isn't connected yet. Tap “Connect Etsy” first.");
       const done = ((await readDoc("listings")) || {})[l.id];
-      if (done && done.state === "active") return { listing: { id: l.id, ...done }, skipped: true };
+      if (done && done.state === "active") {
+        if (Number(done.imagesV || 1) >= Number(LISTINGS.imagesVersion || 1)) return { listing: { id: l.id, ...done }, skipped: true };
+        await replaceImages(l, a.shopId, done.listingId);
+        const row = { ...done, imagesV: LISTINGS.imagesVersion || 1, error: "", at: nowIso() };
+        await col().doc("listings").set({ [l.id]: row }, { merge: true });
+        return { listing: { id: l.id, ...row, newPhotos: false } };
+      }
       try {
         const s = await setup(a.shopId);
         return { listing: { id: l.id, ...(await publishOne(l, a.shopId, s, fetchImage, done && done.listingId)) } };
       } catch (err) {
-        await col().doc("listings").set({ [l.id]: { ...(done || {}), state: (done && done.listingId) ? "draft" : "", error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
+        await col().doc("listings").set({ [l.id]: { ...(done || {}), state: (done && done.state) || ((done && done.listingId) ? "draft" : ""), error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
         throw err;
       }
     }

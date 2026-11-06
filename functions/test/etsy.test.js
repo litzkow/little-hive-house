@@ -29,7 +29,8 @@ function setup() {
     if (u.endsWith("/readiness-state-definitions")) return ok({ readiness_state_id: 9002 });
     if (u.endsWith("/policies/return") && m === "GET") return ok({ results: [{ return_policy_id: 1, accepts_returns: false, accepts_exchanges: false, return_deadline: null }] });
     if (u.endsWith("/policies/return")) return ok({ return_policy_id: 9003 });
-    if (/\/listings\/\d+\/images$/.test(u) && m === "GET") return ok({ results: [{}, {}] });
+    if (/\/listings\/\d+\/images$/.test(u) && m === "GET") return ok({ results: [{ listing_image_id: 71 }, { listing_image_id: 72 }] });
+    if (/\/images\/\d+$/.test(u) && m === "DELETE") return ok({});
     if (u.endsWith("/images") && globalThis.__dropImage > 0) { globalThis.__dropImage -= 1; return { ok: false, status: 500, json: async () => ({ error: "photos-writer failure upload" }) }; }
     if (u.endsWith("/seller-taxonomy/nodes")) return ok({ results: [{ id: 1, name: "Home & Living", children: [{ id: 2, name: "Home Decor", children: [{ id: 1068, name: "Magnets", children: [] }] }] }] });
     if (u.endsWith("/sections") && m === "GET") return ok({ results: [] });
@@ -144,4 +145,21 @@ test("a draft left by an earlier try is finished (no second listing), and a drop
   assert.equal(patch.get("return_policy_id"), "9003");
   const posts = calls.filter((c) => c.u.endsWith("/5151/images") && c.m === "POST");
   assert.equal(posts.length, 6 - 2 + 1, "the 2 photos already there are kept; the 4 missing are sent, one of them twice");
+});
+
+test("new photos for listings already on Etsy: the old ones out, the new set in, once", async () => {
+  const { db, calls, E } = setup();
+  db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+  db.docs.set("etsy/listings", { brasil: { listingId: 4242, state: "active", url: "u" } });
+  let st = await E.adminEtsy({ action: "status" }, ADMIN);
+  assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, true);
+  const r = await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
+  assert.equal(r.listing.state, "active");
+  assert.equal(calls.filter((c) => c.m === "DELETE").length, 2);
+  assert.equal(calls.filter((c) => c.u.endsWith("/4242/images") && c.m === "POST").length, 6);
+  assert.equal(calls.filter((c) => /\/shops\/55\/listings$/.test(c.u)).length, 0);
+  st = await E.adminEtsy({ action: "status" }, ADMIN);
+  assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, false);
+  const again = await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
+  assert.equal(again.skipped, true);
 });

@@ -43,16 +43,17 @@
 
   function listings(d) {
     var rows = d.listings || [];
-    var left = rows.filter(function (l) { return l.state !== 'active'; }).length;
+    var left = rows.filter(function (l) { return l.state !== 'active' || l.newPhotos; }).length;
+    var onlyPhotos = left && rows.every(function (l) { return l.state === 'active'; });
     var btn = !d.connected ? '' : st.publishing
       ? '<p class="small"><b>' + T('Publishing ', 'Publicando ') + st.at + T(' of ', ' de ') + st.total + '…</b> ' + esc(st.current) + '<br><span class="muted">' + T('Keep this screen open. Each one takes about half a minute.', 'Deixe esta tela aberta. Cada um leva mais ou menos meio minuto.') + '</span></p>'
-      : left ? '<p><button class="btn btn-honey" data-act="etsyPublish">' + icon('shop') + T('Publish the ' + left + ' that are missing', 'Publicar os ' + left + ' que faltam') + '</button></p>' +
+      : left ? '<p><button class="btn btn-honey" data-act="etsyPublish">' + icon('shop') + (onlyPhotos ? T('Send the new photos to ' + left + ' listings', 'Mandar as fotos novas para ' + left + ' produtos') : T('Publish the ' + left + ' that are missing', 'Publicar os ' + left + ' que faltam')) + '</button></p>' +
         '<p class="tiny muted">' + T('Etsy charges $0.20 for each listing.', 'O Etsy cobra $0,20 por produto publicado.') + '</p>' : '';
     var list = rows.map(function (l) {
-      var s = STATE[l.state] || STATE[''];
+      var s = l.state === 'active' && l.newPhotos ? ['New photos to send', 'Fotos novas para mandar', 'warn'] : (STATE[l.state] || STATE['']);
       return '<li class="et-row"><div><b>' + esc(l.name) + '</b><span class="small muted"> · ' + esc(l.section) + ' · ' + l.images + T(' photos', ' fotos') + '</span>' +
         (l.error ? '<div class="small err">' + esc(l.error) + '</div>' : '') + '</div>' +
-        (l.state === 'active' && l.url ? '<a class="pill ok" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(T(s[0], s[1])) + ' ' + icon('external') + '</a>'
+        (l.state === 'active' && l.url && !l.newPhotos ? '<a class="pill ok" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(T(s[0], s[1])) + ' ' + icon('external') + '</a>'
           : '<span class="pill ' + s[2] + '">' + esc(T(s[0], s[1])) + '</span>') + '</li>';
     }).join('');
     return '<section class="card"><div class="card-head"><div><h2>' + T('Listings', 'Produtos') + '</h2><p class="sub">' +
@@ -103,7 +104,7 @@
     h.call('adminEtsy', { action: 'disconnect' }).then(function (d) { st.data = d; h.route(); }).catch(function (e) { h.toast(h.friendlyError(e), true); });
   };
   ACT.etsyPublish = function () {
-    var todo = (st.data.listings || []).filter(function (l) { return l.state !== 'active'; });
+    var todo = (st.data.listings || []).filter(function (l) { return l.state !== 'active' || l.newPhotos; });
     st.publishing = true; st.total = todo.length; st.at = 0;
     var failed = 0;
     var next = function (i) {
