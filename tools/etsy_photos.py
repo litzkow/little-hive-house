@@ -143,8 +143,11 @@ def render_art(col, slugs):
 
 # ---------- a real-looking magnet in a scene ----------
 def _shade_map(bg):
-    L = np.asarray(bg.convert("L").filter(ImageFilter.GaussianBlur(radius=max(bg.size) / 90)), dtype=np.float32)
-    return np.clip(L / max(np.percentile(L, 70), 1), 0.55, 1.15)
+    """Only the broad light of the scene (window light, big shadows), never its texture: a magnet is opaque, so the
+    cloth, tiles or checks under it must not show through (owners, Nov 2026)."""
+    small = bg.convert("L").resize((64, 36), Image.LANCZOS).filter(ImageFilter.GaussianBlur(3))
+    L = np.asarray(small.resize(bg.size, Image.BICUBIC), dtype=np.float32)
+    return np.clip(L / max(np.percentile(L, 70), 1), 0.8, 1.06)
 
 
 def magnet_face(img, size):
@@ -187,10 +190,10 @@ def lifestyle(scene, magnets, seed=1, shadow=0.42, size_out=(LW, LH), scale=1.0)
             side.paste(rm, (int(x0 + light[0] * k), int(y0 + light[1] * k)), rm)
         sd = np.asarray(side, dtype=np.float32)[..., None] / 255.0
         edge_col = np.asarray(tile, dtype=np.float32)[[0, -1], :, :].reshape(-1, 3).mean(0) * 0.5 + 18
-        canvas = canvas * (1 - sd) + (edge_col * (shade ** 0.85)[..., None]) * sd
+        canvas = canvas * (1 - sd) + (edge_col * (shade ** 0.6)[..., None]) * sd
         layer = Image.new("RGB", (Wo, Ho)); layer.paste(rt, (x0, y0))
         m = Image.new("L", (Wo, Ho), 0); m.paste(rm, (x0, y0))
-        lay = np.asarray(layer, dtype=np.float32) * (shade ** 0.85)[..., None]
+        lay = np.asarray(layer, dtype=np.float32) * (shade ** 0.6)[..., None]
         mm = np.asarray(m, dtype=np.float32)[..., None] / 255.0
         canvas = canvas * (1 - mm) + lay * mm
     canvas = np.clip(canvas + rng.normal(0, 2.0, canvas.shape[:2])[..., None], 0, 255).astype(np.uint8)
@@ -233,7 +236,7 @@ def free_layout(scene, n, seed, size_out=(LW, LH)):
     sc = SCENE[scene]
     bg = Image.open(SCENES / sc["file"]).convert("RGB").crop(sc["crop"])
     m = prop_mask(bg)
-    m = cv2.dilate(m, np.ones((15, 15), np.uint8))                    # a little air around every prop
+    m = cv2.dilate(m, np.ones((17, 17), np.uint8))                    # air around every prop (thin ones like chopsticks too)
     mh, mw = m.shape
     integ = cv2.integral(m)
     def busy(x0, y0, x1, y1):
@@ -302,10 +305,13 @@ def _nudged(n, cols, rows, free, hx, hy, gx, gy, seed, max_move=None):
         options = [c for c in cand if not clash(*c)]
         if options:
             placed[i] = min(options, key=lambda c: (c[0] - x) ** 2 + (c[1] - y) ** 2)
-        else:                                                           # no room left: keep the grid spot
-            placed[i] = (x, y)
+        else:                                                           # no room left
+            if max_move is not None: return None
+            if not clash(x, y): placed[i] = (x, y)                       # its grid spot, if no other magnet is there
+            continue
         if max_move is not None and max(abs(placed[i][0] - x) / (gx / 1.17), abs(placed[i][1] - y) / (gy / 1.17)) > max_move:
             return None
+    placed = [p for p in placed if p]
     # reading order (rows top to bottom, left to right) so design 01 is top left, like on the site
     placed.sort(key=lambda p: (round(p[1] / (gy * 0.6)), p[0]))
     rng = np.random.default_rng(seed)
