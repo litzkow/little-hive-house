@@ -215,6 +215,47 @@ async function replaceImages(l, shopId, id) {
   if (!ok) fail("unavailable", `Etsy: the photos didn't end up in order (${now.map((im) => im.rank).join(",")}). Try again.`);
 }
 
+/** What a listing says (title, text, tags, section, personalization): sent when it's made and when it changes. */
+function listingTexts(l, s) {
+  return {
+    title: l.title, description: l.description, tags: l.tags.join(","),
+    ...(s.sections && s.sections[l.section] ? { shop_section_id: String(s.sections[l.section]) } : {}),
+    ...(l.personalization ? { is_personalizable: "true", personalization_is_required: "true", personalization_char_count_max: "500",
+      personalization_instructions: l.personalization } : {}),
+    ...(s.returnPolicyId ? { return_policy_id: String(s.returnPolicyId) } : {}),
+  };
+}
+
+/** The shop in the site's order (etsy-listings.json is kept in that order): the sections shown in the order their
+    listings first appear, and the first 4 listings as the shop's featured ones. Etsy has no way to move a section, only
+    to rename it, so the section slots (in Etsy's order) get the wanted titles and each listing goes to its section. */
+async function arrange(shopId) {
+  const s = await setup(shopId);
+  const want = [...new Set(LISTINGS.listings.map((l) => l.section))];
+  const all = ((await call("GET", `/shops/${shopId}/sections`)).results || []).sort((x, y) => (x.rank || 0) - (y.rank || 0));
+  const mine = all.filter((x) => want.includes(x.title) || /^lhh-tmp-/.test(x.title));
+  if (mine.length < want.length) fail("failed-precondition", "Some Etsy sections are missing. Publish once, then arrange.");
+  const slots = mine.slice(0, want.length);
+  const changed = slots.map((x, i) => ({ id: x.shop_section_id, from: x.title, to: want[i] })).filter((x) => x.from !== x.to);
+  for (const c of changed) await call("PUT", `/shops/${shopId}/sections/${c.id}`, { form: { title: `lhh-tmp-${c.id}` } });
+  for (const c of changed) await call("PUT", `/shops/${shopId}/sections/${c.id}`, { form: { title: c.to } });
+  const sections = {};
+  slots.forEach((x, i) => { sections[want[i]] = x.shop_section_id; });
+  await col().doc("setup").set({ sections, at: nowIso() }, { merge: true });
+  const done = (await readDoc("listings")) || {};
+  let rank = 0;
+  const moved = [];
+  for (const l of LISTINGS.listings) {
+    const d = done[l.id];
+    if (!d || !d.listingId) continue;
+    rank += 1;
+    await call("PATCH", `/shops/${shopId}/listings/${d.listingId}`, { form: {
+      shop_section_id: String(sections[l.section]), ...(rank <= 4 ? { featured_rank: String(rank) } : {}) } });
+    moved.push(l.id);
+  }
+  return { sections: want, renamed: changed.length, listings: moved };
+}
+
 async function publishOne(l, shopId, s, fetchImage, resumeId) {
   const minPrice = r2(Math.min(...(l.variations[0].prices || [l.price])));
   const form = {
@@ -267,7 +308,7 @@ async function status() {
   };
 }
 
-/** adminEtsy({action: "status" | "start" | "finish" | "publish" | "disconnect", ...}) */
+/** adminEtsy({action: "status" | "start" | "finish" | "publish" | "arrange" | "disconnect", ...}) */
 async function adminEtsy(data, auth) {
   U.requireAdmin(auth);
   data = data || {};
@@ -305,7 +346,13 @@ async function adminEtsy(data, auth) {
       const done = ((await readDoc("listings")) || {})[l.id];
       if (done && done.state === "active") {
         if (Number(done.imagesV || 1) >= Number(LISTINGS.imagesVersion || 1)) return { listing: { id: l.id, ...done }, skipped: true };
-        try { await replaceImages(l, a.shopId, done.listingId); } catch (err) {
+        try {
+          // a new version of the listing: texts, section and design menu (the site's order) first, then the photos
+          const s = await setup(a.shopId);
+          await call("PATCH", `/shops/${a.shopId}/listings/${done.listingId}`, { form: listingTexts(l, s) });
+          await call("PUT", `/listings/${done.listingId}/inventory`, { json: inventory(l, s.readinessStateId) });
+          await replaceImages(l, a.shopId, done.listingId);
+        } catch (err) {
           console.error("etsy new photos", l.id, String(err.message || err));
           await col().doc("listings").set({ [l.id]: { ...done, error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
           throw err;
@@ -322,6 +369,11 @@ async function adminEtsy(data, auth) {
         await col().doc("listings").set({ [l.id]: { ...(done || {}), state: (done && done.state) || ((done && done.listingId) ? "draft" : ""), error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
         throw err;
       }
+    }
+    case "arrange": {
+      const a = await readDoc("auth");
+      if (!a || !a.shopId) fail("failed-precondition", "Etsy isn't connected yet. Tap “Connect Etsy” first.");
+      return arrange(a.shopId);
     }
     case "disconnect":
       await col().doc("auth").delete();

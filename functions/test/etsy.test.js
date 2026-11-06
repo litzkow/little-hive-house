@@ -16,7 +16,7 @@ function setup() {
   db.docs.set("settings/store", { shipFrom: { zip: "30185" } });
   const calls = [];
   let n = 1000;
-  const IMGS = { 5151: [{ id: 71, rank: 1 }, { id: 72, rank: 2 }] }, ACTIVE = new Set();
+  const IMGS = { 5151: [{ id: 71, rank: 1 }, { id: 72, rank: 2 }] }, ACTIVE = new Set(), SECTIONS = [];
   globalThis.__lenient = false;
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url), m = opts.method || "GET";
@@ -49,8 +49,11 @@ function setup() {
       const x = { id: ++n, rank: Number(f.get("rank")) || 1 }; list.push(x); return ok({ listing_image_id: x.id, rank: x.rank });
     }
     if (u.endsWith("/seller-taxonomy/nodes")) return ok({ results: [{ id: 1, name: "Home & Living", children: [{ id: 2, name: "Home Decor", children: [{ id: 1068, name: "Magnets", children: [] }] }] }] });
-    if (u.endsWith("/sections") && m === "GET") return ok({ results: [] });
-    if (u.endsWith("/sections")) return ok({ shop_section_id: ++n });
+    if (u.endsWith("/sections") && m === "GET") return ok({ results: SECTIONS.map((x) => ({ ...x })) });
+    if (u.endsWith("/sections")) { const t = new URLSearchParams(opts.body).get("title"); if (SECTIONS.some((x) => x.title === t)) return { ok: false, status: 409, json: async () => ({ error: "A section with that title exists" }) }; const x = { shop_section_id: ++n, title: t, rank: SECTIONS.length + 1 }; SECTIONS.push(x); return ok(x); }
+    const sec = /\/sections\/(\d+)$/.exec(u);
+    if (sec && m === "PUT") { const t = new URLSearchParams(opts.body).get("title"); if (SECTIONS.some((x) => x.title === t)) return { ok: false, status: 409, json: async () => ({ error: "A section with that title exists" }) }; const x = SECTIONS.find((y) => String(y.shop_section_id) === sec[1]); x.title = t; return ok(x); }
+    if (/\/shops\/55\/listings\/\d+$/.test(u) && m === "PATCH" && !/(4242|5151)$/.test(u)) return ok({ state: "active" });
     if (/\/shops\/55\/listings$/.test(u)) { IMGS[4242] = []; return ok({ listing_id: 4242, state: "draft" }); }   // every new draft is 4242 here: it starts with no photos
     if (u.endsWith("/inventory")) return ok({ products: [] });
     if (/\/listings\/(4242|5151)$/.test(u) && m === "PATCH") return ok({ listing_id: 4242, state: "active", url: "https://www.etsy.com/listing/4242/x" });
@@ -59,7 +62,7 @@ function setup() {
   const E = require("../etsy");
   E.setImageFetcher(async () => new Blob([Buffer.from("jpg")], { type: "image/jpeg" }), 0);
   globalThis.__dropImage = 0;
-  return { db, calls, E, IMGS, ACTIVE };
+  return { db, calls, E, IMGS, ACTIVE, SECTIONS };
 }
 
 test("connect: the Etsy link carries PKCE and the scopes; the approval is checked, saved, and the shop is found", async () => {
@@ -229,4 +232,48 @@ test("Etsy's per-second limit (429): waits and tries the same call again", async
   globalThis.fetch = async (url, opts) => (busy-- > 0 ? { ok: false, status: 429, json: async () => ({ error: "Exceeded per second rate limit" }) } : real(url, opts));
   await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
   assert.deepEqual(order(IMGS, 4242).map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+});
+
+test("a new version of a listing already on Etsy: its texts, section and design menu are sent too, then the photos", async () => {
+  const { db, calls, E, IMGS, ACTIVE } = setup();
+  db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+  db.docs.set("etsy/listings", { brasil: { listingId: 4242, state: "active", url: "u" } });
+  IMGS[4242] = [{ id: 71, rank: 1 }]; ACTIVE.add("4242");
+  await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
+  const L = E._internal.LISTINGS.listings.find((l) => l.id === "brasil");
+  const patch = new URLSearchParams(calls.find((c) => /\/listings\/4242$/.test(c.u) && c.m === "PATCH").body);
+  assert.equal(patch.get("title"), L.title);
+  assert.match(patch.get("description"), /square corners/);
+  assert.doesNotMatch(patch.get("description"), /rounded/);
+  assert.ok(patch.get("shop_section_id"));
+  const inv = JSON.parse(calls.find((c) => c.u.endsWith("/4242/inventory")).body);
+  assert.deepEqual(inv.products.map((p) => p.property_values[0].values[0]), L.variations[0].options);
+  assert.ok(calls.findIndex((c) => c.u.endsWith("/4242/inventory")) < calls.findIndex((c) => c.u.endsWith("/4242/images") && c.m === "POST"));
+});
+
+test("arrange: the Etsy sections end up in the site's order (by renaming the slots) and the first 4 are featured", async () => {
+  const { db, calls, E, SECTIONS } = setup();
+  db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+  // the order they were made in: Photo Magnets, Heritage, Seasonal, Signature, Sayings
+  ["Photo Magnets", "Heritage", "Seasonal", "Signature", "Sayings"].forEach((t, i) => SECTIONS.push({ shop_section_id: 300 + i, title: t, rank: i + 1 }));
+  db.docs.set("etsy/setup", { shippingProfileId: 9001, readinessStateId: 9002, returnPolicyId: 9003, taxonomyId: 1068,
+    sections: { "Photo Magnets": 300, Heritage: 301, Seasonal: 302, Signature: 303, Sayings: 304 } });
+  const L = E._internal.LISTINGS.listings;
+  const listings = {};
+  L.forEach((l, i) => { listings[l.id] = { listingId: 7000 + i, state: "active" }; });
+  db.docs.set("etsy/listings", listings);
+  const r = await E.adminEtsy({ action: "arrange" }, ADMIN);
+  const want = [...new Set(L.map((l) => l.section))];
+  assert.deepEqual(SECTIONS.slice().sort((a, b) => a.rank - b.rank).map((x) => x.title), want);
+  const setupDoc = db.get("etsy/setup");
+  for (const [i, l] of L.entries()) {
+    const p = new URLSearchParams(calls.find((c) => c.u.endsWith(`/listings/${7000 + i}`) && c.m === "PATCH").body);
+    assert.equal(p.get("shop_section_id"), String(setupDoc.sections[l.section]));
+    assert.equal(SECTIONS.find((x) => x.shop_section_id === setupDoc.sections[l.section]).title, l.section);
+    assert.equal(p.get("featured_rank"), i < 4 ? String(i + 1) : null);
+  }
+  assert.equal(r.listings.length, L.length);
+  // again: nothing to rename
+  const again = await E.adminEtsy({ action: "arrange" }, ADMIN);
+  assert.equal(again.renamed, 0);
 });

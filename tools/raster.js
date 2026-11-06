@@ -15,7 +15,7 @@ const fs = require('fs');
 @font-face{font-family:"Jost";font-weight:100 900;src:url("file://${fontsDir}/Jost[wght].ttf")}
 @font-face{font-family:"Playfair Display";font-style:italic;font-weight:400 900;src:url("file://${fontsDir}/PlayfairDisplay-Italic[wght].ttf")}
 html,body{margin:0;background:transparent} #s>svg{width:600px;height:600px;display:block}`;
-  const b = await chromium.launch();
+  const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
   const p = await b.newPage({ viewport: { width: 600, height: 600 }, deviceScaleFactor: scale });
   const os = require('os'), path = require('path');
   const hp = path.join(os.tmpdir(), 'lhh-raster-' + process.pid + '.html');

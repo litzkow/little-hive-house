@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "39"
+VERSION = "40"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -510,7 +510,7 @@ def chrome_end(pg, extra_js=()):
       <h2 id="qv-title">Magnet</h2>
       <p class="price">${PRICE}</p>
       <ul>
-        <li>2 × 2 inch square magnet with rounded corners</li>
+        <li>2 × 2 inch square magnet with square corners</li>
         <li>Glossy, scratch-resistant front and a strong magnet back</li>
         <li>Made by hand and shipped in 1–2 business days</li>
         <li class="qv-eta">Order today, it arrives <strong data-eta>in about a week</strong> in the US · <a href="{pg.p}shipping.html">Shipping details</a></li>
@@ -928,7 +928,7 @@ def page_product(col, slug, siblings):
         <p class="pdp-eta">Ships in 1–2 business days. Order today and it arrives <strong data-eta>in about a week</strong> in the US.</p>
         <p>{E(col["blurb"])}</p>
         <ul class="pdp-facts">
-          <li>2 × 2 inch square with soft rounded corners</li>
+          <li>2 × 2 inch square with square corners</li>
           <li>Glossy front and a strong magnet back</li>
           <li>Printed, pressed and packed by hand, made to order</li>
           <li>Free US shipping on orders of ${STORE_FREE_SHIP_AT} or more</li>
@@ -1287,7 +1287,7 @@ def page_photo():
     <div class="wrap">
       <div class="section-head"><div><p class="eyebrow">Good to know</p><h2>Photo magnet questions</h2></div></div>
       <div class="faq">
-        <details><summary>What size are the magnets?</summary><p>Each magnet is a 2 × 2 inch square with rounded corners, a glossy front and a strong magnet back.</p></details>
+        <details><summary>What size are the magnets?</summary><p>Each magnet is a 2 × 2 inch square with square corners, a glossy front and a strong magnet back.</p></details>
         <details><summary>Which photos work best?</summary><p>Use the original photo from your camera roll. Screenshots and photos saved from chat apps are often too small and print blurry; the builder warns you when a photo looks too small.</p></details>
         <details><summary>Can every photo have a different frame?</summary><p>Yes. Tap any photo in the builder to pick its own frame and caption, or use "Apply this frame to all photos" to frame the whole pack the same way in one tap.</p></details>
         <details><summary>Will you crop my photos?</summary><p>Yes, every photo is cropped to a square. Tell us in the notes if someone must stay in the frame and we will crop around them.</p></details>

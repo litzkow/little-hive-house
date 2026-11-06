@@ -11,6 +11,11 @@ const say = (s) => console.log(`::warning title=etsy::${String(s).replace(/%/g, 
 const AUTH = { uid: "maintenance", token: { admin: true, email: "maintenance" } };
 
 (async () => {
+  if (process.env.VALUE === "arrange") {          // the shop in the site's order: sections and featured listings
+    const r = await E.adminEtsy({ action: "arrange" }, AUTH);
+    say(`arranged: sections ${r.sections.join(" > ")}, ${r.renamed} renamed, ${r.listings.length} listings`);
+    return;
+  }
   const st = await E.adminEtsy({ action: "status" }, AUTH);
   const one = process.env.VALUE && process.env.VALUE !== "all" && st.listings.some((l) => l.id === process.env.VALUE) ? process.env.VALUE : "";   // VALUE = a listing key, or "all"
   const todo = st.listings.filter((l) => (one ? l.id === one : (l.state !== "active" || l.newPhotos)));
