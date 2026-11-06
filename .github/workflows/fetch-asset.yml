@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: "Link to the picture"
+        description: "Link to the picture, or several as name=link pairs separated by spaces (then leave name empty)"
       name:
         description: "File name to save it as (e.g. bg-flatlay-1.png)"
 
@@ -24,13 +24,15 @@ jobs:
           REPO: ${{ github.repository }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          case "$NAME" in *[!A-Za-z0-9._-]*|"") echo "::error::bad name"; exit 1 ;; esac
           git init -q work && cd work
           git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
           if git fetch -q --depth 1 origin raw-assets; then git checkout -q -b raw-assets FETCH_HEAD; else git checkout -q --orphan raw-assets; fi
-          curl -fsSL "$URL" -o "$NAME"
-          file "$NAME"
-          git add "$NAME"
+          [ -n "$NAME" ] && PAIRS="$NAME=$URL" || PAIRS="$URL"
+          for pair in $PAIRS; do
+            n="${pair%%=*}"; u="${pair#*=}"
+            case "$n" in *[!A-Za-z0-9._-]*|"") echo "::error::bad name $n"; exit 1 ;; esac
+            curl -fsSL "$u" -o "$n"; file "$n"; git add "$n"
+          done
           git -c user.name="github-actions" -c user.email="actions@github.com" commit -q -m "raw asset: $NAME"
           git push -q origin raw-assets
-          echo "::notice title=saved::$NAME"
+          echo "::notice title=saved::done"
