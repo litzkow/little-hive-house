@@ -37,18 +37,29 @@ BIGGER = 1.45                # owners: the magnets a bit bigger than true scale,
 # Which scene suits which collection; crop = the part of the 1280 x 720 scene shown (all of it, so the props around
 # stay whole); inch = pixels per inch in the scene (from the cup / mug next to the magnets), times BIGGER.
 FULL = (0, 0, 1280, 720)
-SCENE = {
-    "linen": {"file": "bg-linen.jpg", "crop": FULL, "inch": 67, "light": (1, 0.6)},
-    "latin": {"file": "bg-latin.jpg", "crop": FULL, "inch": 62, "light": (1, 0.55)},
-    "europe": {"file": "bg-europe.jpg", "crop": FULL, "inch": 66, "light": (1, 0.6)},
-    "christmas": {"file": "bg-christmas.jpg", "crop": FULL, "inch": 70, "light": (1, 0.6)},
-    "horror": {"file": "bg-horror.jpg", "crop": FULL, "inch": 66, "light": (1, 0.6)},
-    # the fridge door: the window and the plant stay in; the door is wide, so the magnets get more help to read
-    "fridge": {"file": "bg-fridge.jpg", "crop": (0, 40, 1100, 659), "inch": 50, "light": (1, 0.35)},
+# one scene per collection (owners: never the same background twice); light = where the shadows fall
+_SCENES = {  # name: (pixels per inch in the scene, from the cup or mug in it)
+    "linen": 67, "latin": 62, "europe": 66, "christmas": 70, "horror": 66,
+    "mexico": 66, "puerto-rico": 64, "philippines": 60, "ireland": 64, "americana": 62, "india": 64, "korea": 64,
+    "japan": 62, "greece": 62, "france": 64, "places": 62, "world": 60, "ink": 64, "sketch": 62, "fall": 66,
+    "halloween": 66, "holidays": 62, "summer": 58, "pets": 64, "kitchen": 64, "fairy": 64, "myth": 62, "night": 64,
+    "flowers": 64, "library": 64, "artist": 62, "wise": 64, "bee": 66, "brasil": 64, "italia": 64,
+    "retro": 64, "family": 64, "gift": 64, "garden": 62,
 }
-COLLECTION_SCENE = {"christmas": "christmas", "brasil": "latin", "mexico": "latin", "puerto-rico": "latin",
-                    "philippines": "latin", "italia": "europe", "ireland": "europe", "americana": "europe",
-                    "bee-kind": "linen", "furry-friends": "linen", "kitchen-words": "linen"}
+SCENE = {k: {"file": f"bg-{k}.jpg", "crop": FULL, "inch": v, "light": (1, 0.6)} for k, v in _SCENES.items()}
+# the fridge door: the window and the plant stay in; the door is wide, so the magnets get more help to read
+SCENE["fridge"] = {"file": "bg-fridge.jpg", "crop": (0, 40, 1100, 659), "inch": 50, "light": (1, 0.35)}
+COLLECTION_SCENE = {
+    "places": "places", "world": "world", "ink-cities": "ink", "city-sketches": "sketch", "fall": "fall",
+    "halloween": "halloween", "christmas": "christmas", "holidays": "holidays", "summer": "summer",
+    "americana": "americana", "mexico": "mexico", "ireland": "ireland", "italia": "italia", "puerto-rico": "puerto-rico",
+    "philippines": "philippines", "india": "india", "korea": "korea", "japan": "japan", "brasil": "brasil",
+    "greece": "greece", "france": "france", "bee-kind": "bee", "furry-friends": "pets", "kitchen-words": "kitchen",
+    "bumper-stickers": "retro", "night-sky": "night", "great-masters": "artist", "horror": "horror",
+    "mythology": "myth", "home-notes": "linen", "birth-flowers": "flowers", "storybook-classics": "library",
+    "fairy-tales": "fairy", "wise-words": "wise",
+}
+PHOTO_SCENE = {"photo-magnets": "gift", "pet-photo-magnets": "garden", "family-photo-magnets": "family"}
 # photo-magnet listings: sample customer magnets (assets/showcase, made with the real print renderer)
 PHOTO_SETS = {
     "photo-magnets": (["family-1", "travel-1", "wedding-1", "baby-1", "graduation-1"],
@@ -381,8 +392,8 @@ def build(listing, keep_last):
         a, b = PHOTO_SETS[lid]
         sh = lambda k: Image.open(ROOT / "assets" / "showcase" / f"{k}.webp")
         fl = [sh(k) for k in b]          # the cover: on the table, close enough to see the photos
-        fx, fy = mag_frac("linen")
-        photos.append(lifestyle("linen", [(im, x, y, ang) for im, (x, y, ang) in zip(fl, grid_spots(len(fl), 0.52, 0.52, fx * 1.2, fy * 1.2, 9))], seed=6))
+        fx, fy = mag_frac(PHOTO_SCENE[lid])
+        photos.append(lifestyle(PHOTO_SCENE[lid], [(im, x, y, ang) for im, (x, y, ang) in zip(fl, grid_spots(len(fl), 0.52, 0.52, fx * 1.2, fy * 1.2, 9))], seed=6))
         fr = [sh(k) for k in a]
         photos.append(lifestyle("fridge", [(im, x, y, ang) for im, (x, y, ang) in zip(fr, fridge_spots(len(fr), 2))], seed=5, shadow=0.3))
         photos.append(frame_chart())
@@ -408,12 +419,13 @@ def main(only):
     for l in data["listings"]:
         if only and l["id"] not in only:
             continue
-        last = Image.open(OUT / l["id"] / f"{l['images']}.jpg").convert("RGB")
+        last = Image.open(ROOT / "tools" / "etsy_shop" / ("how-it-works-photo.jpg" if l["kind"] == "photo" else "good-to-know.jpg")).convert("RGB")
         n = build(l, last)
         l["description"] = l["description"].replace("magnets with rounded corners", "magnets with square corners") \
                                            .replace("magnet with rounded corners", "magnet with square corners")
         print(l["id"], n, "photos", len(l["variations"][0]["options"]), "options", flush=True)
-    data["imagesVersion"] = int(data.get("imagesVersion", 1)) + 1
+    if os.environ.get("BUMP", "1") == "1":
+        data["imagesVersion"] = int(data.get("imagesVersion", 1)) + 1
     LISTINGS.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n")
 
 
