@@ -147,8 +147,12 @@ jobs:
         if: inputs.task == 'etsy-images'
         env: { ETSY_KEYSTRING: "${{ secrets.ETSY_KEYSTRING }}", ETSY_SHARED_SECRET: "${{ secrets.ETSY_SHARED_SECRET }}", VALUE: "${{ inputs.value }}" }
         run: node tools/maint/etsy-images.js
+      - name: "Etsy: testar como arrumar as fotos de um anúncio"
+        if: inputs.task == 'etsy-try'
+        env: { ETSY_KEYSTRING: "${{ secrets.ETSY_KEYSTRING }}", ETSY_SHARED_SECRET: "${{ secrets.ETSY_SHARED_SECRET }}", VALUE: "${{ inputs.value }}" }
+        run: node tools/maint/etsy-try.js
       - name: Run
-        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images'
+        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
