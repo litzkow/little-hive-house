@@ -702,3 +702,14 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .pb-style { display: flex; gap: 16px; font-size: 14px; padding-bottom: 8px; }
 .pb-style label { display: inline-flex; align-items: center; gap: 6px; }
 .ok-text { color: var(--ok, #3E7A3A); }
+/* Etsy */
+.et-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
+.et-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.et-row > div { min-width: 0; }
+.et-row .pill { flex: none; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; background: var(--sunk); color: var(--muted); font-weight: 600; }
+.et-row .pill.ok { background: var(--ok-soft); color: var(--ok); }
+.et-row .pill.warn { background: var(--honey-wash); color: var(--ink); border: 1px solid var(--honey); }
+.et-row .pill svg, .et-page p svg { width: 14px; height: 14px; flex: none; vertical-align: -2px; }
+.et-page p.ok { color: var(--ok); display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.et-page .btn svg { width: 18px; height: 18px; }
+.et-todo { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }

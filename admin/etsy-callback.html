@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Connecting Etsy · Hive Admin</title>
+<style>body{margin:0;font:16px/1.5 system-ui,sans-serif;background:#FFF6E5;color:#2B2118;display:grid;place-items:center;min-height:100vh;padding:16px}</style>
+</head>
+<body>
+<p>Connecting Etsy…</p>
+<script>
+/* Etsy sends the owner back here after "Allow" (functions/etsy.js, redirect_uri); the Hive Admin's Etsy page finishes it. */
+(function () {
+  var q = new URLSearchParams(location.search), out = new URLSearchParams();
+  ['code', 'state', 'error'].forEach(function (k) { if (q.get(k)) out.set(k, q.get(k)); });
+  location.replace('./index.html#etsy?' + out.toString());
+})();
+</script>
+</body>
+</html>
