@@ -143,8 +143,12 @@ jobs:
         if: always() && inputs.task == 'check-analytics'
         env: { CHECK: api }
         run: node tools/maint/check-analytics.js
+      - name: "Etsy: como as fotos estão arrumadas em cada anúncio"
+        if: inputs.task == 'etsy-images'
+        env: { ETSY_KEYSTRING: "${{ secrets.ETSY_KEYSTRING }}", ETSY_SHARED_SECRET: "${{ secrets.ETSY_SHARED_SECRET }}", VALUE: "${{ inputs.value }}" }
+        run: node tools/maint/etsy-images.js
       - name: Run
-        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics'
+        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
