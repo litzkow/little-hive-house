@@ -27,17 +27,22 @@ function setup() {
     if (u.endsWith("/shipping-profiles") && m === "GET") return ok({ results: [] });
     if (u.endsWith("/shipping-profiles")) return ok({ shipping_profile_id: 9001 });
     if (u.endsWith("/readiness-state-definitions")) return ok({ readiness_state_id: 9002 });
+    if (u.endsWith("/policies/return") && m === "GET") return ok({ results: [{ return_policy_id: 1, accepts_returns: false, accepts_exchanges: false, return_deadline: null }] });
+    if (u.endsWith("/policies/return")) return ok({ return_policy_id: 9003 });
+    if (/\/listings\/\d+\/images$/.test(u) && m === "GET") return ok({ results: [{}, {}] });
+    if (u.endsWith("/images") && globalThis.__dropImage > 0) { globalThis.__dropImage -= 1; return { ok: false, status: 500, json: async () => ({ error: "photos-writer failure upload" }) }; }
     if (u.endsWith("/seller-taxonomy/nodes")) return ok({ results: [{ id: 1, name: "Home & Living", children: [{ id: 2, name: "Home Decor", children: [{ id: 1068, name: "Magnets", children: [] }] }] }] });
     if (u.endsWith("/sections") && m === "GET") return ok({ results: [] });
     if (u.endsWith("/sections")) return ok({ shop_section_id: ++n });
     if (/\/shops\/55\/listings$/.test(u)) return ok({ listing_id: 4242, state: "draft" });
     if (u.endsWith("/images")) return ok({ listing_image_id: ++n });
     if (u.endsWith("/inventory")) return ok({ products: [] });
-    if (/\/listings\/4242$/.test(u) && m === "PATCH") return ok({ listing_id: 4242, state: "active", url: "https://www.etsy.com/listing/4242/x" });
+    if (/\/listings\/(4242|5151)$/.test(u) && m === "PATCH") return ok({ listing_id: 4242, state: "active", url: "https://www.etsy.com/listing/4242/x" });
     return { ok: false, status: 404, json: async () => ({ error: "not faked: " + u }) };
   };
   const E = require("../etsy");
-  E.setImageFetcher(async () => new Blob([Buffer.from("jpg")], { type: "image/jpeg" }));
+  E.setImageFetcher(async () => new Blob([Buffer.from("jpg")], { type: "image/jpeg" }), 0);
+  globalThis.__dropImage = 0;
   return { db, calls, E };
 }
 
@@ -82,6 +87,10 @@ test("publish: setup once, photos in order, variations, then active; the second 
   assert.equal(f.get("taxonomy_id"), "1068");
   assert.equal(f.get("shipping_profile_id"), "9001");
   assert.equal(f.get("readiness_state_id"), "9002");
+  assert.equal(f.get("return_policy_id"), "9003");
+  const rp = new URLSearchParams(calls.find((c) => c.u.endsWith("/policies/return") && c.m === "POST").body);
+  assert.equal(rp.get("return_deadline"), "30");
+  assert.equal(rp.get("accepts_exchanges"), "false");
   assert.equal(f.get("price"), "5.75");
   assert.equal(f.get("tags").split(",").length, 13);
   assert.equal(calls.filter((c) => c.u.endsWith("/images")).length, 6);
@@ -120,4 +129,19 @@ test("an expired access token is refreshed before calling Etsy", async () => {
   assert.match(refresh.body, /grant_type=refresh_token/);
   assert.match(refresh.body, /refresh_token=r1/);
   assert.equal(db.get("etsy/auth").access, "777.abc");
+});
+
+test("a draft left by an earlier try is finished (no second listing), and a dropped photo upload is tried again", async () => {
+  const { db, calls, E } = setup();
+  db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+  db.docs.set("etsy/listings", { christmas: { listingId: 5151, state: "draft", error: "return policy cannot be null" } });
+  globalThis.__dropImage = 1;
+  const r = await E.adminEtsy({ action: "publish", id: "christmas" }, ADMIN);
+  assert.equal(r.listing.state, "active");
+  assert.equal(r.listing.listingId, 5151);
+  assert.equal(calls.filter((c) => /\/shops\/55\/listings$/.test(c.u)).length, 0, "no new draft");
+  const patch = new URLSearchParams(calls.find((c) => /\/listings\/5151$/.test(c.u) && c.m === "PATCH").body);
+  assert.equal(patch.get("return_policy_id"), "9003");
+  const posts = calls.filter((c) => c.u.endsWith("/5151/images") && c.m === "POST");
+  assert.equal(posts.length, 6 - 2 + 1, "the 2 photos already there are kept; the 4 missing are sent, one of them twice");
 });

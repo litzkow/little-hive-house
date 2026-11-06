@@ -21,8 +21,10 @@ const CUSTOM_PROPERTY = 513;   // Etsy's first custom variation ("Design", "Pack
 const QUANTITY = 99;           // made to order: it never runs out
 const SHIPPING = { title: "USPS Ground Advantage", cost: 5.49, minDays: 2, maxDays: 5 };
 const PROCESSING = { min: 1, max: 2 };
+const RETURN_DAYS = 30;
 
 const LISTINGS = require("./etsy-listings.json");
+let PAUSE_MS = 3000;
 const col = () => deps.db().collection("etsy");
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 
@@ -112,6 +114,13 @@ async function setup(shopId) {
       readiness_state: "made_to_order", min_processing_time: String(PROCESSING.min), max_processing_time: String(PROCESSING.max), processing_time_unit: "days" } });
     out.readinessStateId = r.readiness_state_id;
   }
+  if (!out.returnPolicyId) {
+    // ready-made designs: returns within 30 days (the site's policy); no exchanges
+    const list = (await call("GET", `/shops/${shopId}/policies/return`)).results || [];
+    const found = list.find((p) => p.accepts_returns && !p.accepts_exchanges && Number(p.return_deadline) === RETURN_DAYS);
+    out.returnPolicyId = found ? found.return_policy_id : (await call("POST", `/shops/${shopId}/policies/return`, { form: {
+      accepts_returns: "true", accepts_exchanges: "false", return_deadline: String(RETURN_DAYS) } })).return_policy_id;
+  }
   if (!out.taxonomyId) {
     const t = findTaxonomy((await call("GET", "/seller-taxonomy/nodes")).results);
     if (!t) fail("unavailable", "Couldn't find Etsy's fridge magnet category.");
@@ -141,7 +150,7 @@ function inventory(l, readinessStateId) {
   return { products, price_on_property: v.prices ? [CUSTOM_PROPERTY] : [], quantity_on_property: [], sku_on_property: [CUSTOM_PROPERTY], readiness_state_on_property: [] };
 }
 
-async function publishOne(l, shopId, s, fetchImage) {
+async function publishOne(l, shopId, s, fetchImage, resumeId) {
   const minPrice = r2(Math.min(...(l.variations[0].prices || [l.price])));
   const form = {
     quantity: String(QUANTITY), title: l.title, description: l.description, price: String(minPrice),
@@ -152,16 +161,29 @@ async function publishOne(l, shopId, s, fetchImage) {
     ...(l.personalization ? { is_personalizable: "true", personalization_is_required: "true", personalization_char_count_max: "500",
       personalization_instructions: l.personalization } : {}),
   };
-  const draft = await call("POST", `/shops/${shopId}/listings`, { form });
-  const id = draft.listing_id;
-  await col().doc("listings").set({ [l.id]: { listingId: id, state: "draft", at: nowIso() } }, { merge: true });
-  for (let i = 0; i < l.images; i++) {
+  if (s.returnPolicyId) form.return_policy_id = String(s.returnPolicyId);
+  let id = resumeId, have = 0;
+  if (id) {
+    // a draft from an earlier try: finish it (its texts, the return policy, the photos still missing)
+    await call("PATCH", `/shops/${shopId}/listings/${id}`, { form: { title: form.title, description: form.description, tags: form.tags,
+      ...(form.return_policy_id ? { return_policy_id: form.return_policy_id } : {}) } });
+    have = ((await call("GET", `/listings/${id}/images`)).results || []).length;
+  } else {
+    id = (await call("POST", `/shops/${shopId}/listings`, { form })).listing_id;
+    await col().doc("listings").set({ [l.id]: { listingId: id, state: "draft", at: nowIso() } }, { merge: true });
+  }
+  for (let i = have; i < l.images; i++) {
     const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg`);
-    const fd = new FormData();
-    fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
-    fd.append("rank", String(i + 1));
-    fd.append("alt_text", `${l.alt || l.title}`.slice(0, 250));
-    await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd });
+    for (let attempt = 1; ; attempt++) {
+      const fd = new FormData();
+      fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
+      fd.append("rank", String(i + 1));
+      fd.append("alt_text", `${l.alt || l.title}`.slice(0, 250));
+      try { await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd }); break; } catch (err) {
+        if (attempt >= 3) throw err;
+        await new Promise((r) => setTimeout(r, PAUSE_MS * attempt));   // Etsy's photo service sometimes drops a connection
+      }
+    }
   }
   await call("PUT", `/listings/${id}/inventory`, { json: inventory(l, s.readinessStateId) });
   const live = await call("PATCH", `/shops/${shopId}/listings/${id}`, { form: { state: "active" } });
@@ -176,7 +198,7 @@ async function defaultFetchImage(url) {
 }
 let fetchImage = defaultFetchImage;
 /** Tests swap how the photos are fetched. */
-function setImageFetcher(fn) { fetchImage = fn || defaultFetchImage; }
+function setImageFetcher(fn, pauseMs) { fetchImage = fn || defaultFetchImage; if (pauseMs !== undefined) PAUSE_MS = pauseMs; }
 
 /* ---------- what the Etsy page shows ---------- */
 async function status() {
@@ -227,7 +249,7 @@ async function adminEtsy(data, auth) {
       if (done && done.state === "active") return { listing: { id: l.id, ...done }, skipped: true };
       try {
         const s = await setup(a.shopId);
-        return { listing: { id: l.id, ...(await publishOne(l, a.shopId, s, fetchImage)) } };
+        return { listing: { id: l.id, ...(await publishOne(l, a.shopId, s, fetchImage, done && done.listingId)) } };
       } catch (err) {
         await col().doc("listings").set({ [l.id]: { ...(done || {}), state: (done && done.listingId) ? "draft" : "", error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
         throw err;
