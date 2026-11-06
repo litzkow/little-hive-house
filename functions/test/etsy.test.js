@@ -19,7 +19,7 @@ function setup() {
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url), m = opts.method || "GET";
     const body = typeof opts.body === "string" ? opts.body : opts.body instanceof FormData ? "multipart" : "";
-    calls.push({ m, u, body, headers: opts.headers || {} });
+    calls.push({ m, u, body, headers: opts.headers || {}, form: opts.body instanceof FormData ? opts.body : null });
     const ok = (j) => ({ ok: true, status: 200, json: async () => j });
     if (u.endsWith("/oauth/token")) return ok({ access_token: "777.abc", refresh_token: "r1", expires_in: 3600, token_type: "Bearer" });
     if (u.endsWith("/users/me")) return ok({ user_id: 777, shop_id: 55 });
@@ -147,7 +147,7 @@ test("a draft left by an earlier try is finished (no second listing), and a drop
   assert.equal(posts.length, 6 - 2 + 1, "the 2 photos already there are kept; the 4 missing are sent, one of them twice");
 });
 
-test("new photos for listings already on Etsy: the old ones out, the new set in, once", async () => {
+test("new photos for listings already on Etsy: each new photo replaces the old one in its place, nothing deleted, once", async () => {
   const { db, calls, E } = setup();
   db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
   db.docs.set("etsy/listings", { brasil: { listingId: 4242, state: "active", url: "u" } });
@@ -155,8 +155,11 @@ test("new photos for listings already on Etsy: the old ones out, the new set in,
   assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, true);
   const r = await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
   assert.equal(r.listing.state, "active");
-  assert.equal(calls.filter((c) => c.m === "DELETE").length, 2);
-  assert.equal(calls.filter((c) => c.u.endsWith("/4242/images") && c.m === "POST").length, 6);
+  assert.equal(calls.filter((c) => c.m === "DELETE").length, 0, "no photo deleted (the connection can't delete)");
+  const ups = calls.filter((c) => c.u.endsWith("/4242/images") && c.m === "POST");
+  assert.equal(ups.length, 6);
+  assert.ok(ups.every((c) => c.form && c.form.get("overwrite") === "true"), "each upload overwrites the photo at its rank");
+  assert.deepEqual(ups.map((c) => c.form.get("rank")), ["1", "2", "3", "4", "5", "6"]);
   assert.equal(calls.filter((c) => /\/shops\/55\/listings$/.test(c.u)).length, 0);
   st = await E.adminEtsy({ action: "status" }, ADMIN);
   assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, false);

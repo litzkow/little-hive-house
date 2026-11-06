@@ -7,6 +7,20 @@
   var A = window.LHHAdmin, h = A.h, V = A.VIEWS, ACT = A.ACT;
   var esc = h.esc, icon = h.icon;
   function T(en, pt) { return h.LANG() === 'pt' ? pt : en; }
+  /** What went wrong, in the screen's language: Etsy's own answer when Etsy refused (the store server sends it as
+      "Etsy: …"), never the generic "no internet" text for a refusal that came from Etsy. */
+  function errText(e) {
+    var msg = String((e && e.message) || '').replace(/^Firebase:\s*/, '');
+    var m = /^Etsy:\s*([\s\S]*)$/.exec(msg);
+    if (m) return T('Etsy refused: ', 'O Etsy recusou: ') + m[1];
+    var p = /^A photo didn.t load \((.*)\)/.exec(msg);
+    if (p) return T(msg, 'Uma foto não carregou (' + p[1] + ').');
+    if (/^Couldn.t find Etsy/.test(msg)) return T(msg, 'Não achei a categoria de ímãs de geladeira no Etsy.');
+    var f = h.friendlyError(e);
+    var I = window.LHHI18N;
+    var pt = h.LANG() === 'pt' && I && I.tr ? I.tr(f) : null;
+    return pt || f;
+  }
   var st = { data: null, loading: false, err: '', finishing: false, publishing: false, at: 0, total: 0, current: '' };
 
   function load() {
@@ -52,7 +66,7 @@
     var list = rows.map(function (l) {
       var s = l.state === 'active' && l.newPhotos ? ['New photos to send', 'Fotos novas para mandar', 'warn'] : (STATE[l.state] || STATE['']);
       return '<li class="et-row"><div><b>' + esc(l.name) + '</b><span class="small muted"> · ' + esc(l.section) + ' · ' + l.images + T(' photos', ' fotos') + '</span>' +
-        (l.error ? '<div class="small err">' + esc(l.error) + '</div>' : '') + '</div>' +
+        (l.error ? '<div class="small err">' + esc(errText({ message: l.error })) + '</div>' : '') + '</div>' +
         (l.state === 'active' && l.url && !l.newPhotos ? '<a class="pill ok" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(T(s[0], s[1])) + ' ' + icon('external') + '</a>'
           : '<span class="pill ' + s[2] + '">' + esc(T(s[0], s[1])) + '</span>') + '</li>';
     }).join('');
@@ -117,7 +131,7 @@
       var row = (st.data.listings || []).find(function (l) { return l.id === todo[i].id; });
       h.call('adminEtsy', { action: 'publish', id: todo[i].id })
         .then(function (res) { if (row && res && res.listing) { Object.assign(row, res.listing); row.error = ''; } })
-        .catch(function (e) { failed += 1; if (row) row.error = h.friendlyError(e); })
+        .catch(function (e) { failed += 1; if (row) row.error = errText(e); })
         .then(function () { next(i + 1); });
     };
     next(0);

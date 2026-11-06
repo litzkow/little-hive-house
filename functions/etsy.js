@@ -150,14 +150,16 @@ function inventory(l, readinessStateId) {
   return { products, price_on_property: v.prices ? [CUSTOM_PROPERTY] : [], quantity_on_property: [], sku_on_property: [CUSTOM_PROPERTY], readiness_state_on_property: [] };
 }
 
-/** Sends the listing's photos from number `from` on, in order (retrying a dropped upload). */
-async function uploadImages(l, shopId, id, from = 0) {
+/** Sends the listing's photos from number `from` on, in order (retrying a dropped upload).
+    With `overwrite`, each photo takes the place of the one already at its position. */
+async function uploadImages(l, shopId, id, from = 0, overwrite = false) {
   for (let i = from; i < l.images; i++) {
     const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${LISTINGS.imagesVersion || 1}`);
     for (let attempt = 1; ; attempt++) {
       const fd = new FormData();
       fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
       fd.append("rank", String(i + 1));
+      if (overwrite) fd.append("overwrite", "true");
       fd.append("alt_text", `${l.alt || l.title}`.slice(0, 250));
       try { await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd }); break; } catch (err) {
         if (attempt >= 3) throw err;
@@ -166,11 +168,11 @@ async function uploadImages(l, shopId, id, from = 0) {
     }
   }
 }
-/** New photos for a listing already on Etsy (the photo set changed: imagesVersion): the old ones out, the new ones in. */
+/** New photos for a listing already on Etsy (the photo set changed: imagesVersion): each new photo replaces the old one
+    at the same position (Etsy's "overwrite"). Deleting photos would need the listings_d permission, which the shop's
+    connection doesn't have, and an active listing can't be left without photos anyway. */
 async function replaceImages(l, shopId, id) {
-  const old = (await call("GET", `/listings/${id}/images`)).results || [];
-  for (const im of old) await call("DELETE", `/shops/${shopId}/listings/${id}/images/${im.listing_image_id}`);
-  await uploadImages(l, shopId, id, 0);
+  await uploadImages(l, shopId, id, 0, true);
 }
 
 async function publishOne(l, shopId, s, fetchImage, resumeId) {
@@ -263,7 +265,11 @@ async function adminEtsy(data, auth) {
       const done = ((await readDoc("listings")) || {})[l.id];
       if (done && done.state === "active") {
         if (Number(done.imagesV || 1) >= Number(LISTINGS.imagesVersion || 1)) return { listing: { id: l.id, ...done }, skipped: true };
-        await replaceImages(l, a.shopId, done.listingId);
+        try { await replaceImages(l, a.shopId, done.listingId); } catch (err) {
+          console.error("etsy new photos", l.id, String(err.message || err));
+          await col().doc("listings").set({ [l.id]: { ...done, error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
+          throw err;
+        }
         const row = { ...done, imagesV: LISTINGS.imagesVersion || 1, error: "", at: nowIso() };
         await col().doc("listings").set({ [l.id]: row }, { merge: true });
         return { listing: { id: l.id, ...row, newPhotos: false } };
@@ -272,6 +278,7 @@ async function adminEtsy(data, auth) {
         const s = await setup(a.shopId);
         return { listing: { id: l.id, ...(await publishOne(l, a.shopId, s, fetchImage, done && done.listingId)) } };
       } catch (err) {
+        console.error("etsy publish", l.id, String(err.message || err));
         await col().doc("listings").set({ [l.id]: { ...(done || {}), state: (done && done.state) || ((done && done.listingId) ? "draft" : ""), error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
         throw err;
       }
