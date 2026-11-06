@@ -155,6 +155,10 @@ jobs:
         if: inputs.task == 'etsy-shop'
         env: { ETSY_KEYSTRING: "${{ secrets.ETSY_KEYSTRING }}", ETSY_SHARED_SECRET: "${{ secrets.ETSY_SHARED_SECRET }}" }
         run: node tools/maint/etsy-shop.js
+      - name: "Etsy: caixas de personalização dos ímãs com foto"
+        if: inputs.task == 'etsy-perso'
+        env: { ETSY_KEYSTRING: "${{ secrets.ETSY_KEYSTRING }}", ETSY_SHARED_SECRET: "${{ secrets.ETSY_SHARED_SECRET }}", VALUE: "${{ inputs.value }}" }
+        run: node tools/maint/etsy-perso.js
       - name: "Etsy: publicar / mandar fotos novas (o mesmo que o botão do Hive Admin)"
         if: inputs.task == 'etsy-publish'
         env: { ETSY_KEYSTRING: "${{ secrets.ETSY_KEYSTRING }}", ETSY_SHARED_SECRET: "${{ secrets.ETSY_SHARED_SECRET }}", VALUE: "${{ inputs.value }}", GCLOUD_PROJECT: "${{ vars.FIREBASE_PROJECT || 'little-hive-house' }}" }
@@ -162,7 +166,7 @@ jobs:
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/etsy-publish.js
       - name: Run
-        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop'
+        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
