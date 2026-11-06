@@ -977,6 +977,16 @@ def page_products():
             _shutil.rmtree(d)
 
 
+def feed_id(col_slug, slug):
+    """The product id in the Google feed: "<collection>-<design>", at most 50 characters (Google's limit);
+    a longer one keeps its start and gets a short fixed code, so it never changes between builds."""
+    pid = f"{col_slug}-{slug}"
+    if len(pid) <= 50:
+        return pid
+    import hashlib as _h
+    return pid[:41].rstrip("-") + "-" + _h.sha1(pid.encode()).hexdigest()[:8]
+
+
 def write_google_feed():
     """google-products.xml: every design (and the photo packs) for Google Merchant Center, read by Google every day."""
     site = "https://littlehivehouse.com/"
@@ -996,7 +1006,7 @@ def write_google_feed():
         img, _ = design_image(c["slug"], x)
         grp = PARENT.get(c["slug"]) or next((g for g in GROUPS if c["slug"] in g.get("all", [])), None)
         ptype = "Fridge magnets > " + (f'{grp["name"]} > ' if grp else "") + c["name"]
-        rows.append(item(f'{c["slug"]}-{x}', f"{t} Fridge Magnet, Handmade 2x2 in, {c['name']} Collection"[:150], design_text(c, t),
+        rows.append(item(feed_id(c["slug"], x), f"{t} Fridge Magnet, Handmade 2x2 in, {c['name']} Collection"[:150], design_text(c, t),
                          f'{site}m/{c["slug"]}/{x}.html', site + img, PRICE, ptype, c["name"]))
     for n, price in STORE_PHOTO_PACKS:
         rows.append(item(f"photo-pack-{n}", f"Custom Photo Magnets, Pack of {n}, Personalized 2x2 in Fridge Magnets",
