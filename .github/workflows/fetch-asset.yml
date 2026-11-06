@@ -1,0 +1,36 @@
+# Downloads a picture from a link (e.g. a background made by an image AI) and saves it in the branch "raw-assets",
+# so Claude can use it to build product photos. Does not touch the site (main).
+name: Fetch asset
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Link to the picture"
+      name:
+        description: "File name to save it as (e.g. bg-flatlay-1.png)"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and save in raw-assets
+        env:
+          URL: ${{ inputs.url }}
+          NAME: ${{ inputs.name }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          case "$NAME" in *[!A-Za-z0-9._-]*|"") echo "::error::bad name"; exit 1 ;; esac
+          git init -q work && cd work
+          git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          if git fetch -q --depth 1 origin raw-assets; then git checkout -q -b raw-assets FETCH_HEAD; else git checkout -q --orphan raw-assets; fi
+          curl -fsSL "$URL" -o "$NAME"
+          file "$NAME"
+          git add "$NAME"
+          git -c user.name="github-actions" -c user.email="actions@github.com" commit -q -m "raw asset: $NAME"
+          git push -q origin raw-assets
+          echo "::notice title=saved::$NAME"
