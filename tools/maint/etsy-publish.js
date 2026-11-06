@@ -16,6 +16,19 @@ const AUTH = { uid: "maintenance", token: { admin: true, email: "maintenance" } 
     say(`arranged: sections ${r.sections.join(" > ")}, ${r.renamed} renamed, ${r.listings.length} listings`);
     return;
   }
+  if (process.env.VALUE === "texts") {   // only the texts (title, description, tags, section) of every listing on Etsy
+    const L = require("../../functions/etsy-listings.json").listings;
+    const db = require("../../functions/deps").db();
+    const done = (await db.collection("etsy").doc("listings").get()).data() || {};
+    const st = await E.adminEtsy({ action: "status" }, AUTH);
+    let failed = 0;
+    for (const l of L) {
+      const d = done[l.id];
+      if (!d || !d.listingId) continue;
+      try { await E._internal.patchTexts(l, d.listingId); say(`${l.id}: texts ok`); } catch (e) { failed += 1; say(`${l.id}: FAILED ${e.message}`); }
+    }
+    process.exit(failed ? 1 : 0);
+  }
   if (/^force:/.test(process.env.VALUE || "")) {   // force:<key>: send this listing's photos again (same photo version)
     const key = process.env.VALUE.slice(6);
     const ref = require("../../functions/deps").db().collection("etsy").doc("listings");

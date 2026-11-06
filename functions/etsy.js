@@ -383,4 +383,11 @@ async function adminEtsy(data, auth) {
   }
 }
 
-module.exports = { adminEtsy, setImageFetcher, _internal: { inventory, findTaxonomy, SCOPES, redirectUri, LISTINGS } };
+/** Maintenance: send only a listing's texts (title, description, tags, section) to Etsy. */
+async function patchTexts(l, listingId) {
+  const a = await readDoc("auth");
+  const s = await setup(a.shopId);
+  await call("PATCH", `/shops/${a.shopId}/listings/${listingId}`, { form: listingTexts(l, s) });
+}
+
+module.exports = { adminEtsy, setImageFetcher, _internal: { inventory, findTaxonomy, SCOPES, redirectUri, LISTINGS, patchTexts } };
