@@ -3,6 +3,9 @@
    is missing or has new photos to send, one at a time. VALUE = one listing key to do only that one (empty = all).
    Prints each result as an annotation on the run page. */
 process.env.SITE_URL = process.env.SITE_URL || "https://littlehivehouse.com";
+// the database through @google-cloud/firestore (it understands the workflow's keyless Google sign-in; firebase-admin doesn't)
+const { Firestore } = require("@google-cloud/firestore");
+require("../../functions/deps").set({ db: new Firestore({ projectId: process.env.PROJECT || "little-hive-house", ignoreUndefinedProperties: true }) });
 const E = require("../../functions/etsy");
 const say = (s) => console.log(`::warning title=etsy::${String(s).replace(/%/g, "%25").replace(/\n/g, " | ").slice(0, 1800)}`);
 const AUTH = { uid: "maintenance", token: { admin: true, email: "maintenance" } };
