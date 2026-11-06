@@ -16,6 +16,14 @@ const AUTH = { uid: "maintenance", token: { admin: true, email: "maintenance" } 
     say(`arranged: sections ${r.sections.join(" > ")}, ${r.renamed} renamed, ${r.listings.length} listings`);
     return;
   }
+  if (/^force:/.test(process.env.VALUE || "")) {   // force:<key>: send this listing's photos again (same photo version)
+    const key = process.env.VALUE.slice(6);
+    const ref = require("../../functions/deps").db().collection("etsy").doc("listings");
+    const cur = ((await ref.get()).data() || {})[key];
+    if (!cur) throw new Error("unknown listing " + key);
+    await ref.set({ [key]: { ...cur, imagesV: 0 } }, { merge: true });
+    process.env.VALUE = key;
+  }
   const st = await E.adminEtsy({ action: "status" }, AUTH);
   const one = process.env.VALUE && process.env.VALUE !== "all" && st.listings.some((l) => l.id === process.env.VALUE) ? process.env.VALUE : "";   // VALUE = a listing key, or "all"
   const todo = st.listings.filter((l) => (one ? l.id === one : (l.state !== "active" || l.newPhotos)));

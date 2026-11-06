@@ -48,6 +48,8 @@ _SCENES = {  # name: (pixels per inch in the scene, from the cup or mug in it)
     "retro": 64, "family": 64, "gift": 64, "garden": 62,
 }
 SCENE = {k: {"file": f"bg-{k}.jpg", "crop": FULL, "inch": v, "light": (1, 0.6)} for k, v in _SCENES.items()}
+# the diner table's checks fool the prop finder: the free part of the table, by hand (fractions of the scene)
+SCENE["retro"]["area"] = (0.15, 0.24, 0.82, 0.9)
 # the fridge door: the window and the plant stay in; the door is wide, so the magnets get more help to read
 SCENE["fridge"] = {"file": "bg-fridge.jpg", "crop": (0, 40, 1100, 659), "inch": 50, "light": (1, 0.35)}
 COLLECTION_SCENE = {
@@ -239,8 +241,9 @@ def free_layout(scene, n, seed, size_out=(LW, LH)):
     m = cv2.dilate(m, np.ones((17, 17), np.uint8))                    # air around every prop (thin ones like chopsticks too)
     mh, mw = m.shape
     integ = cv2.integral(m)
+    area = sc.get("area", (0.015, 0.02, 0.985, 0.98))
     def busy(x0, y0, x1, y1):
-        if x0 < 0.015 or y0 < 0.02 or x1 > 0.985 or y1 > 0.98: return 1
+        if x0 < area[0] or y0 < area[1] or x1 > area[2] or y1 > area[3]: return 1
         x0, y0 = int(x0 * mw), int(y0 * mh); x1, y1 = int(np.ceil(x1 * mw)), int(np.ceil(y1 * mh))
         return integ[y1, x1] - integ[y0, x1] - integ[y1, x0] + integ[y0, x0]
     fx, fy = mag_frac(scene, size_out)
