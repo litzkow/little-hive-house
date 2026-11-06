@@ -16,6 +16,8 @@ function setup() {
   db.docs.set("settings/store", { shipFrom: { zip: "30185" } });
   const calls = [];
   let n = 1000;
+  const IMGS = { 5151: [{ id: 71, rank: 1 }, { id: 72, rank: 2 }] }, ACTIVE = new Set();
+  globalThis.__lenient = false;
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url), m = opts.method || "GET";
     const body = typeof opts.body === "string" ? opts.body : opts.body instanceof FormData ? "multipart" : "";
@@ -29,14 +31,27 @@ function setup() {
     if (u.endsWith("/readiness-state-definitions")) return ok({ readiness_state_id: 9002 });
     if (u.endsWith("/policies/return") && m === "GET") return ok({ results: [{ return_policy_id: 1, accepts_returns: false, accepts_exchanges: false, return_deadline: null }] });
     if (u.endsWith("/policies/return")) return ok({ return_policy_id: 9003 });
-    if (/\/listings\/\d+\/images$/.test(u) && m === "GET") return ok({ results: [{ listing_image_id: 71 }, { listing_image_id: 72 }] });
-    if (/\/images\/\d+$/.test(u) && m === "DELETE") return ok({});
-    if (u.endsWith("/images") && globalThis.__dropImage > 0) { globalThis.__dropImage -= 1; return { ok: false, status: 500, json: async () => ({ error: "photos-writer failure upload" }) }; }
+    // photos, the way the real Etsy keeps them: a rank per photo, an upload at a taken rank doesn't push the others
+    // (two at the same rank), and after that every upload is refused; an active listing keeps its last photo
+    const im = /\/listings\/(\d+)\/images(?:\/(\d+))?$/.exec(u);
+    if (im) {
+      const list = IMGS[im[1]] = IMGS[im[1]] || [];
+      if (m === "GET") return ok({ count: list.length, results: list.slice().sort((a, b) => a.rank - b.rank).map((x) => ({ listing_image_id: x.id, rank: x.rank })) });
+      if (m === "DELETE") {
+        if (list.length === 1 && ACTIVE.has(im[1])) return { ok: false, status: 400, json: async () => ({ error: "An active listing must have at least one image." }) };
+        IMGS[im[1]] = list.filter((x) => String(x.id) !== im[2]); return ok({});
+      }
+      const f = opts.body;
+      if (f.get("listing_image_id")) { const x = list.find((y) => String(y.id) === f.get("listing_image_id")); x.rank = Number(f.get("rank")); return ok({ listing_image_id: x.id, rank: x.rank }); }
+      const ranks = list.map((x) => x.rank).sort((a, b) => a - b);
+      if (ranks.some((r, i) => r !== i + 1) && !globalThis.__lenient) return { ok: false, status: 400, json: async () => ({ error: "The ListingImages for this Listing are in an inconsistent order." }) };
+      if (globalThis.__dropImage > 0) { globalThis.__dropImage -= 1; return { ok: false, status: 500, json: async () => ({ error: "photos-writer failure upload" }) }; }
+      const x = { id: ++n, rank: Number(f.get("rank")) || 1 }; list.push(x); return ok({ listing_image_id: x.id, rank: x.rank });
+    }
     if (u.endsWith("/seller-taxonomy/nodes")) return ok({ results: [{ id: 1, name: "Home & Living", children: [{ id: 2, name: "Home Decor", children: [{ id: 1068, name: "Magnets", children: [] }] }] }] });
     if (u.endsWith("/sections") && m === "GET") return ok({ results: [] });
     if (u.endsWith("/sections")) return ok({ shop_section_id: ++n });
-    if (/\/shops\/55\/listings$/.test(u)) return ok({ listing_id: 4242, state: "draft" });
-    if (u.endsWith("/images")) return ok({ listing_image_id: ++n });
+    if (/\/shops\/55\/listings$/.test(u)) { IMGS[4242] = []; return ok({ listing_id: 4242, state: "draft" }); }   // every new draft is 4242 here: it starts with no photos
     if (u.endsWith("/inventory")) return ok({ products: [] });
     if (/\/listings\/(4242|5151)$/.test(u) && m === "PATCH") return ok({ listing_id: 4242, state: "active", url: "https://www.etsy.com/listing/4242/x" });
     return { ok: false, status: 404, json: async () => ({ error: "not faked: " + u }) };
@@ -44,7 +59,7 @@ function setup() {
   const E = require("../etsy");
   E.setImageFetcher(async () => new Blob([Buffer.from("jpg")], { type: "image/jpeg" }), 0);
   globalThis.__dropImage = 0;
-  return { db, calls, E };
+  return { db, calls, E, IMGS, ACTIVE };
 }
 
 test("connect: the Etsy link carries PKCE and the scopes; the approval is checked, saved, and the shop is found", async () => {
@@ -147,22 +162,71 @@ test("a draft left by an earlier try is finished (no second listing), and a drop
   assert.equal(posts.length, 6 - 2 + 1, "the 2 photos already there are kept; the 4 missing are sent, one of them twice");
 });
 
-test("new photos for listings already on Etsy: each new photo replaces the old one in its place, nothing deleted, once", async () => {
-  const { db, calls, E } = setup();
+const order = (IMGS, id) => IMGS[id].slice().sort((a, b) => a.rank - b.rank);
+
+test("new photos for a listing already on Etsy: the new set ends up alone, at ranks 1..6, nothing duplicated, once", async () => {
+  const { db, calls, E, IMGS, ACTIVE } = setup();
   db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
   db.docs.set("etsy/listings", { brasil: { listingId: 4242, state: "active", url: "u" } });
+  IMGS[4242] = [1, 2, 3, 4, 5, 6].map((r) => ({ id: 70 + r, rank: r }));
+  ACTIVE.add("4242");
   let st = await E.adminEtsy({ action: "status" }, ADMIN);
   assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, true);
   const r = await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
   assert.equal(r.listing.state, "active");
-  assert.equal(calls.filter((c) => c.m === "DELETE").length, 0, "no photo deleted (the connection can't delete)");
-  const ups = calls.filter((c) => c.u.endsWith("/4242/images") && c.m === "POST");
-  assert.equal(ups.length, 6);
-  assert.ok(ups.every((c) => c.form && c.form.get("overwrite") === "true"), "each upload overwrites the photo at its rank");
-  assert.deepEqual(ups.map((c) => c.form.get("rank")), ["1", "2", "3", "4", "5", "6"]);
+  const now = order(IMGS, 4242);
+  assert.deepEqual(now.map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+  assert.ok(now.every((x) => x.id > 1000), "only the new photos are left");
   assert.equal(calls.filter((c) => /\/shops\/55\/listings$/.test(c.u)).length, 0);
   st = await E.adminEtsy({ action: "status" }, ADMIN);
   assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, false);
   const again = await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
   assert.equal(again.skipped, true);
+});
+
+test("new photos: a listing left broken by an earlier try (one old photo at rank 3, or two at rank 1) is repaired", async () => {
+  for (const broken of [[{ id: 71, rank: 3 }], [{ id: 71, rank: 1 }, { id: 72, rank: 1 }]]) {
+    const { db, E, IMGS, ACTIVE } = setup();
+    db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+    db.docs.set("etsy/listings", { brasil: { listingId: 4242, state: "active", url: "u", error: "Etsy: The ListingImages for this Listing are in an inconsistent order." } });
+    IMGS[4242] = broken; ACTIVE.add("4242");
+    globalThis.__lenient = false;
+    await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
+    const now = order(IMGS, 4242);
+    assert.deepEqual(now.map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+    assert.ok(now.every((x) => x.id > 1000));
+    const st = await E.adminEtsy({ action: "status" }, ADMIN);
+    const b = st.listings.find((l) => l.id === "brasil");
+    assert.equal(b.newPhotos, false);
+    assert.equal(b.error, "");
+  }
+});
+
+test("new photos: if Etsy refuses midway, the error is saved and a second tap finishes the job", async () => {
+  const { db, E, IMGS, ACTIVE } = setup();
+  db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+  db.docs.set("etsy/listings", { brasil: { listingId: 4242, state: "active", url: "u" } });
+  IMGS[4242] = [1, 2, 3, 4, 5, 6].map((r) => ({ id: 70 + r, rank: r })); ACTIVE.add("4242");
+  globalThis.__dropImage = 3;   // three drops in a row: the third photo gives up
+  await assert.rejects(E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN));
+  let st = await E.adminEtsy({ action: "status" }, ADMIN);
+  assert.match(st.listings.find((l) => l.id === "brasil").error, /photos-writer/);
+  assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, true);
+  await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
+  const now = order(IMGS, 4242);
+  assert.deepEqual(now.map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+  assert.ok(now.every((x) => x.id > 1000));
+  st = await E.adminEtsy({ action: "status" }, ADMIN);
+  assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, false);
+});
+
+test("Etsy's per-second limit (429): waits and tries the same call again", async () => {
+  const { db, E, IMGS, ACTIVE } = setup();
+  db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+  db.docs.set("etsy/listings", { brasil: { listingId: 4242, state: "active", url: "u" } });
+  IMGS[4242] = [{ id: 71, rank: 1 }]; ACTIVE.add("4242");
+  const real = globalThis.fetch; let busy = 2;
+  globalThis.fetch = async (url, opts) => (busy-- > 0 ? { ok: false, status: 429, json: async () => ({ error: "Exceeded per second rate limit" }) } : real(url, opts));
+  await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
+  assert.deepEqual(order(IMGS, 4242).map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
 });

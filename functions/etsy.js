@@ -78,7 +78,12 @@ async function call(method, path, { form, json, multipart } = {}) {
   if (form) { headers["Content-Type"] = "application/x-www-form-urlencoded"; body = new URLSearchParams(form).toString(); }
   else if (json) { headers["Content-Type"] = "application/json"; body = JSON.stringify(json); }
   else if (multipart) body = multipart;
-  const res = await globalThis.fetch(`${API}${path}`, { method, headers, body });
+  let res;
+  for (let attempt = 1; ; attempt++) {
+    res = await globalThis.fetch(`${API}${path}`, { method, headers, body });
+    if (res.status !== 429 || attempt >= 4) break;
+    await new Promise((r) => setTimeout(r, PAUSE_MS * attempt));   // Etsy allows only a few calls per second
+  }
   let out = null;
   try { out = await res.json(); } catch (e) { out = null; }
   if (!res.ok) fail("unavailable", `Etsy: ${etsyError(out, res)} (${method} ${path.replace(/\d{5,}/g, "…")})`);
@@ -150,16 +155,14 @@ function inventory(l, readinessStateId) {
   return { products, price_on_property: v.prices ? [CUSTOM_PROPERTY] : [], quantity_on_property: [], sku_on_property: [CUSTOM_PROPERTY], readiness_state_on_property: [] };
 }
 
-/** Sends the listing's photos from number `from` on, in order (retrying a dropped upload).
-    With `overwrite`, each photo takes the place of the one already at its position. */
-async function uploadImages(l, shopId, id, from = 0, overwrite = false) {
+/** Sends the listing's photos from number `from` on, in order (retrying a dropped upload). */
+async function uploadImages(l, shopId, id, from = 0) {
   for (let i = from; i < l.images; i++) {
     const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${LISTINGS.imagesVersion || 1}`);
     for (let attempt = 1; ; attempt++) {
       const fd = new FormData();
       fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
       fd.append("rank", String(i + 1));
-      if (overwrite) fd.append("overwrite", "true");
       fd.append("alt_text", `${l.alt || l.title}`.slice(0, 250));
       try { await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd }); break; } catch (err) {
         if (attempt >= 3) throw err;
@@ -168,11 +171,48 @@ async function uploadImages(l, shopId, id, from = 0, overwrite = false) {
     }
   }
 }
-/** New photos for a listing already on Etsy (the photo set changed: imagesVersion): each new photo replaces the old one
-    at the same position (Etsy's "overwrite"). Deleting photos would need the listings_d permission, which the shop's
-    connection doesn't have, and an active listing can't be left without photos anyway. */
+/** New photos for a listing already on Etsy (the photo set changed: imagesVersion). How Etsy behaves (tried on the
+    real shop, Nov 2026): a photo sent "at rank 1" does NOT push the others down, it makes two photos at rank 1, and
+    Etsy then refuses every later upload ("ListingImages … in an inconsistent order"); deleting leaves gaps in the ranks;
+    an active listing can't lose its last photo; re-attaching a photo by its id with a rank moves it there. So:
+    1. all old photos out but one, which goes to rank 1 (this also repairs a listing whose ranks are already broken);
+    2. the new photos in at ranks 2, 3, … (after it, nothing clashes);
+    3. the last old photo out;  4. the new photos moved to ranks 1, 2, 3, …
+    It can run again from any half-done state. Photos Etsy hands back as the same id (an identical picture) are kept. */
+async function listImages(id) {
+  return ((await call("GET", `/listings/${id}/images`)).results || [])
+    .map((im) => ({ id: im.listing_image_id, rank: Number(im.rank) || 0 })).sort((a, b) => a.rank - b.rank);
+}
+async function placeImage(shopId, id, imageId, rank) {
+  const fd = new FormData();
+  fd.append("listing_image_id", String(imageId));
+  fd.append("rank", String(rank));
+  await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd });
+}
 async function replaceImages(l, shopId, id) {
-  await uploadImages(l, shopId, id, 0, true);
+  const old = await listImages(id);
+  const keep = old[old.length - 1];
+  for (const im of old.slice(0, -1)) await call("DELETE", `/shops/${shopId}/listings/${id}/images/${im.id}`);
+  if (keep && keep.rank !== 1) await placeImage(shopId, id, keep.id, 1);
+  const added = [];
+  for (let i = 0; i < l.images; i++) {
+    const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${LISTINGS.imagesVersion || 1}`);
+    for (let attempt = 1; ; attempt++) {
+      const fd = new FormData();
+      fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
+      fd.append("rank", String(i + 2));
+      fd.append("alt_text", `${l.alt || l.title}`.slice(0, 250));
+      try { added.push((await call("POST", `/shops/${shopId}/listings/${id}/images`, { multipart: fd })).listing_image_id); break; } catch (err) {
+        if (attempt >= 3) throw err;
+        await new Promise((r) => setTimeout(r, PAUSE_MS * attempt));
+      }
+    }
+  }
+  if (keep && !added.includes(keep.id)) await call("DELETE", `/shops/${shopId}/listings/${id}/images/${keep.id}`);
+  for (let i = 0; i < added.length; i++) await placeImage(shopId, id, added[i], i + 1);
+  const now = await listImages(id);
+  const ok = now.length === added.length && now.every((im, i) => im.rank === i + 1 && im.id === added[i]);
+  if (!ok) fail("unavailable", `Etsy: the photos didn't end up in order (${now.map((im) => im.rank).join(",")}). Try again.`);
 }
 
 async function publishOne(l, shopId, s, fetchImage, resumeId) {

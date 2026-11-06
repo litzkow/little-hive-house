@@ -386,7 +386,9 @@
 
   /* ====================================================================== data */
   function call(name, data) {
-    return S.fns.httpsCallable(name)(data || {}).then(function (r) { return r && r.data; });
+    // the Etsy page waits as long as its server may run (5 min): swapping a listing's photos takes many Etsy calls
+    var opts = name === 'adminEtsy' ? { timeout: 300000 } : undefined;
+    return S.fns.httpsCallable(name, opts)(data || {}).then(function (r) { return r && r.data; });
   }
   function docs(snap) { return snap.docs.map(function (d) { var o = d.data() || {}; o.id = d.id; return o; }); }
   function sortOrders() { S.orders.sort(function (a, b) { return (R.orderDate(b) || R.toMs(b.createdAt)) - (R.orderDate(a) || R.toMs(a.createdAt)); }); }
