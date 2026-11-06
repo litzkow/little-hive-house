@@ -16,7 +16,7 @@ const ANNOUNCEMENT = [
   "• Your own photos: upload any picture (family, pets, trips, weddings) and we turn it into a 2 x 2 inch magnet, with a frame and caption if you like. See the Photo Magnets section.",
   "• Our designs: hundreds of original, hand-painted magnets, from travel posters and heritage collections to seasonal, sayings and storybook classics.",
   "",
-  "Every magnet is printed, pressed and packed by hand in our small studio and ships in 1 to 2 business days. Free US shipping on orders of $35 or more.",
+  "Every magnet is printed, pressed and packed by hand in our small studio and ships in 1 to 2 business days. Buy 3 or more and save 20%. Free US shipping on orders of $35 or more.",
 ].join("\n");
 
 (async () => {
