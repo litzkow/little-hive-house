@@ -30,18 +30,21 @@ LISTINGS = ROOT / "functions" / "etsy-listings.json"
 CACHE = pathlib.Path(tempfile.gettempdir()) / "lhh-etsy-art"
 
 CREAM, CREAM_LIGHT, HONEY, BROWN, BROWN_SOFT, LINES = "#FFF6E5", "#FFFCF4", "#F2A81D", "#2B2118", "#6A5845", "#E8D6B3"
-W, H = 3000, 2250            # every photo 4:3, the shape Etsy shows
-LW, LH = 2000, 1500          # lifestyle photos (the AI backgrounds are 1280 x 720)
+W, H = 3000, 2250            # the guide and detail photos, 4:3
+LW, LH = 2560, 1440          # lifestyle photos: the whole AI scene (1280 x 720), nothing around it cut off
+BIGGER = 1.45                # owners: the magnets a bit bigger than true scale, so they read well in the photo
 
-# Which scene suits which collection; crop = the 4:3 part of the 1280 x 720 scene; inch = pixels per inch in the scene
-# (from the cup / mug next to the magnets), so a 2 in magnet is drawn at its real size.
+# Which scene suits which collection; crop = the part of the 1280 x 720 scene shown (all of it, so the props around
+# stay whole); inch = pixels per inch in the scene (from the cup / mug next to the magnets), times BIGGER.
+FULL = (0, 0, 1280, 720)
 SCENE = {
-    "linen": {"file": "bg-linen.jpg", "crop": (120, 0, 1080, 720), "inch": 67, "light": (1, 0.6)},
-    "latin": {"file": "bg-latin.jpg", "crop": (180, 0, 1140, 720), "inch": 62, "light": (1, 0.55)},
-    "europe": {"file": "bg-europe.jpg", "crop": (170, 0, 1130, 720), "inch": 66, "light": (1, 0.6)},
-    "christmas": {"file": "bg-christmas.jpg", "crop": (170, 0, 1130, 720), "inch": 70, "light": (1, 0.6)},
-    # the fridge door, close up (the door is about 30 in wide in the scene: 32 px per inch)
-    "fridge": {"file": "bg-fridge.jpg", "crop": (232, 150, 712, 510), "inch": 32.5, "light": (1, 0.35)},
+    "linen": {"file": "bg-linen.jpg", "crop": FULL, "inch": 67, "light": (1, 0.6)},
+    "latin": {"file": "bg-latin.jpg", "crop": FULL, "inch": 62, "light": (1, 0.55)},
+    "europe": {"file": "bg-europe.jpg", "crop": FULL, "inch": 66, "light": (1, 0.6)},
+    "christmas": {"file": "bg-christmas.jpg", "crop": FULL, "inch": 70, "light": (1, 0.6)},
+    "horror": {"file": "bg-horror.jpg", "crop": FULL, "inch": 66, "light": (1, 0.6)},
+    # the fridge door: the window and the plant stay in; the door is wide, so the magnets get more help to read
+    "fridge": {"file": "bg-fridge.jpg", "crop": (0, 40, 1100, 659), "inch": 50, "light": (1, 0.35)},
 }
 COLLECTION_SCENE = {"christmas": "christmas", "brasil": "latin", "mexico": "latin", "puerto-rico": "latin",
                     "philippines": "latin", "italia": "europe", "ireland": "europe", "americana": "europe",
@@ -151,7 +154,7 @@ def lifestyle(scene, magnets, seed=1, shadow=0.42, size_out=(LW, LH)):
     bg = Image.open(SCENES / sc["file"]).convert("RGB").crop(sc["crop"]).resize(size_out, Image.LANCZOS)
     bg = bg.filter(ImageFilter.UnsharpMask(radius=2, percent=40, threshold=2))
     Wo, Ho = size_out
-    size = int(round(2 * sc["inch"] * Wo / (x1c - x0c)))
+    size = int(round(2 * sc["inch"] * BIGGER * Wo / (x1c - x0c)))
     light = sc["light"]
     shade = _shade_map(bg)
     canvas = np.asarray(bg, dtype=np.float32)
@@ -182,6 +185,14 @@ def lifestyle(scene, magnets, seed=1, shadow=0.42, size_out=(LW, LH)):
     return Image.fromarray(canvas)
 
 
+def mag_frac(scene, size_out=(LW, LH)):
+    """The magnet's size as a fraction of the photo's width and height."""
+    sc = SCENE[scene]
+    x0, y0, x1, y1 = sc["crop"]
+    px = 2 * sc["inch"] * BIGGER / (x1 - x0) * size_out[0]
+    return px / size_out[0], px / size_out[1]
+
+
 def grid_spots(n, cx, cy, gap_x, gap_y, seed):
     """Up to 6 magnets in a loose grid (2 rows), each a little turned, like set down by hand."""
     rng = np.random.default_rng(seed)
@@ -200,7 +211,7 @@ def grid_spots(n, cx, cy, gap_x, gap_y, seed):
 def fridge_spots(n, seed):
     """Magnets put up on a fridge door: not in a grid, a little crooked."""
     rng = np.random.default_rng(seed)
-    base = [(0.40, 0.30), (0.66, 0.26), (0.53, 0.55), (0.79, 0.52), (0.36, 0.76), (0.64, 0.80)]
+    base = [(0.44, 0.24), (0.68, 0.22), (0.58, 0.55), (0.83, 0.48), (0.43, 0.79), (0.71, 0.81)]
     return [(x + rng.uniform(-0.02, 0.02), y + rng.uniform(-0.02, 0.02), float(rng.uniform(-3.5, 3.5)))
             for x, y in base[:n]]
 
@@ -359,7 +370,8 @@ def build(listing, keep_last):
         imgs = [Image.open(arts[s]) for s, _ in designs]
         sc = COLLECTION_SCENE[lid]
         first = imgs[:6]
-        photos.append(lifestyle(sc, [(im, x, y, a) for im, (x, y, a) in zip(first, grid_spots(len(first), 0.53, 0.52, 0.175, 0.245, 7))], seed=3))
+        fx, fy = mag_frac(sc)
+        photos.append(lifestyle(sc, [(im, x, y, a) for im, (x, y, a) in zip(first, grid_spots(len(first), 0.52, 0.52, fx * 1.2, fy * 1.2, 7))], seed=3))
         nxt = imgs[6:11] if len(imgs) >= 11 else imgs[-5:]
         photos.append(lifestyle("fridge", [(im, x, y, a) for im, (x, y, a) in zip(nxt, fridge_spots(len(nxt), 5))], seed=4, shadow=0.3))
         photos += design_charts(listing["name"], designs, arts)
@@ -369,7 +381,8 @@ def build(listing, keep_last):
         a, b = PHOTO_SETS[lid]
         sh = lambda k: Image.open(ROOT / "assets" / "showcase" / f"{k}.webp")
         fl = [sh(k) for k in b]          # the cover: on the table, close enough to see the photos
-        photos.append(lifestyle("linen", [(im, x, y, ang) for im, (x, y, ang) in zip(fl, grid_spots(len(fl), 0.53, 0.52, 0.175, 0.245, 9))], seed=6))
+        fx, fy = mag_frac("linen")
+        photos.append(lifestyle("linen", [(im, x, y, ang) for im, (x, y, ang) in zip(fl, grid_spots(len(fl), 0.52, 0.52, fx * 1.2, fy * 1.2, 9))], seed=6))
         fr = [sh(k) for k in a]
         photos.append(lifestyle("fridge", [(im, x, y, ang) for im, (x, y, ang) in zip(fr, fridge_spots(len(fr), 2))], seed=5, shadow=0.3))
         photos.append(frame_chart())
@@ -383,7 +396,7 @@ def build(listing, keep_last):
         f.unlink()
     for i, p in enumerate(photos):
         p = p.convert("RGB")
-        if p.size[0] < W:
+        if p.size[0] < 2000:
             p = p.resize((W, H), Image.LANCZOS)
         p.save(out / f"{i + 1}.jpg", quality=90, optimize=True, progressive=True)
     listing["images"] = len(photos)
