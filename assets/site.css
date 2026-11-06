@@ -128,7 +128,7 @@ section { padding-block: 72px; }
 @media (max-width: 760px) { .products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 14px; } .product-art { padding: 4px; } }
 .product { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .product-art { padding: 10px; }
-.mag { width: 100%; height: auto; display: block; border-radius: 0; box-shadow: var(--shadow); transition: transform .25s ease; }
+.mag { width: 100%; height: auto; display: block; border-radius: 4%; box-shadow: var(--shadow); transition: transform .25s ease; }
 .product:nth-child(3n+1) .mag { transform: rotate(-1.5deg); }
 .product:nth-child(3n+2) .mag { transform: rotate(1deg); }
 .product:nth-child(3n) .mag { transform: rotate(-.5deg); }
@@ -476,14 +476,14 @@ section.tight { padding-block: 28px 72px; }
 .magnets-hint { margin: 0; color: var(--muted); font-size: 14px; }
 .thumbs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px 12px; }
 .thumb { position: relative; display: grid; gap: 5px; align-content: start; min-width: 0; }
-.thumb-btn { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 0; border-radius: 0; overflow: hidden; background: var(--fridge); box-shadow: var(--shadow); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.thumb-btn { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 0; border-radius: 9%; overflow: hidden; background: var(--fridge); box-shadow: var(--shadow); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
 .thumb-btn:hover { transform: translateY(-2px); box-shadow: 0 1px 0 rgba(43,33,24,.06), 0 14px 26px -12px rgba(43,33,24,.45); }
 .thumb-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .thumb-btn svg, .sw-art svg, .studio-mag svg, .fprev svg { display: block; width: 100%; height: 100%; }
 .thumb-edit { position: absolute; right: 6px; bottom: 6px; width: 28px; height: 28px; border-radius: 50%; background: rgba(43,33,24,.85) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 11.5V13h1.5l6.8-6.8-1.5-1.5L3 11.5zm9.7-6.3a.8.8 0 0 0 0-1.1l-.8-.8a.8.8 0 0 0-1.1 0l-.7.7 1.9 1.9.7-.7z' fill='%23FFF6E5'/%3E%3C/svg%3E") center / 15px no-repeat; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 .thumb-name { font-size: 12.5px; line-height: 1.25; color: var(--muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .thumb-x { position: absolute; top: -8px; right: -8px; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--surface); background: var(--ink); color: var(--bg); font-size: 17px; line-height: 1; cursor: pointer; display: grid; place-items: center; z-index: 1; }
-.thumb.empty { aspect-ratio: 1; border: 1.5px dashed var(--line); border-radius: 0; display: grid; place-items: center; align-content: center; color: var(--muted); font-size: 12px; }
+.thumb.empty { aspect-ratio: 1; border: 1.5px dashed var(--line); border-radius: 9%; display: grid; place-items: center; align-content: center; color: var(--muted); font-size: 12px; }
 .thumb.low .thumb-btn { outline: 3px solid var(--focus); outline-offset: -3px; }
 .thumb .lowtag { position: absolute; left: 0; right: 0; top: 0; padding: 3px 0; background: var(--focus); color: var(--bg); font-size: 11px; font-weight: 700; text-align: center; letter-spacing: 0.02em; }
 .counter { margin: 4px 0 0; }
@@ -1066,7 +1066,7 @@ html.studio-open { overflow: hidden; }
 .product-info h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .pdp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 56px); align-items: start; }
 .pdp-art { padding: clamp(28px, 6vw, 64px); display: grid; place-items: center; }
-.pdp-art .mag { width: min(100%, 420px); height: auto; aspect-ratio: 1; border-radius: 0; box-shadow: var(--shadow); }
+.pdp-art .mag { width: min(100%, 420px); height: auto; aspect-ratio: 1; border-radius: 7%; box-shadow: var(--shadow); }
 .pdp-info { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .pdp-info h1 { font-size: clamp(30px, 5vw, 44px); }
 .pdp-info .eyebrow a { color: inherit; text-decoration: none; }
