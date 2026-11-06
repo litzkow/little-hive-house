@@ -27,7 +27,8 @@ async function token() {
   const listings = (await db.collection("etsy").doc("listings").get()).data() || {};
   const all = process.env.VALUE === "all" || process.env.VALUE === "urls";
   for (const [key, d] of Object.entries(listings)) {
-    if (!d.listingId || (!all && !d.error)) continue;
+    const pick = !all && process.env.VALUE ? process.env.VALUE.split(",").includes(key) : null;   // VALUE = some keys (GitHub shows only 10 notes per step)
+    if (!d.listingId || (pick === false) || (pick === null && !all && !d.error)) continue;
     await new Promise((r) => setTimeout(r, 1500));   // Etsy allows only a few requests per second
     const res = await fetch(`${API}/listings/${d.listingId}/images`, { headers: { "x-api-key": `${K}:${S}`, Authorization: `Bearer ${access}`, Accept: "application/json" } });
     const j = await res.json().catch(() => ({}));
