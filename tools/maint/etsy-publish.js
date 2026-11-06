@@ -12,7 +12,8 @@ const AUTH = { uid: "maintenance", token: { admin: true, email: "maintenance" } 
 
 (async () => {
   const st = await E.adminEtsy({ action: "status" }, AUTH);
-  const todo = st.listings.filter((l) => (process.env.VALUE ? l.id === process.env.VALUE : (l.state !== "active" || l.newPhotos)));
+  const one = process.env.VALUE && process.env.VALUE !== "all" && st.listings.some((l) => l.id === process.env.VALUE) ? process.env.VALUE : "";   // VALUE = a listing key, or "all"
+  const todo = st.listings.filter((l) => (one ? l.id === one : (l.state !== "active" || l.newPhotos)));
   say(`to do: ${todo.map((l) => l.id).join(", ") || "nothing"}`);
   let failed = 0;
   for (const l of todo) {
