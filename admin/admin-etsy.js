@@ -113,7 +113,11 @@
         st.data = null; load(); return;
       }
       st.at = i + 1; st.current = todo[i].name; h.route();
-      h.call('adminEtsy', { action: 'publish', id: todo[i].id }).catch(function () { failed += 1; }).then(function () { next(i + 1); });
+      var row = (st.data.listings || []).find(function (l) { return l.id === todo[i].id; });
+      h.call('adminEtsy', { action: 'publish', id: todo[i].id })
+        .then(function (res) { if (row && res && res.listing) { Object.assign(row, res.listing); row.error = ''; } })
+        .catch(function (e) { failed += 1; if (row) row.error = h.friendlyError(e); })
+        .then(function () { next(i + 1); });
     };
     next(0);
   };

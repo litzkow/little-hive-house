@@ -482,10 +482,27 @@
      is and leaves the bottom bar floating mid-screen until the next rotation. Pin the bar to what is really
      on screen (visualViewport) and give the page a tiny scroll nudge so iOS recomputes its layout. */
   var barTimer = null, barBound = false;
+  /* Installed on the Home Screen the app fills the whole screen, so when nothing is being typed the bottom of the screen
+     is as low as the page has ever reached in this orientation. iOS sometimes keeps a shorter page (after the keyboard, another app, Safari opening
+     on top, a photo picker...) and the bar sits where that shorter page ends: move it down to the real bottom. */
+  var STANDALONE = window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  function typing() {
+    var a = document.activeElement;
+    return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && !/^(checkbox|radio|color|button|submit|file)$/.test(a.type));
+  }
+  /* the tallest the page has been in this orientation while nothing was being typed: the real screen, on this phone */
+  var fullH = {};
+  function screenHeight() {
+    var key = window.matchMedia && window.matchMedia('(orientation: portrait)').matches ? 'p' : 'l';
+    if (!typing()) fullH[key] = Math.max(fullH[key] || 0, window.innerHeight);
+    return fullH[key] || window.innerHeight;
+  }
   function placeBar() {
     var bar = document.querySelector('.tabbar'), vv = window.visualViewport;
     if (!bar) return;
-    var gap = vv ? Math.round(vv.offsetTop + vv.height - window.innerHeight) : 0;
+    var bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    if (STANDALONE && !typing()) bottom = Math.max(bottom, screenHeight());
+    var gap = Math.round(bottom - window.innerHeight);
     bar.style.transform = gap > 0 ? 'translateY(' + gap + 'px)' : '';
   }
   function nudge() {
@@ -510,6 +527,11 @@
     document.addEventListener('visibilitychange', function () { if (!document.hidden) nudge(); });
     document.addEventListener('focusout', function () { nudge(); setTimeout(nudge, 450); });
     document.addEventListener('change', function (e) { if (e.target && e.target.type === 'color') { nudge(); setTimeout(nudge, 450); } });
+    window.addEventListener('hashchange', function () { placeBar(); setTimeout(placeBar, 300); });
+    window.addEventListener('scroll', placeBar, { passive: true });
+    window.addEventListener('focus', nudge);
+    // and a light check every second, for the cases iOS gives no event at all
+    if (STANDALONE) setInterval(function () { if (!document.hidden) placeBar(); }, 1000);
   }
   /* A new version of the app is on the site: an iPhone app that only goes to the background never reloads by itself.
      When the app comes back to the screen, it checks; with nothing half-done it reloads on its own, otherwise it offers a
