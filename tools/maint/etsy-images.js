@@ -25,12 +25,13 @@ async function token() {
 (async () => {
   const { a, access } = await token();
   const listings = (await db.collection("etsy").doc("listings").get()).data() || {};
-  const all = process.env.VALUE === "all";
+  const all = process.env.VALUE === "all" || process.env.VALUE === "urls";
   for (const [key, d] of Object.entries(listings)) {
     if (!d.listingId || (!all && !d.error)) continue;
+    await new Promise((r) => setTimeout(r, 1500));   // Etsy allows only a few requests per second
     const res = await fetch(`${API}/listings/${d.listingId}/images`, { headers: { "x-api-key": `${K}:${S}`, Authorization: `Bearer ${access}`, Accept: "application/json" } });
     const j = await res.json().catch(() => ({}));
-    const imgs = (j.results || []).map((im) => `${im.listing_image_id}@r${im.rank}`).join(" ");
+    const imgs = (j.results || []).map((im) => `${im.listing_image_id}@r${im.rank}${process.env.VALUE === "urls" ? "=" + String(im.url_570xN || "").split("/").slice(-2).join("/") : ""}`).join(" ");
     say(`${key} listing=${d.listingId} state=${d.state} imagesV=${d.imagesV || 1} status=${res.status} count=${(j.results || []).length} :: ${imgs || JSON.stringify(j).slice(0, 300)} :: err=${d.error || ""}`);
   }
   say(`shop=${a.shopId} scope=${a.scope}`);
