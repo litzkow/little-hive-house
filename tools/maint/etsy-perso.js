@@ -33,4 +33,29 @@ const say = (s) => console.log(`::warning title=etsy::${String(s).replace(/%/g, 
     }
     return;
   }
+  if (process.env.VALUE === "copy") {
+    const src = JSON.parse((await get(`/listings/${id("pet-photo-magnets")}/personalization`)).t).personalization_questions || [];
+    const qs = src.map((q) => {
+      const o = { question_type: q.question_type, question_text: q.question_text, required: q.required };
+      if (q.instructions) o.instructions = q.instructions;
+      if (q.max_allowed_characters) o.max_allowed_characters = q.max_allowed_characters;
+      if (q.max_allowed_files) o.max_allowed_files = q.max_allowed_files;
+      return o;
+    });
+    say(`from pet: ${JSON.stringify(qs)}`);
+    for (const key of ["photo-magnets", "family-photo-magnets"]) {
+      let done = false;
+      for (const [m, path] of [["POST", `/shops/${a.shopId}/listings/${id(key)}/personalization`], ["PUT", `/shops/${a.shopId}/listings/${id(key)}/personalization`],
+        ["POST", `/listings/${id(key)}/personalization`], ["PUT", `/listings/${id(key)}/personalization`]]) {
+        const r = await fetch(API + path, { method: m, headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ personalization_questions: qs }) });
+        const t = await r.text();
+        say(`${key} ${m} ${path} -> ${r.status} ${t.slice(0, 400)}`);
+        await new Promise((ok) => setTimeout(ok, 800));
+        if (r.ok) { done = true; break; }
+      }
+      const after = await get(`/listings/${id(key)}/personalization`);
+      say(`${key} now: ${after.t.slice(0, 900)}`);
+      if (!done) process.exitCode = 1;
+    }
+  }
 })().catch((e) => { say("failed: " + e.message); process.exit(1); });

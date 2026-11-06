@@ -220,8 +220,8 @@ function listingTexts(l, s) {
   return {
     title: l.title, description: l.description, tags: l.tags.join(","),
     ...(s.sections && s.sections[l.section] ? { shop_section_id: String(s.sections[l.section]) } : {}),
-    ...(l.personalization ? { is_personalizable: "true", personalization_is_required: "true", personalization_char_count_max: "500",
-      personalization_instructions: l.personalization } : {}),
+    // personalization (the photo upload box and the frame/captions box) is set up by the owners in Etsy and never
+    // sent from here, so an update can't wipe it
     ...(s.returnPolicyId ? { return_policy_id: String(s.returnPolicyId) } : {}),
   };
 }
