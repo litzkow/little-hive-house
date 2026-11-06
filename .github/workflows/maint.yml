@@ -155,5 +155,6 @@ jobs:
             set-print-image) node tools/maint/set-print-image.js ;;
             set-ship-from) node tools/maint/set-ship-from.js ;;
             seed-supplies) node tools/maint/seed-supplies.js ;;
+            add-purchase) node tools/maint/add-purchase.js ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac
