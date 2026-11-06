@@ -444,17 +444,45 @@
   }
 
   /* ====================================================================== shell + router */
-  var NAV = [
-    ['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['customers', 'Customers', 'customers'], ['reports', 'Reports', 'reports'], ['visits', 'Visits', 'visits'], ['plan', 'Growth plan', 'growth'],
-    ['sep'], ['discounts', 'Discounts', 'discounts'], ['links', 'Payment links', 'links'], ['etsy', 'Etsy', 'shop'], ['returns', 'Returns', 'refund'], ['reviews', 'Reviews', 'reviews'],
-    ['messages', 'Messages', 'messages'], ['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail'], ['sep'], ['supplies', 'Supplies', 'supplies'], ['testprint', 'Test print', 'print'], ['settings', 'Settings', 'settings']
+  /* The side menu: the everyday pages on top, the rest in groups that open and close (owners, Nov 2026: more sales
+     channels are coming, Amazon and TikTok Shop, so each kind of thing gets its own group). The group of the page
+     you are on opens by itself; the others remember whether you left them open. */
+  var NAV_TOP = [['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['messages', 'Messages', 'messages']];
+  var NAV_GROUPS = [
+    { id: 'stores', name: 'Stores', icon: 'shop', items: [['etsy', 'Etsy', 'shop'], ['links', 'Payment links', 'links']] },
+    { id: 'sales', name: 'Customers & sales', icon: 'customers', items: [['customers', 'Customers', 'customers'], ['discounts', 'Discounts', 'discounts'], ['returns', 'Returns', 'refund'], ['reviews', 'Reviews', 'reviews']] },
+    { id: 'numbers', name: 'Numbers', icon: 'reports', items: [['reports', 'Reports', 'reports'], ['visits', 'Visits', 'visits'], ['plan', 'Growth plan', 'growth']] },
+    { id: 'email', name: 'Email', icon: 'mail', items: [['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail']] },
+    { id: 'studio', name: 'Studio', icon: 'print', items: [['supplies', 'Supplies', 'supplies'], ['testprint', 'Test print', 'print']] }
   ];
-  function navHTML() {
-    return NAV.map(function (n) {
-      if (n[0] === 'sep') return '<div class="sep" role="separator"></div>';
-      return '<a href="#' + n[0] + '" data-nav="' + n[0] + '">' + icon(n[2]) + '<span>' + n[1] + '</span><span class="count" data-count="' + n[0] + '" hidden></span></a>';
-    }).join('');
+  var NAV_BOTTOM = [['settings', 'Settings', 'settings']];
+  var NAV = NAV_TOP.concat.apply(NAV_TOP, NAV_GROUPS.map(function (g) { return g.items; })).concat(NAV_BOTTOM);
+  function groupOf(view) {
+    if (view === 'order') view = 'orders';
+    var g = NAV_GROUPS.find(function (x) { return x.items.some(function (n) { return n[0] === view; }); });
+    return g ? g.id : '';
   }
+  function openGroups() { try { return JSON.parse(localStorage.getItem('lhh-admin-groups') || '[]'); } catch (e) { return []; } }
+  function navLink(n) {
+    return '<a href="#' + n[0] + '" data-nav="' + n[0] + '">' + icon(n[2]) + '<span>' + n[1] + '</span><span class="count" data-count="' + n[0] + '" hidden></span></a>';
+  }
+  function navHTML() {
+    var here = groupOf(parseHash().view), open = openGroups();
+    return NAV_TOP.map(navLink).join('') + '<div class="sep" role="separator"></div>' +
+      NAV_GROUPS.map(function (g) {
+        return '<details class="nav-group" data-group="' + g.id + '"' + (g.id === here || open.indexOf(g.id) >= 0 ? ' open' : '') + '>' +
+          '<summary>' + icon(g.icon) + '<span>' + g.name + '</span><span class="count" data-group-count="' + g.id + '" hidden></span>' +
+          '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary>' +
+          '<div class="nav-sub">' + g.items.map(navLink).join('') + '</div></details>';
+      }).join('') + '<div class="sep" role="separator"></div>' + NAV_BOTTOM.map(navLink).join('');
+  }
+  document.addEventListener('toggle', function (ev) {
+    var d = ev.target;
+    if (!d || !d.matches || !d.matches('details.nav-group')) return;
+    var id = d.getAttribute('data-group'), open = openGroups().filter(function (x) { return x !== id; });
+    if (d.open) open.push(id);
+    try { localStorage.setItem('lhh-admin-groups', JSON.stringify(open)); } catch (e) {}
+  }, true);
   function footHTML() {
     return '<div class="side-foot"><span class="who" title="' + esc(S.user.email) + '">' + esc(S.user.email) + '</span>' +
       '<div class="row"><button type="button" data-act="theme">' + themeLabel() + '</button><button type="button" data-act="lang" translate="no">' + (LANG() === 'pt' ? 'English' : 'Português') + '</button><button type="button" data-act="signout">Sign out</button><a href="../" target="_blank" rel="noopener">View shop</a></div></div>';
@@ -574,6 +602,11 @@
       var n = c[el.getAttribute('data-count')];
       el.hidden = !n; el.textContent = n > 99 ? '99+' : n || '';
     });
+    $$('[data-group-count]').forEach(function (el) {
+      var g = NAV_GROUPS.find(function (x) { return x.id === el.getAttribute('data-group-count'); });
+      var n = g ? g.items.reduce(function (t, it) { return t + (c[it[0]] || 0); }, 0) : 0;
+      el.hidden = !n; el.textContent = n > 99 ? '99+' : n || '';
+    });
   }
   function parseHash() {
     var h = decodeURI(location.hash.replace(/^#\/?/, '')) || 'home';
@@ -596,6 +629,8 @@
       var k = a.getAttribute('data-nav');
       if (k === v || (v === 'order' && k === 'orders')) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
+    var gid = groupOf(v);
+    if (gid) $$('details.nav-group[data-group="' + gid + '"]').forEach(function (d) { d.open = true; });
     var main = $('#main');
     var out = VIEWS[v](r) || {};
     var title = out.title || 'Hive Admin';

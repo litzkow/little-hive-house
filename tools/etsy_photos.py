@@ -227,52 +227,126 @@ SAFE_X = (0.5 - 0.5 * 720 / 1280 + 0.015, 0.5 + 0.5 * 720 / 1280 - 0.015)   # Et
 
 
 def free_layout(scene, n, seed, size_out=(LW, LH)):
-    """[(cx, cy, angle)] and a size factor for n magnets in a loose grid that touches no prop and stays in the middle
-    square. Biggest size first (down to true size), then the roomiest gaps, then closest to the centre."""
+    """[(cx, cy, angle)] for n magnets at full size (owners: never smaller, only moved): a centred grid first; each
+    magnet whose spot touches a prop moves to the nearest free spot on the table that touches no prop and no other
+    magnet. Returned in reading order, so the designs keep the site's order. Second value: the size factor (1.0)."""
     sc = SCENE[scene]
     bg = Image.open(SCENES / sc["file"]).convert("RGB").crop(sc["crop"])
     m = prop_mask(bg)
-    m = cv2.dilate(m, np.ones((13, 13), np.uint8))                    # a little air around every prop
+    m = cv2.dilate(m, np.ones((15, 15), np.uint8))                    # a little air around every prop
     mh, mw = m.shape
     integ = cv2.integral(m)
     def busy(x0, y0, x1, y1):
-        x0, y0 = max(0, int(x0 * mw)), max(0, int(y0 * mh)); x1, y1 = min(mw, int(np.ceil(x1 * mw))), min(mh, int(np.ceil(y1 * mh)))
-        if x1 <= x0 or y1 <= y0: return 1
+        if x0 < 0.015 or y0 < 0.02 or x1 > 0.985 or y1 > 0.98: return 1
+        x0, y0 = int(x0 * mw), int(y0 * mh); x1, y1 = int(np.ceil(x1 * mw)), int(np.ceil(y1 * mh))
         return integ[y1, x1] - integ[y0, x1] - integ[y1, x0] + integ[y0, x0]
-    fx0, fy0 = mag_frac(scene, size_out)
+    fx, fy = mag_frac(scene, size_out)
+    hx, hy = fx * 0.56, fy * 0.56                                       # half a magnet, turned a little
+    gx, gy = fx * 1.17, fy * 1.17                                       # magnets never closer than this
     cols = 3 if n > 4 else 2 if n > 1 else 1
     rows = (n + cols - 1) // cols
-    best, least = None, None
-    for k in np.arange(1.0, 0.68, -0.04):
-        fx, fy = fx0 * k, fy0 * k
-        for g in (1.2, 1.14, 1.09):
-            for cy in np.arange(0.30, 0.71, 0.01):
-                for cx in np.arange(0.30, 0.71, 0.01):
-                    ok, hit = True, 0
-                    for i in range(n):
-                        r, c = divmod(i, cols)
-                        in_row = min(cols, n - r * cols)
-                        x = cx + (c - (in_row - 1) / 2) * fx * g
-                        y = cy + (r - (rows - 1) / 2) * fy * g
-                        hx, hy = fx * 0.56, fy * 0.56                     # half a magnet, turned a little
-                        if x - hx < SAFE_X[0] or x + hx > SAFE_X[1] or y - hy < 0.03 or y + hy > 0.97:
-                            ok = False; hit = 1e9; break
-                        b = busy(x - hx, y - hy, x + hx, y + hy)
-                        if b:
-                            ok = False; hit += b
-                    if not ok and k < 0.73 and hit < 1e9 and (least is None or hit < least[0]):
-                        least = (hit, cx, cy, g)
-                    if ok:
-                        d = (cx - 0.5) ** 2 + (cy - 0.52) ** 2
-                        if best is None or d < best[0]:
-                            best = (d, cx, cy, g)
-            if best: break
-        if best: break
-    if not best:                                       # nothing is fully free: true size, where it touches least
-        k, best = 0.72, (least or (0, 0.5, 0.52, 1.08))
-    _, cx, cy, g = best
-    fx, fy = fx0 * k, fy0 * k
-    return grid_spots(n, cx, cy, fx * g, fy * g, seed, jitter=0.25), float(k)
+    def ideal(cx, cy):
+        out = []
+        for i in range(n):
+            r, c = divmod(i, cols)
+            in_row = min(cols, n - r * cols)
+            out.append((cx + (c - (in_row - 1) / 2) * gx * 1.03, cy + (r - (rows - 1) / 2) * gy * 1.03))
+        return out
+    free = lambda x, y: not busy(x - hx, y - hy, x + hx, y + hy)
+    # first choice: the rows of the grid each slide left or right and up or down until they sit on free table,
+    # so the magnets stay together as a set (closest to the middle and to each other wins)
+    def row_free(k, xc, y):
+        return all(free(xc + (j - (k - 1) / 2) * gx * 1.03, y) for j in range(k))
+    layouts = [[min(cols, n - r * cols) for r in range(rows)]]
+    if n == 6: layouts += [[3, 2], [2, 3], [2, 2]]          # fewer magnets, still together, before one goes astray
+    if n == 5: layouts += [[2, 2]]
+    res = _rows_fit(layouts[0], row_free, hy, gx, gy, seed)
+    if res: return res, 1.0
+    rows = len(layouts[0])
+    nudged = _nudged(n, cols, rows, free, hx, hy, gx, gy, seed, max_move=0.6)
+    if nudged: return nudged, 1.0
+    for counts in layouts[1:]:
+        res = _rows_fit(counts, row_free, hy, gx, gy, seed)
+        if res: return res, 1.0
+    return _nudged(n, cols, rows, free, hx, hy, gx, gy, seed), 1.0
+
+
+def _nudged(n, cols, rows, free, hx, hy, gx, gy, seed, max_move=None):
+    """A centred grid; a magnet whose spot touches a prop moves to the nearest free spot. With max_move (in magnet
+    widths), None when any magnet would have to move further than that (the set would fall apart)."""
+    def ideal(cx, cy):
+        out = []
+        for i in range(n):
+            r, c = divmod(i, cols)
+            in_row = min(cols, n - r * cols)
+            out.append((cx + (c - (in_row - 1) / 2) * gx * 1.03, cy + (r - (rows - 1) / 2) * gy * 1.03))
+        return out
+    # where to centre the grid: the most spots free, then nearest the middle
+    best = None
+    for cy in np.arange(0.35, 0.66, 0.01):
+        for cx in np.arange(0.35, 0.66, 0.01):
+            k = sum(free(x, y) for x, y in ideal(cx, cy))
+            key = (-k, (cx - 0.5) ** 2 + (cy - 0.52) ** 2)
+            if best is None or key < best[0]:
+                best = (key, cx, cy)
+    want = ideal(best[1], best[2])
+    placed = [None] * n
+    clash = lambda x, y: any(p and abs(p[0] - x) < gx and abs(p[1] - y) < gy for p in placed)
+    for i, (x, y) in enumerate(want):
+        if free(x, y) and not clash(x, y):
+            placed[i] = (x, y)
+    cand = [(x, y) for y in np.arange(hy + 0.02, 1 - hy - 0.02, 0.008) for x in np.arange(hx + 0.015, 1 - hx - 0.015, 0.006)
+            if free(x, y)]
+    for i, (x, y) in enumerate(want):
+        if placed[i]: continue
+        options = [c for c in cand if not clash(*c)]
+        if options:
+            placed[i] = min(options, key=lambda c: (c[0] - x) ** 2 + (c[1] - y) ** 2)
+        else:                                                           # no room left: keep the grid spot
+            placed[i] = (x, y)
+        if max_move is not None and max(abs(placed[i][0] - x) / (gx / 1.17), abs(placed[i][1] - y) / (gy / 1.17)) > max_move:
+            return None
+    # reading order (rows top to bottom, left to right) so design 01 is top left, like on the site
+    placed.sort(key=lambda p: (round(p[1] / (gy * 0.6)), p[0]))
+    rng = np.random.default_rng(seed)
+    return [(x, y, float(rng.uniform(-3.5, 3.5))) for x, y in placed]
+
+
+def _rows_fit(counts, row_free, hy, gx, gy, seed):
+    """Rows of magnets (counts per row), each row slid to free table; None when they don't all fit."""
+    rows = len(counts)
+    per_row = []
+    for k in counts:
+        best_x = {}
+        for y in np.arange(hy + 0.02, 1 - hy - 0.02, 0.01):
+            xs = [xc for xc in np.arange(0.3, 0.71, 0.01) if row_free(k, xc, y)]
+            if xs:
+                best_x[round(float(y), 3)] = min(xs, key=lambda xc: abs(xc - 0.5))
+        per_row.append(best_x)
+    if not all(per_row):
+        return None
+    combo = [None]
+    def search(r, prev_y, chosen):
+        for y, xc in per_row[r].items():
+            if prev_y is not None and y - prev_y < gy * 1.03: continue
+            c = chosen + [(xc, y)]
+            if r + 1 < rows:
+                search(r + 1, y, c)
+            else:
+                ys = [q[1] for q in c]; xcs = [q[0] for q in c]
+                cost = sum((x - 0.5) ** 2 for x in xcs) + (np.mean(ys) - 0.52) ** 2 * 2 + \
+                    sum((xcs[i] - xcs[i + 1]) ** 2 * 3 + (ys[i + 1] - ys[i] - gy * 1.03) ** 2 * 2 for i in range(len(c) - 1))
+                if combo[0] is None or cost < combo[0][0]:
+                    combo[0] = (cost, c)
+    search(0, None, [])
+    if not combo[0]:
+        return None
+    rng = np.random.default_rng(seed)
+    out = []
+    for (xc, y), k in zip(combo[0][1], counts):
+        for j in range(k):
+            out.append((xc + (j - (k - 1) / 2) * gx * 1.03, y, float(rng.uniform(-3.5, 3.5))))
+    return out
 
 
 def grid_spots(n, cx, cy, gap_x, gap_y, seed, jitter=1.0):
@@ -359,9 +433,10 @@ def design_charts(name, designs, arts):
 def size_photo(img, note="Actual size is\njust right for\na busy fridge", details=None):
     """One magnet with its 2 in x 2 in measure and the details."""
     im = cream_bg()
-    size, cx, cy = 1000, 1240, 1170
+    size, cx, cy = 1000, 1240, 1250
     im = drop_tile(im, img, cx, cy, size, 0, shadow=0.24)
     d = ImageDraw.Draw(im)
+    header(d, "Actual size", "2 x 2 inches (5 x 5 cm)", y=150)
     x0, x1, y0, y1 = cx - size / 2, cx + size / 2, cy - size / 2, cy + size / 2
     col = BROWN
     # measure lines
@@ -458,7 +533,7 @@ def build(listing, keep_last):
         spots, k = free_layout("fridge", len(nxt), 5)
         photos.append(lifestyle("fridge", [(im, x, y, a) for im, (x, y, a) in zip(nxt, spots)], seed=4, shadow=0.3, scale=k))
         photos += design_charts(listing["name"], designs, arts)
-        photos.append(size_photo(imgs[0]))
+        photos.append(size_photo(imgs[0]))                # every listing has the real-size photo
         listing["variations"][0]["options"] = [option_name(i + 1, n) for i, (_, n) in enumerate(designs)]
     else:
         a, b = PHOTO_SETS[lid]
@@ -473,7 +548,7 @@ def build(listing, keep_last):
         packs = [int(o.split()[0]) for o in listing["variations"][0]["options"]]
         photos.append(pack_chart(packs))
         photos.append(size_photo(sh(a[0]), details=["2 x 2 inch square (5 cm)", "Square corners", "Glossy, wipe-clean front",
-                                                    "Strong magnet back", "Your photo, touched up by hand"]))
+                                                       "Strong magnet back", "Your photo, touched up by hand"]))
     photos.append(keep_last)                       # "Good to know" / "How it works" with the logo: unchanged
     out.mkdir(parents=True, exist_ok=True)
     for f in out.glob("*.jpg"):

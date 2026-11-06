@@ -1,5 +1,9 @@
 /* Hive Admin in Portuguese: English text -> Portuguese (i18n.js). * stands for a number, a name or a date. */
 window.LHH_PT = {
+"Customers & sales": "Clientes e vendas",
+"Numbers": "Números",
+"Stores": "Lojas",
+"Studio": "Produção",
 "$ off": "$ de desconto",
 "% off": "% de desconto",
 "(* already refunded)": "(* já reembolsado)",

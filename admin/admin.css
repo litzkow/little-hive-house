@@ -95,6 +95,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav a[aria-current="page"] svg { opacity: 1; color: var(--honey); }
 .nav .count { margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--honey); color: #2B2118; font-size: 12.5px; font-weight: 600; display: inline-grid; place-items: center; }
 .nav .sep { height: 1px; background: rgba(247, 235, 211, .12); margin: 10px 8px; }
+.nav-group > summary { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px; border-radius: 10px; color: var(--side-ink); font-weight: 600; font-size: 15.5px; cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
+.nav-group > summary::-webkit-details-marker { display: none; }
+.nav-group > summary:hover { background: var(--side-hover); }
+.nav-group > summary > svg:first-child { width: 20px; height: 20px; flex: none; opacity: .8; }
+.nav-group > summary .count { margin-left: auto; }
+.nav-group > summary .chev { width: 16px; height: 16px; flex: none; opacity: .6; transition: transform .15s ease; }
+.nav-group > summary .count:not([hidden]) + .chev { margin-left: 8px; }
+.nav-group > summary .count[hidden] + .chev { margin-left: auto; }
+.nav-group[open] > summary .chev { transform: rotate(90deg); }
+.nav-group[open] > summary .count { display: none; }
+.nav-sub { display: grid; gap: 2px; padding: 2px 0 6px 18px; }
+.nav-sub a { font-size: 15px; min-height: 40px; }
 .side-foot { margin-top: auto; padding: 14px 10px 4px; border-top: 1px solid rgba(247, 235, 211, .12); font-size: 13px; color: var(--side-muted); display: grid; gap: 8px; }
 .side-foot .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-foot .row { display: flex; gap: 8px; flex-wrap: wrap; }
