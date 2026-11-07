@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "41"
+VERSION = "42"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -1001,8 +1001,10 @@ def write_google_feed():
                 "    <g:shipping_weight>1 oz</g:shipping_weight>\n"
                 "  </item>")
     rows = []
+    ids = {}   # feed id -> [cart id, name, collection]: Instagram/Facebook send these ids to the checkout link (assets/site.js)
     for c, x in shop_designs():
         t = title_for(c, x)
+        ids[feed_id(c["slug"], x)] = [f'{c["slug"]}/{x}', t, c["name"]]
         img, _ = design_image(c["slug"], x)
         grp = PARENT.get(c["slug"]) or next((g for g in GROUPS if c["slug"] in g.get("all", [])), None)
         ptype = "Fridge magnets > " + (f'{grp["name"]} > ' if grp else "") + c["name"]
@@ -1013,6 +1015,8 @@ def write_google_feed():
                          f"{n} glossy 2 x 2 inch fridge magnets made by hand from your own photos, with a frame and a caption if you like. "
                          "Printed, pressed and packed by hand, ships in 1 to 2 business days.",
                          f"{site}photo-magnets.html", f"{site}assets/og-image.jpg", price, "Fridge magnets > Photo magnets", "Photo magnets"))
+    import json as _json
+    write("assets/feed-ids.json", _json.dumps(ids, separators=(",", ":"), ensure_ascii=False) + "\n")
     write("google-products.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n<channel>\n'
           "  <title>Little Hive House</title>\n  <link>https://littlehivehouse.com/</link>\n  <description>Handmade fridge magnets</description>\n"
           + "\n".join(rows) + "\n</channel>\n</rss>\n")

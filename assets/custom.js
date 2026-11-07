@@ -17,6 +17,8 @@
   var defaultFrame = 'none';
   /* links from the occasion cards (?frame=wedding) start new photos with that frame */
   try { var qf = new URLSearchParams(location.search).get('frame'); if (qf && FR[qf]) defaultFrame = qf; } catch (e) { /* old browser */ }
+  /* links from the Instagram/Facebook shop (?pack=16) start with that pack picked */
+  try { var qp = new URLSearchParams(location.search).get('pack'), pr = qp && document.getElementById('pack-' + qp); if (pr && pr.name === 'pack') pr.checked = true; } catch (e) { /* old browser */ }
   var current = -1;
   var group = '';
 

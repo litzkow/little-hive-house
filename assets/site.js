@@ -364,4 +364,36 @@
     closeCart: closeCart
   };
   render();
+
+  /* Instagram/Facebook shop: Meta sends the buyer here with ?products=<feed id>:<qty>,<feed id>:<qty>
+     (the ids of google-products.xml). The designs go into the cart; a photo pack opens the photo builder. */
+  (function fromMeta() {
+    var raw = null;
+    try { raw = new URLSearchParams(location.search).get('products'); } catch (e) { return; }
+    if (!raw) return;
+    try {
+      var u = new URL(location.href);
+      ['products', 'coupon', 'cart_origin'].forEach(function (k) { u.searchParams.delete(k); });
+      history.replaceState(null, '', u);
+    } catch (e) {}
+    var want = raw.split(',').map(function (p) {
+      var i = p.lastIndexOf(':'), id = (i < 0 ? p : p.slice(0, i)).trim();
+      var n = i < 0 ? 1 : parseInt(p.slice(i + 1), 10);
+      return [id, Math.max(1, Math.min(99, n || 1))];
+    }).filter(function (w) { return w[0]; });
+    var pack = null;
+    want.forEach(function (w) { var m = /^photo-pack-(\d+)$/.exec(w[0]); if (m) pack = m[1]; });
+    fetch('/assets/feed-ids.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (map) {
+      var added = 0;
+      want.forEach(function (w) {
+        var d = map[w[0]]; if (!d) return;
+        addLine({ id: d[0], kind: 'design', name: d[1] + ' magnet', detail: '2 × 2 in · ' + d[2], price: PRICE, qty: w[1] }, true);
+        added += w[1];
+      });
+      return added;
+    }).catch(function () { return 0; }).then(function (added) {
+      if (pack) { location.replace('/photo-magnets.html?pack=' + pack); return; }
+      if (added) { openCart(); toast(added === 1 ? 'Your magnet is in the cart' : 'Your ' + added + ' magnets are in the cart'); }
+    });
+  })();
 })();
