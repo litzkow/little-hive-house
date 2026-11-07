@@ -389,7 +389,7 @@
       if (want.some(function (w) { return map[w[0]]; })) { cart.length = 0; save(); }
       want.forEach(function (w) {
         var d = map[w[0]]; if (!d) return;
-        addLine({ id: d[0], kind: 'design', name: d[1] + ' magnet', detail: '2 × 2 in · ' + d[2], price: PRICE, qty: w[1] }, true);
+        addLine({ id: d[0], kind: 'design', name: d[3] || d[1] + ' magnet', detail: '2 × 2 in · ' + d[2], price: PRICE, qty: w[1] }, true);   /* the catalog title: Meta checks the cart shows the same name */
         added += w[1];
       });
       return added;

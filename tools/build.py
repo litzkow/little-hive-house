@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "44"
+VERSION = "45"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -1019,12 +1019,13 @@ def write_google_feed():
     ids = {}   # feed id -> [cart id, name, collection]: Instagram/Facebook send these ids to the checkout link (assets/site.js)
     for c, x in shop_designs():
         t = title_for(c, x)
-        ids[feed_id(c["slug"], x)] = [f'{c["slug"]}/{x}', t, c["name"]]
+        ftitle = f"{t} Fridge Magnet, Handmade 2x2 in, {c['name']} Collection"[:150]
+        ids[feed_id(c["slug"], x)] = [f'{c["slug"]}/{x}', t, c["name"], ftitle]   # [cart id, name, collection, catalog title]
         img, _ = design_image(c["slug"], x)
         img = feed_jpg(img)
         grp = PARENT.get(c["slug"]) or next((g for g in GROUPS if c["slug"] in g.get("all", [])), None)
         ptype = "Fridge magnets > " + (f'{grp["name"]} > ' if grp else "") + c["name"]
-        rows.append(item(feed_id(c["slug"], x), f"{t} Fridge Magnet, Handmade 2x2 in, {c['name']} Collection"[:150], design_text(c, t),
+        rows.append(item(feed_id(c["slug"], x), ftitle, design_text(c, t),
                          f'{site}m/{c["slug"]}/{x}.html', site + img, PRICE, ptype, c["name"]))
     for n, price in STORE_PHOTO_PACKS:
         rows.append(item(f"photo-pack-{n}", f"Custom Photo Magnets, Pack of {n}, Personalized 2x2 in Fridge Magnets",
