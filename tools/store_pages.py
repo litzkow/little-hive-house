@@ -588,7 +588,10 @@ def page_policies():
 <li><strong>Protected keys.</strong> The passwords and keys that connect our shop to Stripe, Etsy, TikTok Shop and our email service are kept as encrypted secrets, never written in our website code, and are used only by our own programs.</li>
 <li><strong>Only what we need, for as long as we need it.</strong> We collect only what an order needs and delete photos and data on the schedule below.</li>
 </ul>
-<p>Think something is wrong, or found a security problem? Email <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a> and we’ll look into it right away.</p>"""),
+<p>Think something is wrong, or found a security problem? Email <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a> and we’ll look into it right away.</p>
+<h3>If something goes wrong</h3>
+<p>Thiago Vargas, one of the two owners, is responsible for data protection and security at Little Hive House, and both owners handle incidents together. If we learn that personal information may have been exposed, we act right away: we stop the problem (for example by changing passwords and keys), find out what was affected, and tell the people involved, the marketplaces whose customers are affected (such as Etsy or TikTok Shop) and any authority the law requires, without undue delay and within 72 hours whenever possible. Reports go to <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a>.</p>
+<p>We keep our devices, accounts and website tools up to date with security updates, and we review this policy at least once a year.</p>"""),
         ("storage", "Cookies and storage on your device", """<p>We don’t use advertising cookies. Your browser keeps a few small things for you: your cart, your favorite designs, the light or dark theme, and, if you sign in, your sign-in session.</p>
 <p>We use Google Analytics to understand how people use the site, for example which collections are visited most, which pages are slow to lead anywhere, and roughly where visitors come from. It sets its own cookies and tells us things in totals, like how many visits came from a state; it doesn’t give us your name or email, and we don’t sell any of it. You can opt out with Google’s <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener">opt-out add-on</a> or your browser’s tracking protection.</p>
 <p>After you place an order, Google may ask you, in a small window on the thank-you page, whether you’d like to rate your experience with us (Google Customer Reviews). It’s optional; if you agree, Google emails you once after your order arrives.</p>"""),
@@ -597,6 +600,7 @@ def page_policies():
 <li>Order records: 7 years, because tax and accounting rules require it.</li>
 <li>Your account: until you ask us to delete it.</li>
 <li>Email list: until you unsubscribe.</li>
+<li>Orders from Etsy or TikTok Shop: kept like our own orders, and deleted when we stop selling there, except the records the law requires us to keep.</li>
 </ul>"""),
         ("rights", "Your choices and rights", """<p>You can ask us to show you, correct or delete the information we have about you, or to close your account, by emailing <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a>. We’ll answer within 30 days, usually much sooner. We keep only what the law requires us to keep, like order records for taxes.</p>
 <p>Our shop isn’t meant for children under 13, and we don’t knowingly collect their information.</p>"""),
