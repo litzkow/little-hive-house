@@ -987,6 +987,21 @@ def feed_id(col_slug, slug):
     return pid[:41].rstrip("-") + "-" + _h.sha1(pid.encode()).hexdigest()[:8]
 
 
+def feed_jpg(img):
+    """Facebook/Instagram only take JPG or PNG: a WebP design gets a JPG twin under assets/feed/ (made once, redone when the art changes)."""
+    if not img.endswith(".webp"):
+        return img
+    src = ROOT / img
+    rel = "assets/feed/" + img[len("assets/art/"):-len(".webp")] + ".jpg"
+    out = ROOT / rel
+    if not out.exists() or out.stat().st_mtime < src.stat().st_mtime:
+        from PIL import Image as _Im
+        out.parent.mkdir(parents=True, exist_ok=True)
+        im = _Im.open(src).convert("RGB")
+        im.save(out, "JPEG", quality=88, optimize=True, progressive=True)
+    return rel
+
+
 def write_google_feed():
     """google-products.xml: every design (and the photo packs) for Google Merchant Center, read by Google every day."""
     site = "https://littlehivehouse.com/"
@@ -1006,6 +1021,7 @@ def write_google_feed():
         t = title_for(c, x)
         ids[feed_id(c["slug"], x)] = [f'{c["slug"]}/{x}', t, c["name"]]
         img, _ = design_image(c["slug"], x)
+        img = feed_jpg(img)
         grp = PARENT.get(c["slug"]) or next((g for g in GROUPS if c["slug"] in g.get("all", [])), None)
         ptype = "Fridge magnets > " + (f'{grp["name"]} > ' if grp else "") + c["name"]
         rows.append(item(feed_id(c["slug"], x), f"{t} Fridge Magnet, Handmade 2x2 in, {c['name']} Collection"[:150], design_text(c, t),
