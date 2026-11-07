@@ -578,7 +578,17 @@ def page_policies():
 <li><strong>Resend</strong> delivers our emails (receipts, shipping updates, password resets) and receives your email address and the message.</li>
 <li><strong>USPS</strong> receives your name and address to deliver your package.</li>
 <li><strong>Google Fonts</strong> serves the fonts on our website, which means your browser asks Google for them.</li>
+<li><strong>Etsy and TikTok Shop</strong>: when you buy from our shops there, they share your name, shipping address and order with us so we can make and ship it. We use it only for that order.</li>
 </ul>"""),
+        ("security", "How we keep your information safe", """<p>We’re small, so we keep things simple and use well-protected services instead of running our own servers:</p>
+<ul>
+<li><strong>Encrypted connections.</strong> Our website and every service we use work only over HTTPS, so information sent between your device and us is encrypted.</li>
+<li><strong>No card numbers.</strong> Payments go straight to Stripe, a certified payment processor. Your card number never reaches us.</li>
+<li><strong>Locked-down storage.</strong> Orders, accounts and photos are kept on Google Cloud (Firebase). Access rules let each customer see only their own account and orders, and only the two of us can open the shop’s admin, after signing in.</li>
+<li><strong>Protected keys.</strong> The passwords and keys that connect our shop to Stripe, Etsy, TikTok Shop and our email service are kept as encrypted secrets, never written in our website code, and are used only by our own programs.</li>
+<li><strong>Only what we need, for as long as we need it.</strong> We collect only what an order needs and delete photos and data on the schedule below.</li>
+</ul>
+<p>Think something is wrong, or found a security problem? Email <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a> and we’ll look into it right away.</p>"""),
         ("storage", "Cookies and storage on your device", """<p>We don’t use advertising cookies. Your browser keeps a few small things for you: your cart, your favorite designs, the light or dark theme, and, if you sign in, your sign-in session.</p>
 <p>We use Google Analytics to understand how people use the site, for example which collections are visited most, which pages are slow to lead anywhere, and roughly where visitors come from. It sets its own cookies and tells us things in totals, like how many visits came from a state; it doesn’t give us your name or email, and we don’t sell any of it. You can opt out with Google’s <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener">opt-out add-on</a> or your browser’s tracking protection.</p>
 <p>After you place an order, Google may ask you, in a small window on the thank-you page, whether you’d like to rate your experience with us (Google Customer Reviews). It’s optional; if you agree, Google emails you once after your order arrives.</p>"""),
