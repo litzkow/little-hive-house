@@ -22,6 +22,7 @@ header svg{width:30px;height:28px}
 #stage{flex:1;position:relative;touch-action:none;cursor:grab}
 #stage:active{cursor:grabbing}
 #cv{position:absolute;left:0;top:0}
+#zoomhint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(43,33,24,.85);color:#F9D88A;font-size:13px;padding:6px 14px;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap}
 #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Caveat,cursive;font-size:24px;color:var(--soft)}
 footer{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 16px 18px;position:relative;z-index:2}
 button{font:inherit;border:0;cursor:pointer;width:46px;height:46px;border-radius:50%;background:var(--honey);color:var(--ink);font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 #8a5a00}
@@ -36,15 +37,15 @@ button:disabled{opacity:.3;cursor:default}
   <div class="brand">Little Hive <em>House</em></div>
 </header>
 <div class="ed">Edição 01 · Novos produtos</div>
-<div id="stage"><canvas id="cv"></canvas><div id="loading">Abrindo a revista…</div></div>
-<div class="hint" id="hint">Puxe o canto da página com o dedo</div>
+<div id="stage"><canvas id="cv"></canvas><div id="loading">Abrindo a revista…</div><div id="zoomhint">Toque duas vezes para sair do zoom</div></div>
+<div class="hint" id="hint">Puxe o canto da página · dois dedos para zoom</div>
 <footer>
   <div id="count">1 / 12</div>
 </footer>
 <script>
 (function () {
   'use strict';
-  var N = 12, RATIO = 1152 / 1512;
+  var N = 12, RATIO = 1680 / 2205;
   var imgs = [], loaded = 0;
   for (var i = 1; i <= N; i++) {
     var im = new Image();
@@ -54,7 +55,7 @@ button:disabled{opacity:.3;cursor:default}
   }
   var stage = document.getElementById('stage'), cv = document.getElementById('cv'), ctx = cv.getContext('2d');
   var mode = null, W = 0, H = 0, top = 0, cw = 0, ch = 0, dpr = 1, pos = 0, spineX = 0, spineTarget = 0;
-  var turn = null, dirty = true, side = 'R', interacted = false, nextTease = performance.now() + 1400;
+  var turn = null, dirty = true, side = 'R', z = 1, ox = 0, oy = 0, interacted = false, nextTease = performance.now() + 1400;
 
   function pg(n) { return n >= 1 && n <= N ? imgs[n - 1] : null; }
   function maxPos() { return Math.ceil(N / 2); }
@@ -74,7 +75,7 @@ button:disabled{opacity:.3;cursor:default}
     var spread = cw / ch > 1.15 && cw > 700, nm = spread ? 'spread' : 'single';
     var page = mode ? focusPage() : 1;
     pos = Math.floor(page / 2); side = page % 2 ? 'R' : 'L';
-    mode = nm; turn = null;
+    mode = nm; turn = null; z = 1; ox = 0; oy = 0; zoomUi();
     var cols = spread ? 2 : 1;
     W = Math.min((cw - (spread ? 40 : 56)) / cols, (ch - 20) * RATIO); H = W / RATIO; top = (ch - H) / 2;
     pos = Math.min(pos, maxPos());
@@ -82,6 +83,7 @@ button:disabled{opacity:.3;cursor:default}
     updateUi(); dirty = true;
   }
 
+  function setT(a, b, c, d, e, f) { ctx.setTransform(dpr * z * a, dpr * z * b, dpr * z * c, dpr * z * d, dpr * (z * e + ox), dpr * (z * f + oy)); }
   // ---- geometry (logical coordinates: spine at x=0, the turning page on [0,W]) ----
   function lift(x) { var p = Math.max(0, Math.min(1, (W - x) / (2 * W))); return Math.sin(Math.PI * p) * H * 0.24; }
   function constrain(P) {
@@ -128,7 +130,7 @@ button:disabled{opacity:.3;cursor:default}
   }
 
   function drawStatic() {
-    ctx.setTransform(dpr, 0, 0, dpr, dpr * spineX, dpr * top);
+    setT(1, 0, 0, 1, spineX, top);
     var L = pos > 0 ? pg(2 * pos) : null;
     var R = pg(2 * pos + 1);
     if (L) dropShadow(-W, W);
@@ -153,7 +155,7 @@ button:disabled{opacity:.3;cursor:default}
   function afterSide(dir) { return dir > 0 ? 'L' : 'R'; }
   function drawTurn() {
     var sp = turn.sp, s = sp.s, P = turn.P, C = { x: W, y: H };
-    ctx.setTransform(dpr * s, 0, 0, dpr, dpr * spineX, dpr * top);
+    setT(s, 0, 0, 1, spineX, top);
     if (sp.stat) { dropShadow(-W, W); drawImg(sp.stat, place(-W, s)); spineShade(0, -1); }
     var vx = C.x - P.x, vy = C.y - P.y, len = Math.hypot(vx, vy);
     if (sp.under) { dropShadow(0, W); drawImg(sp.under, place(0, s)); spineShade(0, 1); }
@@ -203,7 +205,7 @@ button:disabled{opacity:.3;cursor:default}
 
   function finger() { // a fingertip showing how to pull the corner
     var p = turn.P, x = spineX + turn.sp.s * p.x, y = top + p.y;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    setT(1, 0, 0, 1, 0, 0);
     ctx.beginPath(); ctx.arc(x - 6, y - 6, 17, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(242,168,29,.95)'; ctx.stroke();
@@ -230,10 +232,10 @@ button:disabled{opacity:.3;cursor:default}
   }
   function finish(commit) {
     if (commit) { pos += turn.dir; if (mode === 'single') side = afterSide(turn.dir); }
-    turn = null; spineTarget = targetSpine(); updateUi(); dirty = true;
+    turn = null; spineTarget = targetSpine(); updateUi(); hideHint(); dirty = true;
   }
   function go(dir) {
-    if (turn || drag && drag.on) return;
+    if (turn || drag && drag.on || z > 1.02) return;
     var act = action(dir);
     if (act === 'pan') { side = dir > 0 ? 'R' : 'L'; spineTarget = targetSpine(); updateUi(); hideHint(); return; }
     if (act !== 'flip' || !begin(dir)) return;
@@ -251,7 +253,7 @@ button:disabled{opacity:.3;cursor:default}
     }
     if (Math.abs(spineX - spineTarget) > .4) { spineX += (spineTarget - spineX) * .14; dirty = true; }
     else if (spineX !== spineTarget) { spineX = spineTarget; dirty = true; }
-    if (!interacted && !turn && loaded === N && now > nextTease && action(1) === 'flip') {
+    if (!interacted && !turn && z === 1 && loaded === N && now > nextTease && action(1) === 'flip') {
       begin(1, true); turn.tease = true; animateTo({ x: W * .58, y: H * .62 }, false, 1000); turn.anim.back = true;
       nextTease = now + 4200;
     }
@@ -259,27 +261,66 @@ button:disabled{opacity:.3;cursor:default}
     requestAnimationFrame(loop);
   }
 
-  // ---- input ----
-  var drag = null;
+  // ---- input: turn pages with one finger, zoom with two (or a double tap) ----
+  var drag = null, pts = new Map(), pinch = null, panZ = null, holdOff = false, lastTap = null, tapTimer = null;
+  function clampView() {
+    z = Math.max(1, Math.min(4, z));
+    ox = Math.min(0, Math.max(cw - cw * z, ox)); oy = Math.min(0, Math.max(ch - ch * z, oy));
+    if (z === 1) { ox = 0; oy = 0; }
+    dirty = true; zoomUi();
+  }
+  function zoomAt(nz, cx, cy) { var qx = (cx - ox) / z, qy = (cy - oy) / z; z = nz; ox = cx - qx * z; oy = cy - qy * z; clampView(); }
+  function zoomUi() { var el = document.getElementById('zoomhint'); if (el) el.style.opacity = z > 1.02 ? 1 : 0; }
+  function local(e) { var r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  function abandonDrag() {
+    if (drag && drag.on) {
+      if (drag.pan) { spineTarget = targetSpine(); }
+      else if (turn && !turn.anim) animateTo(turn.cancel, false, 300);
+    }
+    drag = null;
+  }
   stage.addEventListener('pointerdown', function (e) {
     interacted = true;
     if (turn && turn.tease) { turn = null; dirty = true; }
+    var p = local(e); pts.set(e.pointerId, p);
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    if (pts.size === 2) {
+      abandonDrag(); panZ = null; holdOff = true;
+      var a = Array.from(pts.values());
+      pinch = { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, z: z, cx: (a[0].x + a[1].x) / 2, cy: (a[0].y + a[1].y) / 2, ox: ox, oy: oy };
+      return;
+    }
+    if (pts.size > 2 || holdOff) return;
+    if (z > 1.02) { panZ = { id: e.pointerId, x: p.x, y: p.y, ox: ox, oy: oy, t: Date.now(), moved: false }; return; }
     if (turn) return;
     drag = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId, on: false };
   });
   stage.addEventListener('pointermove', function (e) {
+    if (!pts.has(e.pointerId)) return;
+    var p = local(e); pts.set(e.pointerId, p);
+    if (pinch) {
+      if (pts.size < 2) return;
+      var a = Array.from(pts.values()), d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1;
+      var cx = (a[0].x + a[1].x) / 2, cy = (a[0].y + a[1].y) / 2;
+      var qx = (pinch.cx - pinch.ox) / pinch.z, qy = (pinch.cy - pinch.oy) / pinch.z;
+      z = Math.max(1, Math.min(4, pinch.z * d / pinch.d)); ox = cx - qx * z; oy = cy - qy * z; clampView();
+      return;
+    }
+    if (panZ && e.pointerId === panZ.id) {
+      if (Math.abs(p.x - panZ.x) + Math.abs(p.y - panZ.y) > 6) panZ.moved = true;
+      ox = panZ.ox + p.x - panZ.x; oy = panZ.oy + p.y - panZ.y; clampView(); return;
+    }
     if (!drag || e.pointerId !== drag.id) return;
     var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.on) {
       if (Math.abs(dx) < 6 || Math.abs(dx) < Math.abs(dy) * .5) return;
       var dir = dx < 0 ? 1 : -1, act = action(dir);
-      if (act === 'pan') { drag.on = true; drag.pan = dir; drag.base = spineX; hideHint(); try { stage.setPointerCapture(e.pointerId); } catch (_) {} return; }
+      if (act === 'pan') { drag.on = true; drag.pan = dir; drag.base = spineX; hideHint(); return; }
       if (act !== 'flip' || !begin(dir)) { drag = null; return; }
       drag.on = true;
-      try { stage.setPointerCapture(e.pointerId); } catch (_) {}
     }
     if (drag.pan) {
-      var cx = cw / 2, lo = cx - W / 2, hi = cx + W / 2;
+      var cx2 = cw / 2, lo = cx2 - W / 2, hi = cx2 + W / 2;
       spineX = Math.max(lo - 30, Math.min(hi + 30, drag.base + dx)); spineTarget = spineX; dirty = true; return;
     }
     var k = mode === 'single' ? 2.0 : 1.45, s = turn.sp.s;
@@ -287,15 +328,28 @@ button:disabled{opacity:.3;cursor:default}
     turn.P = constrain({ x: rx, y: Math.min(ry - lift(rx), H) });
     dirty = true;
   });
+  function tap(p) {
+    var now = Date.now();
+    if (lastTap && now - lastTap.t < 320 && Math.hypot(p.x - lastTap.x, p.y - lastTap.y) < 40) {
+      clearTimeout(tapTimer); lastTap = null;
+      if (z > 1.02) { z = 1; clampView(); } else zoomAt(2.5, p.x, p.y);
+      return;
+    }
+    lastTap = { t: now, x: p.x, y: p.y };
+    if (z > 1.02) return;
+    var dir = p.x > (mode === 'single' ? cw / 2 : spineX) ? 1 : -1;
+    clearTimeout(tapTimer); tapTimer = setTimeout(function () { go(dir); }, 300);
+  }
   function up(e) {
-    if (!drag) return;
+    var had = pts.has(e.pointerId); pts.delete(e.pointerId);
+    if (pinch) { if (pts.size < 2) pinch = null; if (pts.size === 0) holdOff = false; return; }
+    if (holdOff) { if (pts.size === 0) holdOff = false; return; }
+    if (panZ && e.pointerId === panZ.id) { var pz = panZ; panZ = null; if (!pz.moved && Date.now() - pz.t < 400) tap(local(e)); return; }
+    if (!drag || !had) return;
     var d = drag; drag = null;
     if (!d.on) {
       var dx = e.clientX - d.x, dy = e.clientY - d.y;
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && !turn) {
-        var r = stage.getBoundingClientRect(), x = e.clientX - r.left;
-        go(x > (mode === 'single' ? cw / 2 : spineX) ? 1 : -1);
-      }
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && !turn && Date.now() - d.t < 500) tap(local(e));
       return;
     }
     if (d.pan) {
@@ -309,6 +363,11 @@ button:disabled{opacity:.3;cursor:default}
     var commit = prog > .28 || fast, target = commit ? turn.commit : turn.cancel;
     animateTo(target, commit, 260 + 520 * Math.abs(target.x - turn.P.x) / (2 * W));
   }
+  stage.addEventListener('wheel', function (e) {
+    e.preventDefault(); var p = local(e);
+    zoomAt(z * Math.exp(-e.deltaY * .0018), p.x, p.y);
+  }, { passive: false });
+  stage.addEventListener('dblclick', function (e) { e.preventDefault(); });
   stage.addEventListener('pointerup', up);
   stage.addEventListener('pointercancel', up);
   document.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); });
