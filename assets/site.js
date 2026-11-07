@@ -394,6 +394,9 @@
     }).catch(function () { return 0; }).then(function (added) {
       if (pack) { location.replace('/photo-magnets.html?pack=' + pack); return; }
       if (added) { openCart(); toast(added === 1 ? 'Your magnet is in the cart' : 'Your ' + added + ' magnets are in the cart'); }
+      else if (document.querySelector('[data-cart-page]')) openCart();
     });
   })();
+  /* cart.html opened without products: show the cart right away */
+  try { if (document.querySelector('[data-cart-page]') && !/[?&]products=/.test(location.search)) openCart(); } catch (e) {}
 })();

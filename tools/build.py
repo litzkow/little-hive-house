@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "42"
+VERSION = "43"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -1454,6 +1454,23 @@ def page_404():
     write("404.html", head(pg, "Page not found", "Page not found.", "404.html") + body + chrome_end(pg))
 
 
+def page_cart():
+    """cart.html: the checkout link of the Facebook/Instagram shop (Meta sends ?products=<feed id>:<qty>,...).
+    The page fills the cart (assets/site.js) and opens it, so the buyer lands straight on their cart."""
+    pg = Page("/")
+    body = f"""{header(pg, None)}
+<main id="main" data-cart-page>
+  <div class="wrap page-head" style="padding-bottom:80px">
+    <p class="eyebrow">Your cart</p>
+    <h1>Your cart</h1>
+    <p class="lede">Your magnets are in the cart. Review them and tap Checkout to pay securely.</p>
+    <div class="hero-actions" style="margin-top:24px"><button type="button" class="btn" data-open-cart>View cart and checkout</button><a class="btn btn-ghost" href="/shop.html">Keep shopping</a></div>
+  </div>
+</main>
+{footer(pg)}"""
+    write("cart.html", head(pg, "Your cart", "Your Little Hive House cart.", "cart.html") + body + chrome_end(pg))
+
+
 # ---- store backend: functions/catalog.json (server-side prices; must match assets/site.js totals()) ----
 STORE_PHOTO_PACKS = [(4, 14), (9, 25), (16, 40), (25, 65), (50, 120)]   # same as the pack radios on photo-magnets.html
 STORE_SHIPPING, STORE_FREE_SHIP_AT = 5.49, 35
@@ -1535,6 +1552,7 @@ if __name__ == "__main__":
     page_photo()
     page_big()
     page_404()
+    page_cart()             # cart.html: checkout link for the Facebook/Instagram shop
     # store: customer pages (account, orders, tracking, policies...) live in tools/store_pages.py
     import sys as _sys
     import store_pages
