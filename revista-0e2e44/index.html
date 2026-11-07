@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Little Hive House · A Revista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:ital,wght@1,700&family=Jost:wght@400;500;600&family=DM+Mono:wght@500&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FFF6E5;--ink:#2B2118;--honey:#F2A81D;--soft:#F9D88A;--muted:#CDB898}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--ink);color:var(--bg);font-family:Jost,system-ui,sans-serif;display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+body::before{content:"";position:fixed;inset:0;opacity:.07;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 0 56 16v32L28 64 0 48V16zM28 64l28 16v32M28 64 0 80v32' fill='none' stroke='%23F2A81D' stroke-width='2'/%3E%3C/svg%3E");background-size:56px 97px}
+header{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 16px 6px;position:relative;z-index:2}
+header svg{width:30px;height:28px}
+.brand{font-family:"DM Serif Display",serif;font-size:22px}
+.brand em{font-family:"Playfair Display",serif;font-style:italic;color:var(--honey)}
+.ed{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:-2px;position:relative;z-index:2}
+#stage{flex:1;position:relative;touch-action:none;cursor:grab}
+#stage:active{cursor:grabbing}
+#cv{position:absolute;left:0;top:0}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Caveat,cursive;font-size:24px;color:var(--soft)}
+footer{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 16px 18px;position:relative;z-index:2}
+button{font:inherit;border:0;cursor:pointer;width:46px;height:46px;border-radius:50%;background:var(--honey);color:var(--ink);font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 #8a5a00}
+button:disabled{opacity:.3;cursor:default}
+#count{font-family:"DM Mono",monospace;font-size:13px;letter-spacing:.12em;min-width:86px;text-align:center}
+.hint{font-family:Caveat,cursive;font-size:20px;color:var(--soft);text-align:center;padding-bottom:4px;position:relative;z-index:2;transition:opacity .6s}
+</style>
+</head>
+<body>
+<header>
+  <svg viewBox="138 8 124 118"><polygon fill="#F2A81D" points="200,14 217.32,24 217.32,44 200,54 182.68,44 182.68,24"/><polygon fill="#F2A81D" points="180.95,47 198.27,57 198.27,77 180.95,87 163.63,77 163.63,57"/><polygon fill="#F9D88A" points="219.05,47 236.37,57 236.37,77 219.05,87 201.73,77 201.73,57"/><polygon fill="#F2A81D" points="161.9,80 179.22,90 179.22,110 161.9,120 144.58,110 144.58,90"/><polygon fill="#FFF6E5" points="200,80 217.32,90 217.32,110 200,120 182.68,110 182.68,90"/><polygon fill="#F2A81D" points="238.1,80 255.42,90 255.42,110 238.1,120 220.78,110 220.78,90"/><path fill="#2B2118" d="M 194 115 L 194 104 A 6 6 0 0 1 206 104 L 206 115 Z"/></svg>
+  <div class="brand">Little Hive <em>House</em></div>
+</header>
+<div class="ed">Edição 01 · Novos produtos</div>
+<div id="stage"><canvas id="cv"></canvas><div id="loading">Abrindo a revista…</div></div>
+<div class="hint" id="hint">Puxe o canto da página com o dedo</div>
+<footer>
+  <div id="count">1 / 12</div>
+</footer>
+<script>
+(function () {
+  'use strict';
+  var N = 12, RATIO = 1152 / 1512;
+  var imgs = [], loaded = 0;
+  for (var i = 1; i <= N; i++) {
+    var im = new Image();
+    im.onload = function () { loaded++; if (loaded === N) document.getElementById('loading').style.display = 'none'; dirty = true; };
+    im.src = 'pages/p-' + (i < 10 ? '0' : '') + i + '.jpg';
+    imgs.push(im);
+  }
+  var stage = document.getElementById('stage'), cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  var mode = null, W = 0, H = 0, top = 0, cw = 0, ch = 0, dpr = 1, pos = 0, spineX = 0, spineTarget = 0;
+  var turn = null, dirty = true, side = 'R', interacted = false, nextTease = performance.now() + 1400;
+
+  function pg(n) { return n >= 1 && n <= N ? imgs[n - 1] : null; }
+  function maxPos() { return Math.ceil(N / 2); }
+  function focusPage() { return mode === 'single' ? (side === 'R' ? 2 * pos + 1 : 2 * pos) : (pos === 0 ? 1 : 2 * pos); }
+  function targetSpine() {
+    var cx = cw / 2;
+    if (mode === 'single') return side === 'R' ? cx - W / 2 : cx + W / 2;
+    if (pos === 0) return cx - W / 2;
+    if (pos >= maxPos()) return cx + W / 2;
+    return cx;
+  }
+  function layout() {
+    var r = stage.getBoundingClientRect();
+    cw = r.width; ch = r.height; dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+    cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+    var spread = cw / ch > 1.15 && cw > 700, nm = spread ? 'spread' : 'single';
+    var page = mode ? focusPage() : 1;
+    pos = Math.floor(page / 2); side = page % 2 ? 'R' : 'L';
+    mode = nm; turn = null;
+    var cols = spread ? 2 : 1;
+    W = Math.min((cw - (spread ? 40 : 56)) / cols, (ch - 20) * RATIO); H = W / RATIO; top = (ch - H) / 2;
+    pos = Math.min(pos, maxPos());
+    spineX = spineTarget = targetSpine();
+    updateUi(); dirty = true;
+  }
+
+  // ---- geometry (logical coordinates: spine at x=0, the turning page on [0,W]) ----
+  function lift(x) { var p = Math.max(0, Math.min(1, (W - x) / (2 * W))); return Math.sin(Math.PI * p) * H * 0.24; }
+  function constrain(P) {
+    var dx = P.x, dy = P.y - H, d = Math.hypot(dx, dy);
+    if (d > W) { P.x = dx * W / d; P.y = H + dy * W / d; }
+    var D = Math.hypot(W, H); d = Math.hypot(P.x, P.y);
+    if (d > D) { P.x = P.x * D / d; P.y = P.y * D / d; }
+    return P;
+  }
+  function clipPoly(poly, M, n, positive) {
+    var out = [];
+    for (var i = 0; i < poly.length; i++) {
+      var a = poly[i], b = poly[(i + 1) % poly.length];
+      var fa = (a.x - M.x) * n.x + (a.y - M.y) * n.y, fb = (b.x - M.x) * n.x + (b.y - M.y) * n.y;
+      var ina = positive ? fa > 0 : fa <= 0, inb = positive ? fb > 0 : fb <= 0;
+      if (ina) out.push(a);
+      if (ina !== inb) { var t = fa / (fa - fb); out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }); }
+    }
+    return out;
+  }
+  function path(poly) { ctx.beginPath(); poly.forEach(function (p, i) { i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }); ctx.closePath(); }
+  // image placed upright on screen over the logical rect [x0, x0+W]
+  function place(x0, s) { return s > 0 ? [1, 0, 0, 1, x0, 0] : [-1, 0, 0, 1, x0 + W, 0]; }
+  function drawImg(img, m) {
+    ctx.save(); ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+    if (img && img.complete) ctx.drawImage(img, 0, 0, W, H);
+    else { ctx.fillStyle = '#FFF6E5'; ctx.fillRect(0, 0, W, H); }
+    ctx.restore();
+  }
+  function paper(m) {
+    ctx.save(); ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+    var g = ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, '#FBF1DD'); g.addColorStop(1, '#F2E4C6');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
+  function spineShade(x0, side) { // side: +1 page right of spine, -1 left of spine (logical)
+    var w = W * 0.08, g = ctx.createLinearGradient(0, 0, side * w, 0);
+    g.addColorStop(0, 'rgba(43,33,24,.30)'); g.addColorStop(1, 'rgba(43,33,24,0)');
+    ctx.fillStyle = g; ctx.fillRect(side > 0 ? 0 : -w, 0, w, H);
+  }
+  function dropShadow(x, w) {
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 34; ctx.shadowOffsetY = 16;
+    ctx.fillStyle = '#FFF6E5'; ctx.fillRect(x, 0, w, H); ctx.restore();
+  }
+
+  function drawStatic() {
+    ctx.setTransform(dpr, 0, 0, dpr, dpr * spineX, dpr * top);
+    var L = pos > 0 ? pg(2 * pos) : null;
+    var R = pg(2 * pos + 1);
+    if (L) dropShadow(-W, W);
+    if (R) dropShadow(0, W);
+    if (L) { drawImg(L, place(-W, 1)); spineShade(0, -1); }
+    if (R) { drawImg(R, place(0, 1)); spineShade(0, 1); }
+  }
+
+  function spec(dir) {
+    if (dir > 0) { if (pos >= maxPos()) return null; return { s: 1, front: pg(2 * pos + 1), flap: pg(2 * pos + 2), under: pg(2 * pos + 3), stat: pos > 0 ? pg(2 * pos) : null, rev: false }; }
+    if (pos <= 0) return null;
+    return { s: -1, front: pg(2 * pos), flap: pg(2 * pos - 1), under: pos >= 2 ? pg(2 * pos - 2) : null, stat: pg(2 * pos + 1), rev: false };
+  }
+  // what the next/prev gesture does: pan across the open magazine (phone) or turn a page
+  function action(dir) {
+    if (mode === 'single') {
+      if (dir > 0) { if (side === 'L') return pg(2 * pos + 1) ? 'pan' : null; return pos < maxPos() ? 'flip' : null; }
+      if (side === 'R') return pos > 0 ? 'pan' : null; return 'flip';
+    }
+    return spec(dir) ? 'flip' : null;
+  }
+  function afterSide(dir) { return dir > 0 ? 'L' : 'R'; }
+  function drawTurn() {
+    var sp = turn.sp, s = sp.s, P = turn.P, C = { x: W, y: H };
+    ctx.setTransform(dpr * s, 0, 0, dpr, dpr * spineX, dpr * top);
+    if (sp.stat) { dropShadow(-W, W); drawImg(sp.stat, place(-W, s)); spineShade(0, -1); }
+    var vx = C.x - P.x, vy = C.y - P.y, len = Math.hypot(vx, vy);
+    if (sp.under) { dropShadow(0, W); drawImg(sp.under, place(0, s)); spineShade(0, 1); }
+    if (len < 0.5) { dropShadow(0, W); drawImg(sp.front, place(0, s)); spineShade(0, 1); return; }
+    var n = { x: vx / len, y: vy / len }, M = { x: (C.x + P.x) / 2, y: (C.y + P.y) / 2 };
+    var R = [{ x: 0, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: 0, y: H }];
+    var frontPoly = clipPoly(R, M, n, false), foldPoly = clipPoly(R, M, n, true);
+    function refl(p) { var f = (p.x - M.x) * n.x + (p.y - M.y) * n.y; return { x: p.x - 2 * f * n.x, y: p.y - 2 * f * n.y }; }
+    var flapPoly = foldPoly.map(refl);
+    var L = Math.min(len * 0.5, W * 0.45) + 10;
+
+    // shadow cast on the page underneath, along the fold
+    if (sp.under && foldPoly.length > 2) {
+      ctx.save(); path(foldPoly); ctx.clip();
+      var g = ctx.createLinearGradient(M.x, M.y, M.x + n.x * L, M.y + n.y * L);
+      g.addColorStop(0, 'rgba(20,14,8,.45)'); g.addColorStop(.35, 'rgba(20,14,8,.12)'); g.addColorStop(1, 'rgba(20,14,8,0)');
+      ctx.fillStyle = g; ctx.fillRect(-W, -H, 3 * W, 3 * H); ctx.restore();
+    }
+    // the part of the page still lying flat
+    if (frontPoly.length > 2) {
+      ctx.save();
+      if (!sp.under) { ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 14; ctx.fillStyle = '#FFF6E5'; path(frontPoly); ctx.fill(); ctx.shadowColor = 'transparent'; }
+      path(frontPoly); ctx.clip(); drawImg(sp.front, place(0, s)); spineShade(0, 1);
+      ctx.restore();
+    }
+    // the curling flap (back of the page)
+    if (flapPoly.length > 2) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.38)'; ctx.shadowBlur = 22; ctx.shadowOffsetX = -n.x * 6; ctx.shadowOffsetY = -n.y * 6;
+      ctx.fillStyle = '#F7ECD6'; path(flapPoly); ctx.fill();
+      ctx.restore();
+      ctx.save(); path(flapPoly); ctx.clip();
+      // back image: upright when the page lies turned on [-W,0]; mirrored to the spine, then reflected on the fold
+      var g0 = s > 0 ? [-1, W] : [1, 0];
+      var l11 = 1 - 2 * n.x * n.x, l12 = -2 * n.x * n.y, l22 = 1 - 2 * n.y * n.y;
+      var md = M.x * n.x + M.y * n.y, tx = 2 * md * n.x, ty = 2 * md * n.y;
+      var m = [l11 * g0[0], l12 * g0[0], l12, l22, l11 * g0[1] + tx, l12 * g0[1] + ty];
+      if (sp.flap) drawImg(sp.flap, m); else paper(m);
+      // paper light on the curl
+      var g2 = ctx.createLinearGradient(M.x, M.y, M.x - n.x * L, M.y - n.y * L);
+      g2.addColorStop(0, 'rgba(43,33,24,.32)'); g2.addColorStop(.12, 'rgba(255,250,240,.28)');
+      g2.addColorStop(.45, 'rgba(255,250,240,.06)'); g2.addColorStop(1, 'rgba(43,33,24,.10)');
+      ctx.fillStyle = g2; ctx.fillRect(-2 * W, -2 * H, 5 * W, 5 * H);
+      ctx.restore();
+    }
+  }
+
+  function finger() { // a fingertip showing how to pull the corner
+    var p = turn.P, x = spineX + turn.sp.s * p.x, y = top + p.y;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.beginPath(); ctx.arc(x - 6, y - 6, 17, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(242,168,29,.95)'; ctx.stroke();
+  }
+  function render() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    if (turn) drawTurn(); else drawStatic();
+  }
+
+  // ---- turning ----
+  function openP() { return { x: W, y: H }; }
+  function turnedP() { return { x: -W, y: H }; }
+  function begin(dir, quiet) {
+    var sp = spec(dir); if (!sp) return null;
+    var start = sp.rev ? turnedP() : openP(), commit = sp.rev ? openP() : turnedP();
+    turn = { sp: sp, dir: dir, start: start, commit: commit, cancel: start, P: { x: start.x, y: start.y } };
+    if (!quiet) hideHint();
+    return turn;
+  }
+  function animateTo(target, commit, dur) {
+    var P0 = { x: turn.P.x, y: turn.P.y };
+    turn.anim = { P0: P0, target: target, commit: commit, t0: performance.now(), dur: dur, off: P0.y - (H - lift(P0.x)) };
+    if (commit && mode === 'single') { var cx = cw / 2; spineTarget = turn.dir > 0 ? cx + W / 2 : cx - W / 2; }
+  }
+  function finish(commit) {
+    if (commit) { pos += turn.dir; if (mode === 'single') side = afterSide(turn.dir); }
+    turn = null; spineTarget = targetSpine(); updateUi(); dirty = true;
+  }
+  function go(dir) {
+    if (turn || drag && drag.on) return;
+    var act = action(dir);
+    if (act === 'pan') { side = dir > 0 ? 'R' : 'L'; spineTarget = targetSpine(); updateUi(); hideHint(); return; }
+    if (act !== 'flip' || !begin(dir)) return;
+    animateTo(turn.commit, true, 780);
+  }
+  function loop(now) {
+    if (turn && turn.anim) {
+      var a = turn.anim, t = Math.min(1, (now - a.t0) / a.dur);
+      var e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      var x = a.P0.x + (a.target.x - a.P0.x) * e;
+      var y = H - lift(x) + a.off * (1 - e);
+      turn.P = constrain({ x: x, y: Math.min(y, H) });
+      dirty = true;
+      if (t >= 1) { if (a.back) animateTo(turn.cancel, false, 750); else finish(a.commit); }
+    }
+    if (Math.abs(spineX - spineTarget) > .4) { spineX += (spineTarget - spineX) * .14; dirty = true; }
+    else if (spineX !== spineTarget) { spineX = spineTarget; dirty = true; }
+    if (!interacted && !turn && loaded === N && now > nextTease && action(1) === 'flip') {
+      begin(1, true); turn.tease = true; animateTo({ x: W * .58, y: H * .62 }, false, 1000); turn.anim.back = true;
+      nextTease = now + 4200;
+    }
+    if (dirty) { dirty = false; render(); if (turn && turn.tease) finger(); }
+    requestAnimationFrame(loop);
+  }
+
+  // ---- input ----
+  var drag = null;
+  stage.addEventListener('pointerdown', function (e) {
+    interacted = true;
+    if (turn && turn.tease) { turn = null; dirty = true; }
+    if (turn) return;
+    drag = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId, on: false };
+  });
+  stage.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.on) {
+      if (Math.abs(dx) < 6 || Math.abs(dx) < Math.abs(dy) * .5) return;
+      var dir = dx < 0 ? 1 : -1, act = action(dir);
+      if (act === 'pan') { drag.on = true; drag.pan = dir; drag.base = spineX; hideHint(); try { stage.setPointerCapture(e.pointerId); } catch (_) {} return; }
+      if (act !== 'flip' || !begin(dir)) { drag = null; return; }
+      drag.on = true;
+      try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    if (drag.pan) {
+      var cx = cw / 2, lo = cx - W / 2, hi = cx + W / 2;
+      spineX = Math.max(lo - 30, Math.min(hi + 30, drag.base + dx)); spineTarget = spineX; dirty = true; return;
+    }
+    var k = mode === 'single' ? 2.0 : 1.45, s = turn.sp.s;
+    var rx = turn.start.x + s * dx * k, ry = turn.start.y + dy * k;
+    turn.P = constrain({ x: rx, y: Math.min(ry - lift(rx), H) });
+    dirty = true;
+  });
+  function up(e) {
+    if (!drag) return;
+    var d = drag; drag = null;
+    if (!d.on) {
+      var dx = e.clientX - d.x, dy = e.clientY - d.y;
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && !turn) {
+        var r = stage.getBoundingClientRect(), x = e.clientX - r.left;
+        go(x > (mode === 'single' ? cw / 2 : spineX) ? 1 : -1);
+      }
+      return;
+    }
+    if (d.pan) {
+      var moved = Math.abs(e.clientX - d.x);
+      if (moved > W * .18 || (Date.now() - d.t < 280 && moved > 20)) side = d.pan > 0 ? 'R' : 'L';
+      spineTarget = targetSpine(); updateUi(); dirty = true; return;
+    }
+    if (!turn) return;
+    var span = turn.commit.x - turn.start.x, prog = (turn.P.x - turn.start.x) / span;
+    var fast = Date.now() - d.t < 280 && prog > .05;
+    var commit = prog > .28 || fast, target = commit ? turn.commit : turn.cancel;
+    animateTo(target, commit, 260 + 520 * Math.abs(target.x - turn.P.x) / (2 * W));
+  }
+  stage.addEventListener('pointerup', up);
+  stage.addEventListener('pointercancel', up);
+  document.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); });
+
+  function updateUi() {
+    var c = document.getElementById('count');
+    if (mode === 'spread') {
+      var a = pos * 2, b = a + 1;
+      c.textContent = pos === 0 ? '1 / ' + N : (b > N ? a + ' / ' + N : a + '–' + b + ' / ' + N);
+    } else c.textContent = focusPage() + ' / ' + N;
+  }
+  function hideHint() { if (pos > 0 || side === 'L') document.getElementById('hint').style.opacity = 0; }
+  var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(layout, 150); });
+  layout();
+  requestAnimationFrame(loop);
+  window.__test = { go: go, get pos() { return pos; }, get side() { return side; }, setP: function (dir, x, y) { if (!turn) begin(dir); turn.P = constrain({ x: x * W, y: y * H }); dirty = true; } };
+})();
+</script>
+</body>
+</html>
