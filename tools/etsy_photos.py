@@ -559,6 +559,9 @@ def build(listing, keep_last):
         photos.append(size_photo(sh(a[0]), details=["2 x 2 inch square (5 cm)", "Square corners", "Glossy, wipe-clean front",
                                                        "Strong magnet back", "Your photo, touched up by hand"]))
     photos.append(keep_last)                       # "Good to know" / "How it works" with the logo: unchanged
+    # the owners' own photos of the printed magnets (Etsy asks for at least one real, unaltered photo per listing):
+    # etsy/real/<listing>/*.jpg, last in the listing, copied as they are (only light/colour fixed, no metadata)
+    real = sorted((ROOT / "etsy" / "real" / lid).glob("*.jpg"))
     out.mkdir(parents=True, exist_ok=True)
     for f in out.glob("*.jpg"):
         f.unlink()
@@ -567,7 +570,9 @@ def build(listing, keep_last):
         if p.size[0] < 2000:
             p = p.resize((W, H), Image.LANCZOS)
         p.save(out / f"{i + 1}.jpg", quality=90, optimize=True, progressive=True)
-    listing["images"] = len(photos)
+    for j, f in enumerate(real):
+        Image.open(f).convert("RGB").save(out / f"{len(photos) + j + 1}.jpg", quality=92, optimize=True, progressive=True)
+    listing["images"] = len(photos) + len(real)
     return len(photos)
 
 
@@ -582,7 +587,7 @@ def main(only):
                                            .replace("magnet with rounded corners", "magnet with square corners")
         print(l["id"], n, "photos", len(l["variations"][0]["options"]), "options", flush=True)
     if os.environ.get("BUMP", "1") == "1":
-        data["imagesVersion"] = int(data.get("imagesVersion", 1)) + 1
+        data["imagesVersion"] = max([int(data.get("imagesVersion", 1))] + [int(x.get("imagesVersion", 0)) for x in data["listings"]]) + 1
     LISTINGS.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n")
 
 

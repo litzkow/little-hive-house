@@ -155,10 +155,13 @@ function inventory(l, readinessStateId) {
   return { products, price_on_property: v.prices ? [CUSTOM_PROPERTY] : [], quantity_on_property: [], sku_on_property: [CUSTOM_PROPERTY], readiness_state_on_property: [] };
 }
 
+/** The photo version of one listing: the shop-wide "imagesVersion" (every listing's photos rebuilt), or the listing's
+    own "imagesVersion" when only its photos changed (e.g. the owners' real photo added), whichever is newer. */
+const imgV = (l) => Math.max(Number(LISTINGS.imagesVersion || 1), Number(l.imagesVersion || 0));
 /** Sends the listing's photos from number `from` on, in order (retrying a dropped upload). */
 async function uploadImages(l, shopId, id, from = 0) {
   for (let i = from; i < l.images; i++) {
-    const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${LISTINGS.imagesVersion || 1}`);
+    const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${imgV(l)}`);
     for (let attempt = 1; ; attempt++) {
       const fd = new FormData();
       fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
@@ -196,7 +199,7 @@ async function replaceImages(l, shopId, id) {
   if (keep && keep.rank !== 1) await placeImage(shopId, id, keep.id, 1);
   const added = [];
   for (let i = 0; i < l.images; i++) {
-    const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${LISTINGS.imagesVersion || 1}`);
+    const blob = await fetchImage(`${siteUrl()}/etsy/img/${l.id}/${i + 1}.jpg?v=${imgV(l)}`);
     for (let attempt = 1; ; attempt++) {
       const fd = new FormData();
       fd.append("image", blob, `${l.id}-${i + 1}.jpg`);
@@ -281,7 +284,7 @@ async function publishOne(l, shopId, s, fetchImage, resumeId) {
   await uploadImages(l, shopId, id, have);
   await call("PUT", `/listings/${id}/inventory`, { json: inventory(l, s.readinessStateId) });
   const live = await call("PATCH", `/shops/${shopId}/listings/${id}`, { form: { state: "active" } });
-  const row = { listingId: id, state: live.state || "active", imagesV: LISTINGS.imagesVersion || 1, url: live.url || `https://www.etsy.com/listing/${id}`, at: nowIso(), error: "" };
+  const row = { listingId: id, state: live.state || "active", imagesV: imgV(l), url: live.url || `https://www.etsy.com/listing/${id}`, at: nowIso(), error: "" };
   await col().doc("listings").set({ [l.id]: row }, { merge: true });
   return row;
 }
@@ -303,7 +306,7 @@ async function status() {
     listings: LISTINGS.listings.map((l) => {
       const d = done[l.id] || { state: "" };
       return { id: l.id, name: l.name, section: l.section, images: l.images, ...d,
-        newPhotos: d.state === "active" && Number(d.imagesV || 1) < Number(LISTINGS.imagesVersion || 1) };
+        newPhotos: d.state === "active" && Number(d.imagesV || 1) < imgV(l) };
     }),
   };
 }
@@ -345,7 +348,7 @@ async function adminEtsy(data, auth) {
       if (!a || !a.shopId) fail("failed-precondition", "Etsy isn't connected yet. Tap “Connect Etsy” first.");
       const done = ((await readDoc("listings")) || {})[l.id];
       if (done && done.state === "active") {
-        if (Number(done.imagesV || 1) >= Number(LISTINGS.imagesVersion || 1)) return { listing: { id: l.id, ...done }, skipped: true };
+        if (Number(done.imagesV || 1) >= imgV(l)) return { listing: { id: l.id, ...done }, skipped: true };
         try {
           // a new version of the listing: texts, section and design menu (the site's order) first, then the photos
           const s = await setup(a.shopId);
@@ -357,7 +360,7 @@ async function adminEtsy(data, auth) {
           await col().doc("listings").set({ [l.id]: { ...done, error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
           throw err;
         }
-        const row = { ...done, imagesV: LISTINGS.imagesVersion || 1, error: "", at: nowIso() };
+        const row = { ...done, imagesV: imgV(l), error: "", at: nowIso() };
         await col().doc("listings").set({ [l.id]: row }, { merge: true });
         return { listing: { id: l.id, ...row, newPhotos: false } };
       }

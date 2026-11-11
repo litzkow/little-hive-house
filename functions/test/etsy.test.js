@@ -6,6 +6,9 @@ const assert = require("node:assert/strict");
 const crypto = require("crypto");
 const { FakeDB, FakeAuth, FakeBucket } = require("./fakes");
 const deps = require("../deps");
+// how many photos a listing has (its etsy/img/<id>/ files; the owners' real photos make some listings longer)
+const NIMG = (id) => require("../etsy-listings.json").listings.find((l) => l.id === id).images;
+const RANKS = (id) => Array.from({ length: NIMG(id) }, (_, i) => i + 1);
 
 const ADMIN = { uid: "admin1", token: { admin: true, email: "owner@lhh.com" } };
 
@@ -112,7 +115,7 @@ test("publish: setup once, photos in order, variations, then active; the second 
   assert.equal(rp.get("accepts_exchanges"), "false");
   assert.equal(f.get("price"), "5.75");
   assert.equal(f.get("tags").split(",").length, 13);
-  assert.equal(calls.filter((c) => c.u.endsWith("/images")).length, 6);
+  assert.equal(calls.filter((c) => c.u.endsWith("/images")).length, NIMG("brasil"));
   const inv = JSON.parse(calls.find((c) => c.u.endsWith("/inventory")).body);
   assert.ok(inv.products.length > 10);
   assert.equal(inv.products[0].property_values[0].property_name, "Design");
@@ -162,7 +165,7 @@ test("a draft left by an earlier try is finished (no second listing), and a drop
   const patch = new URLSearchParams(calls.find((c) => /\/listings\/5151$/.test(c.u) && c.m === "PATCH").body);
   assert.equal(patch.get("return_policy_id"), "9003");
   const posts = calls.filter((c) => c.u.endsWith("/5151/images") && c.m === "POST");
-  assert.equal(posts.length, 6 - 2 + 1, "the 2 photos already there are kept; the 4 missing are sent, one of them twice");
+  assert.equal(posts.length, NIMG("christmas") - 2 + 1, "the 2 photos already there are kept; the 4 missing are sent, one of them twice");
 });
 
 const order = (IMGS, id) => IMGS[id].slice().sort((a, b) => a.rank - b.rank);
@@ -178,7 +181,7 @@ test("new photos for a listing already on Etsy: the new set ends up alone, at ra
   const r = await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
   assert.equal(r.listing.state, "active");
   const now = order(IMGS, 4242);
-  assert.deepEqual(now.map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(now.map((x) => x.rank), RANKS("brasil"));
   assert.ok(now.every((x) => x.id > 1000), "only the new photos are left");
   assert.equal(calls.filter((c) => /\/shops\/55\/listings$/.test(c.u)).length, 0);
   st = await E.adminEtsy({ action: "status" }, ADMIN);
@@ -196,7 +199,7 @@ test("new photos: a listing left broken by an earlier try (one old photo at rank
     globalThis.__lenient = false;
     await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
     const now = order(IMGS, 4242);
-    assert.deepEqual(now.map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+    assert.deepEqual(now.map((x) => x.rank), RANKS("brasil"));
     assert.ok(now.every((x) => x.id > 1000));
     const st = await E.adminEtsy({ action: "status" }, ADMIN);
     const b = st.listings.find((l) => l.id === "brasil");
@@ -217,7 +220,7 @@ test("new photos: if Etsy refuses midway, the error is saved and a second tap fi
   assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, true);
   await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
   const now = order(IMGS, 4242);
-  assert.deepEqual(now.map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(now.map((x) => x.rank), RANKS("brasil"));
   assert.ok(now.every((x) => x.id > 1000));
   st = await E.adminEtsy({ action: "status" }, ADMIN);
   assert.equal(st.listings.find((l) => l.id === "brasil").newPhotos, false);
@@ -231,7 +234,7 @@ test("Etsy's per-second limit (429): waits and tries the same call again", async
   const real = globalThis.fetch; let busy = 2;
   globalThis.fetch = async (url, opts) => (busy-- > 0 ? { ok: false, status: 429, json: async () => ({ error: "Exceeded per second rate limit" }) } : real(url, opts));
   await E.adminEtsy({ action: "publish", id: "brasil" }, ADMIN);
-  assert.deepEqual(order(IMGS, 4242).map((x) => x.rank), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(order(IMGS, 4242).map((x) => x.rank), RANKS("brasil"));
 });
 
 test("a new version of a listing already on Etsy: its texts, section and design menu are sent too, then the photos", async () => {
@@ -276,4 +279,19 @@ test("arrange: the Etsy sections end up in the site's order (by renaming the slo
   // again: nothing to rename
   const again = await E.adminEtsy({ action: "arrange" }, ADMIN);
   assert.equal(again.renamed, 0);
+});
+
+test("one listing's own photo version (a real photo added) sends only its photos again, not the whole shop's", async () => {
+  const L = require("../etsy-listings.json");
+  const own = L.listings.find((l) => Number(l.imagesVersion || 0) > Number(L.imagesVersion || 1));
+  const other = L.listings.find((l) => !l.imagesVersion);
+  assert.ok(own && other, "the data has one listing with its own newer photos and one without");
+  const { db, E } = setup();
+  db.docs.set("etsy/auth", { access: "777.abc", refresh: "r1", expiresAt: Date.now() + 3600e3, shopId: 55 });
+  db.docs.set("etsy/listings", { [own.id]: { listingId: 4242, state: "active", url: "u", imagesV: L.imagesVersion },
+                                  [other.id]: { listingId: 4343, state: "active", url: "u", imagesV: L.imagesVersion } });
+  const st = await E.adminEtsy({ action: "status" }, ADMIN);
+  assert.equal(st.listings.find((l) => l.id === own.id).newPhotos, true);
+  assert.equal(st.listings.find((l) => l.id === other.id).newPhotos, false);
+  assert.equal((await E.adminEtsy({ action: "publish", id: other.id }, ADMIN)).skipped, true);
 });
