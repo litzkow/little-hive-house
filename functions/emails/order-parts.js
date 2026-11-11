@@ -34,6 +34,12 @@ function photoCount(order) {
   return items(order).reduce((n, it) => n + (it.kind !== "photos" ? 0 : Array.isArray(it.photos) ? it.photos.length : num(it.photoCount)), 0);
 }
 
+/** describe() in the email's language (./i18n). */
+function describeTx(it, opts) {
+  const { tx } = require("./i18n");
+  const d = describe(it, opts);
+  return { ...d, title: tx(d.title), details: d.details.map(tx), alt: tx(d.alt), badgeSub: tx(d.badgeSub) };
+}
 /** Describes one item: {title, details[], thumb, badge, frames[], captions[], notes, total} */
 function describe(it, opts = {}) {
   const qty = Math.max(1, num(it.qty) || 1);
@@ -98,7 +104,7 @@ function itemList(order, L, opts = {}) {
   const size = opts.compact ? 52 : 72;
   const currency = order.pricing && order.pricing.currency;
   const rows = list.map((it, i) => {
-    const d = describe(it, opts);
+    const d = describeTx(it, opts);
     const top = i ? `border-top:1px solid ${C.line};` : "";
     let extra = "";
     if (d.frames && d.frames.length > 1) {
@@ -109,9 +115,9 @@ function itemList(order, L, opts = {}) {
     }
     if (d.captions && d.captions.length) {
       const caps = d.captions.slice(0, 4).map((c) => `“${c}”`).join(", ") + (d.captions.length > 4 ? ` +${d.captions.length - 4} more` : "");
-      extra += bodyText(`Captions: ${esc(caps)}`, { muted: true, size: 13, lh: 19, margin: "6px 0 0" });
+      extra += bodyText(esc(require("./i18n").tx(`Captions: ${caps}`)), { muted: true, size: 13, lh: 19, margin: "6px 0 0" });
     }
-    if (d.notes) extra += bodyText(`Note: ${esc(d.notes)}`, { muted: true, size: 13, lh: 19, margin: "4px 0 0" });
+    if (d.notes) extra += bodyText(esc(require("./i18n").tx(`Note: ${d.notes}`)), { muted: true, size: 13, lh: 19, margin: "4px 0 0" });
     const price = opts.prices === false ? "" : money(lineTotal(it), currency);
     return `<tr>
 <td class="lh-line${opts.compact ? "" : " thumb-td"}" valign="top" width="${size}" style="${top}padding:${i ? 14 : 2}px 14px 14px 0;width:${size}px">${thumbCell(d, L, size)}</td>
@@ -120,7 +126,7 @@ function itemList(order, L, opts = {}) {
 </tr>`;
   }).join("");
   const text = list.map((it) => {
-    const d = describe(it, opts);
+    const d = describeTx(it, opts);
     const bits = [d.details.join(", "), d.captions && d.captions.length ? `captions: ${d.captions.join(", ")}` : "", d.notes ? `note: ${d.notes}` : ""].filter(Boolean);
     return `- ${d.title}${bits.length ? ` (${bits.join("; ")})` : ""}${opts.prices === false ? "" : `  ${money(lineTotal(it), currency)}`}`;
   }).join("\n");
@@ -142,7 +148,8 @@ function totals(order, opts = {}) {
   const total = num(pr.total);
   const refunded = num(order && order.refundedTotal);
   const showRefund = opts.withRefunds && refunded > 0;
-  const cell = (t, kind, right) => `<td class="${kind === "save" ? "lh-green" : kind === "total" ? "lh-t" : "lh-m"}" ${right ? 'align="right" ' : ""}style="padding:5px 0;${right ? "padding-left:12px;white-space:nowrap;" : ""}font-family:${kind === "total" ? FD : FB};font-size:${kind === "total" ? 20 : 15}px;line-height:${kind === "total" ? 26 : 21}px;font-weight:${kind === "total" ? 700 : 400};color:${kind === "save" ? C.green : kind === "total" ? C.ink : C.muted}">${esc(t)}</td>`;
+  const { tx } = require("./i18n");
+  const cell = (t, kind, right) => (t = tx(t), `<td class="${kind === "save" ? "lh-green" : kind === "total" ? "lh-t" : "lh-m"}" ${right ? 'align="right" ' : ""}style="padding:5px 0;${right ? "padding-left:12px;white-space:nowrap;" : ""}font-family:${kind === "total" ? FD : FB};font-size:${kind === "total" ? 20 : 15}px;line-height:${kind === "total" ? 26 : 21}px;font-weight:${kind === "total" ? 700 : 400};color:${kind === "save" ? C.green : kind === "total" ? C.ink : C.muted}">${esc(t)}</td>`);
   let html = rows.map(([k, v, kind]) => `<tr>${cell(k, "")}${cell(v, kind, true)}</tr>`).join("");
   html += `<tr><td colspan="2" style="padding:8px 0 0"><table ${T} width="100%"><tr><td class="lh-line" style="border-top:2px solid ${C.ink};font-size:0;line-height:0;height:1px">&nbsp;</td></tr></table></td></tr>`;
   html += `<tr>${cell("Total", "total")}${cell(money(total, cur), "total", true)}</tr>`;
@@ -150,8 +157,8 @@ function totals(order, opts = {}) {
     html += `<tr>${cell("Refunded", "")}${cell("−" + money(refunded, cur), "", true)}</tr>`;
     html += `<tr>${cell("Net paid", "")}${cell(money(Math.max(0, total - refunded), cur), "", true)}</tr>`;
   }
-  const text = rows.map(([k, v]) => `${k}: ${v}`).concat([`TOTAL: ${money(total, cur)}`],
-    showRefund ? [`Refunded: -${money(refunded, cur)}`, `Net paid: ${money(Math.max(0, total - refunded), cur)}`] : []).join("\n");
+  const text = rows.map(([k, v]) => `${tx(k)}: ${tx(v)}`).concat([`${tx("Total").toUpperCase()}: ${money(total, cur)}`],
+    showRefund ? [`${tx("Refunded")}: -${money(refunded, cur)}`, `${tx("Net paid")}: ${money(Math.max(0, total - refunded), cur)}`] : []).join("\n");
   return raw(`<table ${T} width="100%" style="max-width:340px" align="right">${html}</table>`, text, "6px 0 30px");
 }
 
@@ -160,7 +167,7 @@ function address(ship) {
   const s = ship || {};
   const a = s.address || {};
   const cityLine = [F.line(a.city, 60), [F.line(a.state, 30), F.line(a.postal_code, 20)].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  const country = { US: "United States", CA: "Canada" }[str(a.country).toUpperCase()] || F.line(a.country, 40);
+  const country = require("./i18n").tx({ US: "United States", CA: "Canada" }[str(a.country).toUpperCase()] || F.line(a.country, 40));
   const lines = [F.line(s.name, 80), F.line(a.line1, 100), F.line(a.line2, 100), cityLine, country].filter(Boolean);
   return { html: lines.map(esc).join("<br>"), text: lines.join("\n"), lines };
 }
@@ -177,8 +184,8 @@ function giftMessage(msg) {
   if (!m) return { html: "", text: "" };
   const html = esc(m).replace(/\r?\n/g, "<br>");
   return box(`${label("Gift message")}<p class="lh-t" style="margin:4px 0 0;font-family:${FS};font-style:italic;font-size:18px;line-height:28px;color:${C.ink}">“${html}”</p>` +
-    bodyText("We'll tuck it in with your magnets.", { muted: true, size: 13, lh: 19, margin: "8px 0 0" }),
-  `GIFT MESSAGE\n"${m}"`);
+    bodyText(esc(require("./i18n").tx("We'll tuck it in with your magnets.")), { muted: true, size: 13, lh: 19, margin: "8px 0 0" }),
+  `${require("./i18n").tx("Gift message").toUpperCase()}\n"${m}"`);
 }
 
 /** Featured designs for welcome emails: data.featured [{id, title}] or three crowd favorites. */

@@ -2,6 +2,7 @@
 "use strict";
 const F = require("../format");
 const Lay = require("../layout");
+const { tx } = require("../i18n");
 const O = require("../order-parts");
 
 module.exports = function deliveredReview(data, { L }) {
@@ -35,8 +36,8 @@ module.exports = function deliveredReview(data, { L }) {
       Lay.h2("In your order"),
       O.itemList(order, L, { prices: false, compact: true }),
       Lay.box(
-        Lay.bodyText(`<strong style="font-weight:600">Show us your fridge!</strong> Share a photo on Instagram and tag ${igUrl ? `<a class="lh-a" href="${F.esc(igUrl)}" style="color:${Lay.C.link}">${F.esc(handle)}</a>` : `<strong style="font-weight:600">${F.esc(handle)}</strong>`}. We feature our favorites.`, { size: 15, lh: 23 }),
-        `Show us your fridge! Share a photo on Instagram and tag ${handle}${igUrl ? ` (${igUrl})` : ""}.`, "cream"),
+        Lay.bodyText(`<strong style="font-weight:600">${F.esc(tx("Show us your fridge!"))}</strong> ${F.esc(tx("Share a photo on Instagram and tag"))} ${igUrl ? `<a class="lh-a" href="${F.esc(igUrl)}" style="color:${Lay.C.link}">${F.esc(handle)}</a>` : `<strong style="font-weight:600">${F.esc(handle)}</strong>`}${F.esc(tx(". We feature our favorites."))}`, { size: 15, lh: 23 }),
+        tx(`Show us your fridge! Share a photo on Instagram and tag ${handle}${igUrl ? ` (${igUrl})` : ""}.`), "cream"),
       codeText ? Lay.p([{ b: "A little thank-you" }, ` for your next order: ${off}${code.expiresAt ? ` until ${F.fmtDate(code.expiresAt)}` : ""}.`], { pad: "6px 0 12px" }) : null,
       codeText ? Lay.code(codeText, ["Enter it at checkout. Share it with a friend if you like!"]) : null,
       Lay.buttons([{ href: L.shop, label: "Shop new designs", variant: "ghost" }], { center: true }),

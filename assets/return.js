@@ -22,7 +22,7 @@
     return el;
   }
   var money = function (n) { return '$' + (Number(n) || 0).toFixed(2); };
-  function day(v) { var d = S.toDate(v); return d ? d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : ''; }
+  function day(v) { var d = S.toDate(v); return d ? d.toLocaleDateString(window.LHH_LANG === 'pt' ? 'pt-BR' : 'en-US', { month: 'long', day: 'numeric' }) : ''; }
   function errText(e) {
     var c = String((e && e.code) || '').replace(/^functions\//, '');
     if (c === 'not-found') return 'We couldn’t find an order with that number and email. Check your confirmation email for both, or contact us and we’ll look it up.';

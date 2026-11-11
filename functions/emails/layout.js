@@ -4,6 +4,7 @@
 "use strict";
 
 const { esc, str, safeUrl, SUPPORT } = require("./format");
+const { tx, get: lang } = require("./i18n");
 
 const C = {
   honey: "#F2A81D", honeySoft: "#F9D88A", wash: "#FDF0D2", ink: "#2B2118", muted: "#6A5845", line: "#E8D6B3",
@@ -20,21 +21,23 @@ function rich(parts) {
   const list = Array.isArray(parts) ? parts : [parts];
   let html = "";
   let text = "";
-  for (const p of list) {
+  for (let p of list) {
     if (p === null || p === undefined || p === false) continue;
     if (typeof p === "string" || typeof p === "number") {
-      html += esc(p);
-      text += str(p);
+      const s = tx(p);
+      html += esc(s);
+      text += str(s);
     } else if (p.a !== undefined) {
+      p = { ...p, a: tx(p.a) };
       const href = safeUrl(p.href);
       html += href ? `<a class="lh-a" href="${esc(href)}" style="color:${C.link};text-decoration:underline">${esc(p.a)}</a>` : esc(p.a);
       text += href && !href.startsWith("mailto:") && str(p.a) !== href ? `${str(p.a)} (${href})` : str(p.a);
     } else if (p.b !== undefined) {
-      html += `<strong style="font-weight:600">${esc(p.b)}</strong>`;
-      text += str(p.b);
+      html += `<strong style="font-weight:600">${esc(tx(p.b))}</strong>`;
+      text += str(tx(p.b));
     } else if (p.i !== undefined) {
-      html += `<em>${esc(p.i)}</em>`;
-      text += str(p.i);
+      html += `<em>${esc(tx(p.i))}</em>`;
+      text += str(tx(p.i));
     } else if (p.code !== undefined) {
       html += `<span style="font-family:Menlo,Consolas,monospace;font-weight:600;letter-spacing:.06em">${esc(p.code)}</span>`;
       text += str(p.code);
@@ -49,6 +52,7 @@ function row(inner, pad = "0 0 24px") {
 }
 
 function hero({ eyebrow, title, lead }) {
+  eyebrow = tx(eyebrow); title = tx(title);
   const lr = lead ? rich(lead) : null;
   const pill = eyebrow
     ? `<table ${T}><tr><td style="background:${C.honeySoft};border-radius:999px;padding:6px 14px 5px;font-family:${FD};font-weight:700;font-size:12px;line-height:16px;letter-spacing:2.4px;text-transform:uppercase;color:${C.ink}">${esc(eyebrow)}</td></tr></table>`
@@ -74,6 +78,7 @@ function p(parts, opts = {}) {
 
 /** Small uppercase section label with a hairline under it. */
 function h2(label) {
+  label = tx(label);
   return {
     html: row(`<p class="lh-m lh-line" style="margin:0;padding:0 0 10px;border-bottom:1px solid ${C.line};font-family:${FD};font-weight:700;font-size:13px;line-height:16px;letter-spacing:2.6px;text-transform:uppercase;color:${C.muted}">${esc(label)}</p>`, "8px 0 16px"),
     text: `${str(label).toUpperCase()}\n${"-".repeat(Math.min(40, str(label).length))}`,
@@ -82,6 +87,7 @@ function h2(label) {
 
 /** A tappable button (min 48 px tall). variant: honey | ink | ghost. */
 function buttonCell(href, label, variant = "honey", full = false) {
+  label = tx(label);
   const url = safeUrl(href, "#");
   const bg = variant === "honey" ? C.honey : variant === "ink" ? C.ink : "transparent";
   const fg = variant === "ink" ? C.cream : C.ink;
@@ -107,7 +113,7 @@ function buttons(items, opts = {}) {
   }
   return {
     html: row(cells, opts.pad || "6px 0 28px"),
-    text: list.map((b) => `${b.label}: ${safeUrl(b.href)}`).join("\n"),
+    text: list.map((b) => `${tx(b.label)}: ${safeUrl(b.href)}`).join("\n"),
   };
 }
 
@@ -122,9 +128,13 @@ function box(innerHtml, innerText, tone = "honey", opts = {}) {
 }
 
 function label(textValue) {
+  textValue = tx(textValue);
   return `<p class="lh-m" style="margin:0 0 6px;font-family:${FD};font-weight:700;font-size:12px;line-height:16px;letter-spacing:2.2px;text-transform:uppercase;color:${C.muted}">${esc(textValue)}</p>`;
 }
+const UNESC = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
 function bodyText(html, opts = {}) {
+  // plain text (no tags): in the email's language too
+  if (lang() === "pt" && typeof html === "string" && !/</.test(html)) html = esc(tx(html.replace(/&(amp|lt|gt|quot|#39);/g, (m) => UNESC[m])));
   return `<p class="${opts.muted ? "lh-m" : "lh-t"}" style="margin:${opts.margin || "0"};font-family:${opts.serif ? FS : FB};font-size:${opts.size || 16}px;line-height:${opts.lh || 25}px;color:${opts.muted ? C.muted : C.ink}${opts.italic ? ";font-style:italic" : ""}${opts.weight ? ";font-weight:" + opts.weight : ""}">${html}</p>`;
 }
 
@@ -134,7 +144,7 @@ function code(codeText, caption) {
   return box(
     `${label("Your code")}<p class="lh-t" style="margin:2px 0 0;font-family:Menlo,Consolas,'Courier New',monospace;font-weight:700;font-size:26px;line-height:34px;letter-spacing:4px;color:${C.ink}">${esc(codeText)}</p>` +
     (cap ? bodyText(cap.html, { muted: true, size: 14, lh: 21, margin: "6px 0 0" }) : ""),
-    `Your code: ${str(codeText)}${cap ? "\n" + cap.text : ""}`, "honey", { center: true, pad: "20px 22px" });
+    `${tx("Your code")}: ${str(codeText)}${cap ? "\n" + cap.text : ""}`, "honey", { center: true, pad: "20px 22px" });
 }
 
 /** Two columns that stack on phones. cols: [{label, html, text}] */
@@ -144,7 +154,7 @@ function columns(cols) {
   const w = list.length > 1 ? "50%" : "100%";
   const html = row(`<table ${T} width="100%"><tr>` + list.map((c, i) =>
     `<td class="stack${i ? " stack-top" : ""}" width="${w}" valign="top" style="padding:0 ${i < list.length - 1 ? "16px" : "0"} 0 0">${label(c.label)}${c.html}</td>`).join("") + "</tr></table>", "0 0 26px");
-  return { html, text: list.map((c) => `${str(c.label).toUpperCase()}\n${c.text}`).join("\n\n") };
+  return { html, text: list.map((c) => `${str(tx(c.label)).toUpperCase()}\n${c.text}`).join("\n\n") };
 }
 
 /** Key/value rows (admin summaries). rows: [[label, valueParts]] */
@@ -152,14 +162,15 @@ function facts(rows) {
   const list = rows.filter((r) => r && r[1] !== undefined && r[1] !== null && r[1] !== "");
   const html = row(`<table ${T} width="100%">` + list.map(([k, v], i) => {
     const r = rich(v);
-    return `<tr><td class="lh-m lh-line" valign="top" width="34%" style="padding:9px 12px 9px 0;border-top:${i ? `1px solid ${C.line}` : "0"};font-family:${FB};font-size:14px;line-height:20px;color:${C.muted}">${esc(k)}</td>` +
+    return `<tr><td class="lh-m lh-line" valign="top" width="34%" style="padding:9px 12px 9px 0;border-top:${i ? `1px solid ${C.line}` : "0"};font-family:${FB};font-size:14px;line-height:20px;color:${C.muted}">${esc(tx(k))}</td>` +
       `<td class="lh-t lh-line" valign="top" style="padding:9px 0;border-top:${i ? `1px solid ${C.line}` : "0"};font-family:${FB};font-size:15px;line-height:21px;color:${C.ink}">${r.html}</td></tr>`;
   }).join("") + "</table>", "0 0 22px");
-  return { html, text: list.map(([k, v]) => `${k}: ${rich(v).text}`).join("\n") };
+  return { html, text: list.map(([k, v]) => `${tx(k)}: ${rich(v).text}`).join("\n") };
 }
 
 /** Numbered "what happens next" steps with honey number chips. steps: [{title, body}] */
 function steps(list) {
+  list = list.map((s) => ({ ...s, title: tx(s.title) }));
   const html = row(`<table ${T} width="100%">` + list.map((s, i) =>
     `<tr><td valign="top" width="44" style="padding:0 14px ${i < list.length - 1 ? "16px" : "0"} 0">` +
     `<table ${T}><tr><td align="center" valign="middle" width="32" height="32" bgcolor="${C.honey}" style="width:32px;height:32px;border-radius:10px;background:${C.honey};font-family:${FD};font-weight:700;font-size:15px;line-height:32px;color:${C.ink};text-align:center">${i + 1}</td></tr></table></td>` +
@@ -169,7 +180,7 @@ function steps(list) {
 
 /** Order progress: Ordered · Making · Shipped · Delivered, `at` = index of the current step. */
 function progress(at) {
-  const names = ["Ordered", "Making", "Shipped", "Delivered"];
+  const names = ["Ordered", "Making", "Shipped", "Delivered"].map(tx);
   const bars = names.map((n, i) =>
     `<td width="25%" style="padding:0 ${i < 3 ? "4px" : "0"} 0 ${i ? "4px" : "0"}"><table ${T} width="100%"><tr><td height="8" bgcolor="${i <= at ? C.honey : C.fridge}" class="${i <= at ? "" : "lh-track"}" style="height:8px;line-height:8px;font-size:0;border-radius:99px;background:${i <= at ? C.honey : C.fridge}">&nbsp;</td></tr></table></td>`).join("");
   const labels = names.map((n, i) =>
@@ -183,7 +194,7 @@ function progress(at) {
 /** Five star links (rating 1..5). */
 function stars(hrefFor) {
   const cells = [1, 2, 3, 4, 5].map((n) =>
-    `<td align="center" style="padding:0 4px"><a href="${esc(hrefFor(n))}" target="_blank" title="${n} star${n > 1 ? "s" : ""}" aria-label="${n} star${n > 1 ? "s" : ""}" style="display:inline-block;width:48px;height:48px;line-height:48px;border-radius:14px;background:${C.honey};color:${C.ink};font-size:26px;text-decoration:none;text-align:center;font-family:Arial,sans-serif">&#9733;</a></td>`).join("");
+    `<td align="center" style="padding:0 4px"><a href="${esc(hrefFor(n))}" target="_blank" title="${n} ${lang() === "pt" ? (n > 1 ? "estrelas" : "estrela") : n > 1 ? "stars" : "star"}" aria-label="${n} ${lang() === "pt" ? (n > 1 ? "estrelas" : "estrela") : n > 1 ? "stars" : "star"}" style="display:inline-block;width:48px;height:48px;line-height:48px;border-radius:14px;background:${C.honey};color:${C.ink};font-size:26px;text-decoration:none;text-align:center;font-family:Arial,sans-serif">&#9733;</a></td>`).join("");
   return {
     html: row(`<table ${T} align="center"><tr>${cells}</tr></table>`, "4px 0 10px"),
     text: [5, 4, 3, 2, 1].map((n) => `${"*".repeat(n)}${" ".repeat(6 - n)}${hrefFor(n)}`).join("\n"),
@@ -192,7 +203,7 @@ function stars(hrefFor) {
 
 /** A row of design thumbnails with titles. items: [{src, alt, title, href}] (max 3) */
 function gallery(items) {
-  const list = items.filter((g) => g && safeUrl(g.src)).slice(0, 3);
+  const list = items.filter((g) => g && safeUrl(g.src)).slice(0, 3).map((g) => ({ ...g, sub: tx(g.sub) }));
   if (!list.length) return { html: "", text: "" };
   const cells = list.map((g, i) =>
     `<td width="33%" valign="top" align="center" style="padding:0 ${i < list.length - 1 ? "8px" : "0"} 0 ${i ? "8px" : "0"}">` +
@@ -278,15 +289,15 @@ function page(opts) {
     ? small(`Little Hive House store alert · ${a(L.adminHome, "Open the admin")}`, "0")
     : `<img src="${esc(L.hexes)}" width="54" height="18" alt="" style="display:block;margin:0 auto;width:54px;height:18px">` +
       `<p class="lh-t" style="margin:14px 0 0;font-family:${FD};font-weight:700;font-size:13px;line-height:18px;letter-spacing:2.6px;text-transform:uppercase;color:${C.ink}">Little Hive House</p>` +
-      small("Handmade fridge magnets and little gifts, made by hand in small batches.", "6px 0 0") +
-      small(`Questions? Just reply, or write to ${a(`mailto:${SUPPORT}`, SUPPORT)}`) +
-      small(a(L.site, L.host) + (L.shipping ? ` · ${a(L.shipping, "Shipping")}` : "") + (L.returns ? ` · ${a(L.returns, "Returns")}` : "")) +
-      (opts.reason ? small(esc(opts.reason)) : "") +
-      (unsub ? small(`${a(unsub, "Unsubscribe")} from these emails at any time.`) : "") +
+      small(tx("Handmade fridge magnets and little gifts, made by hand in small batches."), "6px 0 0") +
+      small(`${tx("Questions? Just reply, or write to")} ${a(`mailto:${SUPPORT}`, SUPPORT)}`) +
+      small(a(L.site, L.host) + (L.shipping ? ` · ${a(L.shipping, tx("Shipping"))}` : "") + (L.returns ? ` · ${a(L.returns, tx("Returns"))}` : "")) +
+      (opts.reason ? small(esc(tx(opts.reason))) : "") +
+      (unsub ? small(lang() === "pt" ? `${a(unsub, "Cancele")} estes e-mails quando quiser.` : `${a(unsub, "Unsubscribe")} from these emails at any time.`) : "") +
       (postal ? small(esc(postal)) : "");
 
   const html = `<!doctype html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<html lang="${lang() === "pt" ? "pt-BR" : "en"}" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -302,7 +313,7 @@ function page(opts) {
 <style>${STYLE}</style>
 </head>
 <body class="lh-bg" style="margin:0;padding:0;background:${C.cream};word-spacing:normal">
-<div role="article" aria-roledescription="email" aria-label="${esc(opts.title)}" lang="en" style="font-size:16px">
+<div role="article" aria-roledescription="email" aria-label="${esc(opts.title)}" lang="${lang() === "pt" ? "pt-BR" : "en"}" style="font-size:16px">
 <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">${esc(pre)}${spacer}</div>
 <table ${T} width="100%" class="lh-bg" bgcolor="${C.cream}" style="background:${C.cream}">
 <tr><td align="center" style="padding:${admin ? "20px" : "28px"} 10px 40px">
@@ -326,8 +337,8 @@ ${blocks.map((b) => b.html).join("\n")}
   const textBody = blocks.map((b) => b.text).filter(Boolean).join("\n\n");
   const footerText = admin
     ? `--\nLittle Hive House store alert\n${L.adminHome}`
-    : ["--", "Little Hive House · handmade fridge magnets and little gifts", `Questions? Just reply, or write to ${SUPPORT}`, L.site, L.shipping ? `Shipping: ${L.shipping}` : "", L.returns ? `Returns: ${L.returns}` : "",
-      opts.reason || "", unsub ? `Unsubscribe: ${unsub.replace(/^mailto:/, "")}` : "", postal].filter(Boolean).join("\n");
+    : ["--", tx("Little Hive House · handmade fridge magnets and little gifts"), `${tx("Questions? Just reply, or write to")} ${SUPPORT}`, L.site, L.shipping ? `${tx("Shipping")}: ${L.shipping}` : "", L.returns ? `${tx("Returns")}: ${L.returns}` : "",
+      tx(opts.reason) || "", unsub ? `${tx("Unsubscribe")}: ${unsub.replace(/^mailto:/, "")}` : "", postal].filter(Boolean).join("\n");
   const text = `${admin ? "LITTLE HIVE HOUSE · STORE ALERT" : "LITTLE HIVE HOUSE"}\n\n${textBody}\n\n${footerText}\n`;
   return { html, text: text.replace(/\n{3,}/g, "\n\n") };
 }

@@ -402,3 +402,13 @@
   /* cart.html opened without products: show the cart right away */
   try { if (document.querySelector('[data-cart-page]') && !/[?&]products=/.test(location.search)) openCart(); } catch (e) {}
 })();
+
+/* EN | PT at the top: keeps the choice and shows the page again in that language */
+document.addEventListener("click", function (e) {
+  var a = e.target.closest && e.target.closest("[data-set-lang]");
+  if (!a) return;
+  e.preventDefault();
+  var l = a.getAttribute("data-set-lang");
+  try { localStorage.setItem("lhh-lang", l); } catch (err) {}
+  if (l !== (window.LHH_LANG || "en")) location.reload();
+});

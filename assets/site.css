@@ -1076,3 +1076,13 @@ html.studio-open { overflow: hidden; }
 .pdp-eta { font-size: 15px; color: var(--muted); }
 .pdp-facts { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
 @media (max-width: 720px) { .pdp { grid-template-columns: 1fr; } .pdp-info .btn-honey { align-self: stretch; } }
+
+/* EN | PT switch (top strip and mobile menu) */
+.lang-sw { display: inline-flex; gap: 2px; vertical-align: middle; white-space: nowrap; }
+.lang-sw a { color: inherit; text-decoration: none; font-weight: 600; letter-spacing: .06em; padding: 1px 6px; border-radius: 999px; opacity: .65; }
+.lang-sw a:hover { opacity: 1; }
+html[data-lang=en] .lang-sw a[data-set-lang=en], html[data-lang=pt] .lang-sw a[data-set-lang=pt] { opacity: 1; background: color-mix(in srgb, currentColor 18%, transparent); }
+.lang-row { display: flex; align-items: center; justify-content: space-between; }
+.lang-sw-menu a { padding: 4px 12px; font-size: 15px; }
+.strip .dot-lang { padding-inline: 10px; }
+@media (max-width: 640px) { .strip .dot-lang { display: none; } .strip .lang-sw { display: inline-flex; margin-left: 6px; } }

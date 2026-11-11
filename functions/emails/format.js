@@ -99,7 +99,7 @@ function fmtDate(v, withTime = false) {
   const bare = !withTime && d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0;
   const o = { month: "short", day: "numeric", year: "numeric", timeZone: bare ? "UTC" : STORE_TZ };
   if (withTime) Object.assign(o, { hour: "numeric", minute: "2-digit" });
-  return new Intl.DateTimeFormat("en-US", o).format(d);
+  return new Intl.DateTimeFormat(require("./i18n").get() === "pt" ? "pt-BR" : "en-US", o).format(d);
 }
 /** Whole days between a date and now (or `now`). */
 function daysSince(v, now = new Date()) {

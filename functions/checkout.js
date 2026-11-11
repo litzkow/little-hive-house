@@ -23,6 +23,7 @@ function taxWanted() { return String(env("STRIPE_TAX") || "").toLowerCase() !== 
    charging at checkout. Card holds last about 7 days; payments.checkHolds() warns the owners before they end. */
 function chargeOnShip() { return String(env("CAPTURE") || "").toLowerCase() !== "now"; }
 const HOLD_TEXT = "Your card is authorized now and charged only when your order ships.";
+const HOLD_TEXT_PT = "O seu cartão é autorizado agora e só é cobrado quando o pedido for enviado.";
 function isTaxSetupError(err) {
   if (!err || !(err.status >= 400 && err.status < 500)) return false;
   return /tax/i.test(`${err.message || ""} ${err.code || ""} ${err.param || ""}`);
@@ -30,42 +31,53 @@ function isTaxSetupError(err) {
 
 const PHOTO_PATH = /^uploads\/([^/]+)\/([A-Za-z0-9_-]{1,64})\/(\d{1,3})\.(jpe?g|png|heic|heif|webp)$/i;
 
+/** A cart line's name on Stripe's page in Portuguese (design names stay as printed on the magnet). */
+function ptName(l) {
+  const n = String(l.name || "");
+  if (l.kind === "design") return `Ímã ${n.replace(/ magnet$/, "")}`;
+  if (l.kind === "photos") return `Ímãs com foto (${l.count})`;
+  const I = require("./emails/i18n");
+  I.set("pt");
+  try { return I.tx(n); } finally { I.set("en"); }
+}
 /** Stripe line items whose amounts add up to the discounted goods total. */
-function stripeLineItems(priced, base = siteUrl(), tax = false) {
+function stripeLineItems(priced, base = siteUrl(), tax = false, lang = "en") {
+  const pt = lang === "pt";
   const shares = allocate(priced.lines, priced.totals);
   return priced.lines.map((l, i) => {
     const { net, discount } = shares[i];
-    const product = { name: l.name.slice(0, 240) };
+    const product = { name: (pt ? ptName(l) : l.name).slice(0, 240) };
     if (l.kind === "design") {
       const slug = String(l.id).split("/").pop();
       product.images = [`${base}/assets/email/thumbs/${l.collection}/${slug}.jpg`];
-      product.description = "2 × 2 in magnet";
+      product.description = pt ? "Ímã de 2 × 2 pol. (5 cm)" : "2 × 2 in magnet";
     } else if (l.kind === "photos") {
-      product.description = `${l.count} custom photo magnets, 2 × 2 in`;
+      product.description = pt ? `${l.count} ímãs com foto personalizados, 2 × 2 pol. (5 cm)` : `${l.count} custom photo magnets, 2 × 2 in`;
     } else if (l.kind === "package") {
-      product.description = `${l.count} custom magnets. We email you about your design after checkout.`;
+      product.description = pt ? `${l.count} ímãs personalizados. Depois do pagamento, mandamos um e-mail sobre o seu modelo.` : `${l.count} custom magnets. We email you about your design after checkout.`;
     }
     if (tax) product.tax_code = TAX_GOODS;
-    if (discount > 0) product.description = `${product.description ? product.description + " · " : ""}bundle and big-order savings included`;
+    if (discount > 0) product.description = `${product.description ? product.description + " · " : ""}${pt ? "descontos do combo e de quantidade incluídos" : "bundle and big-order savings included"}`;
     if (net % l.qty === 0) {
       return { price_data: { currency: "usd", unit_amount: net / l.qty, product_data: product, ...(tax ? { tax_behavior: "exclusive" } : {}) }, quantity: l.qty };
     }
-    product.name = `${l.name} × ${l.qty}`.slice(0, 240);
+    product.name = `${pt ? ptName(l) : l.name} × ${l.qty}`.slice(0, 240);
     return { price_data: { currency: "usd", unit_amount: net, product_data: product, ...(tax ? { tax_behavior: "exclusive" } : {}) }, quantity: 1 };
   });
 }
 
-function sessionParams({ orderId, priced, email, tax = false }) {
+function sessionParams({ orderId, priced, email, tax = false, lang = "en" }) {
+  const pt = lang === "pt";
   const base = siteUrl();
   const ship = priced.totals.ship;
   const p = {
     mode: "payment",
-    line_items: stripeLineItems(priced, base, tax),
+    line_items: stripeLineItems(priced, base, tax, lang),
     shipping_address_collection: { allowed_countries: ["US", "CA"] },
     shipping_options: [{
       shipping_rate_data: {
         type: "fixed_amount", fixed_amount: { amount: ship, currency: "usd" },
-        display_name: ship ? "Standard shipping" : "Free shipping",
+        display_name: pt ? (ship ? "Frete padrão" : "Frete grátis") : ship ? "Standard shipping" : "Free shipping",
         delivery_estimate: { minimum: { unit: "business_day", value: Delivery.MAKE[0] + Delivery.SHIP[0] }, maximum: { unit: "business_day", value: Delivery.MAKE[1] + 1 + Delivery.SHIP[1] } },
         ...(tax ? { tax_behavior: "exclusive", tax_code: TAX_SHIPPING } : {}),
       },
@@ -74,7 +86,8 @@ function sessionParams({ orderId, priced, email, tax = false }) {
     client_reference_id: orderId,
     metadata: { orderId },
     payment_intent_data: { metadata: { orderId }, description: "Little Hive House order", ...(chargeOnShip() ? { capture_method: "manual" } : {}) },
-    ...(chargeOnShip() ? { custom_text: { submit: { message: HOLD_TEXT } } } : {}),
+    ...(chargeOnShip() ? { custom_text: { submit: { message: pt ? HOLD_TEXT_PT : HOLD_TEXT } } } : {}),
+    ...(pt ? { locale: "pt-BR" } : {}),
     success_url: `${base}/thank-you.html?order=${orderId}&session={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/shop.html?checkout=canceled`,
   };
@@ -116,6 +129,7 @@ async function createCheckout(data, auth) {
     number: null, uid: auth && auth.uid && !anon ? auth.uid : null, guestUid: auth && anon ? auth.uid : null,
     email, name: "", status: "pending", items: priced.items, pricing: priced.pricing, shipping: null,
     giftMessage: U.text(data.giftMessage, 300), notes: U.text(data.notes, 1000), marketing: data.marketing === true,
+    lang: data.lang === "pt" ? "pt" : "en",   // the site's EN/PT choice: Stripe's page and every email of this order follow it
     stripe: { sessionId: null, paymentIntent: null, customer: null, fee: null },
     fulfillment: null, refunds: [], refundedTotal: 0, adminNotes: [],
     timeline: [{ at, status: "pending", text: O.TIMELINE_TEXT.pending }],
@@ -127,14 +141,14 @@ async function createCheckout(data, auth) {
   let taxOn = taxWanted();
   try {
     try {
-      session = await stripe.request("POST", "/checkout/sessions", sessionParams({ orderId: ref.id, priced, email, tax: taxOn }),
+      session = await stripe.request("POST", "/checkout/sessions", sessionParams({ orderId: ref.id, priced, email, tax: taxOn, lang: order.lang }),
         { idempotencyKey: `checkout-${ref.id}${taxOn ? "" : "-notax"}` });
     } catch (err) {
       if (!taxOn || !isTaxSetupError(err)) throw err;
       // Stripe Tax isn't switched on in the Stripe dashboard yet: take the order anyway, without tax, and tell the owners.
       console.warn("[checkout] Stripe Tax unavailable, continuing without tax:", err.message);
       taxOn = false;
-      session = await stripe.request("POST", "/checkout/sessions", sessionParams({ orderId: ref.id, priced, email, tax: false }),
+      session = await stripe.request("POST", "/checkout/sessions", sessionParams({ orderId: ref.id, priced, email, tax: false, lang: order.lang }),
         { idempotencyKey: `checkout-${ref.id}-notax` });
     }
   } catch (err) {

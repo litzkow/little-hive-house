@@ -20,7 +20,7 @@ module.exports = function refund(data, { L }) {
 
   const amountBox = Lay.box(
     `${Lay.label(full ? "Full refund" : "Partial refund")}<p class="lh-t" style="margin:2px 0 0;font-family:${Lay.FD};font-weight:700;font-size:38px;line-height:44px;color:${Lay.C.ink}">${F.esc(F.money(amount, cur))}</p>` +
-    Lay.bodyText(`Back to your original payment method${num ? ` for order ${F.esc(num)}` : ""}`, { muted: true, size: 14, lh: 20, margin: "4px 0 0" }),
+    Lay.bodyText(F.esc(require("../i18n").tx(`Back to your original payment method${num ? ` for order ${num}` : ""}`)), { muted: true, size: 14, lh: 20, margin: "4px 0 0" }),
     `${full ? "Full refund" : "Partial refund"}: ${F.money(amount, cur)}${num ? ` (order ${num})` : ""}`, "honey", { center: true, pad: "24px 22px" });
 
   const reasonLine = why

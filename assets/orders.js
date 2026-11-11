@@ -33,7 +33,7 @@
   }
   function svg(markup) { var t = document.createElement('span'); t.className = 'othumb-art'; t.innerHTML = markup; return t; }
   var money = function (n) { n = Number(n) || 0; return (n < 0 ? '−' : '') + '$' + Math.abs(n).toFixed(2); };
-  function day(v, opts) { var d = S.toDate(v); return d ? d.toLocaleDateString('en-US', opts || { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
+  function day(v, opts) { var d = S.toDate(v); return d ? d.toLocaleDateString(window.LHH_LANG === 'pt' ? 'pt-BR' : 'en-US', opts || { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
   function dayShort(v) { return day(v, { month: 'short', day: 'numeric' }); }
 
   /* ---------- statuses ---------- */
@@ -128,7 +128,7 @@
   /* automatic carrier tracking (trackShipments fills fulfillment.trackingStatus + events every 2 hours) */
   var LIVE = { pre_transit: ['Label created', 'wait'], in_transit: ['In transit', 'ship'], out_for_delivery: ['Out for delivery today', 'ofd'],
                delivered: ['Delivered', 'done'], exception: ['Delivery update', 'alert'] };
-  function whenShort(v) { var d = S.toDate(v); return d ? d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''; }
+  function whenShort(v) { var d = S.toDate(v); return d ? d.toLocaleString(window.LHH_LANG === 'pt' ? 'pt-BR' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''; }
   function liveTracking(o) {
     var f = o.fulfillment || {}, ev = (f.events || []).filter(function (e) { return e && (e.text || e.at); });
     var st = LIVE[f.trackingStatus];
@@ -221,7 +221,7 @@
     return h('section', { class: 'panel', 'aria-labelledby': 'ohist-h' }, h('h2', { id: 'ohist-h', text: 'Order history' }),
       h('ol', { class: 'ohist' }, t.map(function (e) {
         var d = S.toDate(e.at);
-        return h('li', null, h('time', { datetime: d ? d.toISOString() : null, text: d ? d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '' }),
+        return h('li', null, h('time', { datetime: d ? d.toISOString() : null, text: d ? d.toLocaleString(window.LHH_LANG === 'pt' ? 'pt-BR' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '' }),
           h('span', { text: e.text || (STATUS[e.status] || [e.status])[0] }));
       })));
   }

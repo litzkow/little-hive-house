@@ -129,7 +129,9 @@
 
   /* ---------- callables, Firestore, Storage ---------- */
   function call(name, data) {
-    return app().then(function (fb) { return fb.app().functions(REGION).httpsCallable(name)(data || {}); })
+    data = data || {};
+    if (data.lang === undefined) data.lang = window.LHH_LANG === 'pt' ? 'pt' : 'en';   /* emails and Stripe follow the site's language */
+    return app().then(function (fb) { return fb.app().functions(REGION).httpsCallable(name)(data); })
       .then(function (r) { return r && r.data; });
   }
   function signedIn() {

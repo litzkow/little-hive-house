@@ -129,6 +129,36 @@ IDEA_ART = (("places", "savannah"), ("furry-friends", "dog-mom"), ("kitchen-word
             ("bee-kind", "bee-kind"), ("world", "santorini"))
 
 
+
+def i18n_version():
+    """Changes whenever the translator or the Portuguese dictionary changes, so phones fetch the new one."""
+    import hashlib
+    h = hashlib.sha1()
+    for f in ("i18n.js", "i18n-pt.js"):
+        fp = ROOT / "assets" / f
+        if fp.exists():
+            h.update(fp.read_bytes())
+    return h.hexdigest()[:8]
+
+
+def lang_head(pg):
+    """The visitor's language: their EN/PT choice (localStorage "lhh-lang"), else their phone's language.
+    In Portuguese the page stays hidden until it's translated (at most 3 s), so English never flashes."""
+    v = i18n_version()
+    return ("<script>(function(){var l;try{l=localStorage.getItem('lhh-lang')}catch(e){}"
+            "if(l!=='en'&&l!=='pt'){var n=((navigator.languages||[])[0]||navigator.language||'');l=/^pt/i.test(n)?'pt':'en'}"
+            "window.LHH_LANG=l;var h=document.documentElement;h.setAttribute('data-lang',l);"
+            "if(l==='pt'){h.lang='pt-BR';setTimeout(function(){h.classList.add('i18n-ready')},3000);"
+            f"document.write('<script src=\"{pg.p}assets/i18n.js?v={v}\"><\\/script><script src=\"{pg.p}assets/i18n-pt.js?v={v}\"><\\/script>')}}}})();</script>\n"
+            "<style>html[data-lang=pt]:not(.i18n-ready) body{visibility:hidden}</style>")
+
+
+def lang_switch(cls="lang-sw"):
+    """EN | PT: the visitor's choice is kept (assets/site.js); the current one is marked by CSS."""
+    return (f'<span class="{cls}" translate="no" role="group" aria-label="Language / Idioma">'
+            '<a href="#" data-set-lang="en" lang="en" hreflang="en">EN</a><a href="#" data-set-lang="pt" lang="pt-BR" hreflang="pt-BR">PT</a></span>')
+
+
 def head(pg, title, desc, path):
     full = "Little Hive House · Handmade Fridge Magnets" if title is None else f"{title} · Little Hive House"
     return f"""<!doctype html>
@@ -154,6 +184,7 @@ def head(pg, title, desc, path):
 <meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="https://littlehivehouse.com/site.webmanifest">
 <script>(function(){{var h=new Date().getHours(),t=(h>=6&&h<19)?'light':'dark';try{{var m=JSON.parse(localStorage.getItem('lhh-theme2')||'null');if(m&&m.until>Date.now()&&(m.t==='light'||m.t==='dark'))t=m.t;localStorage.removeItem('lhh-theme')}}catch(e){{}}document.documentElement.setAttribute('data-theme',t);var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),z='winter',T={DECOR_JS};for(var i=0;i<T.length;i++)if(k>=T[i][0]&&k<=T[i][1])z=T[i][2];document.documentElement.setAttribute('data-season',z)}})();</script>
+{lang_head(pg)}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
@@ -176,7 +207,7 @@ def header(pg, active):
         return line
     subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
-<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span>{social_strip()}</div>
+<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span>{social_strip()}<span class="dot dot-lang" aria-hidden="true">·</span>{lang_switch()}</div>
 
 <header class="site-header">
   <div class="wrap header-row">
@@ -211,6 +242,7 @@ def header(pg, active):
       <a class="acct-link" href="{pg.p}account.html" data-account-menu>Your account</a>
       <a class="acct-link" href="{pg.p}favorites.html">Favorites</a>
       <a class="acct-link" href="{pg.p}track.html">Track an order</a>
+      <div class="acct-link lang-row"><span>Language</span>{lang_switch("lang-sw lang-sw-menu")}</div>
 {social_menu()}
 {subs}
     </nav>
@@ -255,7 +287,7 @@ def product(pg, col, slug, show_col=True, more=False):
     return f"""<li class="product" data-collection="{col["slug"]}" data-search="{search}"{extra}>
   <button type="button" class="product-art" data-view aria-label="See {E(t)} larger">{pg.svg(col["slug"], slug)}</button>
   <div class="product-info">
-    <h3><a href="{pg.p}m/{col["slug"]}/{slug}.html">{E(t)}</a></h3>
+    <h3 translate="no"><a href="{pg.p}m/{col["slug"]}/{slug}.html">{E(t)}</a></h3>
     {meta}
     <p class="price">${PRICE}</p>
   </div>
@@ -921,7 +953,7 @@ def page_product(col, slug, siblings):
       <div class="pdp-art fridge"><img class="mag" src="{pg.p}{img}" width="{size}" height="{size}" alt="{E(t)} fridge magnet" decoding="async"></div>
       <div class="pdp-info">
         <p class="eyebrow"><a href="{href}">{E(col["name"])}</a></p>
-        <h1>{E(t)}</h1>
+        <h1 translate="no">{E(t)}</h1>
         <p class="pdp-price">${PRICE} <span>2 × 2 in magnet</span></p>
         <div class="head-row">{deal()} {vol_badge()}</div>
         <button type="button" class="btn btn-honey" data-add="{col["slug"]}/{slug}" data-name="{E(t)}" data-collection="{E(col["name"])}" data-href="{href}">Add to cart</button>

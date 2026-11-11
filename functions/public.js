@@ -8,6 +8,9 @@ const mail = require("./mail");
 const U = require("./util");
 const customer = require("./customer");
 
+/** The visitor's site language ("pt" or "en"), sent by assets/store.js with every call: their emails follow it. */
+function langOf(data) { return data && data.lang === "pt" ? "pt" : "en"; }
+
 async function subscribe(data, auth, rawRequest) {
   const email = U.cleanEmail(data && data.email);
   const source = U.text(data && data.source, 40) || "site";
@@ -21,7 +24,7 @@ async function subscribe(data, auth, rawRequest) {
     fresh = true;
     tx.set(ref, { email, at: nowIso(), source, unsubscribed: false });
   });
-  if (fresh) await mail.send({ to: email, kind: "newsletter_welcome", data: { email } });
+  if (fresh) await mail.send({ to: email, kind: "newsletter_welcome", data: { email, lang: langOf(data) } });
   return { ok: true, already: !fresh };
 }
 
@@ -47,7 +50,7 @@ async function contact(data, auth, rawRequest) {
   const ref = await deps.db().collection("messages").add(doc);
   const c = { name, email, topic, message, orderNumber: U.text(data && data.orderNumber, 30), at: doc.at };
   await mail.send({ to: mailAdmin(), kind: "admin_contact", data: { ...c, contact: c, messageId: ref.id }, replyTo: email });
-  await mail.send({ to: email, kind: "contact_autoreply", data: { ...c, contact: c } });
+  await mail.send({ to: email, kind: "contact_autoreply", data: { ...c, contact: c, lang: langOf(data) } });
   return { ok: true, id: ref.id };
 }
 
@@ -87,7 +90,7 @@ async function requestQuote(data, auth, rawRequest) {
   const ref = await deps.db().collection("quotes").add({ ...quote, at: nowIso(), status: "new", uid: auth ? auth.uid : null });
   const at = nowIso();
   await mail.send({ to: mailAdmin(), kind: "admin_quote", data: { ...quote, quote, quoteId: ref.id, at }, replyTo: quote.email });
-  await mail.send({ to: quote.email, kind: "quote_received", data: { ...quote, quote } });
+  await mail.send({ to: quote.email, kind: "quote_received", data: { ...quote, quote, lang: langOf(d) } });
   return { ok: true, id: ref.id };
 }
 
@@ -105,7 +108,7 @@ async function sendPasswordReset(data, auth, rawRequest) {
     console.error("[sendPasswordReset]", err);
     fail("unavailable", "We couldn't send the reset email right now. Please try again in a few minutes.");
   }
-  const res = await mail.send({ to: email, kind: "password_reset", data: { link, email, expiresMinutes: 60 } });
+  const res = await mail.send({ to: email, kind: "password_reset", data: { link, email, expiresMinutes: 60, lang: langOf(data) } });
   if (res.skipped) fail("unavailable", "We couldn't send the reset email right now. Please try again in a few minutes.");
   return { ok: true };
 }
@@ -138,7 +141,7 @@ async function welcome(data, auth) {
   });
   let verifySent = false;
   if (verify) {
-    try { verifySent = !(await customer.sendVerification(auth, { name })).skipped; } catch (e) { verifySent = false; }
+    try { verifySent = !(await customer.sendVerification(auth, { name, lang: langOf(data) })).skipped; } catch (e) { verifySent = false; }
     if (!verifySent) await ref.set({ verifySentAt: null }, { merge: true }).catch(() => {});   // the account page offers "Resend"
   }
   const linked = verified ? await customer.linkGuestOrders(auth) : 0;
@@ -159,7 +162,7 @@ async function welcome(data, auth) {
         }
       } catch (e) { promo = null; }
     }
-    await mail.send({ to: email, kind: "welcome", data: { name, email, firstName: name.split(/\s+/)[0] || "", promo } });
+    await mail.send({ to: email, kind: "welcome", data: { name, email, firstName: name.split(/\s+/)[0] || "", promo, lang: langOf(data) } });
   }
   return { ok: true, welcomed: send, verifySent, linked };
 }

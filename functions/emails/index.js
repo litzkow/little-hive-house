@@ -5,6 +5,7 @@
 
 const F = require("./format");
 const { page } = require("./layout");
+const I18n = require("./i18n");
 
 const KINDS = {
   order_confirmation: require("./kinds/order_confirmation"),
@@ -59,9 +60,16 @@ function render(kind, data) {
   const build = Object.prototype.hasOwnProperty.call(KINDS, kind) ? KINDS[kind] : null;
   if (!build) throw new Error(`Unknown email kind: ${kind}`);
   const d = normalize(kind, data && typeof data === "object" ? data : {});
+  // the customer's language (order.lang or data.lang); store alerts to the owners stay in English
+  I18n.set(/^admin_/.test(kind) ? "en" : I18n.pick(d));
+  try { return renderIn(kind, build, d); } finally { I18n.set("en"); }
+}
+function renderIn(kind, build, d) {
+  const tx = I18n.tx;
   const L = F.links(F.siteUrl(d));
   L.fromOrder(d.order);
   const out = build(d, { L });
+  out.subject = tx(out.subject); out.preheader = tx(out.preheader); out.reason = tx(out.reason);
   const subject = F.line(out.subject, 160);
   const marketing = MARKETING.has(kind) || !!out.marketing;
   const unsub = F.safeUrl(out.unsubscribeUrl || d.unsubscribeUrl);

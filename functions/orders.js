@@ -256,7 +256,7 @@ function emailOrder(id, o) {
   const base = siteUrl();
   const f = o.fulfillment || {};
   return {
-    id, number: o.number || "", name: o.name || "", firstName: firstName(o.name), email: o.email || "",
+    id, number: o.number || "", name: o.name || "", firstName: firstName(o.name), email: o.email || "", lang: o.lang === "pt" ? "pt" : "en",
     status: o.status, statusLabel: STATUS_LABELS[o.status] || o.status,
     items: emailItems(o), pricing: o.pricing || {}, shipping: o.shipping || null, giftMessage: o.giftMessage || "",
     notes: o.notes || "", createdAt: o.createdAt || null, paidAt: o.paidAt || null, refundedTotal: o.refundedTotal || 0,

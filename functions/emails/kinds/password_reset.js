@@ -2,6 +2,7 @@
 "use strict";
 const F = require("../format");
 const Lay = require("../layout");
+const { tx } = require("../i18n");
 
 module.exports = function passwordReset(data, { L }) {
   const link = F.safeUrl(data.link);
@@ -21,8 +22,8 @@ module.exports = function passwordReset(data, { L }) {
       Lay.p([`For your security this link expires in ${expires} and works only once. If it has expired, you can `, { a: "ask for a new one", href: L.account }, "."], { muted: true, small: true }),
       link ? Lay.p(["Button not working? Copy this link into your browser:"], { muted: true, small: true, pad: "0 0 6px" }) : null,
       link ? Lay.raw(`<p class="lh-m" style="margin:0;font-family:Menlo,Consolas,monospace;font-size:12px;line-height:18px;color:${Lay.C.muted};word-break:break-all"><a class="lh-a" href="${F.esc(link)}" style="color:${Lay.C.link}">${F.esc(link)}</a></p>`, "", "0 0 22px") : null,
-      Lay.box(Lay.bodyText("<strong style=\"font-weight:600\">Didn't ask for this?</strong> You can ignore this email. Your password stays the same and nobody can change it without this link.", { size: 14, lh: 21 }),
-        "Didn't ask for this? You can ignore this email. Your password stays the same.", "cream"),
+      Lay.box(Lay.bodyText(`<strong style="font-weight:600">${F.esc(tx("Didn't ask for this?"))}</strong> ${F.esc(tx("You can ignore this email. Your password stays the same and nobody can change it without this link."))}`, { size: 14, lh: 21 }),
+        tx("Didn't ask for this? You can ignore this email. Your password stays the same."), "cream"),
     ],
     reason: "You're getting this email because a password reset was requested for your account.",
   };

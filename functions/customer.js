@@ -112,7 +112,7 @@ async function linkGuestOrders(auth) {
  * Sends the branded "confirm your email" email (verify_email) with Firebase's verification link.
  * Used by welcome() right after sign-up and by sendVerifyEmail() (the "Resend" button). Returns the mail.send result.
  */
-async function sendVerification(auth, { name } = {}) {
+async function sendVerification(auth, { name, lang } = {}) {
   const email = String(auth.token.email || "").trim().toLowerCase();
   if (!email) fail("failed-precondition", "This account has no email address.");
   let link;
@@ -122,7 +122,7 @@ async function sendVerification(auth, { name } = {}) {
     console.error("[sendVerification]", err && (err.code || err.message));
     fail("unavailable", "We couldn't make your confirmation link right now. Please try again in a few minutes.");
   }
-  const res = await mail.send({ to: email, kind: "verify_email", data: { link, email, name: name || auth.token.name || "" } });
+  const res = await mail.send({ to: email, kind: "verify_email", data: { link, email, name: name || auth.token.name || "", lang: lang === "pt" ? "pt" : "en" } });
   if (!res.skipped) await deps.db().collection("users").doc(auth.uid).set({ verifySentAt: nowIso() }, { merge: true }).catch(() => {});
   return res;
 }
@@ -133,7 +133,7 @@ async function sendVerifyEmail(data, auth) {
   if (auth.token.email_verified === true) return { ok: true, already: true };
   await U.rateLimit("verify", auth.uid, 4, 3600);
   if (!env("RESEND_API_KEY")) fail("failed-precondition", "Email is not set up yet. Please write to support@littlehivehouse.com.");
-  const res = await sendVerification(auth);
+  const res = await sendVerification(auth, { lang: data && data.lang });
   if (res.skipped) fail("unavailable", "We couldn't send the email right now. Please try again in a few minutes.");
   return { ok: true };
 }

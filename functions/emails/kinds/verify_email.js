@@ -2,6 +2,7 @@
 "use strict";
 const F = require("../format");
 const Lay = require("../layout");
+const { tx } = require("../i18n");
 
 module.exports = function verifyEmail(data, { L }) {
   const link = F.safeUrl(data.link);
@@ -24,8 +25,8 @@ module.exports = function verifyEmail(data, { L }) {
       ]),
       link ? Lay.p(["Button not working? Copy this link into your browser:"], { muted: true, small: true, pad: "0 0 6px" }) : null,
       link ? Lay.raw(`<p class="lh-m" style="margin:0;font-family:Menlo,Consolas,monospace;font-size:12px;line-height:18px;color:${Lay.C.muted};word-break:break-all"><a class="lh-a" href="${F.esc(link)}" style="color:${Lay.C.link}">${F.esc(link)}</a></p>`, "", "0 0 22px") : null,
-      Lay.box(Lay.bodyText("<strong style=\"font-weight:600\">Didn't create an account?</strong> You can ignore this email. Nothing happens unless the link is tapped.", { size: 14, lh: 21 }),
-        "Didn't create an account? You can ignore this email. Nothing happens unless the link is tapped.", "cream"),
+      Lay.box(Lay.bodyText(`<strong style="font-weight:600">${F.esc(tx("Didn't create an account?"))}</strong> ${F.esc(tx("You can ignore this email. Nothing happens unless the link is tapped."))}`, { size: 14, lh: 21 }),
+        tx("Didn't create an account? You can ignore this email. Nothing happens unless the link is tapped."), "cream"),
     ],
     reason: "You're getting this email because an account was created at littlehivehouse.com with this address.",
   };
