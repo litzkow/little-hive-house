@@ -40,12 +40,12 @@ button:disabled{opacity:.3;cursor:default}
 <div id="stage"><canvas id="cv"></canvas><div id="loading">Abrindo a revista…</div><div id="zoomhint">Toque duas vezes para sair do zoom</div></div>
 <div class="hint" id="hint">Puxe o canto da página · dois dedos para zoom</div>
 <footer>
-  <div id="count">1 / 12</div>
+  <div id="count">1 / 20</div>
 </footer>
 <script>
 (function () {
   'use strict';
-  var N = 12, RATIO = 1680 / 2205;
+  var N = 20, RATIO = 1680 / 2205;
   var imgs = [], loaded = 0;
   for (var i = 1; i <= N; i++) {
     var im = new Image();
@@ -57,12 +57,13 @@ button:disabled{opacity:.3;cursor:default}
   var mode = null, W = 0, H = 0, top = 0, cw = 0, ch = 0, dpr = 1, pos = 0, spineX = 0, spineTarget = 0;
   var turn = null, dirty = true, side = 'R', z = 1, ox = 0, oy = 0, interacted = false, nextTease = performance.now() + 1400;
 
+  var PAPER = { paper: true }; // the plain back of a page (phone: one page per sheet)
   function pg(n) { return n >= 1 && n <= N ? imgs[n - 1] : null; }
-  function maxPos() { return Math.ceil(N / 2); }
-  function focusPage() { return mode === 'single' ? (side === 'R' ? 2 * pos + 1 : 2 * pos) : (pos === 0 ? 1 : 2 * pos); }
+  function maxPos() { return mode === 'single' ? N - 1 : Math.ceil(N / 2); }
+  function focusPage() { return mode === 'single' ? pos + 1 : (pos === 0 ? 1 : 2 * pos); }
   function targetSpine() {
     var cx = cw / 2;
-    if (mode === 'single') return side === 'R' ? cx - W / 2 : cx + W / 2;
+    if (mode === 'single') return cx - W / 2;
     if (pos === 0) return cx - W / 2;
     if (pos >= maxPos()) return cx + W / 2;
     return cx;
@@ -74,7 +75,7 @@ button:disabled{opacity:.3;cursor:default}
     cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
     var spread = cw / ch > 1.15 && cw > 700, nm = spread ? 'spread' : 'single';
     var page = mode ? focusPage() : 1;
-    pos = Math.floor(page / 2); side = page % 2 ? 'R' : 'L';
+    pos = nm === 'single' ? page - 1 : Math.floor(page / 2);
     mode = nm; turn = null; z = 1; ox = 0; oy = 0; zoomUi();
     var cols = spread ? 2 : 1;
     W = Math.min((cw - (spread ? 40 : 56)) / cols, (ch - 20) * RATIO); H = W / RATIO; top = (ch - H) / 2;
@@ -108,6 +109,7 @@ button:disabled{opacity:.3;cursor:default}
   // image placed upright on screen over the logical rect [x0, x0+W]
   function place(x0, s) { return s > 0 ? [1, 0, 0, 1, x0, 0] : [-1, 0, 0, 1, x0 + W, 0]; }
   function drawImg(img, m) {
+    if (img === PAPER) { paper(m); return; }
     ctx.save(); ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
     if (img && img.complete) ctx.drawImage(img, 0, 0, W, H);
     else { ctx.fillStyle = '#FFF6E5'; ctx.fillRect(0, 0, W, H); }
@@ -131,8 +133,8 @@ button:disabled{opacity:.3;cursor:default}
 
   function drawStatic() {
     setT(1, 0, 0, 1, spineX, top);
-    var L = pos > 0 ? pg(2 * pos) : null;
-    var R = pg(2 * pos + 1);
+    var L = mode === 'single' ? (pos > 0 ? PAPER : null) : (pos > 0 ? pg(2 * pos) : null);
+    var R = mode === 'single' ? pg(pos + 1) : pg(2 * pos + 1);
     if (L) dropShadow(-W, W);
     if (R) dropShadow(0, W);
     if (L) { drawImg(L, place(-W, 1)); spineShade(0, -1); }
@@ -140,18 +142,17 @@ button:disabled{opacity:.3;cursor:default}
   }
 
   function spec(dir) {
+    if (mode === 'single') { // each sheet: the page on the front, plain paper on the back
+      if (dir > 0) { if (pos >= N - 1) return null; return { s: 1, front: pg(pos + 1), flap: PAPER, under: pg(pos + 2), stat: pos > 0 ? PAPER : null, rev: false }; }
+      if (pos <= 0) return null;
+      // going back: the previous sheet comes back from the left, the same curl as going forward played in reverse
+      return { s: 1, front: pg(pos), flap: PAPER, under: pg(pos + 1), stat: pos >= 2 ? PAPER : null, rev: true };
+    }
     if (dir > 0) { if (pos >= maxPos()) return null; return { s: 1, front: pg(2 * pos + 1), flap: pg(2 * pos + 2), under: pg(2 * pos + 3), stat: pos > 0 ? pg(2 * pos) : null, rev: false }; }
     if (pos <= 0) return null;
     return { s: -1, front: pg(2 * pos), flap: pg(2 * pos - 1), under: pos >= 2 ? pg(2 * pos - 2) : null, stat: pg(2 * pos + 1), rev: false };
   }
-  // what the next/prev gesture does: pan across the open magazine (phone) or turn a page
-  function action(dir) {
-    if (mode === 'single') {
-      if (dir > 0) { if (side === 'L') return pg(2 * pos + 1) ? 'pan' : null; return pos < maxPos() ? 'flip' : null; }
-      if (side === 'R') return pos > 0 ? 'pan' : null; return 'flip';
-    }
-    return spec(dir) ? 'flip' : null;
-  }
+  function action(dir) { return spec(dir) ? 'flip' : null; }
   function afterSide(dir) { return dir > 0 ? 'L' : 'R'; }
   function drawTurn() {
     var sp = turn.sp, s = sp.s, P = turn.P, C = { x: W, y: H };
@@ -193,7 +194,7 @@ button:disabled{opacity:.3;cursor:default}
       var l11 = 1 - 2 * n.x * n.x, l12 = -2 * n.x * n.y, l22 = 1 - 2 * n.y * n.y;
       var md = M.x * n.x + M.y * n.y, tx = 2 * md * n.x, ty = 2 * md * n.y;
       var m = [l11 * g0[0], l12 * g0[0], l12, l22, l11 * g0[1] + tx, l12 * g0[1] + ty];
-      if (sp.flap) drawImg(sp.flap, m); else paper(m);
+      drawImg(sp.flap || PAPER, m);
       // paper light on the curl
       var g2 = ctx.createLinearGradient(M.x, M.y, M.x - n.x * L, M.y - n.y * L);
       g2.addColorStop(0, 'rgba(43,33,24,.32)'); g2.addColorStop(.12, 'rgba(255,250,240,.28)');
@@ -228,13 +229,14 @@ button:disabled{opacity:.3;cursor:default}
   function animateTo(target, commit, dur) {
     var P0 = { x: turn.P.x, y: turn.P.y };
     turn.anim = { P0: P0, target: target, commit: commit, t0: performance.now(), dur: dur, off: P0.y - (H - lift(P0.x)) };
-    if (commit && mode === 'single') { var cx = cw / 2; spineTarget = turn.dir > 0 ? cx + W / 2 : cx - W / 2; }
   }
   function finish(commit) {
-    if (commit) { pos += turn.dir; if (mode === 'single') side = afterSide(turn.dir); }
+    if (commit) pos += turn.dir;
     turn = null; spineTarget = targetSpine(); updateUi(); hideHint(); dirty = true;
   }
   function go(dir) {
+    interacted = true;
+    if (turn && turn.tease) turn = null;
     if (turn || drag && drag.on || z > 1.02) return;
     var act = action(dir);
     if (act === 'pan') { side = dir > 0 ? 'R' : 'L'; spineTarget = targetSpine(); updateUi(); hideHint(); return; }
@@ -379,7 +381,7 @@ button:disabled{opacity:.3;cursor:default}
       c.textContent = pos === 0 ? '1 / ' + N : (b > N ? a + ' / ' + N : a + '–' + b + ' / ' + N);
     } else c.textContent = focusPage() + ' / ' + N;
   }
-  function hideHint() { if (pos > 0 || side === 'L') document.getElementById('hint').style.opacity = 0; }
+  function hideHint() { if (pos > 0) document.getElementById('hint').style.opacity = 0; }
   var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(layout, 150); });
   layout();
   requestAnimationFrame(loop);
