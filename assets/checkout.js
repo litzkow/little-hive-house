@@ -135,7 +135,7 @@
     var packs = cart.filter(function (l) { return l.kind === 'custom' && Array.isArray(l.photos) && l.photos.length; });
     var who = null;
     S.ready()
-      .then(function () { return packs.length ? S.ensureUser() : S.user(); })
+      .then(function () { return packs.length ? Promise.resolve(L.photosReady).then(function () { return S.ensureUser(); }) : S.user(); })
       .then(function (u) { who = u; return packs.length ? uploadAll(packs, u) : null; })
       .then(function () {
         btn.textContent = 'Opening secure checkout…';

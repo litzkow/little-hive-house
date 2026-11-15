@@ -8,8 +8,51 @@
   try { if (window.LHHDelivery) ETA = LHHDelivery.arrival(); } catch (e) { ETA = ''; }
   if (ETA) document.querySelectorAll('[data-eta]').forEach(function (el) { el.textContent = 'about ' + ETA; });
   var KEY = 'lhh-cart';
-  /* store: a package line, or a photo pack already uploaded to the store (it survives a canceled checkout) */
-  function keep(l) { return l && (l.kind === 'package' || (l.kind === 'custom' && !!l.uploaded && Array.isArray(l.photos))); }
+  /* store: a package line, or a photo pack (its photos wait in this browser, see PB, or are already uploaded to the store) */
+  function keep(l) { return l && (l.kind === 'package' || (l.kind === 'custom' && Array.isArray(l.photos) && l.photos.length > 0)); }
+  /* The photos of a photo pack, kept in this browser (IndexedDB) until the order is placed, so the pack stays in the cart
+     when the customer goes to other pages (to add designs for free shipping, say) or the phone reloads the page.
+     Key: "<line id>/<photo n>". Anything failing here (private browsing, old browser) only means nothing is kept. */
+  var PB = (function () {
+    var dbp = null;
+    function db() {
+      if (dbp) return dbp;
+      dbp = new Promise(function (res) {
+        try {
+          var r = indexedDB.open('lhh-cart-photos', 1);
+          r.onupgradeneeded = function () { r.result.createObjectStore('blobs'); };
+          r.onsuccess = function () { res(r.result); };
+          r.onerror = r.onblocked = function () { res(null); };
+        } catch (e) { res(null); }
+      });
+      return dbp;
+    }
+    function run(mode, fn) {
+      return db().then(function (d) {
+        if (!d) return null;
+        return new Promise(function (res) {
+          try {
+            var t = d.transaction('blobs', mode), q = fn(t.objectStore('blobs'));
+            t.oncomplete = function () { res(q && q.result !== undefined ? q.result : null); };
+            t.onerror = t.onabort = function () { res(null); };
+          } catch (e) { res(null); }
+        });
+      });
+    }
+    return {
+      put: function (k, b) { return run('readwrite', function (s) { return s.put(b, k); }); },
+      get: function (k) { return run('readonly', function (s) { return s.get(k); }); },
+      /* forget photos of packs no longer in the cart */
+      prune: function (lines) {
+        var live = {};
+        lines.forEach(function (l) { if (l.kind === 'custom') live[l.id] = 1; });
+        return run('readonly', function (s) { return s.getAllKeys ? s.getAllKeys() : null; }).then(function (keys) {
+          var dead = (keys || []).filter(function (k) { return !live[String(k).split('/')[0]]; });
+          if (dead.length) return run('readwrite', function (s) { dead.forEach(function (k) { s.delete(k); }); return null; });
+        });
+      },
+    };
+  })();
   var $ = function (id) { return document.getElementById(id); };
   var money = function (n) { return '$' + (Math.round(n * 100) / 100).toFixed(n % 1 ? 2 : 0); };
 
@@ -27,7 +70,9 @@
     }
   } catch (e) {}
 
+  var pruneTimer;
   function save() {
+    clearTimeout(pruneTimer); pruneTimer = setTimeout(function () { PB.prune(cart); }, 1500);
     try {
       localStorage.setItem(KEY, JSON.stringify(cart.filter(function (l) { return l.kind === 'design' || keep(l); }).map(function (l) {
         if (!l.photos) return l;
@@ -351,7 +396,13 @@
   /* ---- /store ---- */
 
   window.LHH = {
-    addCustom: function (item) { item.kind = 'custom'; item.qty = 1; cart.push(item); render(); toast('Photo magnets added to cart'); openCart(); },
+    addCustom: function (item) {
+      item.kind = 'custom'; item.qty = 1; cart.push(item);
+      (item.photos || []).forEach(function (ph) { if (ph.blob) PB.put(item.id + '/' + ph.n, ph.blob); });
+      save(); render(); toast('Photo magnets added to cart'); openCart();
+    },
+    /* resolves when the photos of the packs saved on another page are back (checkout.js waits for it) */
+    photosReady: Promise.resolve(),
     money: money,
     toast: toast,
     /* store: used by assets/store.js, checkout.js and orders.js */
@@ -364,6 +415,25 @@
     closeCart: closeCart
   };
   render();
+
+  /* photo packs saved on another page: their photos come back from this browser; a pack whose photos are gone
+     (browser data cleared) can't be printed, so it leaves the cart */
+  window.LHH.photosReady = (function () {
+    var waiting = cart.filter(function (l) { return l.kind === 'custom' && l.photos.some(function (ph) { return !ph.path && !ph.blob; }); });
+    if (!waiting.length) return Promise.resolve();
+    return Promise.all(waiting.map(function (l) {
+      return Promise.all(l.photos.map(function (ph) {
+        if (ph.path || ph.blob) return true;
+        return PB.get(l.id + '/' + ph.n).then(function (b) { if (b && b.size) { ph.blob = b; return true; } return false; });
+      })).then(function (ok) { return ok.every(Boolean) ? null : l; });
+    })).then(function (lost) {
+      lost = lost.filter(Boolean);
+      if (!lost.length) return;
+      cart = cart.filter(function (l) { return lost.indexOf(l) < 0; });
+      save(); render();
+      toast('Your photo pack was removed. Please add your photos again.');
+    }, function () { /* keep the cart as it is */ });
+  })();
 
   /* Instagram/Facebook shop: Meta sends the buyer here with ?products=<feed id>:<qty>,<feed id>:<qty>
      (the ids of google-products.xml). The designs go into the cart; a photo pack opens the photo builder. */

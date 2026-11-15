@@ -72,9 +72,13 @@
     if (p.w && p.h) {
       /* a window onto the photo: the nested svg clips it, its viewBox is the part of the photo that shows */
       var win = node('svg', { x: w[0], y: w[1], width: w[2], height: w[3], viewBox: viewBoxOf(p, w), preserveAspectRatio: 'none', 'class': 'ph' }, svg);
-      node('image', { href: p.url, x: 0, y: 0, width: p.w, height: p.h, preserveAspectRatio: 'none' }, win);
+      /* never the original: a 12 to 48 MP phone photo drawn dozens of times runs the iPhone out of memory and Safari
+         reloads the page (the customer loses every photo). The big studio preview gets a sharper copy than the grid. */
+      var href = (cls === 'big' && p.big) || p.url;
+      if (href) node('image', { href: href, x: 0, y: 0, width: p.w, height: p.h, preserveAspectRatio: 'none' }, win);
+      else node('rect', { width: p.w, height: p.h, fill: '#F3E7CF' }, win);
     } else {
-      node('image', { href: p.url, x: w[0], y: w[1], width: w[2], height: w[3], preserveAspectRatio: 'xMidYMid slice' }, svg);
+      node('rect', { x: w[0], y: w[1], width: w[2], height: w[3], fill: '#F3E7CF', 'class': 'ph-wait' }, svg);
     }
     if (f.id !== 'none') node('image', { href: BASE + f.id + '.svg', x: 0, y: 0, width: 600, height: 600 }, svg);
     var c = capOf(f, p.capStyle), s = capText(f, caption, p.capStyle);
@@ -159,31 +163,190 @@
     fitIn(b);
   }
   function removePhoto(i) {
-    URL.revokeObjectURL(photos[i].url); photos.splice(i, 1); renderBuilder();
+    var gone = photos[i];
+    if (gone.url) URL.revokeObjectURL(gone.url);
+    if (gone.big) URL.revokeObjectURL(gone.big);
+    photos.splice(i, 1); renderBuilder();
+    keep.drop(gone.id); keep.state();
     var next = document.querySelector('.thumb-btn[data-i="' + Math.min(i, photos.length - 1) + '"]');
     (next || $('drop')).focus();
   }
 
+  /* ---------- light copies of the photos ----------
+     The original file (p.blob) is only read here and uploaded at checkout. On screen the grid and the frame list
+     use a small copy (THUMB px on the long side) and the big studio preview a sharper one (BIG px, only for the
+     photo open in the studio). Copies are made one at a time, so the phone never decodes two big photos at once. */
+  var THUMB = 640, BIG = 1800;
+  var jobs = [], working = false;
+  function enqueue(fn, first) {
+    return new Promise(function (res, rej) {
+      var j = { fn: fn, res: res, rej: rej };
+      if (first) jobs.unshift(j); else jobs.push(j);
+      pump();
+    });
+  }
+  function pump() {
+    if (working || !jobs.length) return;
+    working = true;
+    var j = jobs.shift();
+    var done = function () { working = false; setTimeout(pump, 0); };
+    var r;
+    try { r = j.fn(); } catch (e) { r = Promise.reject(e); }
+    Promise.resolve(r).then(function (v) { j.res(v); done(); }, function (e) { j.rej(e); done(); });
+  }
+  /* → {url, w, h}: a JPEG copy at most `max` px long, and the size of the original (upright, as the browser shows it) */
+  function shrink(blob, max) {
+    return new Promise(function (res, rej) {
+      var src = URL.createObjectURL(blob), im = new Image();
+      im.onload = function () {
+        var w = im.naturalWidth, h = im.naturalHeight, k = Math.min(1, max / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+        var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+        var cx = cv.getContext('2d');
+        try { cx.imageSmoothingQuality = 'high'; } catch (e) { /* old browser */ }
+        cx.drawImage(im, 0, 0, cw, ch);
+        im.onload = im.onerror = null; im.removeAttribute('src'); URL.revokeObjectURL(src);
+        cv.toBlob(function (b) {
+          cv.width = 0; cv.height = 0;
+          if (!b) { rej(new Error('copy')); return; }
+          res({ url: URL.createObjectURL(b), w: w, h: h });
+        }, 'image/jpeg', 0.86);
+      };
+      im.onerror = function () { URL.revokeObjectURL(src); rej(new Error('decode')); };
+      im.src = src;
+    });
+  }
+  var renderTimer;
+  function renderSoon() { clearTimeout(renderTimer); renderTimer = setTimeout(renderBuilder, 80); }
+  function prepare(p) {
+    enqueue(function () {
+      if (photos.indexOf(p) === -1) return null;
+      return shrink(p.blob, THUMB).then(function (c) {
+        if (photos.indexOf(p) === -1) { URL.revokeObjectURL(c.url); return; }
+        p.url = c.url;
+        /* the size lets the customer move and zoom the photo;
+           a 2 in magnet face is 600 px at 300 dpi, under that on the short side it prints soft */
+        p.w = c.w; p.h = c.h;
+        p.low = Math.min(p.w, p.h) < MIN_PHOTO_PX;
+        renderSoon();
+        if (studio.open && photos[current] === p) { buildSwatches(); updateStudio(); bigFor(p); }
+      }, function () {
+        /* a photo this browser can't open (some HEIC files): still ordered and uploaded as it is */
+        if (photos.indexOf(p) === -1) return;
+        p.bad = true; renderSoon();
+      });
+    });
+  }
+  /* the sharper copy for the photo open in the studio; only one is kept */
+  function bigFor(p) {
+    if (!p || p.big || p.bigBusy || !p.w) return;
+    p.bigBusy = true;
+    enqueue(function () {
+      if (photos.indexOf(p) === -1) return null;
+      return shrink(p.blob, BIG).then(function (c) {
+        p.bigBusy = false;
+        if (photos.indexOf(p) === -1 || photos[current] !== p) { URL.revokeObjectURL(c.url); return; }
+        photos.forEach(function (q) { if (q !== p && q.big) { URL.revokeObjectURL(q.big); q.big = null; } });
+        p.big = c.url;
+        if (studio.open) updateStudio();
+      }, function () { p.bigBusy = false; });
+    }, true);
+  }
+  var seq = 0;
+  function newPhoto(f, o) {
+    o = o || {};
+    return { id: o.id || (Date.now().toString(36) + '-' + (seq++) + '-' + Math.random().toString(36).slice(2, 7)), name: o.name || f.name || 'photo.jpg',
+             url: null, big: null, blob: f, low: false, frame: o.frame && FR[o.frame] ? o.frame : defaultFrame, caption: o.caption || '',
+             capStyle: o.capStyle || null, crop: o.crop || null, w: 0, h: 0 };
+  }
   function addFiles(files) {
     Array.prototype.forEach.call(files, function (f) {
-      if (f.type.indexOf('image/') !== 0) return;
-      var p = { name: f.name, url: URL.createObjectURL(f), blob: f, low: false, frame: defaultFrame, caption: '', capStyle: null, crop: null, w: 0, h: 0 };
+      if (f.type && f.type.indexOf('image/') !== 0) return;
+      if (!f.type && !/\.(jpe?g|png|heic|heif|webp|gif)$/i.test(f.name || '')) return;
+      var p = newPhoto(f);
       photos.push(p);
       if (window.lhhTrack) window.lhhTrack('photo_added', { photos: photos.length });
-      /* the size (upright, as the browser shows it) lets the customer move and zoom the photo;
-         a 2 in magnet face is 600 px at 300 dpi, under that on the short side it prints soft */
-      var probe = new Image();
-      probe.onload = function () {
-        if (photos.indexOf(p) === -1) return;
-        p.w = probe.naturalWidth; p.h = probe.naturalHeight;
-        p.low = Math.min(p.w, p.h) < MIN_PHOTO_PX;
-        renderBuilder();
-        if (studio.open && photos[current] === p) { buildSwatches(); updateStudio(); }
-      };
-      probe.src = p.url;
+      keep.file(p);
+      prepare(p);
     });
     renderBuilder();
+    keep.state();
   }
+
+  /* ---------- the photos survive a reload ----------
+     If the phone reloads the page (or the customer leaves and comes back), the photos they picked, with their
+     frames, captions and placement, come back. Kept in this browser only (IndexedDB) for 7 days, and cleared when
+     the pack goes into the cart. Any failure here (private browsing, old browser) just means nothing is kept. */
+  var keep = (function () {
+    var DAYS = 7, dbp = null;
+    function db() {
+      if (dbp) return dbp;
+      dbp = new Promise(function (res) {
+        try {
+          var r = indexedDB.open('lhh-photo-builder', 1);
+          r.onupgradeneeded = function () { var d = r.result; d.createObjectStore('files'); d.createObjectStore('state'); };
+          r.onsuccess = function () { res(r.result); };
+          r.onerror = function () { res(null); };
+          r.onblocked = function () { res(null); };
+        } catch (e) { res(null); }
+      });
+      return dbp;
+    }
+    function tx(store, mode, fn) {
+      return db().then(function (d) {
+        if (!d) return null;
+        return new Promise(function (res) {
+          try {
+            var t = d.transaction(store, mode), out = fn(t.objectStore(store));
+            t.oncomplete = function () { res(out && out.result !== undefined ? out.result : null); };
+            t.onerror = t.onabort = function () { res(null); };
+          } catch (e) { res(null); }
+        });
+      });
+    }
+    var stTimer;
+    function snapshot() {
+      var pr = document.querySelector('input[name="pack"]:checked');
+      return { at: Date.now(), pack: pr ? pr.value : null, defaultFrame: defaultFrame,
+               photos: photos.map(function (p) { return { id: p.id, name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle, crop: p.crop }; }) };
+    }
+    return {
+      file: function (p) { tx('files', 'readwrite', function (s) { return s.put(p.blob, p.id); }); },
+      drop: function (id) { tx('files', 'readwrite', function (s) { return s.delete(id); }); },
+      state: function () {
+        clearTimeout(stTimer);
+        stTimer = setTimeout(function () { var v = snapshot(); tx('state', 'readwrite', function (s) { return s.put(v, 'builder'); }); }, 300);
+      },
+      clear: function () {
+        clearTimeout(stTimer);
+        tx('state', 'readwrite', function (s) { return s.clear(); });
+        tx('files', 'readwrite', function (s) { return s.clear(); });
+      },
+      restore: function () {
+        return tx('state', 'readonly', function (s) { return s.get('builder'); }).then(function (st) {
+          if (!st || !st.photos || !st.photos.length) return;
+          if (Date.now() - (st.at || 0) > DAYS * 864e5) { keep.clear(); return; }
+          return Promise.all(st.photos.map(function (o) { return tx('files', 'readonly', function (s) { return s.get(o.id); }); })).then(function (blobs) {
+            var back = [];
+            st.photos.forEach(function (o, i) {
+              var b = blobs[i];
+              if (b && b.size && !photos.some(function (q) { return q.id === o.id; })) back.push(newPhoto(b, o));
+            });
+            if (!back.length) return;
+            if (st.pack && !photos.length) {
+              var r = document.getElementById('pack-' + st.pack);
+              var linked = /[?&]pack=/.test(location.search);
+              if (r && r.name === 'pack' && !linked) r.checked = true;
+            }
+            photos = back.concat(photos);
+            back.forEach(prepare);
+            renderBuilder();
+            keep.state();
+          });
+        });
+      },
+    };
+  })();
 
   /* ---------- the frame studio (dialog) ---------- */
   var studio = $('studio');
@@ -269,7 +432,7 @@
       b.style.fontFamily = st[k].family; b.style.fontStyle = st[k].style; b.style.fontWeight = st[k].weight;
       if (st[k].upper) { b.style.textTransform = 'uppercase'; b.style.letterSpacing = '.12em'; b.style.fontSize = '12px'; }
       b.setAttribute('aria-pressed', String(k === cur));
-      b.onclick = function () { p.capStyle = k; updateStudio(); refreshThumb(current); clearTimeout(swTimer); swTimer = setTimeout(refreshSwatchCaptions, 150); };
+      b.onclick = function () { p.capStyle = k; updateStudio(); refreshThumb(current); keep.state(); clearTimeout(swTimer); swTimer = setTimeout(refreshSwatchCaptions, 150); };
       box.appendChild(b);
     });
   }
@@ -280,11 +443,13 @@
     if (f.caption && p.caption.length > f.caption.max) p.caption = p.caption.slice(0, f.caption.max);
     say('');
     updateStudio(); refreshThumb(current);
+    keep.state();
   }
   function openStudio(i) {
     current = i;
     capIn.value = photos[i].caption;
     buildSwatches(); updateStudio();
+    bigFor(photos[i]);
     say('');
     if (!studio.open) {
       if (typeof studio.showModal === 'function') studio.showModal(); else studio.setAttribute('open', '');
@@ -311,20 +476,20 @@
   });
   capIn.addEventListener('input', function () {
     var p = photos[current]; p.caption = capIn.value;
-    updateStudio(); refreshThumb(current);
+    updateStudio(); refreshThumb(current); keep.state();
     clearTimeout(swTimer); swTimer = setTimeout(refreshSwatchCaptions, 250);
   });
   $('apply-all').onclick = function () {
     var p = photos[current], f = frameOf(p);
     photos.forEach(function (q) { q.frame = p.frame; if (f.caption && q.caption.length > f.caption.max) q.caption = q.caption.slice(0, f.caption.max); });
     defaultFrame = p.frame;
-    renderBuilder();
+    renderBuilder(); keep.state();
     say(f.name + ' is now on all ' + photos.length + ' photos.');
   };
   $('cap-all').onclick = function () {
     var s = photos[current].caption, st = photos[current].capStyle || null;
     photos.forEach(function (q) { q.caption = s; q.capStyle = st; });
-    renderBuilder();
+    renderBuilder(); keep.state();
     say('Caption added to all ' + photos.length + ' photos. It prints on photos with a caption frame.');
   };
 
@@ -353,7 +518,7 @@
     });
     fitIn($('swatches'));
   }
-  function cropSettled() { refreshThumb(current); clearTimeout(settleTimer); settleTimer = setTimeout(refreshSwatchArts, 250); }
+  function cropSettled() { refreshThumb(current); keep.state(); clearTimeout(settleTimer); settleTimer = setTimeout(refreshSwatchArts, 250); }
   function pts() { return Object.keys(ptrs).map(function (k) { return ptrs[k]; }); }
   function centroid() { var a = pts(), x = 0, y = 0; a.forEach(function (q) { x += q.x; y += q.y; }); return { x: x / a.length, y: y / a.length }; }
   function spread() { var a = pts(); return a.length < 2 ? 0 : Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
@@ -400,7 +565,7 @@
   }, { passive: false });
   zoomIn.addEventListener('input', function () { var p = photos[current], c = cropOf(p); setCrop(p, { x: c.x, y: c.y, z: Number(zoomIn.value) }, true); });
   zoomIn.addEventListener('change', cropSettled);
-  $('adjust-reset').onclick = function () { var p = photos[current]; p.crop = null; updateStudio(); cropSettled(); say('Photo centred again.'); };
+  $('adjust-reset').onclick = function () { var p = photos[current]; if (!p) return; p.crop = null; updateStudio(); cropSettled(); say('Photo centred again.'); };
 
   /* ---------- wiring ---------- */
   $('photos').addEventListener('change', function (e) { addFiles(e.target.files); e.target.value = ''; });
@@ -410,7 +575,7 @@
   ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('is-over'); }); });
   ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('is-over'); }); });
   drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
-  document.querySelectorAll('input[name="pack"]').forEach(function (r) { r.addEventListener('change', renderBuilder); });
+  document.querySelectorAll('input[name="pack"]').forEach(function (r) { r.addEventListener('change', function () { renderBuilder(); keep.state(); }); });
   $('rights').addEventListener('change', renderBuilder);
 
   $('builder').addEventListener('submit', function (e) {
@@ -420,7 +585,7 @@
       var f = frameOf(p);
       return { n: i + 1, file: p.name, frame: f.id, frameName: f.name, caption: f.caption ? p.caption.trim().slice(0, f.caption.max) : '',
                crop: p.crop || null, w: p.w || 0, h: p.h || 0, capStyle: f.caption && capOf(f, p.capStyle) !== f.caption ? p.capStyle : null,
-               blob: p.blob, url: p.url };  /* blob/url: uploaded at checkout (assets/checkout.js) */
+               blob: p.blob, url: p.url };  /* blob: the original, uploaded at checkout (assets/checkout.js); url: the light copy */
     });
     var names = [];
     lines.forEach(function (l) { if (names.indexOf(l.frameName) < 0) names.push(l.frameName); });
@@ -434,9 +599,12 @@
     LHH.addCustom({ id: 'custom-' + Date.now(), count: size, name: 'Custom photo magnets', detail: detail, price: packPrice(),
                     photos: lines, notes: notes, orderNotes: orderNotes });
     if (window.lhhTrack) window.lhhTrack('add_to_cart', { currency: 'USD', value: packPrice(), items: [{ item_id: 'photo-pack-' + size, item_name: 'Custom photo magnets (' + size + ')', item_category: 'Photo magnets', price: packPrice(), quantity: 1 }] });
+    photos.forEach(function (p) { if (p.big) { URL.revokeObjectURL(p.big); p.big = null; } });
     photos = []; $('notes').value = ''; $('rights').checked = false;
+    keep.clear();
     renderBuilder();
   });
 
   renderBuilder();
+  keep.restore();
 })();
