@@ -99,7 +99,9 @@ const SUITES = {
       await p.waitForFunction((b) => LHH.totals().count > b, before, { timeout: 5000 }).catch(() => {}); };
     await add(pg, 0); await add(pg, 0); await add(pg, 3);
     let c = await pg.evaluate(() => LHH.cart().map((l) => l.qty));
-    ok('cart: same design twice is one line with quantity 2', c.join() === '2,1', c.join());
+    const dbg = c.join() === '2,1' ? '' : JSON.stringify(await pg.evaluate(() => { const els = [...document.querySelectorAll('[data-add]')].slice(0, 4); const e = els[3], r = e.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { ids: els.map((x) => x.getAttribute('data-add')), rect: [Math.round(r.top), Math.round(r.left), Math.round(r.width), Math.round(r.height)], hit: hit && (hit.outerHTML || '').slice(0, 120), cart: LHH.cart(), ls: localStorage.getItem('lhh-cart') }; }));
+    ok('cart: same design twice is one line with quantity 2', c.join() === '2,1', c.join() + ' ' + dbg);
     await pg.reload(); await pg.waitForTimeout(300);
     await pg.goto(BASE + 'collections/brasil.html'); await pg.waitForTimeout(300);
     ok('cart: survives reload and other pages', (await pg.evaluate(() => LHH.cart().length)) === 2);
