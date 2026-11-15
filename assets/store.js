@@ -281,6 +281,7 @@
       'storage/canceled': 'The photo upload stopped. Please try again.',
       'storage/retry-limit-exceeded': 'Your connection dropped while uploading photos. Please try again on a steady connection.',
       'storage/quota-exceeded': 'We can’t take photo uploads right now. Please email ' + SUPPORT + ' and we’ll help.',
+      'photos/unreadable': 'We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.',
       'photos/missing': 'Your photos are no longer on this page. Please remove the photo pack from your cart and add your photos again.',
       'resource-exhausted': 'Too many tries in a row. Please wait a minute and try again.',
       'unavailable': 'We couldn’t reach our store just now. Check your connection and try again.',

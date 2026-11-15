@@ -111,6 +111,18 @@ exports.adminSupplies = callable("adminSupplies", supplies, null, { timeoutSecon
 exports.adminAnalytics = callable("adminAnalytics", analytics, null, { timeoutSeconds: 60 });
 exports.adminAnalyticsLive = callable("adminAnalyticsLive", analytics, null, { timeoutSeconds: 30 });
 
+/* ---------- problems customers hit on the site (clientlog.js), sent by navigator.sendBeacon ---------- */
+exports.clientLog = onRequest({ region: REGION, timeoutSeconds: 30, memory: "256MiB", maxInstances: 3, cors: ["https://littlehivehouse.com", "https://www.littlehivehouse.com"] }, async (req, res) => {
+  if (req.method !== "POST") { res.set("Allow", "POST").status(405).send("Method not allowed"); return; }
+  try {
+    const out = await require("./clientlog").handle(req.rawBody || req.body, require("./util").clientIp(req));
+    res.status(out.status).send(out.body);
+  } catch (err) {
+    console.error("[clientLog] unexpected error", err);
+    res.status(500).send("error");
+  }
+});
+
 /* ---------- Stripe webhook (HTTP): marks orders paid and renders their print sheet (1 GiB, 300 s for the PDF) ---------- */
 exports.stripeWebhook = onRequest({ region: REGION, timeoutSeconds: 300, memory: "1GiB", maxInstances: 10 }, async (req, res) => {
   if (req.method !== "POST") { res.set("Allow", "POST").status(405).send("Method not allowed"); return; }

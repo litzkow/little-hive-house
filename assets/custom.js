@@ -133,6 +133,7 @@
       x.onclick = function () { removePhoto(i); };
       li.append(b, nm, x);
       if (p.low) { var t = document.createElement('span'); t.className = 'lowtag'; t.textContent = 'Low quality'; t.setAttribute('aria-hidden', 'true'); b.appendChild(t); }
+      else if (p.bad) { var t2 = document.createElement('span'); t2.className = 'lowtag'; t2.textContent = 'No preview'; t2.setAttribute('aria-hidden', 'true'); b.appendChild(t2); }
       grid.appendChild(li);
     });
     for (var k = photos.length; k < size; k++) {
@@ -231,9 +232,16 @@
         renderSoon();
         if (studio.open && photos[current] === p) { buildSwatches(); updateStudio(); bigFor(p); }
       }, function () {
-        /* a photo this browser can't open (some HEIC files): still ordered and uploaded as it is */
-        if (photos.indexOf(p) === -1) return;
-        p.bad = true; renderSoon();
+        var i = photos.indexOf(p);
+        if (i === -1) return;
+        if (/heic|heif/i.test(p.blob.type || '') || /\.(heic|heif)$/i.test(p.name || '')) {
+          /* an iPhone HEIC this browser can't show (Chrome or Firefox on a computer): still ordered and uploaded as it is */
+          p.bad = true; renderSoon(); return;
+        }
+        /* not a photo we can print (a damaged file, a renamed document...): it doesn't stay in the pack */
+        photos.splice(i, 1); keep.drop(p.id); keep.state(); renderSoon();
+        if (window.LHH && LHH.toast) LHH.toast('One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).');
+        if (window.LHH && LHH.report) LHH.report('photo_unreadable', { msg: (p.blob.type || 'no type') + ', ' + Math.round((p.blob.size || 0) / 1024) + ' KB' });
       });
     });
   }
@@ -606,5 +614,19 @@
   });
 
   renderBuilder();
+  /* Did the phone reload this page by itself (out of memory) while the customer was choosing photos? The flag is set
+     while photos are on the page and cleared whenever the page is left normally (pagehide), so finding it on load
+     means the last visit ended without one. The owners get told (LHH.report); the photos come back (keep.restore). */
+  (function crashCheck() {
+    var K = 'lhh-builder-live';
+    try {
+      var was = sessionStorage.getItem(K);
+      if (was && window.LHH && LHH.report) LHH.report('builder_crash', { msg: 'the photo page reloaded by itself', photos: Number(was) || 0 });
+      sessionStorage.removeItem(K);
+      window.addEventListener('pagehide', function () { try { sessionStorage.removeItem(K); } catch (e) { /* ignore */ } });
+      window.addEventListener('pageshow', function (e) { if (e.persisted && photos.length) try { sessionStorage.setItem(K, String(photos.length)); } catch (x) { /* ignore */ } });
+      setInterval(function () { try { if (photos.length) sessionStorage.setItem(K, String(photos.length)); else sessionStorage.removeItem(K); } catch (e) { /* ignore */ } }, 2000);
+    } catch (e) { /* private mode */ }
+  })();
   keep.restore();
 })();

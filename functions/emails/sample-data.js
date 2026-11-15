@@ -100,6 +100,7 @@ const SAMPLES = {
     ],
   },
   contact_autoreply: { name: "Karina Vargas", email: "karina@example.com", topic: "Photo magnets", message: "Hi! Can I mix two frames in one pack?\nThanks!" },
+  admin_site_problem: { problem: { kind: "checkout_failed", title: "O pagamento não abriu para um cliente", msg: "Your connection dropped while uploading photos.", code: "storage/retry-limit-exceeded", page: "/photo-magnets.html", lang: "pt", ua: "iPhone Safari 18", photos: 9, count: 2, at: "2026-11-15T20:39:00Z" } },
   admin_contact: { name: "Karina Vargas", email: "karina@example.com", topic: "Photo magnets", message: "Hi! Can I mix two frames in one pack?\nThanks!", orderNumber: "LHH-1042", at: "2026-10-10T18:05:00Z" },
   quote_received: { name: "Ana Souza", email: "ana@example.com", occasion: "Weddings", quantity: 120, date: "2027-05-14", message: "Save the dates with our engagement photo, sage green and gold." },
   admin_quote: { name: "Ana Souza", email: "ana@example.com", occasion: "Weddings", quantity: 120, date: "2027-05-14", message: "Save the dates with our engagement photo, sage green and gold." },

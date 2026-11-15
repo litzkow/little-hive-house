@@ -36,6 +36,7 @@
   /* ---------- photos ---------- */
   var EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/heif': 'heic', 'image/webp': 'webp' };
   var MAX_SIDE = 4000;   /* plenty for a 2 in magnet at 300 dpi, even zoomed in */
+  var BIG_FILE = 20 * 1024 * 1024;
   function viaImg(blob) {
     return new Promise(function (res, rej) {
       var u = URL.createObjectURL(blob), im = new Image();
@@ -74,8 +75,12 @@
         return toJpeg(b).then(function (j) { return { blob: j, ext: 'jpg', type: 'image/jpeg' }; },
           function () { return { blob: b, ext: 'heic', type: 'image/heic' }; });
       }
-      if (EXT[type]) return { blob: b, ext: EXT[type], type: type === 'image/jpg' ? 'image/jpeg' : type };
-      return toJpeg(b).then(function (j) { return { blob: j, ext: 'jpg', type: 'image/jpeg' }; });
+      /* the store takes files up to 25 MB (storage.rules): a bigger photo (a 48 MP iPhone shot, a huge PNG) goes up as a
+         4000 px JPG, still far more than a 2 in magnet needs, instead of failing at the last step */
+      if (EXT[type] && b.size <= BIG_FILE) return { blob: b, ext: EXT[type], type: type === 'image/jpg' ? 'image/jpeg' : type };
+      return toJpeg(b).then(function (j) { return { blob: j, ext: 'jpg', type: 'image/jpeg' }; }, function () {
+        var e = new Error('photo unreadable'); e.code = 'photos/unreadable'; e.file = ph.file; throw e;
+      });
     });
   }
   function packId(line) { return String(line.id || 'pack').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 48) || 'pack'; }
@@ -91,7 +96,8 @@
     if (!jobs.length) return Promise.resolve();
     progress(0, 1, 0, jobs.length);
     btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    return Promise.all(jobs.map(function (j) { return prepare(j.ph).then(function (p) { j.file = p; }); })).then(function () {
+    /* one photo at a time: converting several big photos at once runs a phone out of memory */
+    return jobs.reduce(function (chain, j) { return chain.then(function () { return prepare(j.ph).then(function (p) { j.file = p; }); }); }, Promise.resolve()).then(function () {
       window.addEventListener('beforeunload', guard);
       var total = jobs.reduce(function (a, j) { return a + j.file.blob.size; }, 0);
       var sent = jobs.map(function () { return 0; });
@@ -151,6 +157,9 @@
       })
       .catch(function (e) {
         if (window.console) console.warn('checkout failed', e && e.code, e && e.message);
+        var code = String((e && e.code) || '');
+        if (L.report && !/resource-exhausted/.test(code)) L.report(/^storage\//.test(code) ? 'upload_failed' : 'checkout_failed',
+          { msg: String((e && e.message) || ''), code: code, photos: packs.reduce(function (n, l) { return n + l.photos.length; }, 0) });
         reset();
         prog.hidden = true;
         setError(S.message(e, 'checkout'));

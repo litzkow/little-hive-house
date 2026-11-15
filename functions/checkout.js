@@ -113,10 +113,12 @@ async function checkPhotos(items, auth) {
 }
 
 /** createCheckout({cart, email?, giftMessage?, notes?, marketing?}) -> {url, orderId} */
-async function createCheckout(data, auth) {
+async function createCheckout(data, auth, rawRequest) {
   data = data || {};
   need("STRIPE_SECRET_KEY");
   const priced = priceCart(data.cart);
+  // each call makes a pending order and a Stripe session: a person tries a few times at most; a script gets stopped
+  await U.rateLimit("checkout", U.clientIp(rawRequest) || (auth && auth.uid) || "", 30, 3600);
   const tokenEmail = auth && !U.isAnonymous(auth) && auth.token && auth.token.email ? auth.token.email : "";
   const email = U.cleanEmail(data.email || tokenEmail, { required: false });
   await checkPhotos(priced.items, auth);

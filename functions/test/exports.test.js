@@ -14,7 +14,7 @@ const CALLABLES = [
   "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview", "adminNewsletter", "adminTestSheet", "adminLastTestSheet", "adminDeleteOrder",
   "adminPrintSheet", "adminPrintBatch", "adminEtsy", "adminLabelQuote", "adminBuyLabel", "adminLabelPdf", "adminPreviewEmail", "adminAnalytics", "adminAnalyticsLive", "returnLookup", "returnQuote", "returnStart", "adminReturnDecide", "adminReturnPhotos", "adminSupplies",
 ];
-const HTTP = ["stripeWebhook"];
+const HTTP = ["clientLog", "stripeWebhook"];
 const SCHEDULED = ["deliveredFollowUp", "trackShipments", "salesTaxReminder", "autoNewsletter", "analyticsWarm"];
 
 class HttpsError extends Error { constructor(code, message, details) { super(message); this.code = code; this.details = details; } }

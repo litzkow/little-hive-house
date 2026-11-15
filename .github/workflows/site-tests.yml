@@ -1,0 +1,34 @@
+# Browser tests of the shop (tools/qa/e2e/run.cjs) in Safari's engine (WebKit) and Chrome's (Chromium), on a local
+# copy of the site with a fake Firebase and a fake Stripe page: nothing real is charged, uploaded or emailed.
+# Runs on every change to the site and by hand (Actions → "Site tests" → Run workflow).
+name: Site tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "assets/**"
+      - "*.html"
+      - "collections/**"
+      - "tools/qa/e2e/**"
+      - ".github/workflows/site-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [webkit, chromium]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install Playwright
+        run: |
+          cd tools/qa/e2e && npm init -y >/dev/null && npm i playwright@1.48.2 >/dev/null
+          npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run the shop tests (${{ matrix.browser }})
+        run: cd tools/qa/e2e && BROWSER=${{ matrix.browser }} node run.cjs

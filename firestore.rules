@@ -56,6 +56,8 @@ service cloud.firestore {
     match /messages/{id} { allow read: if isAdmin(); allow write: if false; }
     match /suggestions/{id} { allow read: if isAdmin(); allow write: if false; }
     match /subscribers/{id} { allow read: if isAdmin(); allow write: if false; }
+    // problems customers hit on the site (functions/clientlog.js): no personal data, admins read
+    match /clientErrors/{id} { allow read: if isAdmin(); allow write: if false; }
 
     // server-only: meta/counters, stripeEvents, rateLimits and anything else
     match /{document=**} { allow read, write: if false; }

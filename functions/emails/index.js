@@ -33,6 +33,7 @@ const KINDS = {
   newsletter_welcome: require("./kinds/newsletter_welcome"),
   newsletter: require("./kinds/newsletter"),
   admin_newsletter: require("./kinds/admin_newsletter"),
+  admin_site_problem: require("./kinds/admin_site_problem"),
 };
 /** Kinds that are marketing (need consent + unsubscribe link). */
 const MARKETING = new Set(["abandoned_checkout", "newsletter_welcome", "newsletter"]);

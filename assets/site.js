@@ -8,6 +8,26 @@
   try { if (window.LHHDelivery) ETA = LHHDelivery.arrival(); } catch (e) { ETA = ''; }
   if (ETA) document.querySelectorAll('[data-eta]').forEach(function (el) { el.textContent = 'about ' + ETA; });
   var KEY = 'lhh-cart';
+  /* ---- problems customers hit, sent to the shop (functions/clientlog.js) so the owners hear about them right away ----
+     No personal data: the kind of problem, the message, the page and the browser. At most 6 reports per page. */
+  var LOG_URL = 'https://us-east1-little-hive-house.cloudfunctions.net/clientLog', logged = 0;
+  function report(kind, info) {
+    try {
+      var url = window.LHH_LOG_URL || LOG_URL;   /* LHH_LOG_URL: the shop's own browser tests */
+      if ((!window.LHH_LOG_URL && !/(^|\.)littlehivehouse\.com$/.test(location.hostname)) || logged >= 6) return;
+      logged++;
+      info = info || {};
+      var body = JSON.stringify({ kind: kind, msg: String(info.msg || '').slice(0, 500), code: String(info.code || '').slice(0, 80), src: info.src || '',
+        photos: info.photos, page: location.href, lang: window.LHH_LANG === 'pt' ? 'pt' : 'en', ua: navigator.userAgent });
+      if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], { type: 'text/plain' }))) return;
+      fetch(url, { method: 'POST', body: body, mode: 'no-cors', keepalive: true }).catch(function () {});
+    } catch (e) { /* never let reporting break the page */ }
+  }
+  window.addEventListener('error', function (e) {
+    var src = String(e.filename || '');
+    if (!src || src.indexOf(location.origin) !== 0 || /^Script error/.test(e.message || '')) return;   /* only our own scripts */
+    report('js_error', { msg: e.message + (e.lineno ? ' (line ' + e.lineno + ')' : ''), src: src.replace(location.origin, '') });
+  });
   /* store: a package line, or a photo pack (its photos wait in this browser, see PB, or are already uploaded to the store) */
   function keep(l) { return l && (l.kind === 'package' || (l.kind === 'custom' && Array.isArray(l.photos) && l.photos.length > 0)); }
   /* The photos of a photo pack, kept in this browser (IndexedDB) until the order is placed, so the pack stays in the cart
@@ -42,8 +62,9 @@
     return {
       put: function (k, b) { return run('readwrite', function (s) { return s.put(b, k); }); },
       get: function (k) { return run('readonly', function (s) { return s.get(k); }); },
-      /* forget photos of packs no longer in the cart */
-      prune: function (lines) {
+      /* forget photos of packs no longer in the saved cart (read from storage: another tab may hold newer packs) */
+      prune: function () {
+        var lines = readSaved();
         var live = {};
         lines.forEach(function (l) { if (l.kind === 'custom') live[l.id] = 1; });
         return run('readonly', function (s) { return s.getAllKeys ? s.getAllKeys() : null; }).then(function (keys) {
@@ -56,23 +77,39 @@
   var $ = function (id) { return document.getElementById(id); };
   var money = function (n) { return '$' + (Math.round(n * 100) / 100).toFixed(n % 1 ? 2 : 0); };
 
-  // Ready-made designs persist between pages; photo packs live only on the page where they were made.
-  var cart = [];
-  try {
-    var saved = JSON.parse(localStorage.getItem(KEY) || '[]');
-    if (Array.isArray(saved)) {
-      /* store: packages, and photo packs whose photos are already uploaded, also persist (see keep()) */
-      cart = saved.filter(function (l) { return l && (l.kind === 'design' || l.kind === 'place' || keep(l)) && l.qty > 0; })
+  // The cart lives in localStorage (designs, packages, photo packs; the photos themselves in IndexedDB, see PB).
+  function readSaved() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(KEY) || '[]');
+      if (!Array.isArray(saved)) return [];
+      return saved.filter(function (l) { return l && (l.kind === 'design' || l.kind === 'place' || keep(l)) && l.qty > 0; })
         .map(function (l) {
           if (l.kind === 'place') { l.kind = 'design'; if (l.id.indexOf('/') < 0) l.id = 'places/' + l.id; }
           return l;
         });
-    }
-  } catch (e) {}
+    } catch (e) { return []; }
+  }
+  var cart = readSaved();
+  /* Another tab changed the cart, or Safari brought this page back from its back/forward cache with an old cart in
+     memory: take the saved cart again (keeping the photos already in memory), so this page never writes an old cart
+     over items added elsewhere. */
+  function resync() {
+    var fresh = readSaved();
+    fresh.forEach(function (l) {
+      if (l.kind !== 'custom' || !l.photos) return;
+      var mine = cart.find(function (m) { return m.kind === 'custom' && m.id === l.id && m.photos; });
+      if (mine) l.photos.forEach(function (ph, i) { var o = mine.photos[i]; if (o && o.blob && !ph.blob) ph.blob = o.blob; });
+    });
+    cart = fresh;
+    render();
+    if (window.LHH) window.LHH.photosReady = loadPhotos(false);
+  }
+  window.addEventListener('storage', function (e) { if (e.key === KEY || e.key === null) resync(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) resync(); });
 
   var pruneTimer;
   function save() {
-    clearTimeout(pruneTimer); pruneTimer = setTimeout(function () { PB.prune(cart); }, 1500);
+    clearTimeout(pruneTimer); pruneTimer = setTimeout(function () { PB.prune(); }, 1500);
     try {
       localStorage.setItem(KEY, JSON.stringify(cart.filter(function (l) { return l.kind === 'design' || keep(l); }).map(function (l) {
         if (!l.photos) return l;
@@ -87,7 +124,7 @@
   function toast(msg) {
     var t = $('toast'); if (!t) return;
     t.textContent = msg; t.hidden = false;
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2200);
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, Math.max(2200, Math.min(7000, String(msg).length * 55)));   /* long messages stay long enough to read */
   }
 
   function totals() {
@@ -398,13 +435,16 @@
   window.LHH = {
     addCustom: function (item) {
       item.kind = 'custom'; item.qty = 1; cart.push(item);
-      (item.photos || []).forEach(function (ph) { if (ph.blob) PB.put(item.id + '/' + ph.n, ph.blob); });
-      save(); render(); toast('Photo magnets added to cart'); openCart();
+      render(); toast('Photo magnets added to cart'); openCart();
+      /* the photos are stored before the cart line is saved, so another page or tab always finds them */
+      Promise.all((item.photos || []).map(function (ph) { return ph.blob ? PB.put(item.id + '/' + ph.n, ph.blob) : null; }))
+        .then(function () { if (cart.indexOf(item) >= 0) save(); }, function () { if (cart.indexOf(item) >= 0) save(); });
     },
     /* resolves when the photos of the packs saved on another page are back (checkout.js waits for it) */
     photosReady: Promise.resolve(),
     money: money,
     toast: toast,
+    report: report,
     /* store: used by assets/store.js, checkout.js and orders.js */
     cart: function () { return cart; },
     totals: totals,
@@ -416,9 +456,20 @@
   };
   render();
 
+  /* sideways-scrolling rows (policy tabs, collection chips): on a phone, bring the current page's tab into view */
+  document.querySelectorAll('[aria-current="page"]').forEach(function (a) {
+    for (var row = a.parentElement; row && row !== document.body; row = row.parentElement) {
+      if (row.scrollWidth > row.clientWidth + 2 && /(auto|scroll)/.test(getComputedStyle(row).overflowX)) {
+        var rr = row.getBoundingClientRect(), ar = a.getBoundingClientRect();
+        row.scrollLeft += (ar.left - rr.left) - (rr.width - ar.width) / 2;
+        break;
+      }
+    }
+  });
+
   /* photo packs saved on another page: their photos come back from this browser; a pack whose photos are gone
      (browser data cleared) can't be printed, so it leaves the cart */
-  window.LHH.photosReady = (function () {
+  function loadPhotos(dropLost) {
     var waiting = cart.filter(function (l) { return l.kind === 'custom' && l.photos.some(function (ph) { return !ph.path && !ph.blob; }); });
     if (!waiting.length) return Promise.resolve();
     return Promise.all(waiting.map(function (l) {
@@ -428,12 +479,14 @@
       })).then(function (ok) { return ok.every(Boolean) ? null : l; });
     })).then(function (lost) {
       lost = lost.filter(Boolean);
-      if (!lost.length) return;
+      if (!lost.length || !dropLost) return;
       cart = cart.filter(function (l) { return lost.indexOf(l) < 0; });
       save(); render();
+      report('photos_lost', { msg: 'photo pack photos missing from this browser', photos: lost.reduce(function (n, l) { return n + l.photos.length; }, 0) });
       toast('Your photo pack was removed. Please add your photos again.');
     }, function () { /* keep the cart as it is */ });
-  })();
+  }
+  window.LHH.photosReady = loadPhotos(true);
 
   /* Instagram/Facebook shop: Meta sends the buyer here with ?products=<feed id>:<qty>,<feed id>:<qty>
      (the ids of google-products.xml). The designs go into the cart; a photo pack opens the photo builder. */
