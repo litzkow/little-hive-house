@@ -95,15 +95,17 @@ const SUITES = {
   async cart(browser) {
     const ctx = await context(browser);
     const { pg, errs } = await page(ctx, 'shop.html');
-    await pg.click('[data-add] >> nth=0'); await pg.click('[data-add] >> nth=0'); await pg.click('[data-add] >> nth=3');
+    const add = async (p, n) => { const before = await p.evaluate(() => LHH.totals().count); await p.locator('[data-add]').nth(n).scrollIntoViewIfNeeded(); await p.locator('[data-add]').nth(n).click();
+      await p.waitForFunction((b) => LHH.totals().count > b, before, { timeout: 5000 }).catch(() => {}); };
+    await add(pg, 0); await add(pg, 0); await add(pg, 3);
     let c = await pg.evaluate(() => LHH.cart().map((l) => l.qty));
     ok('cart: same design twice is one line with quantity 2', c.join() === '2,1', c.join());
     await pg.reload(); await pg.waitForTimeout(300);
     await pg.goto(BASE + 'collections/brasil.html'); await pg.waitForTimeout(300);
     ok('cart: survives reload and other pages', (await pg.evaluate(() => LHH.cart().length)) === 2);
     const tabB = await ctx.newPage(); await tabB.goto(BASE + 'shop.html'); await tabB.waitForTimeout(300);
-    await pg.click('[data-add] >> nth=1'); await pg.waitForTimeout(300);
-    await tabB.click('[data-add] >> nth=9'); await tabB.waitForTimeout(300);
+    await add(pg, 1); await pg.waitForTimeout(300);
+    await add(tabB, 9); await tabB.waitForTimeout(300);
     await pg.reload(); await pg.waitForTimeout(300);
     ok('cart: two tabs adding at the same time lose nothing (real bug, Nov 2026)', (await pg.evaluate(() => LHH.cart().length)) === 4, await pg.evaluate(() => LHH.cart().length));
     const st = await ctx.storageState(); const ctx2 = await browser.newContext({ storageState: st });
