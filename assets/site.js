@@ -60,8 +60,19 @@
       });
     }
     return {
-      put: function (k, b) { return run('readwrite', function (s) { return s.put(b, k); }); },
-      get: function (k) { return run('readonly', function (s) { return s.get(k); }); },
+      /* Safari's private browsing won't keep a File in IndexedDB: then the photo is kept as raw bytes instead */
+      put: function (k, b) {
+        return run('readwrite', function (s) { return s.put(b, k); }).then(function (ok) {
+          if (ok !== null || !b.arrayBuffer) return ok;
+          return b.arrayBuffer().then(function (buf) { return run('readwrite', function (s) { return s.put({ buf: buf, type: b.type || '', name: b.name || '' }, k); }); }, function () { return null; });
+        });
+      },
+      get: function (k) {
+        return run('readonly', function (s) { return s.get(k); }).then(function (v) {
+          if (v && !(v instanceof Blob) && v.buf) { try { return new File([v.buf], v.name || 'photo.jpg', { type: v.type || '' }); } catch (e) { return new Blob([v.buf], { type: v.type || '' }); } }
+          return v;
+        });
+      },
       /* forget photos of packs no longer in the saved cart (read from storage: another tab may hold newer packs) */
       prune: function () {
         var lines = readSaved();

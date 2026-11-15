@@ -43,7 +43,8 @@ async function context(browser, o = {}) {
   }, { lang: o.lang || 'en', fake: o.fake || {}, base: BASE });
   return ctx;
 }
-function watch(pg) { const e = []; pg.on('pageerror', (x) => e.push(x.message)); return e; }
+const CONSOLE = [];
+function watch(pg) { const e = []; pg.on('pageerror', (x) => e.push(x.message)); pg.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') CONSOLE.push(m.type() + ': ' + m.text().slice(0, 200)); }); return e; }
 async function page(ctx, p) { const pg = await ctx.newPage(); const errs = watch(pg); await pg.goto(BASE + p, { waitUntil: 'load' }); await pg.waitForTimeout(400); return { pg, errs }; }
 
 /* photos made in the page itself (no fixture files): kind = jpeg | png-big (noisy 4000x3000 PNG, over 20 MB) | small | junk */
@@ -68,7 +69,12 @@ async function addPhotos(pg, list) {
 }
 const thumbsReady = (pg, n) => pg.waitForFunction((n) => document.querySelectorAll('.thumb-btn svg.ph image').length >= n, n, { timeout: 120000 });
 async function pack(pg, size) { await pg.evaluate((s) => { const r = document.getElementById('pack-' + s); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }, size); }
-async function addPackToCart(pg) { await pg.check('#rights', { force: true }); await pg.click('#add-custom'); await pg.waitForTimeout(1500); }
+async function addPackToCart(pg) {
+  await pg.check('#rights', { force: true });
+  await pg.waitForFunction(() => !document.getElementById('add-custom').disabled, null, { timeout: 20000 })
+    .catch(async () => { throw new Error('Add to cart stays disabled: ' + await pg.evaluate(() => document.getElementById('counter').textContent + ' / rights=' + document.getElementById('rights').checked)); });
+  await pg.click('#add-custom'); await pg.waitForTimeout(1500);
+}
 const STRIPE = { url: 'https://checkout.stripe.com/c/pay/cs_test_x', orderId: 'ord1' };
 
 const SUITES = {
@@ -124,7 +130,9 @@ const SUITES = {
     await pg.click('#sw-' + capFrame, { force: true }); await pg.type('#studio-cap', 'Vovó & Vovô 1965', { delay: 10 });
     await pg.click('#studio-done'); await pg.waitForTimeout(700);
     const before = await pg.$$eval('.thumb-btn', (a) => a.map((b) => b.getAttribute('aria-label')).join('|'));
-    await pg.reload(); await thumbsReady(pg, 4); await pg.waitForTimeout(400);
+    await pg.reload();
+    await thumbsReady(pg, 4).catch(async () => { throw new Error('after reload only ' + await pg.$$eval('.thumb-btn', (a) => a.length) + ' photos came back'); });
+    await pg.waitForTimeout(400);
     const after = await pg.$$eval('.thumb-btn', (a) => a.map((b) => b.getAttribute('aria-label')).join('|'));
     ok('photos: a reload brings back the same photos, frames and captions (iPhone crash, Nov 2026)', before === after, after.slice(0, 120));
     await addPackToCart(pg);
@@ -188,7 +196,8 @@ const SUITES = {
   console.log(`Little Hive House site tests · ${ENGINE}`);
   for (const [name, fn] of Object.entries(SUITES)) {
     if (ONLY && !ONLY.split(',').includes(name)) continue;
-    try { await fn(browser); } catch (e) { ok(`${name}: finished without crashing`, false, e.message.split('\n')[0]); }
+    CONSOLE.length = 0;
+    try { await fn(browser); } catch (e) { ok(`${name}: finished without crashing`, false, e.message.split('\n')[0]); if (CONSOLE.length) console.log('  browser console:\n  ' + CONSOLE.slice(-8).join('\n  ')); }
   }
   await browser.close(); srv.close();
   const failed = results.filter((r) => !r.pass);

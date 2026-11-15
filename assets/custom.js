@@ -319,7 +319,15 @@
                photos: photos.map(function (p) { return { id: p.id, name: p.name, frame: p.frame, caption: p.caption, capStyle: p.capStyle, crop: p.crop }; }) };
     }
     return {
-      file: function (p) { tx('files', 'readwrite', function (s) { return s.put(p.blob, p.id); }); },
+      /* Safari's private browsing won't keep a File in IndexedDB: then the photo is kept as raw bytes instead */
+      file: function (p) {
+        return tx('files', 'readwrite', function (s) { return s.put(p.blob, p.id); }).then(function (ok) {
+          if (ok !== null || !p.blob.arrayBuffer) return;
+          return p.blob.arrayBuffer().then(function (buf) {
+            return tx('files', 'readwrite', function (s) { return s.put({ buf: buf, type: p.blob.type || '', name: p.name || '' }, p.id); });
+          }).catch(function () { /* nothing kept */ });
+        });
+      },
       drop: function (id) { tx('files', 'readwrite', function (s) { return s.delete(id); }); },
       state: function () {
         clearTimeout(stTimer);
@@ -338,6 +346,7 @@
             var back = [];
             st.photos.forEach(function (o, i) {
               var b = blobs[i];
+              if (b && !(b instanceof Blob) && b.buf) { try { b = new File([b.buf], b.name || o.name || 'photo.jpg', { type: b.type || '' }); } catch (e) { b = new Blob([b.buf], { type: b.type || '' }); } }
               if (b && b.size && !photos.some(function (q) { return q.id === o.id; })) back.push(newPhoto(b, o));
             });
             if (!back.length) return;
