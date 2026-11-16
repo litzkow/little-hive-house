@@ -107,6 +107,10 @@ jobs:
         if: always() && inputs.task == 'check-shippo'
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: email }
         run: node tools/maint/check-shippo.js
+      - name: "Problemas dos clientes: avisos, envios de fotos e pedidos recentes (sem dados pessoais)"
+        if: always() && inputs.task == 'client-errors'
+        env: { HOURS: "${{ inputs.value }}" }
+        run: node tools/maint/client-errors.js
       - name: "Pedido: pedido encontrado"
         if: always() && inputs.task == 'check-order'
         env: { ORDER: "${{ inputs.value }}", CHECK: found, SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}" }
