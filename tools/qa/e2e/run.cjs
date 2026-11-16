@@ -95,7 +95,8 @@ const SUITES = {
   async cart(browser) {
     const ctx = await context(browser);
     const { pg, errs } = await page(ctx, 'shop.html');
-    const add = async (p, n) => { const before = await p.evaluate(() => LHH.totals().count); await p.locator('[data-add]').nth(n).scrollIntoViewIfNeeded(); await p.locator('[data-add]').nth(n).click();
+    const add = async (p, n) => { const before = await p.evaluate(() => LHH.totals().count); /* centred, like a person taps it: at the very top it would sit under the sticky header */
+      await p.locator('[data-add]').nth(n).evaluate((e) => e.scrollIntoView({ block: 'center' })); await p.waitForTimeout(150); await p.locator('[data-add]').nth(n).click();
       await p.waitForFunction((b) => LHH.totals().count > b, before, { timeout: 5000 }).catch(() => {}); };
     await add(pg, 0); await add(pg, 0); await add(pg, 3);
     let c = await pg.evaluate(() => LHH.cart().map((l) => l.qty));
