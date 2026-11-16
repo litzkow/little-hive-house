@@ -629,7 +629,16 @@ async function adminPrintSheet(data, auth) {
       const i = Number(k), c = printsheet.borderColour(v, null);
       if (Number.isInteger(i) && i >= 0 && i < (order.items || []).length && c) items[i] = c;
     }
-    order.printBorders = { all, items };
+    // and one per photo: "<item index>:<photo index>" (16 Nov 2026: a colour for each magnet)
+    const photos = {};
+    const ps = data.borders.photos && typeof data.borders.photos === "object" ? data.borders.photos : {};
+    for (const [k, v] of Object.entries(ps)) {
+      const m = /^(\d+):(\d+)$/.exec(k), c = printsheet.borderColour(v, null);
+      if (!m || !c) continue;
+      const it = (order.items || [])[Number(m[1])];
+      if (it && it.kind === "photos" && Array.isArray(it.photos) && Number(m[2]) < it.photos.length) photos[`${Number(m[1])}:${Number(m[2])}`] = c;
+    }
+    order.printBorders = { all, items, photos };
     await ref.update({ printBorders: order.printBorders, updatedAt: nowIso() });
     rebuild = true;
   }

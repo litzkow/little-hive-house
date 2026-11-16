@@ -179,6 +179,8 @@
     });
   }
   function urlFor(u, p, globalIndex) { return (p.path && u.map[p.path]) || u.list[globalIndex] || ''; }
+  /* the running number of a photo across all the order's photo packs (as data-gi on the order page) */
+  function globalIndex(o, pack, j) { var n = 0, ps = photoItems(o); for (var k = 0; k < pack; k++) n += (ps[k].photos || []).length; return n + j; }
   function thumbFor(u, p, globalIndex) { return (p.path && u.thumbs && u.thumbs[p.path]) || (u.tlist && u.tlist[globalIndex]) || urlFor(u, p, globalIndex); }
   function repeats(size, n, i) { if (!n || !size || size <= n) return 1; return Math.floor(size / n) + (i < size % n ? 1 : 0); }
   function fillPhotos() {
@@ -200,6 +202,13 @@
           cap.appendChild(a);
         }
       });
+      $$('.bp-thumb[data-pack]').forEach(function (t) {
+        var it = photoItems(o)[Number(t.getAttribute('data-pack'))], p = it && it.photos[Number(t.getAttribute('data-j'))];
+        var gi = p ? globalIndex(o, Number(t.getAttribute('data-pack')), Number(t.getAttribute('data-j'))) : -1;
+        var small = p ? thumbFor(u, p, gi) : '';
+        if (small) t.style.backgroundImage = 'url("' + small.replace(/"/g, '%22') + '")';
+      });
+      paintThumbs();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fitCaptions(document.getElementById('main')); });
       if (box) box.hidden = true;
     }).catch(function (e) {
@@ -554,22 +563,44 @@
      then pointed at the signed link when the server answers. */
   /* the border around each picture on the magnets PDF (functions/printsheet.js): one for all, and/or one per item */
   function bordersPanel(o) {
-    var pb = o.printBorders || {}, items = pb.items || {}, set = Object.keys(items).length;
+    var pb = o.printBorders || {}, items = pb.items || {}, per = pb.photos || {}, set = Object.keys(items).length + Object.keys(per).length, pack = -1;
     var rows = (o.items || []).map(function (it, i) {
       if (!it || (it.kind !== 'design' && it.kind !== 'photos')) return '';
       var name = it.kind === 'design' ? (it.title || it.id) : 'Photo magnets, ' + (it.packSize || (it.photos || []).length) + '-pack';
-      return '<div class="tp-item"><div class="small"><b>' + esc(name) + '</b>' + (it.qty > 1 ? ' ×' + esc(it.qty) : '') + '</div>' +
+      var row = '<div class="tp-item"><div class="small"><b>' + esc(name) + '</b>' + (it.qty > 1 ? ' ×' + esc(it.qty) : '') + '</div>' +
         h.borderPicker(items[i] || '', { def: it.kind === 'photos' ? 'Photo default (Settings)' : 'Same as above', small: true, attrs: ' data-item="' + i + '"' }) + '</div>';
+      if (it.kind !== 'photos' || !Array.isArray(it.photos) || !it.photos.length) return row;
+      pack += 1;
+      // a colour for each photo magnet (16 Nov 2026)
+      var mine = it.photos.filter(function (p, j) { return per[i + ':' + j]; }).length;
+      return row + '<div class="bp-photos"><p class="small muted" style="margin:6px 0 2px">Each photo' + (mine ? ' (' + mine + ' changed)' : '') + ':</p>' + it.photos.map(function (p, j) {
+        var k = i + ':' + j, c = per[k] || '';
+        return '<div class="bp-photo"><span class="bp-thumb" data-pack="' + pack + '" data-j="' + j + '"><span class="n">' + (j + 1) + '</span></span>' +
+          h.borderPicker(c, { def: 'Same as the pack', small: true, attrs: ' data-photo="' + k + '"' }) + '</div>';
+      }).join('') + '</div>';
     }).join('');
     return '<details class="panel" id="border-panel"' + (pb.all || set ? ' open' : '') + '><summary>Border colours' + (pb.all || set ? ' (changed for this order)' : '') + '</summary><div class="stack">' +
       '<div class="field"><span>All the magnets in this order</span>' + h.borderPicker(pb.all || '', { def: 'Settings default', id: 'ord-border-all' }) + '</div>' +
       '<p class="small muted" style="margin:0">Or a different one for some items:</p>' + rows +
       '<div class="row end"><button class="btn btn-honey" data-act="printSheet" data-which="sheet" data-borders="1">' + icon('print') + 'Make the magnets PDF with these borders</button></div></div></details>';
   }
+  /* the border each photo will get, shown around its little picture in "Border colours" */
+  function paintThumbs() {
+    var all = h.bpickValue(document.getElementById('ord-border-all')), def = (S.settings && S.settings.printPhotoBorderColor) || '#000000';
+    $$('#border-panel .bp-photo').forEach(function (row) {
+      var t = row.querySelector('.bp-thumb'), own = h.bpickValue(row.querySelector('.bpick'));
+      var item = row.parentNode.previousElementSibling && row.parentNode.previousElementSibling.querySelector('.bpick[data-item]');
+      var c = own || h.bpickValue(item) || all || def;
+      if (t) t.style.borderColor = c === 'auto' ? '#B9A88F' : c;
+    });
+  }
+  document.addEventListener('bpick', function (e) { if (e.target && e.target.closest && e.target.closest('#border-panel')) paintThumbs(); });
   function collectBorders() {
     var items = {};
     Array.prototype.forEach.call(document.querySelectorAll('#border-panel .bpick[data-item]'), function (bp) { var v = h.bpickValue(bp); if (v) items[bp.getAttribute('data-item')] = v; });
-    return { all: h.bpickValue(document.getElementById('ord-border-all')) || null, items: items };
+    var photos = {};
+    Array.prototype.forEach.call(document.querySelectorAll('#border-panel .bpick[data-photo]'), function (bp) { var v = h.bpickValue(bp); if (v) photos[bp.getAttribute('data-photo')] = v; });
+    return { all: h.bpickValue(document.getElementById('ord-border-all')) || null, items: items, photos: photos };
   }
   ACT.printSheet = function (btn) {
     var o = current; if (!o) return;

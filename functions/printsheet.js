@@ -163,10 +163,12 @@ function planTiles(order, photoBorder = null) {
       const photos = (Array.isArray(it.photos) ? it.photos : []).filter((p) => p && typeof p.path === "string" && p.path);
       const size = (toInt(it.packSize) * qty) || photos.length;
       if (!photos.length) { skipped.push({ kind: "photos", title: it.title || `Photo magnets (${it.packSize || "?"})`, qty, size, reason: "no photos" }); return; }
-      // photos: black around them unless the order or Settings › Printing say otherwise (16 Nov 2026)
-      const border = itemBorder(order, it, index) || borderColour(photoBorder, null);
+      const perPhoto = (order.printBorders && order.printBorders.photos) || {};
       fillIndexes(size, photos.length).forEach((j) => {
         const p = photos[j];
+        // one colour for this magnet only (the order page's "Border colours"), else the item's, else the photo default
+        const own = borderColour(perPhoto[`${index}:${it.photos.indexOf(p)}`], null);
+        const border = own || itemBorder(order, it, index) || borderColour(photoBorder, null);
         const frame = frameId(p.frame), caption = String(p.caption || "").trim();
         const crop = Crop.clean(p.crop);
         const capStyle = typeof p.capStyle === "string" && p.capStyle ? p.capStyle : null;

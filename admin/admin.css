@@ -549,6 +549,10 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .bpick .bp-sw.on, .bpick .bp-custom.on { outline: 3px solid #F2A81D; outline-offset: 2px; }
 .bpick.small .bp-sw, .bpick.small .bp-custom { width: 22px; height: 22px; }
 .bpick.small .bp-opt { font-size: 12px; padding: 3px 8px; }
+.bp-photos { display: grid; gap: 6px; padding: 4px 0 8px; }
+.bp-photo { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center; }
+.bp-thumb { position: relative; width: 52px; height: 52px; border-radius: 6px; border: 5px solid #000; background: var(--sunk) center / cover no-repeat; box-sizing: border-box; }
+.bp-thumb .n { position: absolute; left: -4px; top: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: var(--honey); color: #2B2118; font-size: 10.5px; font-weight: 700; display: grid; place-items: center; }
 .tp-item { display: grid; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line, #E8DCC8); }
 .tp-item .tp-row { border: 0; padding: 0; }
 

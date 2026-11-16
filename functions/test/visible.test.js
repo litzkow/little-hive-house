@@ -107,3 +107,12 @@ test("photos with no frame bleed past the cut line; the preview still lands exac
   assert.ok(isRed(await px(img, Math.round(off + 6), mid)), "the chosen part still starts at the visible front");
   assert.ok(isBlue(await px(img, Math.round(off - 40), mid)), "and the real photo carries on far past it");
 });
+
+test("a border colour for one photo magnet only", () => {
+  const order = { printBorders: { items: { 0: "#FFFFFF" }, photos: { "0:1": "#FF0000" } },
+    items: [{ kind: "photos", packSize: 3, photos: [{ path: "p/1.jpg" }, { path: "p/2.jpg" }, { path: "p/3.jpg" }] }] };
+  const t = P.planTiles(order, "#000000").tiles;
+  assert.deepEqual(t.map((x) => x.border), ["#FFFFFF", "#FF0000", "#FFFFFF"]);
+  const none = P.planTiles({ items: order.items, printBorders: { photos: { "0:2": "#00FF00" } } }, "#000000").tiles;
+  assert.deepEqual(none.map((x) => x.border), ["#000000", "#000000", "#00FF00"]);
+});
