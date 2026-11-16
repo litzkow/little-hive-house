@@ -2,7 +2,8 @@
 /* 15 Nov 2026: what the photo builder shows must be exactly what is seen on the front of the finished magnet. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const sharp = require("sharp");
+let sharp = null;
+try { sharp = require("sharp"); } catch (e) { /* the deploy runner tests without the image library: these run where it is installed */ }
 const P = require("../printsheet");
 
 test("geometry: the visible front is kept apart from the printed size and stays inside it", () => {
@@ -32,7 +33,7 @@ async function px(img, x, y) {
 const isRed = (c) => c[0] > 180 && c[1] < 80 && c[2] < 80;
 const isBlue = (c) => c[2] > 180 && c[0] < 80 && c[1] < 80;
 
-test("photo with no frame: the chosen part fills the visible front exactly and the real photo carries on over the edge", async () => {
+test("photo with no frame: the chosen part fills the visible front exactly and the real photo carries on over the edge", { skip: !sharp && "no sharp here" }, async () => {
   const ph = await markedPhoto();
   const geo = P.geometry(2.45, 2.02, 1.9);
   // and the picture itself
@@ -48,7 +49,7 @@ test("photo with no frame: the chosen part fills the visible front exactly and t
   assert.ok(isBlue(await px(img, mid, Math.round(geo.artPx - off + 12))));
 });
 
-test("photo at the very edge of the original: the missing part repeats the edge instead of leaving white", async () => {
+test("photo at the very edge of the original: the missing part repeats the edge instead of leaving white", { skip: !sharp && "no sharp here" }, async () => {
   const ph = await markedPhoto();
   const geo = P.geometry(2.45, 2.02, 1.9);
   const crop = { x: 0.5, y: 0, z: 1 };                           // square touching the top of the photo
@@ -58,7 +59,7 @@ test("photo at the very edge of the original: the missing part repeats the edge 
   assert.equal((await sharp(img).metadata()).height, geo.artPx);
 });
 
-test("framed photo: the whole frame face lands on the visible front", async () => {
+test("framed photo: the whole frame face lands on the visible front", { skip: !sharp && "no sharp here" }, async () => {
   const geo = P.geometry(2.45, 2.02, 1.9);
   const face = await sharp({ create: { width: P.FACE_PX, height: P.FACE_PX, channels: 3, background: "#00AA00" } })
     .composite([{ input: await sharp({ create: { width: 20, height: P.FACE_PX, channels: 3, background: "#FF0000" } }).png().toBuffer(), left: 0, top: 0 }])
