@@ -23,7 +23,15 @@ dry = os.environ.get("DRY_RUN", "0") == "1"
 if ":" not in spec:
     sys.exit('ORDER_PHOTOS must look like "LHH-1003:1,3,8"')
 number, nums = spec.split(":", 1)
-wanted = sorted({int(n) for n in nums.replace(" ", "").split(",") if n})
+# "16@0.17": put the top of the window at 17% of the photo's height (a hand-picked position) instead of the automatic one
+wanted, fixed_top = [], {}
+for tok in nums.replace(" ", "").split(","):
+    if not tok:
+        continue
+    if "@" in tok:
+        a, b = tok.split("@", 1); fixed_top[int(a)] = float(b); tok = a
+    wanted.append(int(tok))
+wanted = sorted(set(wanted))
 
 db = firestore.Client(project=PROJECT)
 bucket = storage.Client(project=PROJECT).bucket(BUCKET)
@@ -112,6 +120,9 @@ for n in wanted:
     W, H = img.size
     faces = faces_in(img)
     new, why = pick(W, H, faces)
+    if n in fixed_top and H > W:
+        S = min(W, H); top = min(max(0.0, fixed_top[n] * H), H - S)
+        new, why = {"x": 0.5, "y": round(float((top + S / 2) / H), 4), "z": 1}, f"top set by hand at {top / H:.0%}"
     old = p.get("crop")
     before, after = inside(W, H, old, faces), inside(W, H, new, faces) if new else None
     boxes = " ".join(f"[{x / W:.2f},{y / H:.2f} {w / W:.2f}x{h / H:.2f}]" for x, y, w, h in faces)
