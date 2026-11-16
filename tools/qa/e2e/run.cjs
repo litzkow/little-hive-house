@@ -177,7 +177,7 @@ const SUITES = {
       ok('checkout: a passing storage error is retried by itself (Instagram, Nov 2026)', st && !st.err && st.up === 4, JSON.stringify(st));
       await ctx.close(); }
     { // a photo that keeps failing: clear message, everything stops, the photos already up are kept for the next try
-      const ctx = await context(browser, { fake: { calls: { createCheckout: STRIPE }, uploadFailPath: '/3\\.jpg$', uploadFailCode: 'storage/unknown', uploadMsPerMB: 200 } });
+      const ctx = await context(browser, { fake: { calls: { createCheckout: STRIPE }, uploadFailPath: '/3\\.(jpg|png)$', uploadFailCode: 'storage/unknown', uploadMsPerMB: 200 } });
       const { pg } = await page(ctx, 'photo-magnets.html');
       await pack(pg, 4); await addPhotos(pg, [['jpeg', '1.jpg'], ['jpeg', '2.jpg'], ['jpeg', '3.jpg'], ['jpeg', '4.jpg']]); await thumbsReady(pg, 4);
       await addPackToCart(pg); await pg.click('#checkout');
@@ -185,7 +185,7 @@ const SUITES = {
         throw new Error('no error shown: ' + pg.url() + ' uploads: ' + JSON.stringify(LOGS.filter((l) => l.kind === 'fake_upload').slice(-12).map((l) => l.what + ' ' + String(l.path).split('/').pop() + ' rule=' + l.rule)));
       });
       await pg.waitForTimeout(2500);
-      const after = await pg.evaluate(() => ({ label: document.getElementById('checkout').textContent, busy: document.getElementById('checkout').disabled, msg: document.getElementById('co-error').textContent, tries: window.__FAKE.uploads.filter((u) => /\/3\.jpg$/.test(u.path)).length }));
+      const after = await pg.evaluate(() => ({ label: document.getElementById('checkout').textContent, busy: document.getElementById('checkout').disabled, msg: document.getElementById('co-error').textContent, tries: window.__FAKE.uploads.filter((u) => /\/3\.(jpg|png)$/.test(u.path)).length }));
       ok('checkout: a photo that keeps failing tries 3 times, then a clear message', after.tries === 3 && after.msg.length > 10, JSON.stringify(after));
       ok('checkout: after the error the button is back to normal (it said "Please keep this page open")', !after.busy && !/keep this page/i.test(after.label), after.label);
       ok('checkout: the owners are told which photo failed', LOGS.some((l) => l.kind === 'upload_failed' && /photo 3/.test(l.msg)), (LOGS.filter((l) => l.kind === 'upload_failed').pop() || {}).msg);
