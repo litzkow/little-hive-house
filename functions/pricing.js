@@ -60,6 +60,23 @@ function intQty(v, max, what) {
 }
 
 /**
+ * Price of `n` photo magnets: the biggest pack that fits plus each extra photo at that pack's rate, never more than
+ * the next pack (under the smallest pack: the "0" rate each). Same math as assets/custom.js photoPrice().
+ * Example with the shop's packs: 10 -> $25 + 1 x $2.75 = $27.75; 15 -> $40 (the 16 pack costs that).
+ */
+function photoPrice(n, catalog = loadCatalog()) {
+  const packs = Object.values(catalog.packs || {}).map((p) => [Number(p.size), Number(p.price)]).sort((a, b) => a[0] - b[0]);
+  const extra = (catalog.photoPricing && catalog.photoPricing.extra) || {};
+  let base = [0, 0];
+  for (const p of packs) if (p[0] <= n) base = p;
+  const rate = Number(extra[String(base[0])] !== undefined ? extra[String(base[0])] : (base[0] ? base[1] / base[0] : 4));
+  let price = base[1] + (n - base[0]) * rate;
+  const next = packs.find((p) => p[0] > n);
+  if (next && price > next[1]) price = next[1];
+  return Math.round(price * 100) / 100;
+}
+
+/**
  * Validates a cart from the site and prices it.
  * Accepted lines (prices sent by the client are ignored):
  *   {kind:"design", id:"places/new-york", qty}
@@ -96,10 +113,14 @@ function priceCart(cart, catalog = loadCatalog()) {
     } else if (kind === "photos" || kind === "custom") {
       const size = Number(raw.packSize !== undefined ? raw.packSize : raw.count);
       const pack = catalog.packs[String(size)];
-      if (!pack) throw bad(`Photo packs come in ${Object.keys(catalog.packs).join(", ")} magnets.`);
+      const max = Number((catalog.photoPricing && catalog.photoPricing.max) || 0);
       const qty = intQty(raw.qty, 20, "Photo pack");
       const photos = Array.isArray(raw.photos) ? raw.photos : [];
       if (photos.length < 1) throw bad("A photo pack needs at least one photo.");
+      // a pack (photos repeat in order to fill it) or exactly the photos added, any number up to `max`
+      if (!pack && !(max && Number.isInteger(size) && size >= 1 && size <= max && photos.length === size)) {
+        throw bad(max ? `Photo magnets come in any number from 1 to ${max}.` : `Photo packs come in ${Object.keys(catalog.packs).join(", ")} magnets.`);
+      }
       if (photos.length > size) throw bad(`This pack holds ${size} photos, but ${photos.length} were added.`);
       const clean = photos.map((p, n) => {
         const frame = str(p && p.frame, 40) || "none";
@@ -116,9 +137,10 @@ function priceCart(cart, catalog = loadCatalog()) {
         if (w > 0 && h > 0 && w < 100000 && h < 100000) { out.w = w; out.h = h; }   // the photo's size, for the admin preview
         return out;
       });
-      const unit = cents(pack.price);
-      items.push({ kind: "photos", title: pack.title, packSize: size, price: dollars(unit), qty, photos: clean, notes: str(raw.notes, 1000) });
-      lines.push({ kind: "photos", unit, qty, count: size, name: pack.title });
+      const unit = cents(pack ? pack.price : photoPrice(size, catalog));
+      const title = pack ? pack.title : `Custom photo magnets (${size})`;
+      items.push({ kind: "photos", title, packSize: size, price: dollars(unit), qty, photos: clean, notes: str(raw.notes, 1000) });
+      lines.push({ kind: "photos", unit, qty, count: size, name: title });
     } else if (kind === "package") {
       const id = str(raw.id, 60);
       const p = catalog.packages[id];
@@ -167,4 +189,5 @@ function allocate(lines, totals) {
   return afterBundle.map((a, i) => ({ net: a - v[i], discount: b[i] + v[i] }));
 }
 
-module.exports = { priceCart, computeTotals, allocate, rulesOf, loadCatalog, cents, dollars, MAX_LINES };
+module.exports = {
+  photoPrice, priceCart, computeTotals, allocate, rulesOf, loadCatalog, cents, dollars, MAX_LINES };

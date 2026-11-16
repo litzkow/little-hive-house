@@ -5,7 +5,8 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
-const { priceCart, allocate, computeTotals, rulesOf } = require("../pricing");
+const P = require("../pricing");
+const { priceCart, allocate, computeTotals, rulesOf } = P;
 const catalog = require("../catalog.json");
 
 const SITE_JS = path.join(__dirname, "..", "..", "assets", "site.js");
@@ -165,7 +166,14 @@ test("catalog.json matches the prices printed on the built pages", () => {
   const photo = fs.readFileSync(path.join(root, "photo-magnets.html"), "utf8");
   const packs = [...photo.matchAll(/name="pack"[^>]*value="(\d+)" data-price="(\d+(?:\.\d+)?)"/g)];
   assert.ok(packs.length >= 5, "photo pack radios found");
-  for (const [, n, p] of packs) assert.equal(catalog.packs[n] && catalog.packs[n].price, Number(p), `photo pack ${n}`);
+  for (const [, n, p] of packs) {
+    if (n === "1") { assert.equal(catalog.photoPricing.extra["0"], Number(p), "1 to 3 photos, each"); continue; }   // "1 to 3": per photo
+    assert.equal(catalog.packs[n] && catalog.packs[n].price, Number(p), `photo pack ${n}`);
+  }
+  const rules = JSON.parse(photo.match(/data-pricing='([^']+)'/)[1].replace(/&#39;/g, "'"));   // the builder's own copy of the photo prices
+  assert.deepEqual(rules.extra, catalog.photoPricing.extra);
+  assert.equal(rules.max, catalog.photoPricing.max);
+  assert.deepEqual(rules.packs, Object.values(catalog.packs).map((p) => [p.size, p.price]));
   const big = fs.readFileSync(path.join(root, "big-orders.html"), "utf8");
   const tiers = [...big.matchAll(/value="([a-z]+-\d+)" data-size="(\d+)" data-price="(\d+(?:\.\d+)?)"/g)];
   assert.ok(tiers.length >= Object.keys(catalog.packages).length, "package tiers found");
@@ -178,4 +186,24 @@ test("catalog.json matches the prices printed on the built pages", () => {
   const ids = [...shop.matchAll(/data-add="([^"]+)"/g)].map((m) => m[1]);
   assert.ok(ids.length > 100);
   for (const id of ids) assert.ok(catalog.designs[id], `design ${id} in catalog.json`);
+});
+
+/* Any number of photo magnets (15 Nov 2026): pack + extra photos at that pack's rate, never more than the next pack. */
+test("photoPrice: pack + extras, capped at the next pack, $4 each under 4", () => {
+  const want = { 1: 4, 3: 12, 4: 14, 5: 17, 8: 25, 9: 25, 10: 27.75, 12: 33.25, 15: 40, 16: 40, 18: 45, 20: 50, 24: 60, 25: 65, 30: 77.5, 47: 120, 50: 120, 51: 122.4, 100: 240 };
+  for (const [n, p] of Object.entries(want)) assert.equal(P.photoPrice(Number(n), catalog), p, `${n} photos`);
+  let last = 0;
+  for (let n = 1; n <= 100; n++) { const p = P.photoPrice(n, catalog); assert.ok(p >= last, `price never goes down (${n})`); last = p; }
+});
+
+test("priceCart: any number of photos from 1 to 100, priced on the server", () => {
+  const photos = (k) => Array.from({ length: k }, (_, i) => ({ path: `uploads/u/custom-1/${i + 1}.jpg`, frame: "none" }));
+  const r = P.priceCart([{ kind: "photos", packSize: 18, qty: 1, photos: photos(18), price: 0.01 }], catalog);
+  assert.equal(r.items[0].price, 45);
+  assert.equal(r.items[0].title, "Custom photo magnets (18)");
+  assert.equal(r.lines[0].count, 18);
+  assert.equal(P.priceCart([{ kind: "photos", packSize: 16, qty: 1, photos: photos(10) }], catalog).items[0].price, 40, "a pack still repeats photos");
+  assert.throws(() => P.priceCart([{ kind: "photos", packSize: 18, qty: 1, photos: photos(10) }], catalog), /any number from 1 to 100/, "18 magnets from 10 photos is not a thing");
+  assert.throws(() => P.priceCart([{ kind: "photos", packSize: 101, qty: 1, photos: photos(101) }], catalog), /1 to 100/);
+  assert.throws(() => P.priceCart([{ kind: "photos", packSize: 2.5, qty: 1, photos: photos(2) }], catalog), /1 to 100/);
 });

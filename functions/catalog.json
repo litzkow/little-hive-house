@@ -6532,6 +6532,17 @@
    "title": "Custom photo magnets (pack of 50)"
   }
  },
+ "photoPricing": {
+  "extra": {
+   "0": 4,
+   "4": 3,
+   "9": 2.75,
+   "16": 2.5,
+   "25": 2.5,
+   "50": 2.4
+  },
+  "max": 100
+ },
  "packages": {
   "weddings-25": {
    "title": "Weddings & save the dates, 25 magnets",
