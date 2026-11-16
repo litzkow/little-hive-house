@@ -28,7 +28,7 @@ function serve() {
 const LOGS = [];
 let BASE = '';
 const results = [];
-function ok(name, cond, extra) { results.push({ name, pass: !!cond }); console.log(`${cond ? 'PASS' : 'FAIL'} ${name}${extra !== undefined && extra !== '' ? '  [' + String(extra).slice(0, 200) + ']' : ''}`); }
+function ok(name, cond, extra) { results.push({ name, pass: !!cond }); console.log(`${cond ? 'PASS' : 'FAIL'} ${name}${extra !== undefined && extra !== '' ? '  [' + String(extra).slice(0, 1200) + ']' : ''}`); }
 
 async function context(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: { width: o.w || 390, height: o.h || 844 }, ...(ENGINE === 'webkit' ? {} : { deviceScaleFactor: 3, isMobile: true }), hasTouch: true,
@@ -95,14 +95,15 @@ const SUITES = {
   async cart(browser) {
     const ctx = await context(browser);
     const { pg, errs } = await page(ctx, 'shop.html');
+    await pg.evaluate(() => { window.__ev = []; ['pointerdown', 'click', 'storage', 'pagehide', 'pageshow'].forEach((t) => window.addEventListener(t, (e) => window.__ev.push(t + ':' + ((e.target && e.target.getAttribute && (e.target.getAttribute('data-add') || e.target.className || e.target.tagName)) || '') + ':' + LHH.totals().count), true)); });
     const add = async (p, n) => { const before = await p.evaluate(() => LHH.totals().count); /* centred, like a person taps it: at the very top it would sit under the sticky header */
       await p.locator('[data-add]').nth(n).evaluate((e) => e.scrollIntoView({ block: 'center' })); await p.waitForTimeout(150); await p.locator('[data-add]').nth(n).click();
       await p.waitForFunction((b) => LHH.totals().count > b, before, { timeout: 5000 }).catch(() => {}); };
     await add(pg, 0); await add(pg, 0); await add(pg, 3);
     let c = await pg.evaluate(() => LHH.cart().map((l) => l.qty));
     const dbg = c.join() === '2,1' ? '' : JSON.stringify(await pg.evaluate(() => { const els = [...document.querySelectorAll('[data-add]')].slice(0, 4); const e = els[3], r = e.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-      return { ids: els.map((x) => x.getAttribute('data-add')), rect: [Math.round(r.top), Math.round(r.left), Math.round(r.width), Math.round(r.height)], hit: hit && (hit.outerHTML || '').slice(0, 120), cart: LHH.cart(), ls: localStorage.getItem('lhh-cart') }; }));
-    ok('cart: same design twice is one line with quantity 2', c.join() === '2,1', c.join() + ' ' + dbg);
+      return { ev: window.__ev, url: location.pathname, ids: els.map((x) => x.getAttribute('data-add')), rect: [Math.round(r.top), Math.round(r.left), Math.round(r.width), Math.round(r.height)], hit: hit && (hit.outerHTML || '').slice(0, 120), cart: LHH.cart(), ls: localStorage.getItem('lhh-cart') }; }));
+    ok('cart: same design twice is one line with quantity 2', c.join() === '2,1', c.join() + ' ' + dbg.slice(0, 900));
     await pg.reload(); await pg.waitForTimeout(300);
     await pg.goto(BASE + 'collections/brasil.html'); await pg.waitForTimeout(300);
     ok('cart: survives reload and other pages', (await pg.evaluate(() => LHH.cart().length)) === 2);
