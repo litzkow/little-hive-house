@@ -107,6 +107,13 @@ jobs:
         if: always() && inputs.task == 'check-shippo'
         env: { SHIPPO_API_KEY: "${{ secrets.SHIPPO_API_KEY }}", CHECK: email }
         run: node tools/maint/check-shippo.js
+      - name: "Vision: ligar a API de rostos e conferir o enquadramento automático de um pedido (só números, nada salvo)"
+        if: always() && inputs.task == 'autocrop-check'
+        env: { ORDER: "${{ inputs.value }}" }
+        run: |
+          gcloud services enable vision.googleapis.com --project "$PROJECT" || echo "::warning::Could not enable the Cloud Vision API"
+          (cd tools/maint && npm install --no-audit --no-fund sharp@0.35 >/dev/null)
+          TOKEN=$(gcloud auth print-access-token) node tools/maint/autocrop-check.js
       - name: "Fotos: reenquadrar para não cortar rostos (value = LHH-1003:1,3,8; só números no registro)"
         if: always() && inputs.task == 'fix-crops'
         env: { ORDER_PHOTOS: "${{ inputs.value }}", DRY_RUN: "${{ inputs.dry_run }}" }
@@ -189,6 +196,6 @@ jobs:
             set-ship-from) node tools/maint/set-ship-from.js ;;
             seed-supplies) node tools/maint/seed-supplies.js ;;
             add-purchase) node tools/maint/add-purchase.js ;;
-            client-errors|fix-crops|check-order|check-shippo|check-analytics) echo "(done in its own steps above)" ;;
+            client-errors|fix-crops|autocrop-check|check-order|check-shippo|check-analytics) echo "(done in its own steps above)" ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac
