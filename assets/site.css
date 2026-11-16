@@ -234,7 +234,7 @@ footer { padding-block: 48px 64px; }
 .ship-note { color: var(--muted); font-size: 14px; text-align: center; margin-top: 6px; }
 .ship-note.free { color: var(--focus); font-weight: 600; }
 
-.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 12px 20px; border-radius: 999px; font-weight: 500; z-index: 50; box-shadow: var(--shadow); }
+.toast { pointer-events: none; position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 12px 20px; border-radius: 999px; font-weight: 500; z-index: 50; box-shadow: var(--shadow); }
 
 /* ---------- multi-page shop ---------- */
 .nav a[aria-current="page"] { color: var(--focus); }
