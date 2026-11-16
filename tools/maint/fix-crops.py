@@ -69,17 +69,17 @@ def pick(W, H, faces):
         return None, "no faces found"
     fh = max(f[3] for f in faces)
     if H > W:   # portrait: slide up/down
-        need_top = max(0, min(f[1] for f in faces) - 0.55 * fh)          # hair, hats, bows
+        need_top = max(0, min(f[1] for f in faces) - 1.1 * fh)           # hair, hats, bows (a big bow is about a face tall)
         want_bottom = min(H, max(f[1] + f[3] for f in faces) + 2.2 * fh)  # shoulders and some body
         lo, hi = want_bottom - S, need_top                               # any top in [lo, hi] keeps both
         top = (lo + hi) / 2 if lo <= hi else need_top                    # can't keep both: heads first
         top = min(max(0, top), H - S)
-        return {"x": 0.5, "y": round((top + S / 2) / H, 4), "z": 1}, f"top at {top / H:.0%} of the height"
+        return {"x": 0.5, "y": round(float((top + S / 2) / H), 4), "z": 1}, f"top at {top / H:.0%} of the height"
     if W > H:   # landscape: slide left/right around the people
         l = max(0, min(f[0] for f in faces) - 0.4 * fh)
         r = min(W, max(f[0] + f[2] for f in faces) + 0.4 * fh)
         left = min(max(0, (l + r) / 2 - S / 2), W - S)
-        return {"x": round((left + S / 2) / W, 4), "y": 0.5, "z": 1}, f"left at {left / W:.0%} of the width"
+        return {"x": round(float((left + S / 2) / W), 4), "y": 0.5, "z": 1}, f"left at {left / W:.0%} of the width"
     return None, "square photo: nothing to move"
 
 
