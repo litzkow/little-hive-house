@@ -27,7 +27,7 @@
         var ms = Math.max(30, (F.uploadMsPerMB || 20) * total / 1e6), steps = 5, i = 0;
         var tick = setInterval(function () {
           i++;
-          if (F.uploadFailAt === k && i === 3) { clearInterval(tick); var e = new Error('fail'); e.code = F.uploadFailCode || 'storage/retry-limit-exceeded'; err(e); return; }
+          if ((F.uploadFailAt === k || (F.uploadFailPath && new RegExp(F.uploadFailPath).test(path))) && i === 3) { clearInterval(tick); var e = new Error('fail'); e.code = F.uploadFailCode || 'storage/retry-limit-exceeded'; err(e); return; }
           prog({ bytesTransferred: Math.min(total, Math.round(total * i / steps)), totalBytes: total });
           if (i >= steps) { clearInterval(tick); rec.done = true; done(); }
         }, ms / steps);

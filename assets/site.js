@@ -125,7 +125,7 @@
       localStorage.setItem(KEY, JSON.stringify(cart.filter(function (l) { return l.kind === 'design' || keep(l); }).map(function (l) {
         if (!l.photos) return l;
         var c = {}; for (var k in l) c[k] = l[k];   /* Blobs and blob: URLs only live on this page */
-        c.photos = l.photos.map(function (ph) { return { n: ph.n, file: ph.file, frame: ph.frame, frameName: ph.frameName, caption: ph.caption, path: ph.path, crop: ph.crop || null, w: ph.w || 0, h: ph.h || 0, capStyle: ph.capStyle || null }; });
+        c.photos = l.photos.map(function (ph) { return { n: ph.n, file: ph.file, frame: ph.frame, frameName: ph.frameName, caption: ph.caption, path: ph.path, pathUid: ph.pathUid || null, crop: ph.crop || null, w: ph.w || 0, h: ph.h || 0, capStyle: ph.capStyle || null }; });
         return c;
       })));
     } catch (e) {}
@@ -481,12 +481,14 @@
   /* photo packs saved on another page: their photos come back from this browser; a pack whose photos are gone
      (browser data cleared) can't be printed, so it leaves the cart */
   function loadPhotos(dropLost) {
-    var waiting = cart.filter(function (l) { return l.kind === 'custom' && l.photos.some(function (ph) { return !ph.path && !ph.blob; }); });
+    /* every photo comes back, even ones already uploaded: if the customer's sign-in changed (Instagram's browser
+       can forget it), they go up again under the new one */
+    var waiting = cart.filter(function (l) { return l.kind === 'custom' && l.photos.some(function (ph) { return !ph.blob; }); });
     if (!waiting.length) return Promise.resolve();
     return Promise.all(waiting.map(function (l) {
       return Promise.all(l.photos.map(function (ph) {
-        if (ph.path || ph.blob) return true;
-        return PB.get(l.id + '/' + ph.n).then(function (b) { if (b && b.size) { ph.blob = b; return true; } return false; });
+        if (ph.blob) return true;
+        return PB.get(l.id + '/' + ph.n).then(function (b) { if (b && b.size) { ph.blob = b; return true; } return !!ph.path; });
       })).then(function (ok) { return ok.every(Boolean) ? null : l; });
     })).then(function (lost) {
       lost = lost.filter(Boolean);

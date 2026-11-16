@@ -91,8 +91,14 @@
       var fresh = line.uploaded && line.uploaded.uid === user.uid && line.photos.every(function (p) { return p.path; });
       if (fresh) return;
       line.uploaded = null;
-      line.photos.forEach(function (ph, i) { jobs.push({ line: line, ph: ph, n: i + 1 }); });
+      /* a photo that already went up in an earlier try (same customer) is not sent again */
+      line.photos.forEach(function (ph, i) { if (ph.path && ph.pathUid === user.uid) return; ph.path = null; jobs.push({ line: line, ph: ph, n: i + 1 }); });
     });
+    if (!jobs.length) {
+      packs.forEach(function (line) { if (!line.uploaded) line.uploaded = { uid: user.uid, at: Date.now() }; });
+      L.save();
+      return Promise.resolve();
+    }
     if (!jobs.length) return Promise.resolve();
     progress(0, 1, 0, jobs.length);
     btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -101,16 +107,35 @@
       window.addEventListener('beforeunload', guard);
       var total = jobs.reduce(function (a, j) { return a + j.file.blob.size; }, 0);
       var sent = jobs.map(function () { return 0; });
-      var finished = 0, next = 0;
-      function tick() { progress(sent.reduce(function (a, b) { return a + b; }, 0), total, finished, jobs.length); }
+      var finished = 0, next = 0, failed = null;
+      function tick() { if (!failed) progress(sent.reduce(function (a, b) { return a + b; }, 0), total, finished, jobs.length); }
+      /* Google's storage sometimes answers one upload with a passing error (storage/unknown, seen from Instagram's
+         browser on an iPhone, Nov 2026): each photo tries up to 3 times, waiting a little longer each time, before the
+         customer sees an error; the ones already up are kept for the next try. */
+      var PASSING = /storage\/(unknown|retry-limit-exceeded|server-file-wrong-size|internal-error)/;
+      function send(j, k, path, attempt) {
+        return S.upload(path, j.file.blob, { contentType: j.file.type, customMetadata: { frame: j.ph.frame || 'none' } }, function (b) { if (!failed) { sent[k] = b; tick(); } })
+          .catch(function (e) {
+            if (failed || attempt >= 3 || !PASSING.test(String(e && e.code))) {
+              if (e) { e.photo = j.n; e.photoSize = j.file.blob.size; e.attempts = attempt; }
+              throw e;
+            }
+            sent[k] = 0; tick();
+            return new Promise(function (r) { setTimeout(r, attempt * 1500); }).then(function () { return send(j, k, path, attempt + 1); });
+          });
+      }
       function worker() {
-        if (next >= jobs.length) return Promise.resolve();
+        if (failed || next >= jobs.length) return Promise.resolve();
         var k = next++, j = jobs[k];
         var path = 'uploads/' + user.uid + '/' + packId(j.line) + '/' + j.n + '.' + j.file.ext;
-        return S.upload(path, j.file.blob, { contentType: j.file.type, customMetadata: { frame: j.ph.frame || 'none' } }, function (b) { sent[k] = b; tick(); })
-          .then(function () { j.ph.path = path; sent[k] = j.file.blob.size; finished++; tick(); return worker(); });
+        return send(j, k, path, 1).then(function () {
+          j.ph.path = path; j.ph.pathUid = user.uid; sent[k] = j.file.blob.size; finished++; tick();
+          L.save();   /* the photos already up survive a reload too */
+          return worker();
+        }, function (e) { if (!failed) failed = e; throw e; });
       }
-      return Promise.all([worker(), worker(), worker()]);
+      /* two at a time: steadier than three on a phone connection, and as fast on the uplink */
+      return Promise.all([worker(), worker()].map(function (w) { return w.catch(function (e) { return e; }); })).then(function () { if (failed) throw failed; });
     }).then(function () {
       packs.forEach(function (line) { line.uploaded = { uid: user.uid, at: Date.now() }; });
       L.save();   /* uploaded packs now survive a canceled checkout */
@@ -158,8 +183,14 @@
       .catch(function (e) {
         if (window.console) console.warn('checkout failed', e && e.code, e && e.message);
         var code = String((e && e.code) || '');
-        if (L.report && !/resource-exhausted/.test(code)) L.report(/^storage\//.test(code) ? 'upload_failed' : 'checkout_failed',
-          { msg: String((e && e.message) || ''), code: code, photos: packs.reduce(function (n, l) { return n + l.photos.length; }, 0) });
+        if (L.report && !/resource-exhausted/.test(code)) {
+          var cd = (e && e.customData) || {}, detail = '';
+          if (e && e.photo) detail += ' [photo ' + e.photo + ', ' + Math.round((e.photoSize || 0) / 1024) + ' KB, try ' + e.attempts + ']';
+          if (e && e.status_) detail += ' [status ' + e.status_ + ']';
+          if (cd.serverResponse) detail += ' [server: ' + String(cd.serverResponse).replace(/\s+/g, ' ').slice(0, 220) + ']';
+          L.report(/^storage\//.test(code) ? 'upload_failed' : 'checkout_failed',
+            { msg: String((e && e.message) || '') + detail, code: code, photos: packs.reduce(function (n, l) { return n + l.photos.length; }, 0) });
+        }
         reset();
         prog.hidden = true;
         setError(S.message(e, 'checkout'));

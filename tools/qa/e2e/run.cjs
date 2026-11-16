@@ -167,14 +167,28 @@ const SUITES = {
       ok('checkout: reaches the (fake) Stripe page', /stripe/.test(pg.url()));
       ok('checkout: no JS errors', !errs.length, errs.join('|'));
       await ctx.close(); }
-    { const ctx = await context(browser, { fake: { calls: { createCheckout: STRIPE }, uploadFailAt: 2 } });
+    { // a passing storage error (Instagram's browser, Nov 2026): the photo tries again by itself, the customer sees nothing
+      const ctx = await context(browser, { fake: { calls: { createCheckout: STRIPE }, uploadFailAt: 2, uploadFailCode: 'storage/unknown', callDelay: 2500 } });
       const { pg } = await page(ctx, 'photo-magnets.html');
       await pack(pg, 4); await addPhotos(pg, [['jpeg', '1.jpg'], ['jpeg', '2.jpg'], ['jpeg', '3.jpg']]); await thumbsReady(pg, 3);
       await addPackToCart(pg); await pg.click('#checkout');
-      await pg.waitForSelector('#co-error:not([hidden])', { timeout: 30000 });
-      ok('checkout: a dropped connection gives a clear message and keeps the cart', /connection/i.test(await pg.$eval('#co-error', (e) => e.textContent)) && (await pg.evaluate(() => LHH.cart().length)) === 1);
-      ok('checkout: the owners are told (problem report)', LOGS.some((l) => l.kind === 'upload_failed'));
-      await pg.evaluate(() => { window.__FAKE.uploadFailAt = 0; });
+      let st = null;
+      for (let i = 0; i < 300 && !st; i++) { st = await pg.evaluate(() => window.__FAKE.callsMade.find((c) => c.name === 'createCheckout') ? { up: window.__FAKE.uploads.length, err: !document.getElementById('co-error').hidden } : null).catch(() => null); if (!st) await pg.waitForTimeout(100); }
+      ok('checkout: a passing storage error is retried by itself (Instagram, Nov 2026)', st && !st.err && st.up === 4, JSON.stringify(st));
+      await ctx.close(); }
+    { // a photo that keeps failing: clear message, everything stops, the photos already up are kept for the next try
+      const ctx = await context(browser, { fake: { calls: { createCheckout: STRIPE }, uploadFailPath: '/3\\.jpg$', uploadFailCode: 'storage/unknown', uploadMsPerMB: 200 } });
+      const { pg } = await page(ctx, 'photo-magnets.html');
+      await pack(pg, 4); await addPhotos(pg, [['jpeg', '1.jpg'], ['jpeg', '2.jpg'], ['jpeg', '3.jpg'], ['jpeg', '4.jpg']]); await thumbsReady(pg, 4);
+      await addPackToCart(pg); await pg.click('#checkout');
+      await pg.waitForSelector('#co-error:not([hidden])', { timeout: 60000 });
+      await pg.waitForTimeout(2500);
+      const after = await pg.evaluate(() => ({ label: document.getElementById('checkout').textContent, busy: document.getElementById('checkout').disabled, msg: document.getElementById('co-error').textContent, tries: window.__FAKE.uploads.filter((u) => /\/3\.jpg$/.test(u.path)).length }));
+      ok('checkout: a photo that keeps failing tries 3 times, then a clear message', after.tries === 3 && after.msg.length > 10, JSON.stringify(after));
+      ok('checkout: after the error the button is back to normal (it said "Please keep this page open")', !after.busy && !/keep this page/i.test(after.label), after.label);
+      ok('checkout: the owners are told which photo failed', LOGS.some((l) => l.kind === 'upload_failed' && /photo 3/.test(l.msg)), (LOGS.filter((l) => l.kind === 'upload_failed').pop() || {}).msg);
+      const before = await pg.evaluate(() => window.__FAKE.uploads.length);
+      await pg.evaluate(() => { window.__FAKE.uploadFailPath = ''; window.__FAKE.uploadMsPerMB = 5; });
       await pg.click('#checkout'); await pg.waitForURL(/stripe/, { timeout: 60000 }).catch(() => {});
       ok('checkout: trying again works', /stripe/.test(pg.url()));
       await ctx.close(); }
