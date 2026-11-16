@@ -32,7 +32,7 @@
     <image:image><image:loc>https://littlehivehouse.com/assets/art/places/new-york-classic.webp</image:loc><image:title>New York Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/places/statue-of-liberty.webp</image:loc><image:title>Statue of Liberty magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/places/san-francisco-classic.webp</image:loc><image:title>San Francisco Classic magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/places/miami-beach-classic.webp</image:loc><image:title>Miami Beach magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/places/miami-beach-classic.webp</image:loc><image:title>Miami Beach Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/places/los-angeles.webp</image:loc><image:title>Los Angeles magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/places/las-vegas.webp</image:loc><image:title>Las Vegas magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/places/new-york.webp</image:loc><image:title>New York magnet</image:title></image:image>
@@ -215,8 +215,8 @@
   <url>
     <loc>https://littlehivehouse.com/collections/fall.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/pumpkin-spice-classic.webp</image:loc><image:title>Pumpkin Spice &amp; Everything Nice magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/falling-for-you-classic.webp</image:loc><image:title>Falling for You magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/pumpkin-spice-classic.webp</image:loc><image:title>Pumpkin Spice &amp; Everything Nice Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/falling-for-you-classic.webp</image:loc><image:title>Falling for You Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/hello-fall.webp</image:loc><image:title>Hello Fall magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/pumpkin-patch.webp</image:loc><image:title>Pumpkin Patch magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/sweater-weather.webp</image:loc><image:title>Sweater Weather magnet</image:title></image:image>
@@ -251,8 +251,8 @@
   <url>
     <loc>https://littlehivehouse.com/collections/halloween.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/witch-please-classic.webp</image:loc><image:title>Witch Please magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/stay-spooky-classic.webp</image:loc><image:title>Stay Spooky magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/witch-please-classic.webp</image:loc><image:title>Witch Please Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/stay-spooky-classic.webp</image:loc><image:title>Stay Spooky Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/happy-halloween.webp</image:loc><image:title>Happy Halloween magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/whooos-there.webp</image:loc><image:title>Whooo&#x27;s There? magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/too-cute-to-spook.webp</image:loc><image:title>Too Cute To Spook magnet</image:title></image:image>
@@ -287,8 +287,8 @@
   <url>
     <loc>https://littlehivehouse.com/collections/christmas.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/merry-and-bright-classic.webp</image:loc><image:title>Merry &amp; Bright magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/naughty-or-nice-classic.webp</image:loc><image:title>Naughty or Nice magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/merry-and-bright-classic.webp</image:loc><image:title>Merry &amp; Bright Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/naughty-or-nice-classic.webp</image:loc><image:title>Naughty or Nice Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/merry-christmas.webp</image:loc><image:title>Merry Christmas magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/home-for-christmas.webp</image:loc><image:title>Home For Christmas magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/hung-with-care.webp</image:loc><image:title>Hung with Care magnet</image:title></image:image>
@@ -358,8 +358,8 @@
   <url>
     <loc>https://littlehivehouse.com/collections/summer.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/salty-air-sandy-hair-classic.webp</image:loc><image:title>Salty Air, Sandy Hair magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/lifes-a-beach-classic.webp</image:loc><image:title>Life&#x27;s a Beach magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/salty-air-sandy-hair-classic.webp</image:loc><image:title>Salty Air, Sandy Hair Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/lifes-a-beach-classic.webp</image:loc><image:title>Life&#x27;s a Beach Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/vitamin-sea-classic.webp</image:loc><image:title>Vitamin Sea Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/vitamin-sea.webp</image:loc><image:title>Vitamin Sea magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/beach-please.webp</image:loc><image:title>Beach, Please magnet</image:title></image:image>
@@ -395,8 +395,8 @@
   <url>
     <loc>https://littlehivehouse.com/collections/brasil.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/saudade-classic.webp</image:loc><image:title>Saudade magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/cafune-classic.webp</image:loc><image:title>Cafuné magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/saudade-classic.webp</image:loc><image:title>Saudade Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/cafune-classic.webp</image:loc><image:title>Cafuné Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/calcadao-de-copacabana.webp</image:loc><image:title>Calçadão de Copacabana magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/pao-de-queijo.webp</image:loc><image:title>Pão de Queijo magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/brigadeiro.webp</image:loc><image:title>Brigadeiro magnet</image:title></image:image>
@@ -499,15 +499,15 @@
   <url>
     <loc>https://littlehivehouse.com/collections/bee-kind.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-kind-classic.webp</image:loc><image:title>Bee Kind magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/queen-bee-classic.webp</image:loc><image:title>Queen Bee magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-happy-classic.webp</image:loc><image:title>Bee Happy magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/hive-sweet-hive-classic.webp</image:loc><image:title>Hive Sweet Hive magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-mine-classic.webp</image:loc><image:title>Bee Mine magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/busy-bee-classic.webp</image:loc><image:title>Busy Bee magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-brave-classic.webp</image:loc><image:title>Bee Brave magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/sweet-as-honey-classic.webp</image:loc><image:title>Sweet as Honey magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bees-knees-classic.webp</image:loc><image:title>The Bee&#x27;s Knees magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-kind-classic.webp</image:loc><image:title>Bee Kind Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/queen-bee-classic.webp</image:loc><image:title>Queen Bee Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-happy-classic.webp</image:loc><image:title>Bee Happy Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/hive-sweet-hive-classic.webp</image:loc><image:title>Hive Sweet Hive Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-mine-classic.webp</image:loc><image:title>Bee Mine Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/busy-bee-classic.webp</image:loc><image:title>Busy Bee Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-brave-classic.webp</image:loc><image:title>Bee Brave Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/sweet-as-honey-classic.webp</image:loc><image:title>Sweet as Honey Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bees-knees-classic.webp</image:loc><image:title>The Bee&#x27;s Knees Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-kind.webp</image:loc><image:title>Bee Kind magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/queen-bee.webp</image:loc><image:title>Queen Bee magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/you-are-my-honey.webp</image:loc><image:title>You Are My Honey magnet</image:title></image:image>
@@ -542,11 +542,11 @@
   <url>
     <loc>https://littlehivehouse.com/collections/furry-friends.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/dog-mom-classic.webp</image:loc><image:title>Dog Mom magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/cat-mom-classic.webp</image:loc><image:title>Cat Mom magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/crazy-cat-lady-classic.webp</image:loc><image:title>Crazy Cat Lady magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/who-rescued-who-classic.webp</image:loc><image:title>Who Rescued Who? magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/adopt-dont-shop-classic.webp</image:loc><image:title>Adopt, Don&#x27;t Shop magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/dog-mom-classic.webp</image:loc><image:title>Dog Mom Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/cat-mom-classic.webp</image:loc><image:title>Cat Mom Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/crazy-cat-lady-classic.webp</image:loc><image:title>Crazy Cat Lady Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/who-rescued-who-classic.webp</image:loc><image:title>Who Rescued Who? Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/adopt-dont-shop-classic.webp</image:loc><image:title>Adopt, Don&#x27;t Shop Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/home-is-where-the-dog-is.webp</image:loc><image:title>Home Is Where the Dog Is magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/if-i-fits-i-sits.webp</image:loc><image:title>If I Fits, I Sits magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/life-is-ruff.webp</image:loc><image:title>Life Is Ruff magnet</image:title></image:image>
@@ -581,10 +581,10 @@
   <url>
     <loc>https://littlehivehouse.com/collections/kitchen-words.html</loc>
     <priority>0.8</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/but-first-coffee-classic.webp</image:loc><image:title>But First, Coffee magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/bless-this-mess-classic.webp</image:loc><image:title>Bless This Mess magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/home-sweet-home-classic.webp</image:loc><image:title>Home Sweet Home magnet</image:title></image:image>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/stay-cozy-classic.webp</image:loc><image:title>Stay Cozy magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/but-first-coffee-classic.webp</image:loc><image:title>But First, Coffee Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/bless-this-mess-classic.webp</image:loc><image:title>Bless This Mess Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/home-sweet-home-classic.webp</image:loc><image:title>Home Sweet Home Classic magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/stay-cozy-classic.webp</image:loc><image:title>Stay Cozy Classic magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/kiss-the-cook.webp</image:loc><image:title>Kiss The Cook magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/lettuce-eat.webp</image:loc><image:title>Lettuce Eat magnet</image:title></image:image>
     <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/life-happens-coffee-helps.webp</image:loc><image:title>Life Happens, Coffee Helps magnet</image:title></image:image>
@@ -1272,7 +1272,7 @@
   <url>
     <loc>https://littlehivehouse.com/m/places/miami-beach-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/places/miami-beach-classic.webp</image:loc><image:title>Miami Beach magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/places/miami-beach-classic.webp</image:loc><image:title>Miami Beach Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/places/los-angeles.html</loc>
@@ -1802,12 +1802,12 @@
   <url>
     <loc>https://littlehivehouse.com/m/fall/pumpkin-spice-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/pumpkin-spice-classic.webp</image:loc><image:title>Pumpkin Spice &amp; Everything Nice magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/pumpkin-spice-classic.webp</image:loc><image:title>Pumpkin Spice &amp; Everything Nice Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/fall/falling-for-you-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/falling-for-you-classic.webp</image:loc><image:title>Falling for You magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/fall/falling-for-you-classic.webp</image:loc><image:title>Falling for You Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/fall/hello-fall.html</loc>
@@ -1847,12 +1847,12 @@
   <url>
     <loc>https://littlehivehouse.com/m/halloween/witch-please-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/witch-please-classic.webp</image:loc><image:title>Witch Please magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/witch-please-classic.webp</image:loc><image:title>Witch Please Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/halloween/stay-spooky-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/stay-spooky-classic.webp</image:loc><image:title>Stay Spooky magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/halloween/stay-spooky-classic.webp</image:loc><image:title>Stay Spooky Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/halloween/happy-halloween.html</loc>
@@ -1877,12 +1877,12 @@
   <url>
     <loc>https://littlehivehouse.com/m/christmas/merry-and-bright-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/merry-and-bright-classic.webp</image:loc><image:title>Merry &amp; Bright magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/merry-and-bright-classic.webp</image:loc><image:title>Merry &amp; Bright Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/christmas/naughty-or-nice-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/naughty-or-nice-classic.webp</image:loc><image:title>Naughty or Nice magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/christmas/naughty-or-nice-classic.webp</image:loc><image:title>Naughty or Nice Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/christmas/merry-christmas.html</loc>
@@ -1972,12 +1972,12 @@
   <url>
     <loc>https://littlehivehouse.com/m/summer/salty-air-sandy-hair-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/salty-air-sandy-hair-classic.webp</image:loc><image:title>Salty Air, Sandy Hair magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/salty-air-sandy-hair-classic.webp</image:loc><image:title>Salty Air, Sandy Hair Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/summer/lifes-a-beach-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/lifes-a-beach-classic.webp</image:loc><image:title>Life&#x27;s a Beach magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/summer/lifes-a-beach-classic.webp</image:loc><image:title>Life&#x27;s a Beach Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/summer/vitamin-sea-classic.html</loc>
@@ -2017,12 +2017,12 @@
   <url>
     <loc>https://littlehivehouse.com/m/brasil/saudade-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/saudade-classic.webp</image:loc><image:title>Saudade magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/saudade-classic.webp</image:loc><image:title>Saudade Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/brasil/cafune-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/cafune-classic.webp</image:loc><image:title>Cafuné magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/brasil/cafune-classic.webp</image:loc><image:title>Cafuné Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/brasil/calcadao-de-copacabana.html</loc>
@@ -2102,72 +2102,72 @@
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/bee-kind-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-kind-classic.webp</image:loc><image:title>Bee Kind magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-kind-classic.webp</image:loc><image:title>Bee Kind Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/queen-bee-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/queen-bee-classic.webp</image:loc><image:title>Queen Bee magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/queen-bee-classic.webp</image:loc><image:title>Queen Bee Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/bee-happy-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-happy-classic.webp</image:loc><image:title>Bee Happy magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-happy-classic.webp</image:loc><image:title>Bee Happy Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/hive-sweet-hive-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/hive-sweet-hive-classic.webp</image:loc><image:title>Hive Sweet Hive magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/hive-sweet-hive-classic.webp</image:loc><image:title>Hive Sweet Hive Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/bee-mine-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-mine-classic.webp</image:loc><image:title>Bee Mine magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-mine-classic.webp</image:loc><image:title>Bee Mine Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/busy-bee-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/busy-bee-classic.webp</image:loc><image:title>Busy Bee magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/busy-bee-classic.webp</image:loc><image:title>Busy Bee Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/bee-brave-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-brave-classic.webp</image:loc><image:title>Bee Brave magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bee-brave-classic.webp</image:loc><image:title>Bee Brave Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/sweet-as-honey-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/sweet-as-honey-classic.webp</image:loc><image:title>Sweet as Honey magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/sweet-as-honey-classic.webp</image:loc><image:title>Sweet as Honey Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/bee-kind/bees-knees-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bees-knees-classic.webp</image:loc><image:title>The Bee&#x27;s Knees magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/bee-kind/bees-knees-classic.webp</image:loc><image:title>The Bee&#x27;s Knees Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/furry-friends/dog-mom-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/dog-mom-classic.webp</image:loc><image:title>Dog Mom magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/dog-mom-classic.webp</image:loc><image:title>Dog Mom Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/furry-friends/cat-mom-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/cat-mom-classic.webp</image:loc><image:title>Cat Mom magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/cat-mom-classic.webp</image:loc><image:title>Cat Mom Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/furry-friends/crazy-cat-lady-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/crazy-cat-lady-classic.webp</image:loc><image:title>Crazy Cat Lady magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/crazy-cat-lady-classic.webp</image:loc><image:title>Crazy Cat Lady Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/furry-friends/who-rescued-who-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/who-rescued-who-classic.webp</image:loc><image:title>Who Rescued Who? magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/who-rescued-who-classic.webp</image:loc><image:title>Who Rescued Who? Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/furry-friends/adopt-dont-shop-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/adopt-dont-shop-classic.webp</image:loc><image:title>Adopt, Don&#x27;t Shop magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/furry-friends/adopt-dont-shop-classic.webp</image:loc><image:title>Adopt, Don&#x27;t Shop Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/furry-friends/home-is-where-the-dog-is.html</loc>
@@ -2192,22 +2192,22 @@
   <url>
     <loc>https://littlehivehouse.com/m/kitchen-words/but-first-coffee-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/but-first-coffee-classic.webp</image:loc><image:title>But First, Coffee magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/but-first-coffee-classic.webp</image:loc><image:title>But First, Coffee Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/kitchen-words/bless-this-mess-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/bless-this-mess-classic.webp</image:loc><image:title>Bless This Mess magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/bless-this-mess-classic.webp</image:loc><image:title>Bless This Mess Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/kitchen-words/home-sweet-home-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/home-sweet-home-classic.webp</image:loc><image:title>Home Sweet Home magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/home-sweet-home-classic.webp</image:loc><image:title>Home Sweet Home Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/kitchen-words/stay-cozy-classic.html</loc>
     <priority>0.6</priority>
-    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/stay-cozy-classic.webp</image:loc><image:title>Stay Cozy magnet</image:title></image:image>
+    <image:image><image:loc>https://littlehivehouse.com/assets/art/kitchen-words/stay-cozy-classic.webp</image:loc><image:title>Stay Cozy Classic magnet</image:title></image:image>
   </url>
   <url>
     <loc>https://littlehivehouse.com/m/kitchen-words/kiss-the-cook.html</loc>

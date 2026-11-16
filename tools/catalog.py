@@ -481,6 +481,17 @@ MORE_FIRST = 9
 for _col in COLLECTIONS:
     _arch = next(c for c in ALL_COLLECTIONS if c["slug"] == _col["slug"])
     _col["more"] = [s for s in _arch["order"] if s not in _col["order"]]
+
+# Since "See more", the newer version of most classics is on the site too (behind the button), so both pages, cart lines
+# and order lines had the same name ("Cat Mom" twice). Per the rule in curation.py, a classic says "Classic" whenever its
+# newer version is also shown (15 Nov 2026).
+for _col in COLLECTIONS:
+    _arch = next(c for c in ALL_COLLECTIONS if c["slug"] == _col["slug"])
+    _on_site = set(_col["order"]) | set(_col["more"])
+    for (_c, _s), (_oc, _os, _t) in CLASSICS.items():
+        _base = _s[: -len("-classic")]
+        if _c == _col["slug"] and _s in _on_site and _base in _on_site and not _col["titles"][_s].endswith("Classic"):
+            _col["titles"][_s] = _arch["titles"][_s] = _col["titles"][_s] + " Classic"
 MORE_COLLECTIONS = []
 for _arch in ALL_COLLECTIONS:
     if _arch["slug"] in SHOWN:

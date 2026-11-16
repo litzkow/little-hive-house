@@ -914,6 +914,9 @@ def design_text(col, t):
             "Printed, pressed and packed by hand, with a glossy front and a strong magnet back.")
 
 
+TITLE_COUNT = {}   # design name -> how many design pages carry it (filled before the pages are written)
+
+
 def page_product(col, slug, siblings):
     """m/<collection>/<slug>.html: one design on its own page (Google Shopping and search land here)."""
     pg = Page("../../")
@@ -984,7 +987,9 @@ def page_product(col, slug, siblings):
 </main>
 {footer(pg)}"""
     ld_tag = '<script type="application/ld+json">' + _json.dumps(ld, ensure_ascii=False).replace("</", "<\\/") + "</script>\n"
-    html = head(pg, f"{t} magnet", f"{t}: a handmade 2 x 2 in fridge magnet from the {col['name']} collection. ${PRICE}, ships in 1 to 2 business days.", path)
+    # the same name in two collections (Paris in Places, Ink Cities and City Sketches): the page title names the collection
+    page_title = f"{t} magnet · {col['name']}" if TITLE_COUNT.get(t.lower(), 0) > 1 else f"{t} magnet"
+    html = head(pg, page_title, f"{t}: a handmade 2 x 2 in fridge magnet from the {col['name']} collection. ${PRICE}, ships in 1 to 2 business days.", path)
     html = html.replace("</head>", ld_tag + "</head>", 1)
     write(path, html + body + chrome_end(pg))
 
@@ -996,6 +1001,10 @@ def page_products():
     by_col = {}
     for c, x in live:
         by_col.setdefault(c["slug"], (c, []))[1].append(x)
+    TITLE_COUNT.clear()
+    for c, x in live:
+        k = title_for(c, x).lower()
+        TITLE_COUNT[k] = TITLE_COUNT.get(k, 0) + 1
     for c, x in live:
         sib = [y for y in by_col[c["slug"]][1] if y != x]
         page_product(c, x, sib[:8])

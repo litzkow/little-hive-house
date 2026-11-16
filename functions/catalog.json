@@ -331,7 +331,7 @@
    "price": 5
   },
   "places/miami-beach-classic": {
-   "title": "Miami Beach",
+   "title": "Miami Beach Classic",
    "collection": "places",
    "collectionName": "USA Places",
    "price": 5
@@ -1213,13 +1213,13 @@
    "price": 5
   },
   "fall/pumpkin-spice-classic": {
-   "title": "Pumpkin Spice & Everything Nice",
+   "title": "Pumpkin Spice & Everything Nice Classic",
    "collection": "fall",
    "collectionName": "Fall",
    "price": 5
   },
   "fall/falling-for-you-classic": {
-   "title": "Falling for You",
+   "title": "Falling for You Classic",
    "collection": "fall",
    "collectionName": "Fall",
    "price": 5
@@ -1405,13 +1405,13 @@
    "price": 5
   },
   "halloween/witch-please-classic": {
-   "title": "Witch Please",
+   "title": "Witch Please Classic",
    "collection": "halloween",
    "collectionName": "Halloween",
    "price": 5
   },
   "halloween/stay-spooky-classic": {
-   "title": "Stay Spooky",
+   "title": "Stay Spooky Classic",
    "collection": "halloween",
    "collectionName": "Halloween",
    "price": 5
@@ -1777,31 +1777,31 @@
    "price": 5
   },
   "furry-friends/dog-mom-classic": {
-   "title": "Dog Mom",
+   "title": "Dog Mom Classic",
    "collection": "furry-friends",
    "collectionName": "Furry Friends",
    "price": 5
   },
   "furry-friends/cat-mom-classic": {
-   "title": "Cat Mom",
+   "title": "Cat Mom Classic",
    "collection": "furry-friends",
    "collectionName": "Furry Friends",
    "price": 5
   },
   "furry-friends/crazy-cat-lady-classic": {
-   "title": "Crazy Cat Lady",
+   "title": "Crazy Cat Lady Classic",
    "collection": "furry-friends",
    "collectionName": "Furry Friends",
    "price": 5
   },
   "furry-friends/who-rescued-who-classic": {
-   "title": "Who Rescued Who?",
+   "title": "Who Rescued Who? Classic",
    "collection": "furry-friends",
    "collectionName": "Furry Friends",
    "price": 5
   },
   "furry-friends/adopt-dont-shop-classic": {
-   "title": "Adopt, Don't Shop",
+   "title": "Adopt, Don't Shop Classic",
    "collection": "furry-friends",
    "collectionName": "Furry Friends",
    "price": 5
@@ -1987,25 +1987,25 @@
    "price": 5
   },
   "kitchen-words/bless-this-mess-classic": {
-   "title": "Bless This Mess",
+   "title": "Bless This Mess Classic",
    "collection": "kitchen-words",
    "collectionName": "Kitchen Words",
    "price": 5
   },
   "kitchen-words/but-first-coffee-classic": {
-   "title": "But First, Coffee",
+   "title": "But First, Coffee Classic",
    "collection": "kitchen-words",
    "collectionName": "Kitchen Words",
    "price": 5
   },
   "kitchen-words/home-sweet-home-classic": {
-   "title": "Home Sweet Home",
+   "title": "Home Sweet Home Classic",
    "collection": "kitchen-words",
    "collectionName": "Kitchen Words",
    "price": 5
   },
   "kitchen-words/stay-cozy-classic": {
-   "title": "Stay Cozy",
+   "title": "Stay Cozy Classic",
    "collection": "kitchen-words",
    "collectionName": "Kitchen Words",
    "price": 5
@@ -3811,13 +3811,13 @@
    "price": 5
   },
   "brasil/saudade-classic": {
-   "title": "Saudade",
+   "title": "Saudade Classic",
    "collection": "brasil",
    "collectionName": "Brasil",
    "price": 5
   },
   "brasil/cafune-classic": {
-   "title": "Cafuné",
+   "title": "Cafuné Classic",
    "collection": "brasil",
    "collectionName": "Brasil",
    "price": 5
@@ -4903,55 +4903,55 @@
    "price": 5
   },
   "bee-kind/bee-kind-classic": {
-   "title": "Bee Kind",
+   "title": "Bee Kind Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/queen-bee-classic": {
-   "title": "Queen Bee",
+   "title": "Queen Bee Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/bee-happy-classic": {
-   "title": "Bee Happy",
+   "title": "Bee Happy Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/hive-sweet-hive-classic": {
-   "title": "Hive Sweet Hive",
+   "title": "Hive Sweet Hive Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/bee-mine-classic": {
-   "title": "Bee Mine",
+   "title": "Bee Mine Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/bee-brave-classic": {
-   "title": "Bee Brave",
+   "title": "Bee Brave Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/busy-bee-classic": {
-   "title": "Busy Bee",
+   "title": "Busy Bee Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/sweet-as-honey-classic": {
-   "title": "Sweet as Honey",
+   "title": "Sweet as Honey Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
   },
   "bee-kind/bees-knees-classic": {
-   "title": "The Bee's Knees",
+   "title": "The Bee's Knees Classic",
    "collection": "bee-kind",
    "collectionName": "Bee Kind",
    "price": 5
@@ -6295,13 +6295,13 @@
    "price": 5
   },
   "christmas/naughty-or-nice-classic": {
-   "title": "Naughty or Nice",
+   "title": "Naughty or Nice Classic",
    "collection": "christmas",
    "collectionName": "Christmas",
    "price": 5
   },
   "christmas/merry-and-bright-classic": {
-   "title": "Merry & Bright",
+   "title": "Merry & Bright Classic",
    "collection": "christmas",
    "collectionName": "Christmas",
    "price": 5
@@ -6487,13 +6487,13 @@
    "price": 5
   },
   "summer/salty-air-sandy-hair-classic": {
-   "title": "Salty Air, Sandy Hair",
+   "title": "Salty Air, Sandy Hair Classic",
    "collection": "summer",
    "collectionName": "Summer",
    "price": 5
   },
   "summer/lifes-a-beach-classic": {
-   "title": "Life's a Beach",
+   "title": "Life's a Beach Classic",
    "collection": "summer",
    "collectionName": "Summer",
    "price": 5
