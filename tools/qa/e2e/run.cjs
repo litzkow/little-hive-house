@@ -182,7 +182,7 @@ const SUITES = {
       await pack(pg, 4); await addPhotos(pg, [['jpeg', '1.jpg'], ['jpeg', '2.jpg'], ['jpeg', '3.jpg'], ['jpeg', '4.jpg']]); await thumbsReady(pg, 4);
       await addPackToCart(pg); await pg.click('#checkout');
       await pg.waitForSelector('#co-error:not([hidden])', { timeout: 60000 }).catch(async () => {
-        throw new Error('no error shown: ' + JSON.stringify(await pg.evaluate(() => ({ url: location.pathname, label: document.getElementById('checkout').textContent, ups: window.__FAKE.uploads.map((u) => u.path.split('/').pop() + (u.done ? '+' : '-')), calls: window.__FAKE.callsMade.map((c) => c.name), prog: (document.querySelector('.co-progress, #co-progress') || {}).textContent }))));
+        throw new Error('no error shown: ' + pg.url() + ' uploads: ' + JSON.stringify(LOGS.filter((l) => l.kind === 'fake_upload').slice(-12).map((l) => l.what + ' ' + String(l.path).split('/').pop() + ' rule=' + l.rule)));
       });
       await pg.waitForTimeout(2500);
       const after = await pg.evaluate(() => ({ label: document.getElementById('checkout').textContent, busy: document.getElementById('checkout').disabled, msg: document.getElementById('co-error').textContent, tries: window.__FAKE.uploads.filter((u) => /\/3\.jpg$/.test(u.path)).length }));
