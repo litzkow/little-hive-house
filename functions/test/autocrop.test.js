@@ -88,3 +88,30 @@ test("tryOrder: Vision not enabled (403) or anything failing leaves the order as
   A._set({ token: async () => { throw new Error("no metadata server"); } });
   assert.equal(await A.tryOrder(ref, o, { prepareImpl }), o);
 });
+
+test("adminPhotoFraming: the owners can put back the customer's framing and bring the automatic one back", async () => {
+  const db = new FakeDB();
+  deps.set({ db });
+  const admin = require("../admin");
+  const ADMIN = { uid: "a1", token: { admin: true, email: "owner@lhh.com" } };
+  const auto = { x: 0.5, y: 0.31, z: 1 };
+  await db.collection("orders").doc("o9").set({
+    number: "LHH-9", printSheet: { v: 4, path: "orders/o9/print-sheet.pdf" },
+    items: [{ kind: "design", id: "d1" }, { kind: "photos", packSize: 4, photos: [{ path: "a.jpg" }, { path: "b.jpg", crop: auto, autoCrop: { from: null } }] }],
+  });
+  await assert.rejects(admin.adminPhotoFraming({ orderId: "o9", pack: 0, photo: 1, use: "customer" }, { uid: "x", token: {} }), (e) => e.code === "permission-denied");
+  await assert.rejects(admin.adminPhotoFraming({ orderId: "o9", pack: 0, photo: 0, use: "customer" }, ADMIN), (e) => e.code === "failed-precondition", "not framed automatically");
+  let r = await admin.adminPhotoFraming({ orderId: "o9", pack: 0, photo: 1, use: "customer" }, ADMIN);
+  assert.equal(r.crop, null);
+  let o = (await db.collection("orders").doc("o9").get()).data(), p = o.items[1].photos[1];
+  assert.equal(p.crop, undefined, "centred again, like the customer left it");
+  assert.deepEqual(p.autoCrop.auto, auto);
+  assert.equal(p.autoCrop.undone, true);
+  assert.equal(o.printSheet.v, 0, "the print sheet is made again");
+  assert.equal(o.items[0].id, "d1");
+  r = await admin.adminPhotoFraming({ orderId: "o9", pack: 0, photo: 1, use: "auto" }, ADMIN);
+  assert.deepEqual(r.crop, auto);
+  p = (await db.collection("orders").doc("o9").get()).data().items[1].photos[1];
+  assert.deepEqual(p.crop, auto);
+  assert.ok(!p.autoCrop.undone);
+});

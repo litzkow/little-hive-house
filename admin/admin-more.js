@@ -971,6 +971,8 @@
       '<span class="hint">Cut a scrap of paper with the punch and measure it from one straight side to the opposite one. The magnet face stays 2 in; the rest wraps around the edge. Between 2.10 and 2.95. Up to 2.55 in, 9 magnets fit on a sheet; bigger pieces, 6.</span></label>' +
       '<label class="field"><span>Size of each printed picture</span><span class="input-unit"><input class="input" name="printImageIn" type="number" inputmode="decimal" min="1.9" max="2.3" step="0.01" value="' + esc(Number(s.printImageIn).toFixed(2)) + '"> in</span>' +
       '<span class="hint">The photo or design, with white paper around it. A little over 2 in covers the rounded edge of the magnet face. If white shows on the front, make it bigger; if the picture runs too far down the sides, smaller. Between 1.90 and 2.30.</span></label>' +
+      '<label class="field"><span>Visible front of a finished magnet</span><span class="input-unit"><input class="input" name="printVisibleIn" type="number" inputmode="decimal" min="1.7" max="2.02" step="0.01" value="' + esc(Number(s.printVisibleIn || 1.9).toFixed(2)) + '"> in</span>' +
+      '<span class="hint">Measure the flat front of a finished magnet, from one side to the other. Customer photos are printed so that exactly what the customer and the order page show lands on this front; the photo carries on over the edge. If heads still touch the edge, make it smaller. Between 1.70 and 2.02.</span></label>' +
       '<div class="field"><span>Default border around each picture</span>' + h.borderPicker(s.printBorderColor || '#FFFFFF', { id: 'print-border' }) +
       '<span class="hint">The paper around the picture that wraps over the edge of the magnet. Photo colour takes the colour of each picture’s own edge. An order or a test sheet can change it for some magnets. Try them with Test print.</span></div>' +
       '<label class="check"><input type="checkbox" name="printEnhance"' + (Number(s.printEnhance) ? ' checked' : '') + '> <span>Touch up customer photos for paper<span class="hint">Fixes washed-out or too-bright photos and adds a little colour and contrast, because prints come out flatter than a screen.</span></span></label>' +
@@ -981,11 +983,12 @@
     var f = $('#print-form'); if (!f) return;
     f.addEventListener('submit', function (ev) {
       ev.preventDefault();
-      var err = $('#print-err'), cut = Number(f.printCutIn.value), img = Number(f.printImageIn.value);
+      var err = $('#print-err'), cut = Number(f.printCutIn.value), img = Number(f.printImageIn.value), vis = Number(f.printVisibleIn.value);
       err.hidden = true;
       if (!isFinite(cut) || cut < 2.1 || cut > 2.95) { err.textContent = 'The piece should be between 2.10 and 2.95 inches.'; err.hidden = false; f.printCutIn.focus(); return; }
       if (!isFinite(img) || img < 1.9 || img > 2.3) { err.textContent = 'The picture should be between 1.90 and 2.30 inches.'; err.hidden = false; f.printImageIn.focus(); return; }
-      var out = { printCutIn: Math.round(cut * 100) / 100, printImageIn: Math.round(img * 100) / 100, printEnhance: f.printEnhance.checked ? 1 : 0, printBorderColor: h.bpickValue($('#print-border')) || '#FFFFFF' };
+      if (!isFinite(vis) || vis < 1.7 || vis > 2.02) { err.textContent = 'The visible front should be between 1.70 and 2.02 inches.'; err.hidden = false; f.printVisibleIn.focus(); return; }
+      var out = { printCutIn: Math.round(cut * 100) / 100, printImageIn: Math.round(img * 100) / 100, printVisibleIn: Math.round(vis * 100) / 100, printEnhance: f.printEnhance.checked ? 1 : 0, printBorderColor: h.bpickValue($('#print-border')) || '#FFFFFF' };
       var btn = f.querySelector('button[type=submit]');
       h.busy(btn, true, 'Saving…');
       h.call('adminSaveSettings', out).then(function () {

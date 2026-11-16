@@ -21,7 +21,7 @@ const cut = process.env.CUT ? Number(process.env.CUT) : null;
   if (cut !== null) { console.log(`printCutIn: ${snap.exists ? snap.data().printCutIn : "(não salvo)"} -> ${cut}`); patch.printCutIn = cut; }
   if (!dry) await ref.set(patch, { merge: true });
   // os PDFs de pedidos já feitos são refeitos com o tamanho novo quando abertos
-  const orders = await db.collection("orders").where("printSheet.v", "==", 3).get();
+  const orders = await db.collection("orders").where("printSheet.v", ">=", 3).get();
   let n = 0;
   for (const d of orders.docs) {
     const ps = d.data().printSheet || {};

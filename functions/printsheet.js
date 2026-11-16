@@ -44,6 +44,14 @@ const MIN_GAP_IN = 0.12;                             // white between two pieces
 const USE_W_IN = 8.5 - 2 * 0.3, USE_H_IN = 11 - 2 * 0.45;   // the part of the page the pieces go on (header and footer outside)
 const IMAGE_IN = 2.02;                               // default printed size of each photo / design (Settings › Printing)
 const IMAGE_MIN = 1.9, IMAGE_MAX = 2.3;
+/* The flat front of a finished magnet that people actually see (Settings › Printing): the press rolls the outer part of
+   the printed picture over the rounded edge, so a little less than the 2 in face shows. Customer photos are printed so
+   that exactly what the photo builder and the order page show (the frame's 600-unit face) lands on this visible front;
+   the photo carries on past it, onto the edge (15 Nov 2026: heads with headroom on screen came out touching the edge). */
+const VISIBLE_IN = 1.9;
+/* printSheet.v: sheets made with an older layout are made again when downloaded (4: photos fitted to the visible front). */
+const SHEET_V = 4;
+const VISIBLE_MIN = 1.7, VISIBLE_MAX = 2.02;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
 const SVG_UNITS = 600;                               // the frames' coordinate system = the 2 in face
@@ -59,6 +67,11 @@ function cutSize(v) {
   const n = Number(v);
   return Number.isFinite(n) && n >= CUT_MIN && n <= CUT_MAX ? n : CUT_IN;
 }
+/** A valid visible front size in inches (falls back to the default). */
+function visibleSize(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= VISIBLE_MIN && n <= VISIBLE_MAX ? n : VISIBLE_IN;
+}
 /** A valid printed image size in inches (falls back to the default). */
 function imageSize(v) {
   const n = Number(v);
@@ -68,10 +81,11 @@ function imageSize(v) {
  * Everything about the sheet for a cut size and image size: points for the PDF, pixels for the artwork.
  * {cut, image, face, gap, cutPt, artPt, artPx, gapPt, left, top}
  */
-function geometry(cutIn, imageIn) {
+function geometry(cutIn, imageIn, visibleIn) {
   const cut = cutSize(cutIn);
   const image = Math.min(imageSize(imageIn), cut);
   const artPx = Math.round(image * DPI);
+  const visPx = Math.min(artPx, Math.round(visibleSize(visibleIn) * DPI));   // customer photos: what the preview shows
   // as many pieces as fit (3 x 3 for a piece up to 2.55 in, 2 x 3 for a bigger one like their 2.8 in punch)
   const cols = Math.max(1, Math.min(COLS, Math.floor((USE_W_IN + MIN_GAP_IN) / (cut + MIN_GAP_IN))));
   const rows = Math.max(1, Math.min(ROWS, Math.floor((USE_H_IN + MIN_GAP_IN) / (cut + MIN_GAP_IN))));
@@ -79,7 +93,7 @@ function geometry(cutIn, imageIn) {
   const gap = Math.min(0.5, gx, gy);
   const cutPt = cut * 72, gapPt = gap * 72, artPt = artPx / DPI * 72;
   const gridW = cols * cutPt + (cols - 1) * gapPt, gridH = rows * cutPt + (rows - 1) * gapPt;
-  return { cut, image: r6(artPx / DPI), face: FACE_IN, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, gapPt: r6(gapPt),
+  return { cut, image: r6(artPx / DPI), face: FACE_IN, visible: r6(visPx / DPI), visPx, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, gapPt: r6(gapPt),
     cols, rows, perPage: cols * rows, left: r6((PAGE_PT.w - gridW) / 2), top: r6((PAGE_PT.h - gridH) / 2 + 6) };
 }
 
@@ -360,6 +374,32 @@ async function enhancePhoto(sharp, img) {
 async function toPrint(sharp, faceJpeg, px) {
   return px === FACE_PX ? faceJpeg : sharp(faceJpeg).resize(px, px, { fit: "fill", kernel: "lanczos3" }).jpeg(JPEG).toBuffer();
 }
+/** A customer photo's face (frame and caption included) -> the printed image: the whole face on the visible front
+ *  (geo.visPx), its edge colours carried on out to the printed size (geo.artPx) for the part that rolls over the edge. */
+async function toPrintVisible(sharp, faceJpeg, geo) {
+  if (!geo.visPx || geo.visPx >= geo.artPx) return toPrint(sharp, faceJpeg, geo.artPx);
+  const a = Math.floor((geo.artPx - geo.visPx) / 2), b = geo.artPx - geo.visPx - a;
+  const small = await sharp(faceJpeg).resize(geo.visPx, geo.visPx, { fit: "fill", kernel: "lanczos3" }).toBuffer();
+  return sharp(small).extend({ top: a, left: a, bottom: b, right: b, extendWith: "copy" }).jpeg(JPEG).toBuffer();
+}
+/** A full-bleed customer photo (no frame) -> the printed image: the chosen part (crop) exactly on the visible front, and
+ *  the real photo around it on the part that rolls over the edge (edge pixels repeated only where the photo ends). */
+async function fullPhotoPrint(sharp, buf, opts, W, H, crop, geo, enhance, warn) {
+  const reg = Crop.regionPx(W, H, FACE_PX, FACE_PX, crop);
+  const vis = geo.visPx && geo.visPx < geo.artPx ? geo.visPx : geo.artPx, art = geo.artPx;
+  const s = vis / reg.width;                                  // printed px per photo px
+  const half = art / (2 * s), cx = reg.left + reg.width / 2, cy = reg.top + reg.height / 2;
+  const L = Math.max(0, Math.floor(cx - half)), T = Math.max(0, Math.floor(cy - half));
+  const R = Math.min(W, Math.ceil(cx + half)), B = Math.min(H, Math.ceil(cy + half));
+  const outW = Math.max(1, Math.min(art, Math.round((R - L) * s))), outH = Math.max(1, Math.min(art, Math.round((B - T) * s)));
+  let img = await sharp(buf, opts).rotate().extract({ left: L, top: T, width: R - L, height: B - T })
+    .resize(outW, outH, { fit: "fill", kernel: "lanczos3" })
+    .flatten({ background: "#FFFFFF" }).toColourspace("srgb").removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  if (enhance) { try { img = await enhancePhoto(sharp, img); } catch (err) { warn(err); } }
+  const padL = Math.max(0, Math.min(art - outW, Math.round((L - (cx - half)) * s))), padT = Math.max(0, Math.min(art - outH, Math.round((T - (cy - half)) * s)));
+  return sharp(img.data, { raw: { width: img.info.width, height: img.info.height, channels: img.info.channels } })
+    .extend({ left: padL, top: padT, right: art - outW - padL, bottom: art - outH - padT, extendWith: "copy" }).jpeg(JPEG).toBuffer();
+}
 
 /* ---------- rendering tiles (sharp) ---------- */
 async function renderDesign(tile, ctx) {
@@ -394,6 +434,16 @@ async function renderPhoto(tile, ctx) {
     const meta = await sharp(buf, opts).metadata();
     const turned = (meta.orientation || 1) >= 5;
     const W = turned ? meta.height : meta.width, H = turned ? meta.width : meta.height;
+    if (f.id === "none") {
+      const art = await fullPhotoPrint(sharp, buf, opts, W, H, tile.crop, ctx.geo, ctx.enhance,
+        (err) => ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`));
+      const cap = FM.captionSvg(f, tile.caption, tile.capStyle);
+      if (!cap) return art;
+      // the caption sits where the preview shows it: on the visible front
+      const vis = Math.min(ctx.geo.visPx || ctx.geo.artPx, ctx.geo.artPx), off = Math.floor((ctx.geo.artPx - vis) / 2);
+      const layer = await sharp(Buffer.from(overlaySvg("", cap))).resize(vis, vis, { fit: "fill" }).png().toBuffer();
+      return sharp(art).composite([{ input: layer, left: off, top: off }]).jpeg(JPEG).toBuffer();
+    }
     const reg = Crop.regionPx(W, H, win.w, win.h, tile.crop);
     let img = await sharp(buf, opts).rotate().extract(reg)
       .resize(win.w, win.h, { fit: "fill", kernel: "lanczos3" })
@@ -417,7 +467,7 @@ async function renderPhoto(tile, ctx) {
   }
   if (inner || captionMarkup) layers.push({ input: Buffer.from(overlaySvg(inner, captionMarkup)), left: 0, top: 0 });
   const face = await sharp({ create: { width: FACE_PX, height: FACE_PX, channels: 3, background: "#FFFFFF" } }).composite(layers).jpeg(JPEG).toBuffer();
-  return toPrint(sharp, face, ctx.geo.artPx);
+  return toPrintVisible(sharp, face, ctx.geo);
 }
 
 async function pool(items, n, fn) {
@@ -660,11 +710,11 @@ async function printSettings() {
   try {
     const snap = await deps.db().collection("settings").doc("store").get();
     const s = snap.exists ? snap.data() : {};
-    return { cut: cutSize(s.printCutIn), image: imageSize(s.printImageIn), enhance: s.printEnhance === undefined ? true : Number(s.printEnhance) !== 0,
+    return { cut: cutSize(s.printCutIn), image: imageSize(s.printImageIn), visible: visibleSize(s.printVisibleIn), enhance: s.printEnhance === undefined ? true : Number(s.printEnhance) !== 0,
       border: borderColour(s.printBorderColor, Number(s.printBorderBlack) === 1 ? "#000000" : WHITE) };
   } catch (err) {
     console.warn("[printsheet] settings could not be read; using the defaults", err && err.message);
-    return { cut: CUT_IN, image: IMAGE_IN, enhance: true, border: WHITE };
+    return { cut: CUT_IN, image: IMAGE_IN, visible: VISIBLE_IN, enhance: true, border: WHITE };
   }
 }
 
@@ -680,7 +730,7 @@ function makeContext(order, opts) {
       return buf;
     }),
     frames: null,
-    geo: geometry(opts.cut, opts.image),
+    geo: geometry(opts.cut, opts.image, opts.visible),
     enhance: opts.enhance !== false,
     border: borderColour(opts.border),
   };
@@ -778,7 +828,7 @@ function setBatchBuilder(fn) { batchBuilder = fn || buildBatchDetailed; }
  */
 async function generateBatch(entries, { by = "admin", logos = 0, logoStyle = "cream" } = {}) {
   const settings = await printSettings();
-  const out = await batchBuilder(entries, { logos, logoStyle, cut: settings.cut, image: settings.image, enhance: settings.enhance, border: settings.border });
+  const out = await batchBuilder(entries, { logos, logoStyle, cut: settings.cut, image: settings.image, visible: settings.visible, enhance: settings.enhance, border: settings.border });
   const bucket = deps.bucket();
   const stamp = `${nowIso().replace(/[-:.TZ]/g, "").slice(0, 14)}-${crypto.randomBytes(3).toString("hex")}`;
   const dir = `orders/_batches/${stamp}`;
@@ -818,14 +868,14 @@ async function savePdf(bucket, p, buf, order, orderId, by, which) {
 async function generateForOrder(ref, orderId, order, { by = "system" } = {}) {
   const t0 = Date.now();
   const settings = await printSettings();
-  const out = await builder(orderId, order, { cut: settings.cut, image: settings.image, enhance: settings.enhance, border: settings.border });
+  const out = await builder(orderId, order, { cut: settings.cut, image: settings.image, visible: settings.visible, enhance: settings.enhance, border: settings.border });
   const bucket = deps.bucket();
   const p = out.pdf ? storagePath(orderId) : null, sp = storagePath(orderId, "slip");
   if (out.pdf) await savePdf(bucket, p, out.pdf, order, orderId, by, "sheet");
   if (out.slip) await savePdf(bucket, sp, out.slip, order, orderId, by, "slip");
   const meta = { path: p, slipPath: out.slip ? sp : null, pages: out.pages, slipPages: out.slipPages || 0, sheets: out.sheets, perPage: out.perPage || PER_PAGE, tiles: out.tiles,
-    cut: out.cut || settings.cut, image: out.image || settings.image, enhance: out.enhance !== undefined ? out.enhance : settings.enhance, border: out.border || settings.border || WHITE, borders: order.printBorders || null,
-    bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: 3 };
+    cut: out.cut || settings.cut, image: out.image || settings.image, visible: settings.visible, enhance: out.enhance !== undefined ? out.enhance : settings.enhance, border: out.border || settings.border || WHITE, borders: order.printBorders || null,
+    bytes: out.pdf ? out.pdf.length : 0, slipBytes: out.slip ? out.slip.length : 0, at: nowIso(), by, warnings: out.warnings || [], ms: Date.now() - t0, v: SHEET_V };
   if (ref) await ref.update({ printSheet: meta, updatedAt: nowIso() }).catch((err) => console.warn("[printsheet] could not save printSheet on the order", err && err.message));
   console.log(`[printsheet] ${order.number || orderId}: ${out.tiles} tiles, ${out.pages} pages + slip, ${((meta.bytes + meta.slipBytes) / 1048576).toFixed(1)} MB in ${meta.ms} ms`);
   return { pdf: out.pdf, slip: out.slip, meta };
@@ -867,8 +917,15 @@ async function downloadUrl(p, filename) {
   }
 }
 
+/* tests: one customer photo through the real renderer */
+function renderOneForTest(tile, o) {
+  const ctx = { geo: o.geo, enhance: !!o.enhance, readPhoto: o.readPhoto, frames: { none: NONE_FRAME }, packs: 1, warnings: [], warn(m) { this.warnings.push(m); } };
+  return renderPhoto({ n: 1, pack: 1, frame: "none", ...tile }, ctx);
+}
+
 module.exports = {
-  DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, CUT_IN, CUT_MIN, CUT_MAX, IMAGE_IN, IMAGE_MIN, IMAGE_MAX, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
+  _renderOne: renderOneForTest, _toPrintVisible: toPrintVisible,
+  DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, VISIBLE_IN, VISIBLE_MIN, VISIBLE_MAX, visibleSize, SHEET_V, CUT_IN, CUT_MIN, CUT_MAX, IMAGE_IN, IMAGE_MIN, IMAGE_MAX, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
   pageCount, geometry, cutSize, imageSize, tilePositions, borderRect, borderColour, itemBorder, colourName, ringMean, WHITE, AUTO, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,

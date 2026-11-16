@@ -522,18 +522,30 @@
   }
   /* the tallest the page has been in this orientation while nothing was being typed: the real screen, on this phone */
   var fullH = {};
-  function screenHeight() {
-    var key = window.matchMedia && window.matchMedia('(orientation: portrait)').matches ? 'p' : 'l';
-    if (!typing()) fullH[key] = Math.max(fullH[key] || 0, window.innerHeight);
-    return fullH[key] || window.innerHeight;
+  /* iPhone/iPad installed on the Home Screen: the app covers the whole screen, so its real height is the screen's own
+     (15 Nov 2026: the app opened already "short" after a PDF, so the tallest height seen was the wrong one too). */
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function realScreen(portrait) {
+    if (!IOS || !window.screen) return 0;
+    var a = screen.width, b = screen.height, w = portrait ? Math.min(a, b) : Math.max(a, b), h = portrait ? Math.max(a, b) : Math.min(a, b);
+    return Math.abs(window.innerWidth - w) <= 2 ? h : 0;   // not in split view / Slide Over
   }
+  function screenHeight() {
+    var portrait = !window.matchMedia || window.matchMedia('(orientation: portrait)').matches, key = portrait ? 'p' : 'l';
+    if (!typing()) fullH[key] = Math.max(fullH[key] || 0, window.innerHeight);
+    return Math.max(fullH[key] || window.innerHeight, realScreen(portrait));
+  }
+  var shift = 0;
   function placeBar() {
     var bar = document.querySelector('.tabbar'), vv = window.visualViewport;
-    if (!bar) return;
+    if (!bar || getComputedStyle(bar).display === 'none') return;
     var bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
     if (STANDALONE && !typing()) bottom = Math.max(bottom, screenHeight());
-    var gap = Math.round(bottom - window.innerHeight);
-    bar.style.transform = gap > 0 ? 'translateY(' + gap + 'px)' : '';
+    /* measure where the bar really is and move it by what is missing, so a wrong guess of the page height can't strand it */
+    var want = Math.max(0, Math.round(shift + bottom - bar.getBoundingClientRect().bottom));
+    if (Math.abs(want - shift) < 1) return;
+    shift = want;
+    bar.style.transform = shift > 0 ? 'translateY(' + shift + 'px)' : '';
   }
   function nudge() {
     clearTimeout(barTimer);
@@ -561,7 +573,7 @@
     window.addEventListener('scroll', placeBar, { passive: true });
     window.addEventListener('focus', nudge);
     // and a light check every second, for the cases iOS gives no event at all
-    if (STANDALONE) setInterval(function () { if (!document.hidden) placeBar(); }, 1000);
+    if (STANDALONE) setInterval(function () { if (!document.hidden) placeBar(); }, 700);
   }
   /* A new version of the app is on the site: an iPhone app that only goes to the background never reloads by itself.
      When the app comes back to the screen, it checks; with nothing half-done it reloads on its own, otherwise it offers a

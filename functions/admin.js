@@ -15,7 +15,7 @@ const { TAX_GOODS, taxWanted, isTaxSetupError, chargeOnShip, HOLD_TEXT } = requi
 const payments = require("./payments");
 
 const DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, startupInvestment: 1112.92, stripeTaxPct: 0.5, incomeTaxPct: 25,
-  printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1, packageBaseOz: 2.5, magnetOz: 0.45 };   // labels: the package and each magnet (oz)   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
+  printCutIn: 2.45, printImageIn: 2.02, printVisibleIn: 1.9, printEnhance: 1, autoNewsletter: 1, packageBaseOz: 2.5, magnetOz: 0.45 };   // labels: the package and each magnet (oz)   // Settings › Printing: the punch's paper size and the printed picture size (inches), photo touch-up (1 on, 0 off)
 
 async function loadOrder(orderId) {
   const id = U.text(orderId, 64, { required: true, field: "the order id" });
@@ -40,6 +40,47 @@ async function mutate(ref, fn) {
     after = { ...o, ...upd };
   });
   return after;
+}
+
+/* ---------- automatic framing: compare and undo (functions/autocrop.js) ---------- */
+/**
+ * adminPhotoFraming({orderId, pack, photo, use: "customer" | "auto"}) -> {ok, crop, undone}
+ * pack: which photo pack (counting only the photo packs, from 0); photo: which photo in it (from 0).
+ * "customer" puts back what the customer had (autoCrop.from; null = centred) and keeps the automatic one in
+ * autoCrop.auto, so "auto" can bring it back. Either way the print sheet is made again on the next download.
+ */
+async function adminPhotoFraming(data, auth) {
+  U.requireAdmin(auth);
+  const { ref, id } = await loadOrder(data && data.orderId);
+  const use = data && data.use;
+  if (use !== "customer" && use !== "auto") fail("invalid-argument", "Choose the customer's framing or the automatic one.");
+  const pk = Number(data && data.pack), ph = Number(data && data.photo);
+  if (!Number.isInteger(pk) || pk < 0 || !Number.isInteger(ph) || ph < 0) fail("invalid-argument", "That photo is not valid.");
+  let result = null;
+  await mutate(ref, (o) => {
+    const items = JSON.parse(JSON.stringify(o.items || []));
+    const packs = items.filter((it) => it && it.kind === "photos");
+    const p = packs[pk] && Array.isArray(packs[pk].photos) ? packs[pk].photos[ph] : null;
+    if (!p) fail("not-found", "We couldn't find that photo on the order.");
+    const ac = p.autoCrop;
+    if (!ac || typeof ac !== "object") fail("failed-precondition", "This photo was not framed automatically.");
+    if (use === "customer") {
+      if (ac.undone) { result = { crop: p.crop || null, undone: true }; return null; }
+      p.autoCrop = { ...ac, auto: p.crop || null, undone: true, by: U.who(auth), at: nowIso() };
+      if (ac.from) p.crop = ac.from; else delete p.crop;
+    } else {
+      if (!ac.undone) { result = { crop: p.crop || null, undone: false }; return null; }
+      if (!ac.auto) fail("failed-precondition", "The automatic framing was not kept for this photo.");
+      p.crop = ac.auto;
+      p.autoCrop = { from: ac.from || null, by: U.who(auth), at: nowIso() };
+    }
+    result = { crop: p.crop || null, undone: !!p.autoCrop.undone };
+    const upd = { items };
+    if (o.printSheet) upd.printSheet = { ...o.printSheet, v: 0, stale: "framing" };   // made again on the next download
+    return upd;
+  });
+  console.log(`[adminPhotoFraming] ${id}: pack ${pk + 1} photo ${ph + 1} -> ${use}`);
+  return { ok: true, ...result };
 }
 
 /* ---------- claimAdmin ---------- */
@@ -431,6 +472,7 @@ async function adminSaveSettings(data, auth) {
     if (!Number.isFinite(n) || n < 0 || n > 100000) fail("invalid-argument", `"${k}" must be a number of 0 or more.`);
     if (k === "printCutIn" && (n < 2.1 || n > 2.95)) fail("invalid-argument", "The punch size should be between 2.10 and 2.95 inches (measure a piece the punch cut).");
     if (k === "printImageIn" && (n < 1.9 || n > 2.3)) fail("invalid-argument", "The picture size should be between 1.90 and 2.30 inches.");
+    if (k === "printVisibleIn" && (n < 1.7 || n > 2.02)) fail("invalid-argument", "The visible front should be between 1.70 and 2.02 inches (measure a finished magnet).");
     if (k === "autoNewsletter" && n !== 0 && n !== 1) fail("invalid-argument", "Automatic emails are on (1) or off (0).");
     if (k === "printEnhance" && n !== 0 && n !== 1) fail("invalid-argument", "The photo touch-up is on (1) or off (0).");
     out[k] = Math.round(n * 10000) / 10000;
@@ -588,7 +630,7 @@ async function adminPrintSheet(data, auth) {
   }
   const pathOf = (m) => (m ? (which === "slip" ? m.slipPath : m.path) : null);
   // PDFs made with an older layout (v under 3) are made again
-  let meta = order.printSheet && order.printSheet.v === 3 && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
+  let meta = order.printSheet && order.printSheet.v === printsheet.SHEET_V && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;
   let exists = false;
   if (meta && !rebuild && pathOf(meta)) {
     try { exists = (await deps.bucket().file(pathOf(meta)).exists())[0] === true; } catch (err) { exists = false; }
@@ -700,7 +742,7 @@ async function adminTestSheet(data, auth) {
   const settings = await printsheet.printSettings();
   const border = printsheet.borderColour(data && data.border, settings.border);
   const out = await printsheet.buildPrintSheetDetailed("test", { number: "TEST", name: "Test sheet", items, paidAt: nowIso() },
-    { cut: settings.cut, image: settings.image, enhance: settings.enhance, border, readPhoto: async (p) => { if (!photos.has(p)) throw new Error("missing"); return photos.get(p); } });
+    { cut: settings.cut, image: settings.image, visible: settings.visible, enhance: settings.enhance, border, readPhoto: async (p) => { if (!photos.has(p)) throw new Error("missing"); return photos.get(p); } });
   if (!out.pdf) fail("unavailable", "The test sheet could not be made.");
   const path = "tests/test-sheet.pdf";
   await deps.bucket().file(path).save(out.pdf, { contentType: "application/pdf", resumable: false, metadata: { cacheControl: "private, max-age=0" } });
@@ -749,7 +791,7 @@ async function adminLastTestSheet(data, auth) {
 
 module.exports = {
   refundOrder, _internal: { photoUrl },
-  adminDeleteOrder, adminTestSheet, adminLastTestSheet, deletable,
+  adminDeleteOrder, adminTestSheet, adminLastTestSheet, deletable, adminPhotoFraming,
   adminPreviewEmail, claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
   adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet, adminPrintBatch,
   DEFAULT_SETTINGS, promoView, deliverOrder,

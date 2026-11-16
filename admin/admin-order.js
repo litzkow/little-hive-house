@@ -103,6 +103,55 @@
       }
     });
   }
+  /* automatic framing (functions/autocrop.js): what it changed, a look at the customer's own framing, and undo */
+  function framingBox(ph, pack, j) {
+    var ac = ph && ph.autoCrop;
+    if (!ac || typeof ac !== 'object') return '';
+    var undone = !!ac.undone;
+    return '<span class="framing' + (undone ? ' undone' : '') + '" data-pack="' + pack + '" data-j="' + j + '">' +
+      '<span class="tag">' + (undone ? 'Customer’s framing' : 'Framed automatically') + '</span>' +
+      '<button type="button" class="linkish" data-framing="peek">' + (undone ? 'See automatic' : 'See customer’s') + '</button>' +
+      '<button type="button" class="linkish" data-framing="' + (undone ? 'auto' : 'customer') + '">' + (undone ? 'Use automatic' : 'Use customer’s') + '</button></span>';
+  }
+  function photoAt(o, pack, j) { var it = photoItems(o)[pack]; return it && it.photos ? it.photos[j] : null; }
+  function drawMag(m, p) {
+    var badge = m.querySelector('.n');
+    m.innerHTML = magnetSVG(m.__url || '', frameOf(p.frame), p.caption, p);
+    if (badge) m.appendChild(badge);
+    fitCaptions(m);
+  }
+  var framingBound = false;
+  function bindFraming() {
+    if (framingBound) return; framingBound = true;
+    document.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest && ev.target.closest('[data-framing]');
+      if (!btn || !current) return;
+      var box = btn.closest('.framing'), o = current, pack = Number(box.getAttribute('data-pack')), j = Number(box.getAttribute('data-j'));
+      var p = photoAt(o, pack, j), fig = box.closest('figure'), m = fig && fig.querySelector('.mag');
+      if (!p || !p.autoCrop || !m) return;
+      var ac = p.autoCrop, what = btn.getAttribute('data-framing');
+      if (what === 'peek') {
+        var peeking = m.classList.toggle('peek');
+        var other = ac.undone ? ac.auto : ac.from;
+        var shown = peeking ? Object.assign({}, p, { crop: other || undefined }) : p;
+        drawMag(m, shown);
+        btn.textContent = peeking ? (ac.undone ? 'Back to customer’s' : 'Back to automatic') : (ac.undone ? 'See automatic' : 'See customer’s');
+        return;
+      }
+      h.busy(btn, true, 'Saving…');
+      h.call('adminPhotoFraming', { orderId: o.id, pack: pack, photo: j, use: what }).then(function (res) {
+        var it = photoItems(o)[pack], ph = it.photos[j];
+        if (what === 'customer') { ph.autoCrop = Object.assign({}, ac, { auto: ph.crop || null, undone: true }); if (ac.from) ph.crop = ac.from; else delete ph.crop; }
+        else { ph.crop = ac.auto; ph.autoCrop = { from: ac.from || null }; }
+        if (res && 'crop' in res) { if (res.crop) ph.crop = res.crop; else delete ph.crop; }
+        if (o.printSheet) { o.printSheet.v = 0; o.printSheet.stale = 'framing'; }
+        m.classList.remove('peek'); drawMag(m, ph);
+        box.outerHTML = framingBox(ph, pack, j);
+        var st = document.getElementById('sheet-status'); if (st) st.innerHTML = sheetStatus(o);
+        h.toast(what === 'customer' ? 'Back to the customer’s framing. The print sheet will be made again.' : 'Automatic framing back. The print sheet will be made again.');
+      }).catch(function (e) { h.busy(btn, false); h.toast('Couldn’t change the framing: ' + h.friendlyError(e), true); });
+    });
+  }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function photoItems(o) { return (o.items || []).filter(function (it) { return it.kind === 'photos'; }); }
   function normUrls(res) {
@@ -141,6 +190,7 @@
         var gi = Number(m.getAttribute('data-gi')), it = photoItems(o)[Number(m.getAttribute('data-pack'))];
         var p = it.photos[Number(m.getAttribute('data-j'))], url = urlFor(u, p, gi), small = thumbFor(u, p, gi);
         var badge = m.querySelector('.n');
+        m.__url = small;
         m.innerHTML = small ? magnetSVG(small, frameOf(p.frame), p.caption, p) : '<div class="missing">Photo file not found</div>';
         if (badge) m.appendChild(badge);
         var cap = m.parentNode && m.parentNode.querySelector('figcaption');
@@ -419,7 +469,7 @@
           var f = frameOf(ph.frame), c = capText(f, ph.caption, ph.capStyle), rep = repeats(size, photos.length, j);
           var html = '<figure class="photo"><div class="mag" data-gi="' + (gi++) + '" data-pack="' + pi + '" data-j="' + j + '">' + magnetSVG('', f, ph.caption, ph) +
             '<span class="n">' + (j + 1) + (rep > 1 ? ' ×' + rep : '') + '</span></div>' +
-            '<figcaption><b>' + esc(f.name) + '</b>' + (c ? '“' + esc(c) + '”' : (f.caption ? '<span class="faint">No caption</span>' : '')) + '</figcaption></figure>';
+            '<figcaption><b>' + esc(f.name) + '</b>' + (c ? '“' + esc(c) + '”' : (f.caption ? '<span class="faint">No caption</span>' : '')) + framingBox(ph, pi, j) + '</figcaption></figure>';
           return html;
         }).join('');
         var fillNote = photos.length && size > photos.length ? h.plural(photos.length, 'photo') + ' for ' + size + ' magnets: they repeat in order to fill the pack.' : h.plural(photos.length, 'photo') + '.';
@@ -463,10 +513,13 @@
     var ps = o.printSheet;
     if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
     if (!ps.path && !ps.slipPath) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
-    if (ps.v !== 3) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (white border around each picture).</span>';
+    if (ps.stale === 'framing') return '<span class="small muted">A photo’s framing changed: tapping a button makes the sheets again.</span>';
+    if (ps.v !== 4) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (white border around each picture).</span>';
     var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
     return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of ' + (R.num(ps.perPage) || 9) +
-      (ps.image ? ' · pictures ' + Number(ps.image).toFixed(2) + ' in' : '') + (ps.enhance === false ? ' · photos as uploaded' : ps.enhance ? ' · photos touched up' : '') + '</span>' +
+      '</span>' + (ps.image ? '<span class="small muted"> · pictures ' + Number(ps.image).toFixed(2) + ' in</span>' : '') +
+      (ps.visible ? '<span class="small muted"> · photo front ' + Number(ps.visible).toFixed(2) + ' in</span>' : '') +
+      (ps.enhance === false ? '<span class="small muted"> · photos as uploaded</span>' : ps.enhance ? '<span class="small muted"> · photos touched up</span>' : '') +
       (w ? '<span class="small neg"> · ' + h.plural(w, 'thing') + ' to check on the “Before you print” page</span>' : '');
   }
   function printCard(o) {
@@ -710,6 +763,7 @@
     }
     A.VIEWS.order.tried = null;
     current = o;
+    bindFraming();
     var p = R.pricing(o), link = o.stripe && o.stripe.paymentIntent;
     var html = '<a class="back" href="#orders">' + icon('back') + 'Orders</a>' +
       '<div class="ohead"><h1>' + esc(h.orderNo(o)) + '</h1>' + h.chip(o) + '</div>' +

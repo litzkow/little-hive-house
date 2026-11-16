@@ -21,7 +21,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, startupInvestment: 1112.92, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.45, printImageIn: 2.02, printEnhance: 1, autoNewsletter: 1, packageBaseOz: 2.5, magnetOz: 0.45 };
+  var DEFAULT_SETTINGS = { magnetUnitCost: 0.55, packagingCost: 0.60, defaultLabelCost: 4.50, stripePct: 2.9, stripeFixed: 0.30, monthlyFixedCosts: 0, startupInvestment: 1112.92, stripeTaxPct: 0.5, incomeTaxPct: 25, printCutIn: 2.45, printImageIn: 2.02, printVisibleIn: 1.9, printEnhance: 1, autoNewsletter: 1, packageBaseOz: 2.5, magnetOz: 0.45 };
   var SALE_STATUSES = ['paid', 'in_production', 'shipped', 'delivered', 'refunded', 'partially_refunded'];
   var REASONS = [
     ['not_delivered', 'Never arrived'],
