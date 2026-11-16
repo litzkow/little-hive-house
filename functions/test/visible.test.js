@@ -68,7 +68,28 @@ test("framed photo: the whole frame face lands on the visible front", { skip: !s
   const off = (geo.artPx - geo.visPx) / 2, mid = Math.round(geo.artPx / 2);
   assert.equal((await sharp(img).metadata()).width, geo.artPx);
   assert.ok(isRed(await px(img, Math.round(off + 5), mid)), "the left edge of the face is at the visible front");
-  assert.ok(isRed(await px(img, 3, mid)), "and carries on over the edge");
+  assert.ok(isRed(await px(img, Math.round(off - 5), mid)), "and carries on over the edge (mirrored)");
   const g = await px(img, Math.round(off + 40), mid);
   assert.ok(g[1] > 140 && g[0] < 80, "inside: the face");
+});
+
+test("photos get a black border unless the order chooses one; designs keep the sheet default", () => {
+  const order = { items: [{ kind: "design", id: "d1", qty: 1 }, { kind: "photos", packSize: 1, photos: [{ path: "p/1.jpg" }] }] };
+  const plan = P.planTiles(order, "#000000");
+  assert.equal(plan.tiles.find((t) => t.kind === "photo").border, "#000000");
+  assert.equal(plan.tiles.find((t) => t.kind === "design").border, undefined);
+  const chosen = P.planTiles({ ...order, printBorders: { items: { 1: "#FFFFFF" } } }, "#000000");
+  assert.equal(chosen.tiles.find((t) => t.kind === "photo").border, "#FFFFFF");
+  assert.notEqual(plan.tiles[1].key, chosen.tiles[1].key, "a different border is a different picture");
+  assert.deepEqual(P.fillFor("#000000"), { extendWith: "background", background: { r: 0, g: 0, b: 0 } });
+  assert.deepEqual(P.fillFor("auto"), { extendWith: "mirror" });
+});
+
+test("where the photo runs out over the edge: the border colour, not stripes of repeated pixels", { skip: !sharp && "no sharp here" }, async () => {
+  const ph = await markedPhoto();
+  const geo = P.geometry(2.45, 2.02, 1.9);
+  const img = await P._renderOne({ path: "p/1.jpg", frame: "none", crop: { x: 0.5, y: 0, z: 1 }, border: "#000000" },
+    { geo, enhance: false, readPhoto: async () => ph.buf });
+  const top = await px(img, Math.round(geo.artPx / 2), 4);
+  assert.ok(top[0] < 30 && top[1] < 30 && top[2] < 30, `black above the photo, got ${top}`);
 });

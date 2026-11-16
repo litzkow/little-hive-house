@@ -975,6 +975,8 @@
       '<span class="hint">Measure the flat front of a finished magnet, from one side to the other. Customer photos are printed so that exactly what the customer and the order page show lands on this front; the photo carries on over the edge. If heads still touch the edge, make it smaller. Between 1.70 and 2.02.</span></label>' +
       '<div class="field"><span>Default border around each picture</span>' + h.borderPicker(s.printBorderColor || '#FFFFFF', { id: 'print-border' }) +
       '<span class="hint">The paper around the picture that wraps over the edge of the magnet. Photo colour takes the colour of each picture’s own edge. An order or a test sheet can change it for some magnets. Try them with Test print.</span></div>' +
+      '<div class="field"><span>Border around customer photos</span>' + h.borderPicker(s.printPhotoBorderColor || '#000000', { id: 'print-photo-border' }) +
+      '<span class="hint">Photo magnets use this one instead of the default above. Black looks best on most photos. An order can still change it.</span></div>' +
       '<label class="check"><input type="checkbox" name="printEnhance"' + (Number(s.printEnhance) ? ' checked' : '') + '> <span>Touch up customer photos for paper<span class="hint">Fixes washed-out or too-bright photos and adds a little colour and contrast, because prints come out flatter than a screen.</span></span></label>' +
       '<p class="err" id="print-err" hidden></p><div class="row end"><button class="btn btn-honey" type="submit">Save printing</button></div>' +
       '<p class="small muted">New orders use these right away. For an order already made, tap Rebuild on its page.</p></form></section>';
@@ -988,7 +990,7 @@
       if (!isFinite(cut) || cut < 2.1 || cut > 2.95) { err.textContent = 'The piece should be between 2.10 and 2.95 inches.'; err.hidden = false; f.printCutIn.focus(); return; }
       if (!isFinite(img) || img < 1.9 || img > 2.3) { err.textContent = 'The picture should be between 1.90 and 2.30 inches.'; err.hidden = false; f.printImageIn.focus(); return; }
       if (!isFinite(vis) || vis < 1.7 || vis > 2.02) { err.textContent = 'The visible front should be between 1.70 and 2.02 inches.'; err.hidden = false; f.printVisibleIn.focus(); return; }
-      var out = { printCutIn: Math.round(cut * 100) / 100, printImageIn: Math.round(img * 100) / 100, printVisibleIn: Math.round(vis * 100) / 100, printEnhance: f.printEnhance.checked ? 1 : 0, printBorderColor: h.bpickValue($('#print-border')) || '#FFFFFF' };
+      var out = { printCutIn: Math.round(cut * 100) / 100, printImageIn: Math.round(img * 100) / 100, printVisibleIn: Math.round(vis * 100) / 100, printEnhance: f.printEnhance.checked ? 1 : 0, printBorderColor: h.bpickValue($('#print-border')) || '#FFFFFF', printPhotoBorderColor: h.bpickValue($('#print-photo-border')) || '#000000' };
       var btn = f.querySelector('button[type=submit]');
       h.busy(btn, true, 'Saving…');
       h.call('adminSaveSettings', out).then(function () {

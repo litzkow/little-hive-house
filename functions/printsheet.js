@@ -50,7 +50,7 @@ const IMAGE_MIN = 1.9, IMAGE_MAX = 2.3;
    the photo carries on past it, onto the edge (15 Nov 2026: heads with headroom on screen came out touching the edge). */
 const VISIBLE_IN = 1.9;
 /* printSheet.v: sheets made with an older layout are made again when downloaded (4: photos fitted to the visible front). */
-const SHEET_V = 4;
+const SHEET_V = 5;
 const VISIBLE_MIN = 1.7, VISIBLE_MAX = 2.02;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
@@ -143,7 +143,7 @@ function windowPx(frame) {
  * {kind:"photo", pack, item, n, path, frame, caption, key}], sheets, skipped:[{kind, title, qty, size}], truncated}.
  * `key` is the same for identical tiles, so each unique artwork is rendered and embedded once.
  */
-function planTiles(order) {
+function planTiles(order, photoBorder = null) {
   const tiles = [], skipped = [];
   let pack = 0;
   (order && Array.isArray(order.items) ? order.items : []).forEach((it, index) => {
@@ -160,14 +160,15 @@ function planTiles(order) {
       const photos = (Array.isArray(it.photos) ? it.photos : []).filter((p) => p && typeof p.path === "string" && p.path);
       const size = (toInt(it.packSize) * qty) || photos.length;
       if (!photos.length) { skipped.push({ kind: "photos", title: it.title || `Photo magnets (${it.packSize || "?"})`, qty, size, reason: "no photos" }); return; }
-      const border = itemBorder(order, it, index);
+      // photos: black around them unless the order or Settings › Printing say otherwise (16 Nov 2026)
+      const border = itemBorder(order, it, index) || borderColour(photoBorder, null);
       fillIndexes(size, photos.length).forEach((j) => {
         const p = photos[j];
         const frame = frameId(p.frame), caption = String(p.caption || "").trim();
         const crop = Crop.clean(p.crop);
         const capStyle = typeof p.capStyle === "string" && p.capStyle ? p.capStyle : null;
         tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle, ...(border ? { border } : {}),
-          key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}` });
+          key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}${border ? `|${border}` : ""}` });
       });
     } else if (it.kind === "package") {
       skipped.push({ kind: "package", title: it.title || it.id || "Package", qty, size: toInt(it.size) * qty });
@@ -192,13 +193,13 @@ function logoTile(style) {
  * Pure: the magnets of several orders, one after the other on shared sheets (each piece labelled with its order
  * number), then exactly `logos` logo magnets (none unless asked). {tiles, sheets, skipped, truncated, total, numbers, logos, spaces}.
  */
-function planBatch(entries, { logos = 0, logoStyle = "cream", perPage = PER_PAGE } = {}) {
+function planBatch(entries, { logos = 0, logoStyle = "cream", perPage = PER_PAGE, photoBorder = null } = {}) {
   const tiles = [], skipped = [], numbers = [];
   for (const e of entries || []) {
     const order = (e && e.order) || {};
     const num = String(order.number || e.id || "");
     numbers.push(num);
-    const p = planTiles(order);
+    const p = planTiles(order, photoBorder);
     p.tiles.forEach((t) => tiles.push({ ...t, label: num, order: num }));
     p.skipped.forEach((x) => skipped.push({ ...x, order: num }));
   }
@@ -374,17 +375,25 @@ async function enhancePhoto(sharp, img) {
 async function toPrint(sharp, faceJpeg, px) {
   return px === FACE_PX ? faceJpeg : sharp(faceJpeg).resize(px, px, { fit: "fill", kernel: "lanczos3" }).jpeg(JPEG).toBuffer();
 }
+/** How to fill printed picture where the photo itself has run out: the border colour, or the picture mirrored when the
+ *  border follows the picture ("auto"). Never the edge pixels repeated: that made stripes (16 Nov 2026). */
+function fillFor(border) {
+  const c = borderColour(border, null);
+  if (!c || c === AUTO) return { extendWith: "mirror" };
+  const n = parseInt(c.slice(1), 16);
+  return { extendWith: "background", background: { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 } };
+}
 /** A customer photo's face (frame and caption included) -> the printed image: the whole face on the visible front
  *  (geo.visPx), its edge colours carried on out to the printed size (geo.artPx) for the part that rolls over the edge. */
 async function toPrintVisible(sharp, faceJpeg, geo) {
   if (!geo.visPx || geo.visPx >= geo.artPx) return toPrint(sharp, faceJpeg, geo.artPx);
   const a = Math.floor((geo.artPx - geo.visPx) / 2), b = geo.artPx - geo.visPx - a;
   const small = await sharp(faceJpeg).resize(geo.visPx, geo.visPx, { fit: "fill", kernel: "lanczos3" }).toBuffer();
-  return sharp(small).extend({ top: a, left: a, bottom: b, right: b, extendWith: "copy" }).jpeg(JPEG).toBuffer();
+  return sharp(small).extend({ top: a, left: a, bottom: b, right: b, extendWith: "mirror" }).jpeg(JPEG).toBuffer();
 }
 /** A full-bleed customer photo (no frame) -> the printed image: the chosen part (crop) exactly on the visible front, and
  *  the real photo around it on the part that rolls over the edge (edge pixels repeated only where the photo ends). */
-async function fullPhotoPrint(sharp, buf, opts, W, H, crop, geo, enhance, warn) {
+async function fullPhotoPrint(sharp, buf, opts, W, H, crop, geo, enhance, warn, border) {
   const reg = Crop.regionPx(W, H, FACE_PX, FACE_PX, crop);
   const vis = geo.visPx && geo.visPx < geo.artPx ? geo.visPx : geo.artPx, art = geo.artPx;
   const s = vis / reg.width;                                  // printed px per photo px
@@ -398,7 +407,7 @@ async function fullPhotoPrint(sharp, buf, opts, W, H, crop, geo, enhance, warn) 
   if (enhance) { try { img = await enhancePhoto(sharp, img); } catch (err) { warn(err); } }
   const padL = Math.max(0, Math.min(art - outW, Math.round((L - (cx - half)) * s))), padT = Math.max(0, Math.min(art - outH, Math.round((T - (cy - half)) * s)));
   return sharp(img.data, { raw: { width: img.info.width, height: img.info.height, channels: img.info.channels } })
-    .extend({ left: padL, top: padT, right: art - outW - padL, bottom: art - outH - padT, extendWith: "copy" }).jpeg(JPEG).toBuffer();
+    .extend({ left: padL, top: padT, right: art - outW - padL, bottom: art - outH - padT, ...fillFor(border) }).jpeg(JPEG).toBuffer();
 }
 
 /* ---------- rendering tiles (sharp) ---------- */
@@ -436,7 +445,7 @@ async function renderPhoto(tile, ctx) {
     const W = turned ? meta.height : meta.width, H = turned ? meta.width : meta.height;
     if (f.id === "none") {
       const art = await fullPhotoPrint(sharp, buf, opts, W, H, tile.crop, ctx.geo, ctx.enhance,
-        (err) => ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`));
+        (err) => ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`), tile.border || ctx.border);
       const cap = FM.captionSvg(f, tile.caption, tile.capStyle);
       if (!cap) return art;
       // the caption sits where the preview shows it: on the visible front
@@ -500,6 +509,7 @@ function borderRect(slot, geo) {
 const WHITE = "#FFFFFF";
 const NAMED = { white: "#FFFFFF", black: "#000000" };
 const AUTO = "auto";                                 // the colour of each picture's own edge (edgeColour)
+const PHOTO_BORDER = "#000000";                      // customer photos: black around them by default (Settings › Printing)
 /** Pure: "#RRGGBB" for a colour ("#abc", "#aabbcc", "white", "black"), "auto", else `fallback` (white unless given). */
 function borderColour(v, fallback = WHITE) {
   if (v === 1 || v === "1") return "#000000";
@@ -711,10 +721,11 @@ async function printSettings() {
     const snap = await deps.db().collection("settings").doc("store").get();
     const s = snap.exists ? snap.data() : {};
     return { cut: cutSize(s.printCutIn), image: imageSize(s.printImageIn), visible: visibleSize(s.printVisibleIn), enhance: s.printEnhance === undefined ? true : Number(s.printEnhance) !== 0,
-      border: borderColour(s.printBorderColor, Number(s.printBorderBlack) === 1 ? "#000000" : WHITE) };
+      border: borderColour(s.printBorderColor, Number(s.printBorderBlack) === 1 ? "#000000" : WHITE),
+      photoBorder: borderColour(s.printPhotoBorderColor, PHOTO_BORDER) };
   } catch (err) {
     console.warn("[printsheet] settings could not be read; using the defaults", err && err.message);
-    return { cut: CUT_IN, image: IMAGE_IN, visible: VISIBLE_IN, enhance: true, border: WHITE };
+    return { cut: CUT_IN, image: IMAGE_IN, visible: VISIBLE_IN, enhance: true, border: WHITE, photoBorder: PHOTO_BORDER };
   }
 }
 
@@ -743,7 +754,7 @@ function makeContext(order, opts) {
  */
 async function buildPrintSheetDetailed(orderId, order, opts = {}) {
   order = order || {};
-  const plan = planTiles(order);
+  const plan = planTiles(order, opts.photoBorder);
   const ctx = makeContext(order, opts);
   plan.sheets = pageCount(plan.tiles.length, ctx.geo.perPage);
   ctx.frames = ctx.packs ? await loadFrames(ctx) : { none: NONE_FRAME };
@@ -772,7 +783,7 @@ async function buildBatchDetailed(entries, opts = {}) {
   const all = { items: [] };
   entries.forEach((e) => (e.order.items || []).forEach((it) => all.items.push(it)));
   const ctx = makeContext(all, opts);
-  const plan = planBatch(entries, { logos: opts.logos, logoStyle: opts.logoStyle, perPage: ctx.geo.perPage });
+  const plan = planBatch(entries, { logos: opts.logos, logoStyle: opts.logoStyle, perPage: ctx.geo.perPage, photoBorder: opts.photoBorder });
   ctx.frames = ctx.packs ? await loadFrames(ctx) : { none: NONE_FRAME };
   const uniq = new Map();
   for (const t of plan.tiles) if (!uniq.has(t.key)) uniq.set(t.key, t);
@@ -828,7 +839,7 @@ function setBatchBuilder(fn) { batchBuilder = fn || buildBatchDetailed; }
  */
 async function generateBatch(entries, { by = "admin", logos = 0, logoStyle = "cream" } = {}) {
   const settings = await printSettings();
-  const out = await batchBuilder(entries, { logos, logoStyle, cut: settings.cut, image: settings.image, visible: settings.visible, enhance: settings.enhance, border: settings.border });
+  const out = await batchBuilder(entries, { logos, logoStyle, cut: settings.cut, image: settings.image, visible: settings.visible, enhance: settings.enhance, border: settings.border, photoBorder: settings.photoBorder });
   const bucket = deps.bucket();
   const stamp = `${nowIso().replace(/[-:.TZ]/g, "").slice(0, 14)}-${crypto.randomBytes(3).toString("hex")}`;
   const dir = `orders/_batches/${stamp}`;
@@ -868,7 +879,7 @@ async function savePdf(bucket, p, buf, order, orderId, by, which) {
 async function generateForOrder(ref, orderId, order, { by = "system" } = {}) {
   const t0 = Date.now();
   const settings = await printSettings();
-  const out = await builder(orderId, order, { cut: settings.cut, image: settings.image, visible: settings.visible, enhance: settings.enhance, border: settings.border });
+  const out = await builder(orderId, order, { cut: settings.cut, image: settings.image, visible: settings.visible, enhance: settings.enhance, border: settings.border, photoBorder: settings.photoBorder });
   const bucket = deps.bucket();
   const p = out.pdf ? storagePath(orderId) : null, sp = storagePath(orderId, "slip");
   if (out.pdf) await savePdf(bucket, p, out.pdf, order, orderId, by, "sheet");
@@ -925,7 +936,7 @@ function renderOneForTest(tile, o) {
 
 module.exports = {
   _renderOne: renderOneForTest, _toPrintVisible: toPrintVisible,
-  DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, VISIBLE_IN, VISIBLE_MIN, VISIBLE_MAX, visibleSize, SHEET_V, CUT_IN, CUT_MIN, CUT_MAX, IMAGE_IN, IMAGE_MIN, IMAGE_MAX, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
+  DPI, COLS, ROWS, PER_PAGE, FACE_IN, FACE_PX, VISIBLE_IN, VISIBLE_MIN, VISIBLE_MAX, visibleSize, SHEET_V, PHOTO_BORDER, fillFor, CUT_IN, CUT_MIN, CUT_MAX, IMAGE_IN, IMAGE_MIN, IMAGE_MAX, PAGE_PT, SCALE, MAX_TILES, ALIASES, ENHANCE,
   pageCount, geometry, cutSize, imageSize, tilePositions, borderRect, borderColour, itemBorder, colourName, ringMean, WHITE, AUTO, fillIndexes, windowPx, planTiles, placeTiles, frameId, fileName, storagePath, enhanceParams, printSettings,
   addressLines, magnetCount, slipRows, fmtDate, overlaySvg, placeholderSvg, ensureFontconfig,
   buildPrintSheet, buildPrintSheetDetailed, generateForOrder, tryGenerate, setBuilder, downloadUrl, tokenUrl,

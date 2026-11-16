@@ -482,6 +482,11 @@ async function adminSaveSettings(data, auth) {
     if (!c) fail("invalid-argument", "The border colour should look like #FFFFFF.");
     out.printBorderColor = c;
   }
+  if (s.printPhotoBorderColor !== undefined && s.printPhotoBorderColor !== null && s.printPhotoBorderColor !== "") {
+    const c = require("./printsheet").borderColour(String(s.printPhotoBorderColor), null);
+    if (!c) fail("invalid-argument", "The border colour should look like #000000.");
+    out.printPhotoBorderColor = c;
+  }
   if (s.googleReviewUrl !== undefined && s.googleReviewUrl !== null) {
     const u = U.text(s.googleReviewUrl, 500);
     if (u && !/^https:\/\/([a-z0-9-]+\.)*(google\.com|g\.page|goo\.gl|maps\.app\.goo\.gl)\//i.test(u)) fail("invalid-argument", "That doesn't look like a Google review link (it should start with https://g.page/ or https://search.google.com/).");

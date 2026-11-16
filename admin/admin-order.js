@@ -514,7 +514,7 @@
     if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
     if (!ps.path && !ps.slipPath) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
     if (ps.stale === 'framing') return '<span class="small muted">A photo’s framing changed: tapping a button makes the sheets again.</span>';
-    if (ps.v !== 4) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (white border around each picture).</span>';
+    if (ps.v !== 5) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (white border around each picture).</span>';
     var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
     return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of ' + (R.num(ps.perPage) || 9) +
       '</span>' + (ps.image ? '<span class="small muted"> · pictures ' + Number(ps.image).toFixed(2) + ' in</span>' : '') +
@@ -559,7 +559,7 @@
       if (!it || (it.kind !== 'design' && it.kind !== 'photos')) return '';
       var name = it.kind === 'design' ? (it.title || it.id) : 'Photo magnets, ' + (it.packSize || (it.photos || []).length) + '-pack';
       return '<div class="tp-item"><div class="small"><b>' + esc(name) + '</b>' + (it.qty > 1 ? ' ×' + esc(it.qty) : '') + '</div>' +
-        h.borderPicker(items[i] || '', { def: 'Same as above', small: true, attrs: ' data-item="' + i + '"' }) + '</div>';
+        h.borderPicker(items[i] || '', { def: it.kind === 'photos' ? 'Photo default (Settings)' : 'Same as above', small: true, attrs: ' data-item="' + i + '"' }) + '</div>';
     }).join('');
     return '<details class="panel" id="border-panel"' + (pb.all || set ? ' open' : '') + '><summary>Border colours' + (pb.all || set ? ' (changed for this order)' : '') + '</summary><div class="stack">' +
       '<div class="field"><span>All the magnets in this order</span>' + h.borderPicker(pb.all || '', { def: 'Settings default', id: 'ord-border-all' }) + '</div>' +

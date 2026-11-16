@@ -64,6 +64,8 @@
     var a = s && s.shipFrom && typeof s.shipFrom === 'object' ? s.shipFrom : {};
     out.shipFrom = { name: a.name || '', company: a.company || '', street1: a.street1 || '', street2: a.street2 || '', city: a.city || '', state: a.state || '', zip: a.zip || '', phone: a.phone || '' };
     out.printBorderColor = b === 'auto' || /^#[0-9A-Fa-f]{6}$/.test(b) ? b.toUpperCase().replace('AUTO', 'auto') : (s && Number(s.printBorderBlack) === 1 ? '#000000' : '#FFFFFF');
+    var pbc = s && typeof s.printPhotoBorderColor === 'string' ? s.printPhotoBorderColor : '';
+    out.printPhotoBorderColor = pbc === 'auto' || /^#[0-9A-Fa-f]{6}$/.test(pbc) ? (pbc === 'auto' ? 'auto' : pbc.toUpperCase()) : '#000000';
     return out;
   }
   /* magnets per printed sheet for a punch size: same as functions/printsheet.js geometry() (3 x 3 up to 2.55 in, 2 x 3 above) */
