@@ -55,7 +55,7 @@ async function addPhotos(pg, list) {
       let blob;
       if (kind === 'junk') blob = new Blob(['not a photo '.repeat(200)], { type: 'image/jpeg' });
       else {
-        const [w, h] = kind === 'png-big' ? [4000, 3000] : kind === 'small' ? [300, 300] : [3024, 4032];
+        const [w, h] = kind === 'png-big' ? [4000, 3000] : kind === 'small' ? [300, 300] : kind === 'mid' ? [900, 1200] : [3024, 4032];
         const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
         if (kind === 'png-big') { const im = g.createImageData(w, h); const d = im.data; let s = 1; for (let i = 0; i < d.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; d[i] = i % 4 === 3 ? 255 : s & 255; } g.putImageData(im, 0, 0); }
         else { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#e9a'); gr.addColorStop(1, '#3a6'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = '200px sans-serif'; g.fillText(name, 100, 400); }
@@ -200,6 +200,38 @@ const SUITES = {
       await pg.evaluate(() => { const b = document.getElementById('checkout'); b.click(); b.click(); b.click(); }); await pg.waitForTimeout(600);
       ok('checkout: three taps on Checkout make one order', (await pg.evaluate(() => window.__FAKE.callsMade.filter((c) => c.name === 'createCheckout').length)) === 1);
       await ctx.close(); }
+  },
+  async quantity(browser) {
+    /* any number of photo magnets (15 Nov 2026, a customer wanted 18 and 10, not 16 and 9) */
+    const P = require(path.join(ROOT, 'functions', 'pricing.js')); const cat = P.loadCatalog();
+    const ctx = await context(browser);
+    const { pg, errs } = await page(ctx, 'photo-magnets.html');
+    const state = () => pg.evaluate(() => ({ total: document.getElementById('builder-total').textContent, counter: document.getElementById('counter').textContent,
+      more: document.getElementById('more-photos').hidden ? '' : document.getElementById('more-photos').textContent,
+      fit: document.getElementById('fit-photos').hidden ? '' : document.getElementById('fit-photos').textContent, pack: document.querySelector('input[name=pack]:checked').value }));
+    const many = (n, tag) => Array.from({ length: n }, (_, i) => ['mid', `${tag}${i + 1}.jpg`]);
+    await pack(pg, 16); await addPhotos(pg, many(18, 'a')); await thumbsReady(pg, 18); await pg.waitForTimeout(300);
+    let st = await state();
+    ok('quantity: 18 photos on the 16 pack = 16 + 2 extra, $45', st.total === '$45' && /pack of 16 \+ 2 extra/.test(st.counter), JSON.stringify(st));
+    ok('quantity: the "add more" nudge shows the price of 1 and 2 more photos', /Add 1 more photo for \$2\.50, or 2 for \$5/.test(st.more), st.more);
+    await addPackToCart(pg);
+    const line = await pg.evaluate(() => LHH.cart().find((l) => l.kind === 'custom'));
+    const server = P.priceCart([{ kind: 'photos', packSize: line.count, qty: 1, photos: line.photos.map((p, i) => ({ path: 'uploads/u/x/' + (i + 1) + '.jpg', frame: p.frame })) }], cat);
+    ok('quantity: the cart line (18 magnets, $45) is what the server charges', line.count === 18 && line.price === 45 && server.items[0].price === 45, `${line.count} ${line.price} ${server.items[0].price}`);
+    await pg.evaluate(() => { LHH.clear(); LHH.closeCart && LHH.closeCart(); }); await pg.waitForTimeout(300);
+    await pack(pg, 9); await addPhotos(pg, many(15, 'b')); await thumbsReady(pg, 15); await pg.waitForTimeout(300);
+    st = await state();
+    ok('quantity: 15 photos cost as much as the 16 pack, so the 16 pack gets picked with room for 1 more', st.pack === '16' && st.total === '$40' && /moved you to the pack of 16/.test(st.more), JSON.stringify(st));
+    for (let i = 0; i < 5; i++) await pg.click('.thumb-x >> nth=0');
+    await pg.waitForTimeout(300); st = await state();
+    ok('quantity: 10 photos on the 16 pack offer "make just these" for $27.75', /Make just these for \$27\.75/.test(st.fit), JSON.stringify(st));
+    await pg.click('#fit-photos'); await pg.waitForTimeout(200); st = await state();
+    ok('quantity: after "make just these" it is 10 magnets for $27.75', st.total === '$27.75' && st.pack === '9' && /pack of 9 \+ 1 extra/.test(st.counter), JSON.stringify(st));
+    for (let i = 0; i < 8; i++) await pg.click('.thumb-x >> nth=0');
+    await pack(pg, 1); await pg.evaluate(() => document.querySelector('input[name=pack]:checked').dispatchEvent(new Event('change', { bubbles: true }))); await pg.waitForTimeout(200); st = await state();
+    ok('quantity: "1 to 3" with 2 photos = $8', st.total === '$8' && /2 photos added, \$4 each/.test(st.counter), JSON.stringify(st));
+    ok('quantity: no JS errors', !errs.length, errs.join('|'));
+    await ctx.close();
   },
   async reports(browser) {
     const ctx = await context(browser);

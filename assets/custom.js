@@ -22,8 +22,37 @@
   var current = -1;
   var group = '';
 
-  function packSize() { return Number(document.querySelector('input[name="pack"]:checked').value); }
-  function packPrice() { return Number(document.querySelector('input[name="pack"]:checked').getAttribute('data-price')); }
+  /* ---------- how many magnets and the price ----------
+     Any number from 1 to PR.max (15 Nov 2026): the pack picked is the starting point; more photos than the pack are
+     extra photos at that pack's rate, never more than the next pack (then the next pack is picked, same price, more
+     room). Fewer photos than the pack: the photos repeat to fill it, or the customer keeps just theirs. "1 to 3" is
+     PR.extra["0"] each. Same math as functions/pricing.js photoPrice(). */
+  var PR = (function () { try { return JSON.parse(document.getElementById('builder').getAttribute('data-pricing')); } catch (e) { return null; } })()
+    || { packs: [[4, 14], [9, 25], [16, 40], [25, 65], [50, 120]], extra: { 0: 4, 4: 3, 9: 2.75, 16: 2.5, 25: 2.5, 50: 2.4 }, max: 100 };
+  function baseFor(n) { var b = [0, 0]; PR.packs.forEach(function (p) { if (p[0] <= n) b = p; }); return b; }
+  function rateFor(base) { var r = PR.extra[String(base[0])]; return r !== undefined ? Number(r) : (base[0] ? base[1] / base[0] : 4); }
+  function photoPrice(n) {
+    var base = baseFor(n), price = base[1] + (n - base[0]) * rateFor(base);
+    var next = PR.packs.filter(function (p) { return p[0] > n; })[0];
+    if (next && price > next[1]) price = next[1];
+    return Math.round(price * 100) / 100;
+  }
+  function picked() { var r = document.querySelector('input[name="pack"]:checked'); return r ? Number(r.value) : 9; }
+  function pick(size) { var r = document.getElementById('pack-' + size); if (r) r.checked = true; }
+  /* magnets in the order: the pack, or every photo when there are more ("1 to 3" = just the photos) */
+  function packSize() { var s = picked(); return Math.max(s === 1 ? 1 : s, photos.length); }
+  function packPrice() { return photoPrice(packSize()); }
+  /* more room for the same price: when the photos cost as much as a bigger pack (or "1 to 3" got a 4th photo),
+     that pack gets picked */
+  function settlePack() {
+    var n = photos.length; if (!n) return;
+    var s = picked(), count = Math.max(s === 1 ? 1 : s, n), price = photoPrice(count);
+    var up = PR.packs.filter(function (p) { return p[0] > count && Math.abs(p[1] - price) < 0.005; })[0];
+    if (up) { pick(up[0]); movedTo = up[0]; return 'up'; }
+    if (s === 1 && n > 3) { pick(baseFor(n)[0]); }
+  }
+  function money(v) { return LHH.money(v); }
+  var movedTo = 0;   /* the pack settlePack() moved the customer to: its note stays until they change the pack */
   function frameOf(p) { return FR[p.frame] || FR.none || { id: 'none', name: 'No border', window: [0, 0, 600, 600], caption: null }; }
   /* the frame's caption in the lettering the customer picked (caption.styles: hand, script, classic, modern...) */
   function capOf(f, key) {
@@ -118,6 +147,7 @@
     return 'Photo ' + (i + 1) + ': ' + f.name + ' frame' + (s ? ', caption ' + s : '') + (p.low ? ', low resolution' : '') + '. Choose frame';
   }
   function renderBuilder() {
+    var moved = settlePack();
     var size = packSize();
     var grid = $('thumbs'); grid.innerHTML = '';
     photos.forEach(function (p, i) {
@@ -149,11 +179,33 @@
       rn.textContent = (lowCount === 1 ? '1 photo is' : lowCount + ' photos are') + ' too small and may print blurry. For sharp magnets, use the original photo from your camera roll, not a screenshot or a photo saved from a chat app.';
       rn.hidden = false;
     } else { rn.hidden = true; }
-    var c = $('counter');
-    if (photos.length > size) { c.textContent = photos.length + ' photos added. This pack holds ' + size + ', so remove ' + (photos.length - size) + ' or pick a bigger pack.'; c.classList.add('warn'); }
-    else { c.textContent = photos.length + ' of ' + size + ' photos added' + (photos.length && photos.length < size ? '. We will repeat your favorites to fill the pack, or tell us in the notes.' : ''); c.classList.remove('warn'); }
-    $('builder-total').textContent = LHH.money(packPrice());
-    $('add-custom').disabled = !(photos.length >= 1 && photos.length <= size && $('rights').checked);
+    var c = $('counter'), n = photos.length, s = picked(), base = s === 1 ? [0, 0] : PR.packs.filter(function (p) { return p[0] === s; })[0] || baseFor(n);
+    var fit = $('fit-photos'), more = $('more-photos');
+    c.classList.remove('warn'); fit.hidden = true; more.hidden = true;
+    if (s === 1) {
+      c.textContent = n ? n + ' photo' + (n > 1 ? 's' : '') + ' added, ' + money(rateFor([0, 0])) + ' each' : 'Add 1 to 3 photos, ' + money(rateFor([0, 0])) + ' each';
+      if (n === 3) { more.textContent = 'Add 1 more photo and get the pack of 4 for ' + money(photoPrice(4)) + '.'; more.hidden = false; }
+    } else if (n > s) {
+      var extra = n - s;
+      c.textContent = n + ' photos: pack of ' + s + ' + ' + extra + ' extra photo' + (extra > 1 ? 's' : '') + ' (' + money(rateFor(base)) + ' each)';
+    } else {
+      c.textContent = n + ' of ' + s + ' photos added' + (n && n < s ? '. We will repeat your favorites to fill the pack, or tell us in the notes.' : '');
+      /* fewer photos than the pack, and just those would cost less: offer it */
+      if (n && n < s && photoPrice(n) < photoPrice(s) - 0.005) {
+        fit.textContent = 'Only want ' + n + ' magnet' + (n > 1 ? 's' : '') + '? Make just these for ' + money(photoPrice(n));
+        fit.setAttribute('data-n', n); fit.hidden = false;
+      }
+    }
+    if (s !== 1 && n >= s && n < PR.max) {
+      var nextPack = PR.packs.filter(function (p) { return p[0] > n; })[0];
+      var add1 = photoPrice(n + 1) - photoPrice(n), add2 = photoPrice(n + 2) - photoPrice(n);
+      if (nextPack && nextPack[0] - n <= 2 && Math.abs(photoPrice(nextPack[0]) - photoPrice(n)) < 0.005) more.textContent = 'Add ' + (nextPack[0] - n) + ' more photo' + (nextPack[0] - n > 1 ? 's' : '') + ' at no extra cost: they fit in your pack of ' + nextPack[0] + '.';
+      else more.textContent = 'Want more? Add 1 more photo for ' + money(add1) + ', or 2 for ' + money(add2) + '.';
+      more.hidden = false;
+    }
+    if (movedTo && picked() === movedTo && n < movedTo) { more.textContent = 'Same price, more room: we moved you to the pack of ' + picked() + '. Add ' + (picked() - n) + ' more photo' + (picked() - n > 1 ? 's' : '') + ' at no extra cost.'; more.hidden = false; }
+    $('builder-total').textContent = money(packPrice());
+    $('add-custom').disabled = !(photos.length >= 1 && photos.length <= PR.max && $('rights').checked);
   }
   function refreshThumb(i) {
     var b = document.querySelector('.thumb-btn[data-i="' + i + '"]'); if (!b) return;
@@ -268,7 +320,9 @@
              capStyle: o.capStyle || null, crop: o.crop || null, w: 0, h: 0 };
   }
   function addFiles(files) {
+    var refused = 0;
     Array.prototype.forEach.call(files, function (f) {
+      if (photos.length >= PR.max) { refused++; return; }
       if (f.type && f.type.indexOf('image/') !== 0) return;
       if (!f.type && !/\.(jpe?g|png|heic|heif|webp|gif)$/i.test(f.name || '')) return;
       var p = newPhoto(f);
@@ -277,6 +331,7 @@
       keep.file(p);
       prepare(p);
     });
+    if (refused && window.LHH && LHH.toast) LHH.toast('A photo order holds up to ' + PR.max + ' photos, so ' + refused + ' ' + (refused > 1 ? 'were' : 'was') + ' not added.');
     renderBuilder();
     keep.state();
   }
@@ -592,8 +647,14 @@
   ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('is-over'); }); });
   ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('is-over'); }); });
   drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
-  document.querySelectorAll('input[name="pack"]').forEach(function (r) { r.addEventListener('change', function () { renderBuilder(); keep.state(); }); });
+  document.querySelectorAll('input[name="pack"]').forEach(function (r) { r.addEventListener('change', function () { movedTo = 0; renderBuilder(); keep.state(); }); });
   $('rights').addEventListener('change', renderBuilder);
+  /* "Make just these": the biggest pack that fits the photos (or "1 to 3"), so the order is exactly the photos */
+  $('fit-photos').addEventListener('click', function () {
+    var n = Number(this.getAttribute('data-n')) || photos.length;
+    pick(n < (PR.packs[0] || [4])[0] ? 1 : baseFor(n)[0]);
+    renderBuilder(); keep.state();
+  });
 
   $('builder').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -612,6 +673,7 @@
       return 'Photo ' + l.n + ' (' + l.file + '): ' + l.frameName + ' [' + l.frame + ']' + (l.caption ? ', caption "' + l.caption + '"' : '') + (l.crop ? ', moved/zoomed' : '');
     }).join('\n');
     if (photos.length < size) orderNotes += '\nPack of ' + size + ': repeat photos in order to fill it.';
+    else if (picked() !== 1 && photos.length > picked()) orderNotes += '\nPack of ' + picked() + ' + ' + (photos.length - picked()) + ' extra photos.';
     if (notes) orderNotes += '\nNotes: ' + notes;
     LHH.addCustom({ id: 'custom-' + Date.now(), count: size, name: 'Custom photo magnets', detail: detail, price: packPrice(),
                     photos: lines, notes: notes, orderNotes: orderNotes });

@@ -174,6 +174,9 @@ section { padding-block: 72px; }
 .counter { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
 .counter.warn { color: var(--focus); font-weight: 600; }
 .res-note { margin-top: 8px; font-size: 14px; color: var(--focus); font-weight: 600; }
+/* any number of photo magnets: the "extra photos" nudge and "make just these" (assets/custom.js) */
+.more-photos { margin: 10px 0 0; padding: 10px 14px; border-radius: 12px; background: var(--honey-soft); color: var(--ink); font-size: 15px; font-weight: 500; }
+.fit-photos { display: inline-block; margin: 8px 0 0; padding: 6px 0; min-height: 44px; border: 0; background: none; color: var(--ink); font: 600 15px var(--body); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; text-align: left; }
 .builder textarea { width: 100%; min-height: 84px; resize: vertical; padding: 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font: 16px var(--body); }
 .check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; font-size: 15px; color: var(--muted); }
 .check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--ink); }

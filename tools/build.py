@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "50"
+VERSION = "51"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -670,7 +670,7 @@ def doors(pg):
           <div class="col-body">
             <p class="eyebrow">Your photos</p>
             <h2>Magnets from your pictures</h2>
-            <p>Upload, pick a frame, move and zoom each photo. Packs of 4 to 50, from $14.</p>
+            <p>Upload, pick a frame, move and zoom each photo. Any number from 1 to 100, from $4.</p>
             <span class="btn">Make photo magnets</span>
           </div>
         </a></li>
@@ -777,7 +777,7 @@ def page_home():
         <div>
           <p class="eyebrow">Custom</p>
           <h2>Your photos, on the fridge</h2>
-          <p>Upload your favorite pictures, choose a frame and move or zoom each one until it looks just right. We turn them into a set of glossy 2 × 2 inch magnets. Packs of 4 to 50, and you can mix them with any of our designs.</p>
+          <p>Upload your favorite pictures, choose a frame and move or zoom each one until it looks just right. We turn them into a set of glossy 2 × 2 inch magnets. As many as you like, from 1 to 100, and you can mix them with any of our designs.</p>
           <div class="actions"><a class="btn" href="photo-magnets.html">Make photo magnets</a></div>
         </div>
         <div class="band-art" aria-hidden="true">{"".join(showcase_img(pg, o, n, cls="ph") for o, n in (("family", 1), ("travel", 1), ("pets", 2), ("graduation", 1), ("baby", 2), ("wedding", 3)))}</div>
@@ -1249,16 +1249,17 @@ def page_photo():
       <div>
         <ol class="steps">
           <li><div><h3>Upload your photos</h3><p>Pick your favorite pictures from your phone or computer, then tap each one to give it its own frame and caption.</p></div></li>
-          <li><div><h3>Choose a pack</h3><p>4 to 50 square magnets, each 2 × 2 inches with a glossy finish. Mix them with any of our designs in the same order.</p></div></li>
+          <li><div><h3>Choose how many</h3><p>Pick a pack, or add as many photos as you like, from 1 to 100. Square magnets, each 2 × 2 inches with a glossy finish. Mix them with any of our designs in the same order.</p></div></li>
           <li><div><h3>We make and ship them</h3><p>We print, press and pack every magnet by hand, then send them to your door.</p></div></li>
         </ol>
         <p class="note">Professional photos belong to the photographer. Only upload pictures you took yourself or have permission to print.</p>
       </div>
 
-      <form class="builder" id="builder" novalidate>
+      <form class="builder" id="builder" novalidate data-pricing='{photo_pricing_json()}'>
         <fieldset>
-          <legend>Pack size</legend>
+          <legend>How many magnets</legend>
           <div class="packs">
+            <div class="pack"><input type="radio" name="pack" id="pack-1" value="1" data-price="{STORE_PHOTO_EXTRA[0]:g}"><label for="pack-1"><strong>1 to 3</strong><span>${STORE_PHOTO_EXTRA[0]:g} each</span></label></div>
             <div class="pack"><input type="radio" name="pack" id="pack-4" value="4" data-price="14"><label for="pack-4"><strong>4 magnets</strong><span>$14</span></label></div>
             <div class="pack"><input type="radio" name="pack" id="pack-9" value="9" data-price="25" checked><label for="pack-9"><strong>9 magnets</strong><span>$25</span></label></div>
             <div class="pack"><input type="radio" name="pack" id="pack-16" value="16" data-price="40"><label for="pack-16"><strong>16 magnets</strong><span>$40</span></label></div>
@@ -1287,6 +1288,8 @@ def page_photo():
           </div>
           <ul class="thumbs" id="thumbs" aria-labelledby="magnets-label"></ul>
           <p class="counter" id="counter" aria-live="polite">0 of 9 photos added</p>
+          <button type="button" class="fit-photos" id="fit-photos" hidden></button>
+          <p class="more-photos" id="more-photos" aria-live="polite" hidden></p>
           <p class="res-note" id="res-note" hidden></p>
         </div>
         <div>
@@ -1362,7 +1365,7 @@ def page_photo():
 </main>
 {footer(pg)}"""
     body += f'\n<script>window.LHH_FRAMES={frames_js};window.LHH_FRAMES_BASE="{pg.p}assets/frames/";</script>'
-    write("photo-magnets.html", head(pg, "Custom photo magnets", "Custom 2 × 2 inch photo magnets from your own pictures, with or without a frame. Packs of 4 to 50.", "photo-magnets.html") + body + chrome_end(pg, ("custom.js",)))
+    write("photo-magnets.html", head(pg, "Custom photo magnets", "Custom 2 × 2 inch photo magnets from your own pictures, with or without a frame. Any number from 1 to 100.", "photo-magnets.html") + body + chrome_end(pg, ("custom.js",)))
 
 
 PACKAGES = [
@@ -1515,7 +1518,19 @@ def page_cart():
 
 # ---- store backend: functions/catalog.json (server-side prices; must match assets/site.js totals()) ----
 STORE_PHOTO_PACKS = [(4, 14), (9, 25), (16, 40), (25, 65), (50, 120)]   # same as the pack radios on photo-magnets.html
+# Any number of photo magnets (15 Nov 2026, asked by a customer: "sometimes I want 10, not 9"): the price is the biggest
+# pack that fits plus each extra photo at that pack's rate, never more than the next pack. Under 4 photos, $4 each.
+# Same math in functions/pricing.js photoPrice() and assets/custom.js photoPrice().
+STORE_PHOTO_EXTRA = {0: 4, 4: 3, 9: 2.75, 16: 2.5, 25: 2.5, 50: 2.4}
+STORE_PHOTO_MAX = 100
 STORE_SHIPPING, STORE_FREE_SHIP_AT = 5.49, 35
+
+
+def photo_pricing_json():
+    """The photo price rules for the builder (assets/custom.js), as JSON safe inside a single-quoted attribute."""
+    import json as _json
+    return _json.dumps({"packs": STORE_PHOTO_PACKS, "extra": {str(k): v for k, v in STORE_PHOTO_EXTRA.items()}, "max": STORE_PHOTO_MAX},
+                       separators=(",", ":")).replace("'", "&#39;")
 
 
 def export_store_catalog():
@@ -1526,6 +1541,7 @@ def export_store_catalog():
         "designs": {f'{c["slug"]}/{s}': {"title": title_for(c, s), "collection": c["slug"], "collectionName": c["name"], "price": PRICE}
                     for c in ALL_COLLECTIONS for s in c["order"]},   # archive too: old carts and orders keep working
         "packs": {str(n): {"size": n, "price": p, "title": f"Custom photo magnets (pack of {n})"} for n, p in STORE_PHOTO_PACKS},
+        "photoPricing": {"extra": {str(k): v for k, v in STORE_PHOTO_EXTRA.items()}, "max": STORE_PHOTO_MAX},
         "packages": {f'{ids.get(key) or title.split()[0].lower()}-{n}': {"title": f"{title}, {n} magnets", "group": ids.get(key) or title.split()[0].lower(),
                                                                          "size": n, "price": p}
                      for title, key, _, tiers, _ in PACKAGES for n, p in tiers},
