@@ -85,27 +85,19 @@ test("photos get a black border unless the order chooses one; designs keep the s
   assert.deepEqual(P.fillFor("auto"), { extendWith: "mirror" });
 });
 
-test("where the photo runs out over the edge: the border colour, not stripes of repeated pixels", { skip: !sharp && "no sharp here" }, async () => {
+test("where the photo runs out over the edge: the photo mirrored, not stripes and not a band of colour", { skip: !sharp && "no sharp here" }, async () => {
   const ph = await markedPhoto();
   const geo = P.geometry(2.45, 2.02, 1.9);
   const img = await P._renderOne({ path: "p/1.jpg", frame: "none", crop: { x: 0.5, y: 0, z: 1 }, border: "#000000" },
     { geo, enhance: false, readPhoto: async () => ph.buf });
   const top = await px(img, Math.round(geo.artPx / 2), 4);
-  assert.ok(top[0] < 30 && top[1] < 30 && top[2] < 30, `black above the photo, got ${top}`);
+  assert.ok(isBlue(top), `the photo's own top edge, mirrored, got ${top}`);
 });
 
-test("photos with no frame bleed past the cut line; the preview still lands exactly on the visible front", { skip: !sharp && "no sharp here" }, async () => {
-  const geo = P.geometry(2.45, 2.0, 1.9);
-  assert.ok(geo.bleedPx > Math.round(2.45 * P.DPI), "past the cut");
-  const plan = P.planTiles({ items: [{ kind: "photos", packSize: 2, photos: [{ path: "p/1.jpg" }, { path: "p/2.jpg", frame: "polaroid" }] }] }, "#000000");
-  assert.equal(plan.tiles[0].bleed, true);
-  assert.equal(plan.tiles[1].bleed, undefined, "framed photos keep their size");
-  const ph = await markedPhoto();
-  const img = await P._renderOne({ path: "p/1.jpg", frame: "none", crop: ph.crop, bleed: true, border: "#000000" }, { geo, enhance: false, readPhoto: async () => ph.buf });
-  assert.equal((await sharp(img).metadata()).width, geo.bleedPx);
-  const off = (geo.bleedPx - geo.visPx) / 2, mid = Math.round(geo.bleedPx / 2);
-  assert.ok(isRed(await px(img, Math.round(off + 6), mid)), "the chosen part still starts at the visible front");
-  assert.ok(isBlue(await px(img, Math.round(off - 40), mid)), "and the real photo carries on far past it");
+test("photos stay square: the same border on every side (16 Nov 2026: no photo running past the cut on two sides only)", () => {
+  const plan = P.planTiles({ items: [{ kind: "photos", packSize: 1, photos: [{ path: "p/1.jpg" }] }] }, "#000000");
+  assert.equal(plan.tiles[0].bleed, undefined);
+  assert.equal(P.geometry(2.45, 2.0, 1.9).bleedPx, undefined);
 });
 
 test("a border colour for one photo magnet only", () => {

@@ -50,7 +50,7 @@ const IMAGE_MIN = 1.9, IMAGE_MAX = 2.3;
    the photo carries on past it, onto the edge (15 Nov 2026: heads with headroom on screen came out touching the edge). */
 const VISIBLE_IN = 1.9;
 /* printSheet.v: sheets made with an older layout are made again when downloaded (4: photos fitted to the visible front). */
-const SHEET_V = 6;
+const SHEET_V = 7;
 const VISIBLE_MIN = 1.7, VISIBLE_MAX = 2.02;
 const SIDE_IN = 0.3;                                 // smallest page margin left/right
 const PAGE_PT = { w: 8.5 * 72, h: 11 * 72 };         // 612 x 792
@@ -93,10 +93,7 @@ function geometry(cutIn, imageIn, visibleIn) {
   const gap = Math.min(0.5, gx, gy);
   const cutPt = cut * 72, gapPt = gap * 72, artPt = artPx / DPI * 72;
   const gridW = cols * cutPt + (cols - 1) * gapPt, gridH = rows * cutPt + (rows - 1) * gapPt;
-  // photos with no frame are printed out to the edge of the coloured border (borderRect), past the cut line
-  const extra = Math.max(0, Math.min(0.2 * 72, gapPt / 2 - 0.02 * 72));
-  const bleedPx = Math.round((cutPt + 2 * extra) / 72 * DPI);
-  return { cut, image: r6(artPx / DPI), face: FACE_IN, visible: r6(visPx / DPI), visPx, bleedPx, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, gapPt: r6(gapPt),
+  return { cut, image: r6(artPx / DPI), face: FACE_IN, visible: r6(visPx / DPI), visPx, gap: r6(gap), cutPt: r6(cutPt), artPt: r6(artPt), artPx, gapPt: r6(gapPt),
     cols, rows, perPage: cols * rows, left: r6((PAGE_PT.w - gridW) / 2), top: r6((PAGE_PT.h - gridH) / 2 + 6) };
 }
 
@@ -172,7 +169,7 @@ function planTiles(order, photoBorder = null) {
         const frame = frameId(p.frame), caption = String(p.caption || "").trim();
         const crop = Crop.clean(p.crop);
         const capStyle = typeof p.capStyle === "string" && p.capStyle ? p.capStyle : null;
-        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle, ...(border ? { border } : {}), ...(frame === "none" ? { bleed: true } : {}),
+        tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle, ...(border ? { border } : {}),
           key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}${border ? `|${border}` : ""}` });
       });
     } else if (it.kind === "package") {
@@ -412,7 +409,9 @@ async function fullPhotoPrint(sharp, buf, opts, W, H, crop, geo, enhance, warn, 
   if (enhance) { try { img = await enhancePhoto(sharp, img); } catch (err) { warn(err); } }
   const padL = Math.max(0, Math.min(art - outW, Math.round((L - (cx - half)) * s))), padT = Math.max(0, Math.min(art - outH, Math.round((T - (cy - half)) * s)));
   return sharp(img.data, { raw: { width: img.info.width, height: img.info.height, channels: img.info.channels } })
-    .extend({ left: padL, top: padT, right: art - outW - padL, bottom: art - outH - padT, ...fillFor(border) }).jpeg(JPEG).toBuffer();
+    // where the photo has run out (a thin ring at most): mirrored, so the picture stays a full square of photo and the
+    // border around it is the same on every side (16 Nov 2026)
+    .extend({ left: padL, top: padT, right: art - outW - padL, bottom: art - outH - padT, extendWith: "mirror" }).jpeg(JPEG).toBuffer();
 }
 
 /* ---------- rendering tiles (sharp) ---------- */
@@ -449,9 +448,7 @@ async function renderPhoto(tile, ctx) {
     const turned = (meta.orientation || 1) >= 5;
     const W = turned ? meta.height : meta.width, H = turned ? meta.width : meta.height;
     if (f.id === "none") {
-      /* bleed (16 Nov 2026): the photo runs past the cut line, so a piece a little off centre in the punch shows more
-         photo on its edge instead of white paper */
-      const g = tile.bleed && ctx.geo.bleedPx > ctx.geo.artPx ? { ...ctx.geo, artPx: ctx.geo.bleedPx } : ctx.geo;
+      const g = ctx.geo;
       const art = await fullPhotoPrint(sharp, buf, opts, W, H, tile.crop, g, ctx.enhance,
         (err) => ctx.warn(`${label}: the automatic touch-up failed (${err.message}); printed as uploaded.`), tile.border || ctx.border);
       const cap = FM.captionSvg(f, tile.caption, tile.capStyle);
@@ -575,8 +572,7 @@ function drawSheet(doc, F, { order, page, sheets, placed, images, date, geo, bor
     used.add(c);
     if (c === AUTO) c = (edges && edges.get(t.key)) || WHITE;
     if (c !== WHITE) { const r = borderRect(slots[t.slot], geo); doc.rect(r.x, r.y, r.size, r.size).fill(c); }
-    if (img && t.bleed && geo.bleedPx > geo.artPx) { const r = borderRect(slots[t.slot], geo); doc.image(img, r.x, r.y, { width: r.size, height: r.size }); }
-    else if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
+    if (img) doc.image(img, a.x, a.y, { width: a.size, height: a.size });
   }
   // "Print together": the order each piece belongs to, small, in the white space under the piece (outside the cut)
   if (labels) {
