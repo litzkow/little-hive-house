@@ -1552,7 +1552,7 @@ def export_store_catalog():
         "seasons": [{"start": a, "end": b, "title": t, "label": lab, "blurb": bl, "collection": col,
                      "picks": [f"{c}/{sl}" for c, sl in picks if any(x["slug"] == c and sl in x["order"] for x in COLLECTIONS)]}
                     for a, b, t, lab, bl, col, picks, _ in SEASONS],
-        "frames": {f["id"]: {"name": f["name"], "captionMax": (f.get("caption") or {}).get("max", 0),
+        "frames": {f["id"]: {"name": f["name"], "window": f.get("window") or [0, 0, 600, 600], "captionMax": (f.get("caption") or {}).get("max", 0),
                              "captionStyles": sorted(((f.get("caption") or {}).get("styles") or {}).keys())} for f in frames},
     }
     out = ROOT / "functions" / "catalog.json"

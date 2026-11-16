@@ -292,6 +292,8 @@ async function completeCheckout(session) {
   });
 
   if (result.newlyPaid && after) {
+    // photos the customer didn't place themselves: slid so no face is cut (autocrop.js), before the print sheet is made
+    if ((after.items || []).some((it) => it.kind === "photos")) after = await require("./autocrop").tryOrder(ref, after);
     const data = { order: O.emailOrder(orderId, after) };
     const sent = await mail.send({ to: after.email, kind: "order_confirmation", data });
     if (!sent.skipped) await ref.update({ "emails.confirmation": nowIso() }).catch(() => {});
