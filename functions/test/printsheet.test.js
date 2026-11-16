@@ -309,7 +309,7 @@ test("a newly paid order gets its PDF in Storage, printSheet on the order and th
   assert.equal(o.printSheet.slipPath, "orders/ord1/packing-slip.pdf");
   assert.equal(o.printSheet.cut, 2.45, "the default punch size");
   assert.equal(o.printSheet.enhance, true);
-  assert.equal(o.printSheet.v, 5);
+  assert.equal(o.printSheet.v, 6);
   assert.equal(o.printSheet.image, 2.02);
   assert.ok(o.printSheet.at && o.printSheet.bytes > 0 && o.printSheet.slipBytes > 0);
   const slip = bucket.files.get("orders/ord1/packing-slip.pdf");
@@ -409,7 +409,7 @@ test("adminPrintSheet: admins only, paid orders only, returns a short-lived sign
   await db.collection("orders").doc("ord5").update({ printSheet: { ...first, v: undefined } });
   const old = await admin.adminPrintSheet({ orderId: "ord5" }, ADMIN);
   assert.equal(old.rebuilt, true);
-  assert.equal(db.get("orders/ord5").printSheet.v, 5);
+  assert.equal(db.get("orders/ord5").printSheet.v, 6);
 
   await new Promise((r) => setTimeout(r, 5));
   const r2 = await admin.adminPrintSheet({ orderId: "ord5", rebuild: true }, ADMIN);

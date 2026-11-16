@@ -514,7 +514,7 @@
     if (!ps) return '<span class="small muted">Not made yet: the button makes it (about a minute for big orders).</span>';
     if (!ps.path && !ps.slipPath) return '<span class="small neg">Could not be made automatically' + (ps.error ? ': ' + esc(ps.error) : '') + '. Tap the button to try again, or use the ZIP under More.</span>';
     if (ps.stale === 'framing') return '<span class="small muted">A photo’s framing changed: tapping a button makes the sheets again.</span>';
-    if (ps.v !== 5) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (white border around each picture).</span>';
+    if (ps.v !== 6) return '<span class="small muted">Made with an older layout. Tapping a button makes the new one (white border around each picture).</span>';
     var w = Array.isArray(ps.warnings) ? ps.warnings.length : 0;
     return '<span class="small muted">Made ' + esc(h.ago(ps.at)) + ' · ' + h.plural(R.num(ps.sheets), 'sheet') + ' of ' + (R.num(ps.perPage) || 9) +
       '</span>' + (ps.image ? '<span class="small muted"> · pictures ' + Number(ps.image).toFixed(2) + ' in</span>' : '') +
