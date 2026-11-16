@@ -96,8 +96,10 @@ const SUITES = {
     const ctx = await context(browser);
     const { pg, errs } = await page(ctx, 'shop.html');
     await pg.evaluate(() => { window.__ev = []; ['pointerdown', 'click', 'storage', 'pagehide', 'pageshow'].forEach((t) => window.addEventListener(t, (e) => window.__ev.push(t + ':' + ((e.target && e.target.getAttribute && (e.target.getAttribute('data-add') || e.target.className || e.target.tagName)) || '') + ':' + LHH.totals().count), true)); });
-    const add = async (p, n) => { const before = await p.evaluate(() => LHH.totals().count); /* centred, like a person taps it: at the very top it would sit under the sticky header */
-      await p.locator('[data-add]').nth(n).evaluate((e) => e.scrollIntoView({ block: 'center' })); await p.waitForTimeout(150); await p.locator('[data-add]').nth(n).click();
+    const add = async (p, n) => { const before = await p.evaluate(() => LHH.totals().count); /* centred and already still, like a person taps it: the site scrolls smoothly (scroll-behavior: smooth), and a tap
+         during that animation lands somewhere else when the finger lifts; at the very top it would sit under the header */
+      await p.locator('[data-add]').nth(n).evaluate((e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      await p.waitForTimeout(250); await p.locator('[data-add]').nth(n).click();
       await p.waitForFunction((b) => LHH.totals().count > b, before, { timeout: 5000 }).catch(() => {}); };
     await add(pg, 0); await add(pg, 0); await add(pg, 3);
     let c = await pg.evaluate(() => LHH.cart().map((l) => l.qty));
