@@ -155,3 +155,24 @@ test("one small sticker per magnet, the gift magnet too", async () => {
   const v = await S.adminSupplies({ action: "list" }, ADMIN);
   assert.equal(byId(v)["small-stickers"].left, 63 - 5);
 });
+
+test("bought keeps the link to buy again; editing without the link or 'after' keeps them", async () => {
+  const { S } = setup();
+  await S.adminSupplies({ action: "list" }, ADMIN);
+  const link = "https://www.amazon.com/dp/B0DDCVN9TR";
+  let v = await S.adminSupplies({ action: "bought", id: "mailers-4", qty: 100, cost: 47.98, store: "Amazon", item: "Envelopes bolha #4 (100)", link }, ADMIN);
+  let m = v.supplies.find((s) => s.id === "mailers-4");
+  assert.equal(m.link, link);
+  assert.equal(m.qty, 100);
+  assert.equal(v.purchases.find((p) => p.supplyId === "mailers-4").cost, 47.98);
+  // a bad link is ignored, the old one stays
+  v = await S.adminSupplies({ action: "bought", id: "mailers-4", qty: 10, link: "javascript:alert(1)" }, ADMIN);
+  assert.equal(v.supplies.find((s) => s.id === "mailers-4").link, link);
+  // edit form without after/link (older app): both stay
+  const st = v.supplies.find((s) => s.id === "small-stickers");
+  v = await S.adminSupplies({ action: "save", id: "small-stickers", supply: { name: st.name, unit: st.unit, per: st.per, rate: 1, low: 63, group: st.group } }, ADMIN);
+  assert.equal(v.supplies.find((s) => s.id === "small-stickers").after, "plastic-bags");
+  // the owners clear the link in the form: it goes away
+  v = await S.adminSupplies({ action: "save", id: "mailers-4", supply: { name: "Envelopes bolha #4", unit: "envelopes", per: "big_order", rate: 1, low: 5, group: "Envio", link: "" } }, ADMIN);
+  assert.equal(v.supplies.find((s) => s.id === "mailers-4").link, "");
+});

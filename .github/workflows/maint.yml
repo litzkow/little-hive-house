@@ -196,6 +196,7 @@ jobs:
             set-ship-from) node tools/maint/set-ship-from.js ;;
             seed-supplies) node tools/maint/seed-supplies.js ;;
             add-purchase) node tools/maint/add-purchase.js ;;
+            supply-bought) node tools/maint/supply-bought.js ;;
             client-errors|fix-crops|autocrop-check|check-order|check-shippo|check-analytics) echo "(done in its own steps above)" ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac

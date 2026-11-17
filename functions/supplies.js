@@ -240,7 +240,8 @@ async function adminSupplies(data, auth) {
     case "list": return view();
     case "bought": {
       if (!(q > 0)) fail("invalid-argument", "Quanto vocês compraram?");
-      await rebase(id, (left) => left + q, { lastBought: at, full: q });
+      const link = /^https:\/\//.test(String(data.link || "")) ? { link: String(data.link).slice(0, 500) } : {};
+      await rebase(id, (left) => left + q, { lastBought: at, full: q, ...link });
       if (num(data.cost) > 0) {
         await db.collection("purchases").add({ date: U.text(data.date, 10) || at.slice(0, 10), item: U.text(data.item, 120) || "", supplyId: id, qty: q,
           cost: r2(num(data.cost)), store: U.text(data.store, 40) || "", by: who, createdAt: at });
@@ -253,6 +254,8 @@ async function adminSupplies(data, auth) {
     case "used": if (!(q > 0)) fail("invalid-argument", "Quanto foi usado?"); await rebase(id, (left) => left - q); return view();
     case "save": {
       const s = cleanSupply(data.supply || {});
+      // a form that doesn't show a field (the "starts after" one, an older app without the link) keeps what is there
+      for (const k of ["after", "note", "link"]) if (id && (data.supply || {})[k] === undefined) delete s[k];
       if (id) await db.collection("supplies").doc(id).set({ ...s, updatedAt: at }, { merge: true });
       else {
         const nid = s.name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || `item-${Date.now()}`;

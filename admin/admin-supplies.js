@@ -43,7 +43,8 @@
       (s.status !== 'unset' ? '<button class="btn btn-ghost btn-sm" data-act="spUsed" data-id="' + esc(s.id) + '"' + b + '>' + T('Used', 'Usei') + '</button>' : '') +
       (s.status !== 'unset' && s.status !== 'out' ? '<button class="btn btn-ghost btn-sm" data-act="spOut" data-id="' + esc(s.id) + '"' + b + '>' + T('Ran out', 'Acabou') + '</button>' : '') +
       '<button class="btn btn-ghost btn-sm" data-act="spEdit" data-id="' + esc(s.id) + '"' + b + ' aria-label="' + T('Edit', 'Editar') + '">' + T('Edit', 'Editar') + '</button>' +
-      '</div></section>';
+      '</div>' + (/^https:\/\//.test(s.link || '') ? '<p class="small sp-rebuy"><a class="linkish" href="' + esc(s.link) + '" target="_blank" rel="noopener">' +
+        T('Buy again', 'Comprar de novo') + ' ›</a> <span class="tiny muted">' + esc(T('opens the product you bought', 'abre o produto que vocês compraram')) + '</span></p>' : '') + '</section>';
   }
 
   V.supplies = function () {
@@ -144,7 +145,7 @@
     return field('name', T('Name', 'Nome'), s.name) + field('unit', T('Counted in (boxes, sheets, units…)', 'Contado em (caixas, folhas, unidades…)'), s.unit) +
       '<label class="field"><span>' + T('Used by', 'Gasta com') + '</span><select class="input" name="per">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (s.per === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>' +
       field('rate', T('How much each time', 'Quanto gasta cada vez'), s.rate, 'number') + field('low', T('Warn me when there are this many left', 'Avisar quando sobrar'), s.low, 'number') +
-      field('group', T('Group', 'Grupo'), s.group) + (s.id ? '' : field('qty', T('How many you have now', 'Quantos têm agora'), '', 'number'));
+      field('group', T('Group', 'Grupo'), s.group) + field('link', T('Link to buy it again (Amazon)', 'Link para comprar de novo (Amazon)'), s.link || '', 'url') + (s.id ? '' : field('qty', T('How many you have now', 'Quantos têm agora'), '', 'number'));
   }
   ACT.spEdit = function (el) {
     var s = sup(el.getAttribute('data-id')); if (!s) return;
