@@ -868,25 +868,36 @@
       });
     });
   }
+  var labelPkg = {};   // order id -> 'envelope' | 'box', what the owners picked on this screen
+  ACT.labelPkg = function (el) {
+    var o = current; if (!o) return;
+    labelPkg[o.id] = el.getAttribute('data-pkg');
+    ACT.labelQuote(el);
+  };
   ACT.labelQuote = function (el) {
     var o = current; if (!o) return;
     var box = document.getElementById('label-quote'), err = document.getElementById('label-err'), ozEl = document.getElementById('label-oz');
     var data = { orderId: o.id };
     if (ozEl && ozEl.value !== '') data.oz = Number(ozEl.value);
+    if (labelPkg[o.id]) data.pkg = labelPkg[o.id];
     err.hidden = true;
     h.busy(el, true);
     h.call('adminLabelQuote', data).then(function (q) {
       h.busy(el, false);
       var r = q.rate, n = R.magnetsOf(o);
+      var pkgBtn = function (k, label) {
+        return '<button class="btn btn-sm ' + (q.pkg === k ? 'btn-honey' : 'btn-ghost') + '" type="button" data-act="labelPkg" data-pkg="' + k + '" aria-pressed="' + (q.pkg === k) + '">' + label + '</button>';
+      };
       box.innerHTML = '<div class="labelq">' +
         (q.test ? '<p class="callout calm small">' + icon('info') + '<span>Test key: this makes a sample label, the order stays as it is.</span></p>' : '') +
+        '<div><p class="small"><b>Package</b></p><div class="row wrap" style="gap:8px">' + pkgBtn('envelope', 'Kraft envelope') + pkgBtn('box', 'Box in a bubble mailer') + '</div></div>' +
         '<div class="row wrap" style="align-items:flex-end;gap:10px"><label class="field" style="flex:1;min-width:140px"><span>What the scale shows <span class="hint">(ounces, exactly)</span></span>' +
         '<input class="input" id="label-oz" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="' + esc(String(q.suggestedOz)) + '" value="' + (q.scaleOz != null ? esc(String(q.scaleOz)) : '') + '"></label>' +
         '<button class="btn btn-ghost btn-sm" type="button" data-act="labelQuote">New price</button></div>' +
         '<p class="small">' + (q.scaleOz != null ? '<span>Scale: ' + esc(String(q.scaleOz)) + ' oz.</span> ' : '<span>Not weighed yet: the app’s guess for ' + h.plural(n, 'magnet') + ' with the extras is ' + esc(String(q.suggestedOz)) + ' oz.</span> ') +
-          '<b>The label goes out at ' + esc(String(q.oz)) + ' oz</b>, <span>the top of that USPS price band, with room for the label and the tape. Same price, never underpaid.</span></p>' +
+          '<b>The label goes out at ' + esc(String(q.oz)) + ' oz</b>, <span>the most it can say for this same price, with room for the label and the tape. Never underpaid.</span></p>' +
         '<div class="row between wrap gap-top"><div><b class="big">' + money(r.amount) + '</b> <span class="small muted">' + esc(r.service) + (r.days ? ' · <span>about ' + h.plural(r.days, 'day') + '</span>' : '') + '</span></div>' +
-        '<button class="btn btn-honey" type="button" data-act="labelBuy" data-rate="' + esc(r.rateId) + '" data-amount="' + esc(String(r.amount)) + '" data-oz="' + esc(String(q.oz)) + '">' + icon('truck') + 'Buy and ship · ' + money(r.amount) + '</button></div>' +
+        '<button class="btn btn-honey" type="button" data-act="labelBuy" data-rate="' + esc(r.rateId) + '" data-amount="' + esc(String(r.amount)) + '" data-oz="' + esc(String(q.oz)) + '" data-pkg="' + esc(q.pkg || '') + '">' + icon('truck') + 'Buy and ship · ' + money(r.amount) + '</button></div>' +
         '<p class="tiny muted">' + (held(o) ? 'Buying it charges their card ' + money(R.pricing(o).total) + ', marks the order shipped and emails them the tracking.' : 'Buying it marks the order shipped and emails them the tracking.') + '</p></div>';
       box.hidden = false;
     }).catch(function (e) { h.busy(el, false); err.textContent = h.friendlyError(e); err.hidden = false; });
@@ -896,7 +907,7 @@
     var err = document.getElementById('label-err');
     err.hidden = true;
     h.busy(el, true);
-    h.call('adminBuyLabel', { orderId: o.id, rateId: el.getAttribute('data-rate'), amount: Number(el.getAttribute('data-amount')), oz: Number(el.getAttribute('data-oz')) })
+    h.call('adminBuyLabel', { orderId: o.id, rateId: el.getAttribute('data-rate'), amount: Number(el.getAttribute('data-amount')), oz: Number(el.getAttribute('data-oz')), pkg: el.getAttribute('data-pkg') || '' })
       .then(function (res) { return h.refreshOrder(o.id).then(function () { return res; }); })
       .then(function (res) {
         h.updateBadges();

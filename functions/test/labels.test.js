@@ -21,9 +21,12 @@ function setup({ key = "shippo_live_x", shipFrom = SHIP_FROM, rates } = {}) {
     const body = init.body ? JSON.parse(init.body) : null;
     shippo.push({ path: u.pathname, body, auth: init.headers.Authorization });
     if (u.pathname === "/shipments/") {
+      if (typeof rates === "function") return { ok: true, status: 200, json: async () => ({ object_id: `shp_${body.parcels[0].weight}`, rates: rates(body), messages: [] }) };
+      // by default USPS prices by weight band: 4 oz 4.10, 8 oz 4.40, 12 oz 4.61, 15.99 oz 5.20
+      const w = Number(body.parcels[0].weight), ga = w <= 4 ? "4.10" : w <= 8 ? "4.40" : w <= 12 ? "4.61" : "5.20";
       return { ok: true, status: 200, json: async () => ({ object_id: "shp_1", rates: rates || [
         { object_id: "rate_pri", provider: "USPS", amount: "9.85", servicelevel: { token: "usps_priority", name: "Priority Mail" }, estimated_days: 2 },
-        { object_id: "rate_ga", provider: "USPS", amount: "4.61", servicelevel: { token: "usps_ground_advantage", name: "Ground Advantage" }, estimated_days: 4 },
+        { object_id: `rate_ga_${w}`, provider: "USPS", amount: ga, servicelevel: { token: "usps_ground_advantage", name: "Ground Advantage" }, estimated_days: 4 },
         { object_id: "rate_ups", provider: "UPS", amount: "3.10", servicelevel: { token: "ups_ground", name: "Ground" } },
       ], messages: [] }) };
     }
@@ -47,8 +50,8 @@ test("the price: USPS Ground Advantage for the suggested weight", async () => {
   // 12 magnets: 2.5 + 12 x 0.45 = 7.9 oz
   assert.equal(q.suggestedOz, 7.9);
   assert.equal(q.oz, 12);                            // 7.9 oz + room for the label passes 8 oz: the 12 oz band
-  assert.equal(q.rate.rateId, "rate_ga");
-  assert.equal(q.rate.amount, 4.61);
+  assert.equal(q.rate.rateId, "rate_ga_12");
+  assert.equal(q.rate.amount, 4.61);                 // 15.99 oz costs more: it stays at 12
   assert.equal(q.test, false);
   const call = shippo[0];
   assert.equal(call.auth, "ShippoToken shippo_live_x");
@@ -57,10 +60,60 @@ test("the price: USPS Ground Advantage for the suggested weight", async () => {
   assert.equal(call.body.address_from.phone, "4045550123");
   assert.equal(call.body.address_from.email, "support@littlehivehouse.com");
   assert.equal(call.body.parcels[0].weight, "12");
+  shippo.length = 0;
   const q2 = await labels.adminLabelQuote({ orderId: "o1", oz: "2.9" }, ADMIN);
   assert.equal(q2.scaleOz, 2.9);
   assert.equal(q2.oz, 4);
-  assert.equal(shippo[1].body.parcels[0].weight, "4");
+  assert.deepEqual(shippo.map((c) => c.body.parcels[0].weight), ["4", "8", "12", "15.99"]);
+});
+
+test("when the heavier bands cost the same (priced by size), the label goes out at the heaviest", async () => {
+  const cubic = (body) => [{ object_id: `rate_${body.parcels[0].weight}`, provider: "USPS", amount: "6.42", servicelevel: { token: "usps_ground_advantage", name: "Ground Advantage" } }];
+  const { labels } = setup({ rates: cubic });
+  const q = await labels.adminLabelQuote({ orderId: "o1", oz: "11.4" }, ADMIN);
+  assert.equal(q.bandOz, 12);
+  assert.equal(q.oz, 15.99);
+  assert.equal(q.rate.rateId, "rate_15.99");
+  assert.equal(q.rate.amount, 6.42);
+  // one band costs more: stops at the heaviest that still costs the same, never a dearer one
+  const mixed = (body) => [{ object_id: `rate_${body.parcels[0].weight}`, provider: "USPS", amount: Number(body.parcels[0].weight) > 8 ? "5.00" : "4.10",
+    servicelevel: { token: "usps_ground_advantage", name: "Ground Advantage" } }];
+  const s2 = setup({ rates: mixed });
+  const q2 = await s2.labels.adminLabelQuote({ orderId: "o1", oz: "2" }, ADMIN);
+  assert.equal(q2.oz, 8);
+  assert.equal(q2.rate.amount, 4.1);
+  // a heavier band that fails to quote is just skipped
+  let n = 0;
+  const flaky = (body) => (++n === 2 ? [] : cubic(body));
+  const s3 = setup({ rates: flaky });
+  const q3 = await s3.labels.adminLabelQuote({ orderId: "o1", oz: "2" }, ADMIN);
+  assert.equal(q3.rate.amount, 6.42);
+  assert.equal(q3.oz, 15.99);
+  // past 15.99 oz (by the pound) there is nothing heavier to try
+  const s4 = setup({ rates: cubic });
+  const q4 = await s4.labels.adminLabelQuote({ orderId: "o1", oz: "20" }, ADMIN);
+  assert.equal(q4.oz, 32);
+  assert.equal(s4.shippo.length, 1);
+});
+
+test("the box in the bubble mailer: its size, its weight, and it is picked for big orders", async () => {
+  const { shippo, labels, db } = setup();
+  let q = await labels.adminLabelQuote({ orderId: "o1", pkg: "box" }, ADMIN);
+  assert.equal(q.pkg, "box");
+  assert.equal(q.suggestedOz, 11.4);                 // 7.9 + 3.5 for the box and the mailer
+  const p = shippo[0].body.parcels[0];
+  assert.deepEqual([p.length, p.width, p.height], ["14.5", "9.5", "2.5"]);
+  shippo.length = 0;
+  q = await labels.adminLabelQuote({ orderId: "o1" }, ADMIN);
+  assert.equal(q.pkg, "envelope");
+  assert.deepEqual([shippo[0].body.parcels[0].length, shippo[0].body.parcels[0].width], ["7", "5"]);
+  db.docs.set("settings/supplies", { bigOrder: 10 });  // 12 magnets: a big order
+  q = await labels.adminLabelQuote({ orderId: "o1" }, ADMIN);
+  assert.equal(q.pkg, "box");
+  q = await labels.adminLabelQuote({ orderId: "o1", pkg: "envelope" }, ADMIN);
+  assert.equal(q.pkg, "envelope");
+  q = await labels.adminLabelQuote({ orderId: "o1", pkg: "bogus" }, ADMIN);
+  assert.equal(q.pkg, "box");
 });
 
 test("the scale weight goes out at the top of its USPS band, with room for the label and tape", () => {

@@ -19,7 +19,11 @@ const FREE_LABELS = 30, LABEL_FEE = 0.07;
 const SERVICE = "usps_ground_advantage";
 
 /* what a package weighs: the mailer with the card, sticker, business card and the logo magnet, plus each magnet (oz) */
-const DEFAULTS = { packageBaseOz: 2.5, magnetOz: 0.45, parcelLengthIn: 7, parcelWidthIn: 5, parcelHeightIn: 1 };
+const DEFAULTS = { packageBaseOz: 2.5, magnetOz: 0.45, parcelLengthIn: 7, parcelWidthIn: 5, parcelHeightIn: 1,
+  // the kraft box 9 x 6 x 2 inside a #4 bubble mailer (9.5 x 14.5): its size, and what the box and mailer add to the weight
+  boxLengthIn: 14.5, boxWidthIn: 9.5, boxHeightIn: 2.5, boxExtraOz: 3.5 };
+/* envelope: the kraft A7 envelope (small orders); box: the kraft box in the bubble mailer (big orders) */
+const PACKAGES = ["envelope", "box"];
 const MAX_OZ = 70 * 16;
 
 function key() {
@@ -73,10 +77,10 @@ function toAddress(order) {
 }
 
 /** Suggested weight in ounces, rounded up to a tenth: the package plus every magnet in the order. */
-function suggestOz(order, s) {
+function suggestOz(order, s, pkg = "envelope") {
   const st = { ...DEFAULTS, ...(s || {}) };
   const n = countMagnets(order);
-  return Math.ceil((Number(st.packageBaseOz) + n * Number(st.magnetOz)) * 10) / 10;
+  return Math.ceil((Number(st.packageBaseOz) + n * Number(st.magnetOz) + (pkg === "box" ? Number(st.boxExtraOz) : 0)) * 10) / 10;
 }
 /** Magnets in the order, counted like the admin's reports (admin/reports.js itemMagnets). */
 function countMagnets(order) {
@@ -90,10 +94,11 @@ function countMagnets(order) {
   }, 0);
 }
 
-function parcel(s, oz) {
+function parcel(s, oz, pkg = "envelope") {
   const st = { ...DEFAULTS, ...(s || {}) };
-  return { length: String(st.parcelLengthIn), width: String(st.parcelWidthIn), height: String(st.parcelHeightIn), distance_unit: "in",
-    weight: String(oz), mass_unit: "oz" };
+  const box = pkg === "box";
+  return { length: String(box ? st.boxLengthIn : st.parcelLengthIn), width: String(box ? st.boxWidthIn : st.parcelWidthIn),
+    height: String(box ? st.boxHeightIn : st.parcelHeightIn), distance_unit: "in", weight: String(oz), mass_unit: "oz" };
 }
 
 function cleanOz(v, fallback) {
@@ -142,16 +147,39 @@ async function adminLabelQuote(data, auth) {
   const { order } = await loadOrder(data && data.orderId);
   if (!SHIPPABLE.includes(order.status)) fail("failed-precondition", `An order that is "${O.STATUS_LABELS[order.status] || order.status}" can't get a label.`);
   const s = await settings();
-  const suggested = suggestOz(order, s);
+  const pkg = await packageFor(order, data && data.pkg);
+  const suggested = suggestOz(order, s, pkg);
   const scale = cleanOz(data && data.oz, null);          // what the scale showed (empty: the app's guess)
   const oz = prudentOz(scale == null ? suggested : scale);
-  const shipment = await shippo("/shipments/", { address_from: fromAddress(s), address_to: toAddress(order), parcels: [parcel(s, oz)], async: false });
+  const from = fromAddress(s), to = toAddress(order);
+  const quote = (w) => shippo("/shipments/", { address_from: from, address_to: to, parcels: [parcel(s, w, pkg)], async: false });
+  // the heavier bands too, at the same time: the label goes out at the heaviest one that still costs the same
+  // (USPS often prices small packages by their size, "cubic", and then every band up to 15.99 oz costs the same)
+  const higher = OZ_BANDS.filter((b) => b > oz);
+  const [shipment, ...more] = await Promise.all([quote(oz), ...higher.map((w) => quote(w).catch(() => null))]);
   const rate = pickRate(shipment.rates);
   if (!rate) {
     const msg = (shipment.messages || []).map((m) => m && m.text).filter(Boolean).join(" ");
     fail("aborted", `USPS gave no price for this address${msg ? `: ${msg}` : "."} Check the address on the order.`);
   }
-  return { ok: true, oz, scaleOz: scale, suggestedOz: suggested, test: isTestKey(), rate: rateView(rate, shipment.object_id) };
+  let best = { oz, rate, shipment };
+  higher.forEach((w, i) => {
+    const sh = more[i], r = sh && pickRate(sh.rates);
+    if (r && r.servicelevel && rate.servicelevel && r.servicelevel.token === rate.servicelevel.token && Number(r.amount) <= Number(rate.amount) + 0.001) best = { oz: w, rate: r, shipment: sh };
+  });
+  return { ok: true, oz: best.oz, bandOz: oz, pkg, scaleOz: scale, suggestedOz: suggested, test: isTestKey(), rate: rateView(best.rate, best.shipment.object_id) };
+}
+
+/** The package for the label: what the owners picked, or the box when the order has as many magnets as a big order
+   (Materiais › when an order is big), otherwise the kraft envelope. */
+async function packageFor(order, picked) {
+  if (PACKAGES.includes(picked)) return picked;
+  try {
+    const cfg = await deps.db().collection("settings").doc("supplies").get();
+    const big = Number(cfg.exists && cfg.data().bigOrder) || 0;
+    if (big > 0 && countMagnets(order) >= big) return "box";
+  } catch (e) { /* the envelope */ }
+  return "envelope";
 }
 
 /** Buys the label for {orderId, rateId, oz} and marks the order shipped with its tracking. */
@@ -182,7 +210,7 @@ async function adminBuyLabel(data, auth) {
   if (cost != null) cost = Math.round((cost + fee) * 100) / 100;
   if (!test) await statRef.set({ count: used + 1, updatedAt: nowIso() }, { merge: true }).catch(() => {});
   const label = { url: tx.label_url, tracking: tx.tracking_number, transaction: tx.object_id || "", rate: rateId, cost, fee,
-    oz: cleanOz(data && data.oz, null), at: nowIso(), by: U.who(auth), test };
+    oz: cleanOz(data && data.oz, null), pkg: PACKAGES.includes(data && data.pkg) ? data.pkg : "", at: nowIso(), by: U.who(auth), test };
   await ref.update({ "fulfillment.label": label, "fulfillment.labels": ((order.fulfillment && order.fulfillment.labels) || []).concat([label]) });
   if (test) return { ok: true, test: true, label, shipped: false };
   // same as typing the tracking by hand: charge the card, mark shipped, email the customer, start tracking
@@ -245,4 +273,4 @@ async function adminLabelPdf(data, auth) {
   return { ok: true, url: link.url, half };
 }
 
-module.exports = { _internal: { settings, fromAddress, toAddress, parcel, pickRate }, prudentOz, SAFETY_OZ, adminLabelPdf, setHalfSheet, halfSheetPdf, pngSize, FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };
+module.exports = { _internal: { settings, fromAddress, toAddress, parcel, pickRate, packageFor }, PACKAGES, prudentOz, SAFETY_OZ, adminLabelPdf, setHalfSheet, halfSheetPdf, pngSize, FREE_LABELS, LABEL_FEE, adminLabelQuote, adminBuyLabel, DEFAULTS, suggestOz, pickRate, fromAddress, toAddress, countMagnets };
