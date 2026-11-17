@@ -1173,5 +1173,7 @@ window.LHH_PT = {
 "Pick at least one order, or some logo magnets.": "Escolha pelo menos um pedido, ou alguns ímãs com o logo.",
 "The sheets could not be made (*). Try again in a minute.": "Não deu para fazer as folhas (*). Tente de novo daqui a um minuto.",
 "A new version of the app is ready": "Uma versão nova do app está pronta",
-"Update now": "Atualizar agora"
+"Update now": "Atualizar agora",
+"Small round stickers (1 in)": "Adesivos redondos pequenos (1 pol)",
+"One to close each magnet’s paper sleeve: our colour logo on cream. For the 1 in round label sheets with 63 per sheet (7 across, 9 down), white matte, inkjet. Print page 1 on plain paper first and hold it against a label sheet in front of a window: the red circles should sit on the labels. Then print page 2 on the label sheet: 63 stickers. Paper type Plain paper, 100% (Actual size), one sheet at a time in the rear tray, label side up.": "Um para fechar a embalagem de papel de cada ímã: o nosso logo colorido no fundo creme. Para as folhas de etiquetas redondas de 1 pol com 63 por folha (7 na largura, 9 na altura), brancas foscas, jato de tinta. Imprima primeiro a página 1 em papel comum e segure contra uma folha de etiquetas na frente da janela: os círculos vermelhos têm que cair em cima das etiquetas. Depois imprima a página 2 na folha de etiquetas: 63 adesivos. Tipo de papel Plain paper, 100% (Tamanho real), uma folha por vez na bandeja de trás, lado da etiqueta para cima."
 };

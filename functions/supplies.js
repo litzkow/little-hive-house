@@ -36,7 +36,12 @@ const DEFAULTS = [
   { id: "mailer-boxes", name: "Caixinhas kraft 9x6x2 (pedidos grandes)", unit: "caixas", per: "big_order", rate: 1, low: 5, group: "Envio" },
   { id: "label-sheets", name: "Folhas de etiqueta LabelMore (2 por folha)", unit: "folhas", per: "shipment", rate: 0.5, low: 20, group: "Envio" },
   { id: "tape", name: "Fita adesiva", unit: "rolos", per: "manual", rate: 0, low: 1, group: "Envio" },
+  { id: "small-stickers", name: "Adesivos redondos pequenos 1 pol (1 por ímã)", unit: "adesivos", per: "magnet", rate: 1, low: 63, group: "Embalagem", after: "plastic-bags" },
+  { id: "mailers-4", name: "Envelopes bolha #4 9,5x14,5 (para as caixinhas)", unit: "envelopes", per: "big_order", rate: 1, low: 5, group: "Envio" },
 ];
+/** Added after the shop's list was first made: put into a shop that already has a list, once (an owner who removes
+   one does not get it back). */
+const ADDED_LATER = ["small-stickers", "mailers-4"];
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -135,8 +140,18 @@ async function load() {
     const at = nowIso();
     list = DEFAULTS.map((d) => ({ ...d, qty: 0, since: at, usedExtra: 0, active: true, createdAt: at }));
     await Promise.all(list.map((s) => db.collection("supplies").doc(s.id).set(s)));
-    await db.collection("settings").doc("supplies").set({ seeded: at, giftMagnets: 1 }, { merge: true });
-    cfg.seeded = at; cfg.giftMagnets = 1;
+    await db.collection("settings").doc("supplies").set({ seeded: at, giftMagnets: 1, added: ADDED_LATER }, { merge: true });
+    cfg.seeded = at; cfg.giftMagnets = 1; cfg.added = ADDED_LATER.slice();
+  }
+  const done = new Set(cfg.added || []), have = new Set(list.map((s) => s.id));
+  const fresh = DEFAULTS.filter((d) => ADDED_LATER.includes(d.id) && !done.has(d.id) && !have.has(d.id));
+  if (fresh.length || ADDED_LATER.some((id) => !done.has(id))) {
+    const at = nowIso();
+    const add = fresh.map((d) => ({ ...d, qty: 0, since: at, usedExtra: 0, active: true, createdAt: at }));
+    await Promise.all(add.map((s) => db.collection("supplies").doc(s.id).set(s)));
+    list = list.concat(add);
+    cfg.added = [...new Set([...done, ...ADDED_LATER])];
+    await db.collection("settings").doc("supplies").set({ added: cfg.added }, { merge: true });
   }
   return { list, cfg };
 }

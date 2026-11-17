@@ -3,6 +3,8 @@
   print-files/thank-you-cards.pdf   4 thank-you cards per sheet (4.25 x 5.5 in each), cut on the small marks
   print-files/kraft-labels.pdf      2 in round labels for Koala N-RLK2-25 / Avery 22807 sheets (3 x 4, 12 per sheet):
                                     page 1 alignment test (plain paper), page 2 the logo seal on all 12
+  print-files/small-stickers.pdf    1 in round labels, the usual 63-per-sheet layout (7 x 9): page 1 alignment test,
+                                    page 2 the colour logo on cream, one per magnet's paper sleeve
   print-files/business-cards.pdf    3.5 x 2 in business cards, 10 per sheet in the Avery 8371 / 8871 layout (also fine
                                     on plain card stock: cut on the grey marks). Page 1 the fronts (logo and slogan),
                                     page 2 the backs (the contacts and a QR code), printed on the other side.
@@ -377,6 +379,52 @@ def kraft_labels():
     return path
 
 
+# ================================================================ small round stickers, 1 in (63 per sheet)
+# The usual 1 in circle sheet (OnlineLabels OL1025, SheetLabels SL114, TownStix and most Amazon 63-up sheets): 7 x 9,
+# top margin 0.5 in, side margin 0.375 in, 0.125 in between labels. One sticker closes each magnet's paper sleeve.
+SM_D = 1 * IN
+SM_LEFT, SM_TOP, SM_PITCH = 0.375 * IN, 0.5 * IN, 1.125 * IN
+SM_BG = HexColor("#F3E7CF")          # the brand's Bege: a cream that still shows on white label paper
+
+
+def small_centres():
+    return [(SM_LEFT + SM_D / 2 + col * SM_PITCH, 11 * IN - (SM_TOP + SM_D / 2 + r * SM_PITCH)) for r in range(9) for col in range(7)]
+
+
+def small_sticker(c, x, y):
+    # the cream runs a little past the label's edge, so a sheet that feeds a hair off never leaves a white rim
+    c.setFillColor(SM_BG)
+    c.circle(x, y, SM_D * 0.535, fill=1, stroke=0)
+    size = 0.6 * IN
+    logo(c, x, y - 10 * size / 112.0, size, fill=HexColor("#F2A81D"), soft=HexColor("#F9D88A"), ink=INK)
+
+
+def small_stickers():
+    OUT.mkdir(exist_ok=True)
+    path = OUT / "small-stickers.pdf"
+    c = canvas.Canvas(str(path), pagesize=(8.5 * IN, 11 * IN))
+    c.setTitle("Small round stickers, 1 in, 63 per sheet · Little Hive House")
+    c.setAuthor("Little Hive House")
+    centres = small_centres()
+    # page 1: alignment test on plain paper
+    c.setStrokeColor(HexColor("#C0392B"))
+    c.setLineWidth(0.5)
+    for x, y in centres:
+        c.circle(x, y, SM_D / 2, fill=0, stroke=1)
+        c.line(x - 4, y, x + 4, y)
+        c.line(x, y - 4, x, y + 4)
+    c.setFillColor(INK)
+    c.setFont("Jost", 8)
+    c.drawCentredString(4.25 * IN, 0.22 * IN, "Test page: print on PLAIN paper, hold it against a label sheet in front of a window: the red circles should sit on the labels.")
+    c.showPage()
+    # page 2: the colour logo on all 63 labels
+    for x, y in centres:
+        small_sticker(c, x, y)
+    c.showPage()
+    c.save()
+    return path
+
+
 # ================================================================ the shop's logo magnet (a free gift in each package)
 MAG_CUT, MAG_IMG, MAG_GAP = 2.45 * IN, 2.02 * IN, 0.275 * IN          # same as printsheet.js geometry(2.45, 2.02)
 MAG_LEFT = (8.5 * IN - (3 * MAG_CUT + 2 * MAG_GAP)) / 2
@@ -574,5 +622,6 @@ def business_cards():
 if __name__ == "__main__":
     print(thank_you_cards())
     print(kraft_labels())
+    print(small_stickers())
     print(logo_magnets())
     print(business_cards())

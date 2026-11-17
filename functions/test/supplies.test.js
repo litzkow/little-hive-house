@@ -130,3 +130,28 @@ test("it learns: ran out sooner or lasted longer than estimated moves the rule t
   v = await fresh.S.adminSupplies({ action: "counted", id: "stickers", qty: 250 }, ADMIN);
   assert.equal(v.supplies.find((s) => s.id === "stickers").rate, 1);
 });
+
+test("a shop that already had its list gets the small stickers and the #4 mailers once", async () => {
+  const { db, S } = setup();
+  db.docs.set("settings/supplies", { seeded: iso(30 * DAY), giftMagnets: 1 });
+  db.docs.set("supplies/tape", { id: "tape", name: "Fita adesiva", unit: "rolos", per: "manual", rate: 0, low: 1, group: "Envio", qty: 2, since: iso(30 * DAY), active: true });
+  let v = await S.adminSupplies({ action: "list" }, ADMIN);
+  let by = byId(v);
+  assert.equal(by["small-stickers"].per, "magnet");
+  assert.equal(by["small-stickers"].status, "unset");
+  assert.equal(by["mailers-4"].per, "big_order");
+  assert.ok(!by["magnet-kits"]);                 // the old list is not seeded again
+  v = await S.adminSupplies({ action: "remove", id: "small-stickers" }, ADMIN);
+  v = await S.adminSupplies({ action: "list" }, ADMIN);
+  assert.ok(!v.supplies.some((s) => s.id === "small-stickers"));
+  assert.deepEqual(db.get("settings/supplies").added, ["small-stickers", "mailers-4"]);
+});
+
+test("one small sticker per magnet, the gift magnet too", async () => {
+  const { db, S } = setup();
+  await S.adminSupplies({ action: "list" }, ADMIN);
+  await S.adminSupplies({ action: "counted", id: "small-stickers", qty: 63 }, ADMIN);
+  order(db, "a", { magnets: 4, ago: -60000 });
+  const v = await S.adminSupplies({ action: "list" }, ADMIN);
+  assert.equal(byId(v)["small-stickers"].left, 63 - 5);
+});
