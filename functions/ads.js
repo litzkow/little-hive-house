@@ -95,13 +95,13 @@ function metaError(j, res) {
   return String(e.error_user_msg || e.message || `Meta answered ${res && res.status}`).slice(0, 300);
 }
 /** One Graph API call. GET params go in the query, POST params in the form body (objects as JSON). */
-async function graph(meta, method, path, params = {}) {
+async function graph(meta, method, path, params = {}, host = "graph.facebook.com") {
   if (!meta || !meta.token) fail("failed-precondition", "Instagram/Facebook isn't connected yet. Tap “Connect Meta” first.");
   const p = { ...params, access_token: meta.token };
   if (meta.appSecret) p.appsecret_proof = crypto.createHmac("sha256", meta.appSecret).update(meta.token).digest("hex");
   const enc = Object.entries(p).filter(([, v]) => v !== undefined && v !== null)
     .map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]);
-  let url = `https://graph.facebook.com/${META_VERSION()}/${String(path).replace(/^\//, "")}`, body;
+  let url = `https://${host}/${META_VERSION()}/${String(path).replace(/^\//, "")}`, body;
   if (method === "GET") url += `?${new URLSearchParams(enc).toString()}`;
   else body = new URLSearchParams(enc);
   let res, j = null;

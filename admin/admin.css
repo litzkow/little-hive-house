@@ -863,3 +863,5 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .ct-where label .tiny { grid-column: 2; }
 .ct-where input { width: 18px; height: 18px; accent-color: var(--honey); grid-row: span 2; }
 @media (max-width: 560px) { .ct-feed { grid-template-columns: 1fr; } .ct-send { flex: 1; justify-content: center; } }
+.sp-pill.ct-st-error { background: #fde8e6; color: #b42318; }
+.ct-card .err { margin: 0; }

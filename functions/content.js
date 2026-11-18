@@ -198,6 +198,105 @@ async function fixOnce2() {
   await ref.set({ fix2: nowIso(), seeded: true }, { merge: true });
 }
 
+
+/* ---------- scheduling from the app: at the time, the server publishes it on Instagram and/or Facebook ----------
+   Meta doesn't let apps read what is scheduled in Business Suite, so posts scheduled here are the ones the app knows.
+   The file goes as it is, by a signed link to Storage (3 hours). Instagram: a Reel (video) or a photo is created,
+   Meta processes it, then it's published; Facebook: a Page video or photo. Every 5 minutes (contentPublish). */
+const NEED = { instagram: "instagram_content_publish", facebook: "pages_manage_posts" };
+let WAIT_MS = 10000;
+function nyToUtc(date, time) {
+  const [y, m, d] = date.split("-").map(Number), [hh, mi] = time.split(":").map(Number);
+  const guess = Date.UTC(y, m - 1, d, hh, mi), p = nyParts(guess);
+  const [py, pm, pd] = p.date.split("-").map(Number), [ph, pmi] = p.time.split(":").map(Number);
+  return guess + (guess - Date.UTC(py, pm - 1, pd, ph, pmi));
+}
+const ptWhen = (date, time) => `${date.slice(8, 10)}/${date.slice(5, 7)} às ${time.replace(":00", "h").replace(":", "h")}`;
+async function metaAuth() { return (((await db().collection("ads").doc("auth").get()).data()) || {}).meta || null; }
+async function missingScopes(meta, nets) {
+  const G = require("./ads")._internal.graph;
+  const d = await G(meta, "GET", "debug_token", { input_token: meta.token });
+  const have = (d.data && d.data.scopes) || [];
+  return Object.keys(NEED).filter((n) => nets[n] && !have.includes(NEED[n])).map((n) => NEED[n]);
+}
+async function fileLink(path) {
+  const [url] = await deps.bucket().file(path).getSignedUrl({ version: "v4", action: "read", expires: Date.now() + 3 * 3600000 });
+  return url;
+}
+
+async function publishOne(doc, it) {
+  const G = require("./ads")._internal.graph;
+  const meta = await metaAuth();
+  const sc = { ...it.sched }, done = { ...(sc.done || {}) }, patch = {};
+  const isVideo = /^video\//.test(sc.type || "");
+  try {
+    if (!meta || !meta.token) throw new Error("O Meta não está conectado (Anúncios › Conectar Meta).");
+    const url = await fileLink(sc.path);
+    if (sc.nets.instagram && !done.instagram) {
+      if (!meta.igUserId) throw new Error("A conta do Instagram não está ligada à conexão do Meta.");
+      if (!sc.igCreation) {
+        const r = await G(meta, "POST", `${meta.igUserId}/media`, isVideo ? { media_type: "REELS", video_url: url, caption: it.caption || "", share_to_feed: true } : { image_url: url, caption: it.caption || "" });
+        sc.igCreation = String(r.id);
+      }
+      let status = "";
+      for (let k = 0; k < 9; k++) {                    // a Reel takes a minute or two to be processed by Meta
+        const s = await G(meta, "GET", sc.igCreation, { fields: "status_code,status" });
+        status = s.status_code || "";
+        if (status === "FINISHED" || status === "ERROR" || status === "EXPIRED" || !isVideo) break;
+        await new Promise((r) => setTimeout(r, WAIT_MS));
+      }
+      if (status === "ERROR" || status === "EXPIRED") { sc.igCreation = ""; throw new Error("O Instagram não aceitou o arquivo (formato ou tamanho)."); }
+      if (status === "FINISHED" || !isVideo) {
+        const pbl = await G(meta, "POST", `${meta.igUserId}/media_publish`, { creation_id: sc.igCreation });
+        done.instagram = nowIso(); patch.igId = String(pbl.id);
+        try { const pm = await G(meta, "GET", String(pbl.id), { fields: "permalink" }); patch.igLink = pm.permalink || ""; } catch (e) { /* link comes with the next sync */ }
+      }
+    }
+    if (sc.nets.facebook && !done.facebook) {
+      const pg = await G(meta, "GET", meta.pageId, { fields: "access_token" });
+      const page = { token: pg.access_token, appSecret: meta.appSecret };
+      if (isVideo) {
+        const r = await G(page, "POST", `${meta.pageId}/videos`, { file_url: url, description: it.caption || "", title: it.title || "" }, "graph-video.facebook.com");
+        patch.fbVideoId = String(r.id);
+      } else {
+        const r = await G(page, "POST", `${meta.pageId}/photos`, { url, caption: it.caption || "" });
+        patch.fbPostId = String(r.post_id || r.id);
+      }
+      done.facebook = nowIso();
+    }
+    sc.done = done;
+    const all = ["instagram", "facebook"].filter((n) => sc.nets[n]).every((n) => done[n]);
+    sc.state = all ? "done" : "processing"; sc.err = "";
+    const posted = { ...(it.posted || {}) };
+    Object.keys(done).forEach((n) => { posted[n] = posted[n] || done[n]; });
+    await doc.ref.set({ ...patch, sched: sc, posted, ...(all ? { status: "posted" } : {}), updatedAt: nowIso() }, { merge: true });
+    if (all) {
+      const nets = ["instagram", "facebook"].filter((n) => sc.nets[n]).map((n) => (n === "instagram" ? "Instagram" : "Facebook")).join(" e ");
+      try { await require("./push").notifyAdmins("admin_content", { text: `Saiu no ${nets} ✓ ${it.title || ""}`, tag: `content-${doc.id}` }); } catch (e) { /* never blocks */ }
+    }
+    return all ? "done" : "processing";
+  } catch (e) {
+    sc.state = "error"; sc.err = String(e.message || e).replace(/^Meta: /, "").slice(0, 300); sc.done = done;
+    const posted = { ...(it.posted || {}) };
+    Object.keys(done).forEach((n) => { posted[n] = posted[n] || done[n]; });
+    await doc.ref.set({ ...patch, sched: sc, posted, updatedAt: nowIso() }, { merge: true });
+    try { await require("./push").notifyAdmins("admin_content", { text: `Não deu para publicar “${it.title || ""}”: ${sc.err}`, tag: `content-${doc.id}` }); } catch (x) { /* never blocks */ }
+    return "error";
+  }
+}
+
+/** contentPublish (every 5 minutes): what is due goes out. */
+async function publishDue(now = Date.now()) {
+  const q = await col().get();
+  const out = { done: 0, processing: 0, error: 0 };
+  for (const d of q.docs) {
+    const it = d.data(), sc = it.sched;
+    if (!sc || !["waiting", "processing"].includes(sc.state) || Date.parse(sc.at) > now) continue;
+    out[await publishOne(d, it)] += 1;
+  }
+  return out;
+}
+
 async function list(opts) {
   await fixOnce();
   await fixOnce2();
@@ -284,6 +383,42 @@ async function adminContent(data, auth) {
       await ref.delete();
       return list();
     }
+    case "schedule": {
+      // the app publishes it at that day and time (New York time)
+      const cur = await read();
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(data.date || "")) ? String(data.date) : "";
+      const time = /^\d{2}:\d{2}$/.test(String(data.time || "")) ? String(data.time) : "";
+      if (!date || !time) fail("invalid-argument", "Pick the day and the time.");
+      const at = nyToUtc(date, time);
+      if (at < Date.now() + 60000) fail("invalid-argument", "Pick a time in the future.");
+      const nets = { instagram: !!(data.nets && data.nets.instagram), facebook: !!(data.nets && data.nets.facebook) };
+      if (!nets.instagram && !nets.facebook) fail("invalid-argument", "Choose Instagram, Facebook or both.");
+      const file = (cur.files || []).find((f) => f.path === data.path) || (cur.files || [])[0];
+      if (!file) fail("failed-precondition", "Send the video or photo first.");
+      const meta = await metaAuth();
+      if (!meta || !meta.token) fail("failed-precondition", "Connect Meta first (Ads › Connect Meta).");
+      const missing = await missingScopes(meta, nets);
+      if (missing.length) fail("failed-precondition", `The Meta connection can't publish yet (missing ${missing.join(", ")}). Make a new token in Meta Business with those permissions and paste it in Ads › Connect Meta.`);
+      const caption = data.caption !== undefined ? U.text(data.caption, 2200) : cur.caption || "";
+      await ref.set({ status: "scheduled", date, time, caption, nets: { ...(cur.nets || {}), ...nets },
+        sched: { at: new Date(at).toISOString(), nets, path: file.path, type: file.type, state: "waiting", err: "", done: {}, igCreation: "", by: name(auth) },
+        updatedAt: nowIso() }, { merge: true });
+      await tellOther(auth, `${name(auth)} agendou pelo app: ${cur.title || "um post"} · sai ${ptWhen(date, time)}`, `content-${id}`);
+      return list();
+    }
+    case "unschedule": {
+      const cur = await read();
+      if (cur.sched && cur.sched.state === "done") fail("failed-precondition", "It already went out.");
+      await ref.update({ sched: null, status: (cur.files || []).length ? "ready" : "idea", updatedAt: nowIso() });
+      return list();
+    }
+    case "retry": {
+      const cur = await read();
+      if (!cur.sched || cur.sched.state !== "error") fail("failed-precondition", "Nothing to retry.");
+      await ref.set({ sched: { ...cur.sched, state: "waiting", err: "", at: new Date(Math.max(Date.parse(cur.sched.at), Date.now())).toISOString() }, updatedAt: nowIso() }, { merge: true });
+      await publishOne(await ref.get(), (await ref.get()).data());
+      return list();
+    }
     case "posted": {
       // which networks got it; when every chosen network has it, the post is done
       const cur = await read();
@@ -304,4 +439,5 @@ async function adminContent(data, auth) {
   }
 }
 
-module.exports = { adminContent, cleanItem, seed, syncMeta, PATH_RE, _today: today, _nyParts: nyParts };
+module.exports = { adminContent, cleanItem, seed, syncMeta, publishDue, PATH_RE, _today: today, _nyParts: nyParts, _nyToUtc: nyToUtc,
+  _setWait: (ms) => { WAIT_MS = ms; } };

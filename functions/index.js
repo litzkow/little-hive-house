@@ -174,6 +174,12 @@ exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09
 });
 
 /* ---------- every morning: the ads robot reads what each channel spent and sold, and acts inside the teto (ads.js) ---------- */
+/* ---------- every 5 minutes: what was scheduled in the app goes out on Instagram / Facebook (content.js) ---------- */
+exports.contentPublish = onSchedule({ region: REGION, schedule: "every 5 minutes", timeZone: "America/New_York", timeoutSeconds: 300, memory: "512MiB" }, async () => {
+  const r = await content().publishDue();
+  if (r.done || r.processing || r.error) console.log("[contentPublish]", JSON.stringify(r));
+});
+
 exports.adsDaily = onSchedule({ region: REGION, schedule: "every day 07:40", timeZone: "America/New_York", timeoutSeconds: 300, memory: "512MiB" }, async () => {
   const r = await ads().run({ by: "robot" });
   console.log("[adsDaily]", JSON.stringify({ total: r.totals.total, did: r.did.length, errors: r.errors }));

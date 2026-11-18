@@ -168,3 +168,99 @@ test("fixes once: plan posts with no file back to to-make; cover photos out; sam
   assert.equal(s.mediaUrl, "https://cdn/z.mp4");
   assert.equal(v.items.filter((i) => i.source === "facebook").length, 0);   // the cover photo didn't come in
 });
+
+test("scheduled in the app: needs publish permission, goes out at its time on Instagram (Reel) and Facebook, tells both", async () => {
+  const { db, bucket, pushes, C } = setup();
+  require("../ads")._internal.setPause(1); C._setWait(1);
+  assert.equal(new Date(C._nyToUtc("2026-11-20", "19:00")).toISOString(), "2026-11-21T00:00:00.000Z");
+  assert.equal(new Date(C._nyToUtc("2026-07-04", "09:30")).toISOString(), "2026-07-04T13:30:00.000Z");
+  db.docs.set("settings/content", { seeded: "x", fix1: "x", fix2: "x", sync: { at: new Date().toISOString() } });
+  db.docs.set("ads/auth", { meta: { token: "EAAB" + "x".repeat(60), adAccountId: "act_1", pageId: "999", igUserId: "1784" } });
+  bucket.files.set("content/v1/1-santa.mp4", { data: Buffer.alloc(50), contentType: "video/mp4" });
+  db.docs.set("content/v1", { title: "Santa", kind: "video", status: "ready", source: "app", caption: "Santa, but a magnet", nets: {}, posted: {},
+    files: [{ path: "content/v1/1-santa.mp4", name: "santa.mp4", type: "video/mp4", size: 50 }] });
+  let scopes = ["ads_management", "instagram_basic"], igPolls = 0;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url), path = u.pathname.replace(/^\/v\d+\.\d+\//, ""), body = init.body ? Object.fromEntries(new URLSearchParams(String(init.body))) : {};
+    calls.push({ host: u.host, path, method: init.method, body });
+    const ok = (j) => ({ ok: true, status: 200, json: async () => j });
+    if (path === "debug_token") return ok({ data: { scopes } });
+    if (path === "1784/media" && init.method === "POST") { assert.equal(body.media_type, "REELS"); assert.match(body.video_url, /santa\.mp4/); return ok({ id: "c1" }); }
+    if (path === "c1") { igPolls += 1; return ok({ status_code: igPolls < 2 ? "IN_PROGRESS" : "FINISHED" }); }
+    if (path === "1784/media_publish") return ok({ id: "ig77" });
+    if (path === "ig77") return ok({ permalink: "https://instagram.com/reel/77" });
+    if (path === "999" && u.searchParams.get("fields") === "access_token") return ok({ access_token: "PAGE" + "y".repeat(40) });
+    if (path === "999/videos") { assert.equal(u.host, "graph-video.facebook.com"); assert.match(body.access_token, /^PAGE/); return ok({ id: "fbv1" }); }
+    throw new Error("unexpected " + url);
+  };
+  const when = C._nyParts(Date.now() + 2 * 3600000);
+  // without the publish permission it says what is missing
+  await assert.rejects(C.adminContent({ action: "schedule", id: "v1", date: when.date, time: when.time, nets: { instagram: true, facebook: true } }, THIAGO),
+    /instagram_content_publish, pages_manage_posts/);
+  scopes = ["instagram_basic", "instagram_content_publish", "pages_manage_posts"];
+  await assert.rejects(C.adminContent({ action: "schedule", id: "v1", date: "2020-01-01", time: "10:00", nets: { instagram: true } }, THIAGO), /future/);
+  let v = await C.adminContent({ action: "schedule", id: "v1", date: when.date, time: when.time, nets: { instagram: true, facebook: true } }, THIAGO);
+  let it = v.items.find((i) => i.id === "v1");
+  assert.equal(it.status, "scheduled");
+  assert.equal(it.sched.state, "waiting");
+  assert.match(pushes.at(-1).body, /Thiago agendou pelo app: Santa · sai/);
+  assert.equal(pushes.at(-1).to, "https://push/karina");
+  // not yet
+  assert.deepEqual(await C.publishDue(Date.now()), { done: 0, processing: 0, error: 0 });
+  // at its time: Reel processed, published; Facebook video; posted, both told
+  const n0 = pushes.length;
+  assert.deepEqual(await C.publishDue(Date.now() + 3 * 3600000), { done: 1, processing: 0, error: 0 });
+  it = db.get("content/v1");
+  assert.equal(it.status, "posted");
+  assert.equal(it.sched.state, "done");
+  assert.equal(it.igId, "ig77");
+  assert.equal(it.igLink, "https://instagram.com/reel/77");
+  assert.equal(it.fbVideoId, "fbv1");
+  assert.ok(it.posted.instagram && it.posted.facebook);
+  assert.equal(pushes.length - n0, 2);                                   // both phones
+  assert.match(pushes.at(-1).body, /Saiu no Instagram e Facebook ✓ Santa/);
+  assert.deepEqual(await C.publishDue(Date.now() + 4 * 3600000), { done: 0, processing: 0, error: 0 });   // never twice
+  await assert.rejects(C.adminContent({ action: "unschedule", id: "v1" }, THIAGO), /already/);
+});
+
+test("scheduled in the app: when Instagram refuses the file it says why, and it can be tried again or cancelled", async () => {
+  const { db, bucket, pushes, C } = setup();
+  require("../ads")._internal.setPause(1); C._setWait(1);
+  db.docs.set("settings/content", { seeded: "x", fix1: "x", fix2: "x", sync: { at: new Date().toISOString() } });
+  db.docs.set("ads/auth", { meta: { token: "EAAB" + "x".repeat(60), adAccountId: "act_1", pageId: "999", igUserId: "1784" } });
+  bucket.files.set("content/v2/1-a.mov", { data: Buffer.alloc(50), contentType: "video/quicktime" });
+  db.docs.set("content/v2", { title: "Packing", kind: "video", status: "ready", source: "app", nets: {}, posted: {},
+    files: [{ path: "content/v2/1-a.mov", name: "a.mov", type: "video/quicktime", size: 50 }] });
+  let bad = true;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url), path = u.pathname.replace(/^\/v\d+\.\d+\//, "");
+    const ok = (j) => ({ ok: true, status: 200, json: async () => j });
+    if (path === "debug_token") return ok({ data: { scopes: ["instagram_content_publish", "pages_manage_posts"] } });
+    if (path === "1784/media") return ok({ id: bad ? "cbad" : "cgood" });
+    if (path === "cbad") return ok({ status_code: "ERROR" });
+    if (path === "cgood") return ok({ status_code: "FINISHED" });
+    if (path === "1784/media_publish") return ok({ id: "ig9" });
+    if (path === "ig9") return ok({ permalink: "https://instagram.com/reel/9" });
+    throw new Error("unexpected " + url);
+  };
+  const when = C._nyParts(Date.now() + 2 * 3600000);
+  await C.adminContent({ action: "schedule", id: "v2", date: when.date, time: when.time, nets: { instagram: true } }, KARINA);
+  assert.deepEqual(await C.publishDue(Date.now() + 3 * 3600000), { done: 0, processing: 0, error: 1 });
+  let it = db.get("content/v2");
+  assert.equal(it.sched.state, "error");
+  assert.match(it.sched.err, /não aceitou/);
+  assert.match(pushes.at(-1).body, /Não deu para publicar “Packing”/);
+  bad = false;
+  const v = await C.adminContent({ action: "retry", id: "v2" }, KARINA);
+  it = v.items.find((i) => i.id === "v2");
+  assert.equal(it.status, "posted");
+  assert.equal(it.igId, "ig9");
+  // cancelling a waiting one puts it back in Shared
+  db.docs.set("content/v3", { title: "Later", kind: "video", status: "scheduled", source: "app", nets: {}, posted: {}, files: [{ path: "x", type: "video/mp4" }],
+    sched: { at: new Date(Date.now() + 9e6).toISOString(), state: "waiting", nets: { instagram: true }, path: "x", type: "video/mp4" } });
+  const v2 = await C.adminContent({ action: "unschedule", id: "v3" }, KARINA);
+  const c3 = v2.items.find((i) => i.id === "v3");
+  assert.equal(c3.status, "ready");
+  assert.equal(c3.sched, null);
+});

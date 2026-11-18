@@ -140,7 +140,8 @@
       acts.push('<label class="btn btn-ghost btn-sm ct-pick' + (st.uploads[it.id] ? ' disabled' : '') + '">' + T('+ Video or photo', '+ Vídeo ou foto') +
         '<input type="file" accept="image/*,video/*" multiple data-ct-upload="' + esc(it.id) + '" hidden></label>');
     } else {
-      acts.push(btn('ctScheduled', it, T('Scheduled in Meta', 'Agendei no Meta'), true));
+      if (files.length) acts.push(btn('ctSchedule', it, h.icon('calendar') + T('Schedule', 'Agendar'), true));
+      acts.push(btn('ctScheduled', it, T('Scheduled in Business Suite', 'Já agendei no Business Suite')));
       acts.push(btn('ctPosted', it, T('Posted', 'Postei')));
       if (files.length) acts.push(addMore(it));
     }
@@ -158,18 +159,27 @@
       var done = it.posted && it.posted[n[0]];
       return '<span class="ct-net' + (done ? ' done' : '') + '">' + (done ? '✓ ' : '') + n[1] + '</span>';
     }).join('');
+    var sc = it.sched && !out ? it.sched : null;
     var badge = out ? '<span class="sp-pill ct-st-posted">' + T('Out', 'Já saiu') + ' · ' + esc(it.date ? dayLabel(it.date) : '') + '</span>'
+      : sc && sc.state === 'processing' ? '<span class="sp-pill ct-st-scheduled">' + T('Publishing…', 'Publicando…') + '</span>'
+      : sc && sc.state === 'error' ? '<span class="sp-pill ct-st-error">' + T('Didn’t go out', 'Não saiu') + '</span>'
       : '<span class="sp-pill ct-st-scheduled">' + T('Goes out ', 'Sai ') + esc(goesOut(it)) + '</span>';
+    var how = sc ? (sc.state === 'error' ? '<p class="small err">' + esc(sc.err || '') + '</p>'
+      : '<p class="tiny muted">' + (sc.state === 'processing' ? T('Meta is processing the video; it goes out in a few minutes.', 'O Meta está processando o vídeo; sai em alguns minutos.')
+        : T('The app publishes it by itself at that time.', 'O app publica sozinho nessa hora.')) + (sc.by ? ' · ' + T('scheduled by ', 'agendado por ') + esc(sc.by) : '') + '</p>')
+      : !out ? '<p class="tiny muted">' + T('Scheduled in Business Suite (marked by hand).', 'Agendado no Business Suite (marcado à mão).') + '</p>' : '';
     var media = files.length ? '<div class="ct-files' + (files.length === 1 ? ' one' : '') + '">' + files.map(function (f) { return fileMedia(it, f, files.length === 1); }).join('') + '</div>' : metaMedia(it);
     var stats = it.igStats ? '<span>♥ ' + it.igStats.likes + '</span><span>💬 ' + it.igStats.comments + '</span>' : '';
     var links = (it.igLink ? '<a href="' + esc(it.igLink) + '" target="_blank" rel="noopener">Instagram ›</a>' : '') + (it.fbLink ? '<a href="' + esc(it.fbLink) + '" target="_blank" rel="noopener">Facebook ›</a>' : '');
     var acts = [];
-    if (!out) acts.push(btn('ctPosted', it, T('Already out', 'Já saiu')));
+    if (sc && sc.state === 'error') acts.push(btn('ctRetry', it, T('Try again', 'Tentar de novo'), true));
+    if (sc && sc.state !== 'processing') acts.push(btn('ctUnschedule', it, T('Cancel schedule', 'Cancelar agendamento')));
+    if (!out && !sc) acts.push(btn('ctPosted', it, T('Already out', 'Já saiu')));
     if (out && it.nets && it.nets.tiktok && !(it.posted && it.posted.tiktok)) acts.push(btn('ctTiktok', it, T('Posted on TikTok', 'Postei no TikTok')));
     acts.push(btn('ctEdit', it, T('Edit', 'Editar')));
     return '<article class="card ct-card ct-' + esc(it.status) + '" id="ct-' + esc(it.id) + '">' +
       '<div class="ct-top">' + badge + (nets ? '<div class="ct-nets">' + nets + '</div>' : '') + '</div>' +
-      (it.title ? '<h3>' + esc(it.title) + '</h3>' : '') + media +
+      (it.title ? '<h3>' + esc(it.title) + '</h3>' : '') + how + media +
       (stats || links ? '<p class="small ct-links">' + stats + links + '</p>' : '') +
       details(it) + '<div class="row sp-acts">' + acts.join('') + '</div></article>';
   }
@@ -396,6 +406,29 @@
       load('save', { id: it.id, item: { title: v.title, status: v.status, date: v.date, time: v.time, caption: v.caption, notes: v.notes } }, T('Saved.', 'Salvo.'));
     });
   };
+  /* scheduling in the app: at that time the server publishes it on Instagram / Facebook */
+  ACT.ctSchedule = function (el) {
+    var it = item(el.getAttribute('data-id')); if (!it) return;
+    var files = it.files || [];
+    var pick = files.length > 1 ? '<div class="ct-where">' + files.map(function (f, k) {
+      return '<label><input type="radio" name="path" value="' + esc(f.path) + '"' + (k === files.length - 1 ? ' checked' : '') + '> <b>' + esc(String(f.name || '').replace(/\.[a-z0-9]+$/i, '')) + '</b><span class="tiny muted">' + size(f.size) + '</span></label>';
+    }).join('') + '</div>' : '';
+    ask(T('Schedule', 'Agendar'), '<p class="small muted">' + T('At that day and time (New York), the app publishes it by itself, in full quality, and tells you both.',
+      'Nesse dia e hora (horário de Nova York), o app publica sozinho, na qualidade original, e avisa vocês dois.') + '</p>' + pick +
+      '<div class="row">' + field('date', T('Day', 'Dia'), it.date && it.date >= st.data.today ? it.date : addDays(st.data.today, 1), 'date') + field('time', T('Time', 'Hora'), it.time || '19:00', 'time') + '</div>' +
+      '<div class="ct-checks"><label><input type="checkbox" name="ig" checked> Instagram</label><label><input type="checkbox" name="fb" checked> Facebook</label></div>' +
+      area('caption', T('Caption', 'Legenda'), it.caption, 5), T('Schedule', 'Agendar')).then(function (v) {
+      if (!v) return;
+      load('schedule', { id: it.id, path: v.path || (files[files.length - 1] || {}).path, date: v.date, time: v.time, caption: v.caption, nets: { instagram: !!v.ig, facebook: !!v.fb } },
+        T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.')).then(function (d) { if (d) { st.tab = 'meta'; rerender(); } });
+    });
+  };
+  ACT.ctUnschedule = function (el) {
+    var id = el.getAttribute('data-id');
+    h.dialog({ title: T('Cancel this schedule?', 'Cancelar o agendamento?'), html: '<p>' + T('It goes back to Shared and doesn’t go out.', 'Ele volta para Compartilhados e não sai.') + '</p>', ok: T('Cancel schedule', 'Cancelar agendamento'), cancel: T('Keep', 'Manter'), danger: true })
+      .then(function (ok) { if (ok) load('unschedule', { id: id }, T('Cancelled.', 'Cancelado.')); });
+  };
+  ACT.ctRetry = function (el) { load('retry', { id: el.getAttribute('data-id') }, T('Trying again…', 'Tentando de novo…')); };
   ACT.ctScheduled = function (el) {
     var it = item(el.getAttribute('data-id')); if (!it) return;
     ask(T('Scheduled in Meta', 'Agendei no Meta'), '<p class="small muted">' + T('The day and time you picked in Meta Business Suite. When it goes out, the app sees it and moves it to “Already out”.',
