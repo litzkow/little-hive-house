@@ -36,6 +36,11 @@ jobs:
           service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
           create_credentials_file: true
           export_environment_variables: true
+      - name: "Anúncios: o robô roda agora"
+        if: inputs.task == 'check-ads'
+        run: |
+          gcloud scheduler jobs run firebase-schedule-adsDaily-us-east1 --location us-east1 --project "$PROJECT"
+          sleep 90
       - name: "Analytics: o servidor lê o Google Analytics agora"
         if: inputs.task == 'check-analytics'
         run: |
@@ -161,6 +166,22 @@ jobs:
         if: always() && inputs.task == 'check-analytics'
         env: { CHECK: api }
         run: node tools/maint/check-analytics.js
+      - name: "Anúncios: o robô rodou agora"
+        if: always() && inputs.task == 'check-ads'
+        env: { CHECK: fresh }
+        run: node tools/maint/check-ads.js
+      - name: "Anúncios: leu as vendas do site (Google Analytics)"
+        if: always() && inputs.task == 'check-ads'
+        env: { CHECK: site }
+        run: node tools/maint/check-ads.js
+      - name: "Anúncios: leu o Etsy"
+        if: always() && inputs.task == 'check-ads'
+        env: { CHECK: etsy }
+        run: node tools/maint/check-ads.js
+      - name: "Anúncios: leu o Meta (ou ainda não conectado)"
+        if: always() && inputs.task == 'check-ads'
+        env: { CHECK: meta }
+        run: node tools/maint/check-ads.js
       - name: "Etsy: como as fotos estão arrumadas em cada anúncio"
         if: inputs.task == 'etsy-images'
         env: { ETSY_KEYSTRING: "${{ secrets.ETSY_KEYSTRING }}", ETSY_SHARED_SECRET: "${{ secrets.ETSY_SHARED_SECRET }}", VALUE: "${{ inputs.value }}" }
