@@ -56,7 +56,28 @@
     return storage().then(function (s) { return s.ref(path).getDownloadURL(); }).then(function (u) { st.urls[path] = u; return u; });
   }
   /* after each render, the videos and photos get their links without redrawing the page (a playing video keeps playing) */
+  /* a video that leaves the screen stops by itself (Shared, No Meta, Ideas); so does one when the app goes to the back.
+     Only one plays at a time. */
+  var watcher = 'IntersectionObserver' in window ? new IntersectionObserver(function (list) {
+    list.forEach(function (e) { if (e.intersectionRatio < 0.35 && !e.target.paused) e.target.pause(); });
+  }, { threshold: [0, 0.35] }) : null;
+  function watchVideos() {
+    Array.prototype.forEach.call(document.querySelectorAll('.ct video:not([data-ct-watched])'), function (v) {
+      v.setAttribute('data-ct-watched', '');
+      if (watcher) watcher.observe(v);
+      v.addEventListener('play', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.ct video'), function (o) { if (o !== v && !o.paused) o.pause(); });
+      });
+    });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) Array.prototype.forEach.call(document.querySelectorAll('.ct video'), function (v) { if (!v.paused) v.pause(); });
+  });
+  window.addEventListener('hashchange', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('.ct video'), function (v) { if (!v.paused) v.pause(); });
+  });
   function hydrate() {
+    watchVideos();
     Array.prototype.forEach.call(document.querySelectorAll('[data-ct-path]:not([src])'), function (el) {
       var p = el.getAttribute('data-ct-path');
       urlOf(p).then(function (u) { el.setAttribute('src', el.tagName === 'VIDEO' ? u + '#t=0.1' : u); el.classList.remove('ct-wait'); }).catch(function () {});
