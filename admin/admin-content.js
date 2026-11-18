@@ -231,7 +231,8 @@
     var newest = function (a, b) { return String(sentAt(b)).localeCompare(String(sentAt(a))); };
     var shared = all.filter(function (i) { return i.status === 'ready' || i.status === 'todo'; }).sort(newest);
     var ideas = all.filter(function (i) { return i.status === 'idea'; }).sort(newest);
-    var sched = all.filter(function (i) { return i.status === 'scheduled'; }).sort(function (a, b) { return (a.date || '9').localeCompare(b.date || '9') || String(a.time).localeCompare(String(b.time)) || String(b.pendingSince || '').localeCompare(String(a.pendingSince || '')); });
+    var sched = all.filter(function (i) { return i.status === 'scheduled'; }).sort(function (a, b) { return (a.date || '9').localeCompare(b.date || '9') || String(a.time).localeCompare(String(b.time)) || String(b.pendingSince || '').localeCompare(String(a.pendingSince || '')); })
+      .reverse(); // one timeline: the farthest at the top, the next to go out right above the last one that went out
     var posted = all.filter(function (i) { return i.status === 'posted'; }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || String(b.time).localeCompare(String(a.time)); });
     var newIn = function (arr) { return arr.filter(isNew).length; };
     var TABS = [['shared', T('Shared', 'Compartilhados'), shared.length, newIn(shared)], ['meta', T('On Meta', 'No Meta'), sched.length + posted.length, 0],
