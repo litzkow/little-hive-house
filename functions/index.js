@@ -177,6 +177,8 @@ exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09
 /* ---------- every 5 minutes: what was scheduled in the app goes out on Instagram / Facebook (content.js) ---------- */
 exports.contentPublish = onSchedule({ region: REGION, schedule: "every 5 minutes", timeZone: "America/New_York", timeoutSeconds: 300, memory: "512MiB" }, async () => {
   const r = await content().publishDue();
+  // what is scheduled or already out on Instagram and Facebook is checked here too (every 10 minutes), without anyone opening the app
+  try { await content().syncMeta(); } catch (e) { console.log("[contentPublish] sync", e.message); }
   if (r.done || r.processing || r.error) console.log("[contentPublish]", JSON.stringify(r));
 });
 

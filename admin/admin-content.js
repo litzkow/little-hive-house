@@ -23,6 +23,23 @@
       .catch(function (e) { var m = h.friendlyError(e); if (!action || action === 'list') st.err = m; else h.toast(m, true); return null; })
       .then(function (d) { st.busy = false; st.loading = false; rerender(); return d; });
   }
+  /* the page keeps itself up to date: every minute while it is open, and when the app comes back to the screen.
+     It only redraws when something changed, and never while a video plays, a window is open or a file is going up. */
+  function snap(d) { return JSON.stringify((d && d.items) || []); }
+  function quietRefresh() {
+    if (A.parseHash().view !== 'content' || document.hidden || st.busy || !st.data) return;
+    h.call('adminContent', { action: 'list' }).then(function (d) {
+      if (!d || A.parseHash().view !== 'content') return;
+      var playing = Array.prototype.some.call(document.querySelectorAll('.ct video'), function (v) { return !v.paused && !v.ended; });
+      var busy = st.busy || document.querySelector('dialog[open]') || Object.keys(st.uploads).length || playing;
+      if (snap(d) === snap(st.data)) { st.data.sync = d.sync; st.data.today = d.today; var a = document.querySelector('[data-ct-ago]'); if (a && d.sync && d.sync.at) a.textContent = ago(d.sync.at); return; }
+      if (busy) return;
+      st.data = d; st.err = null; rerender();
+    }).catch(function () {});
+  }
+  setInterval(quietRefresh, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) quietRefresh(); });
+  window.addEventListener('hashchange', function () { setTimeout(quietRefresh, 300); });
   var storageReady = null;
   function storage() {
     if (!storageReady) storageReady = new Promise(function (resolve, reject) {
@@ -238,10 +255,10 @@
     } else {
       var sy = d.sync || {};
       var syncLine = sy.connected === false ? T('Connect Meta on the Ads page to bring in what is posted.', 'Conecte o Meta na página Anúncios para trazer o que já saiu.')
-        : sy.at ? T('Instagram and Facebook checked ', 'Instagram e Facebook conferidos ') + esc(ago(sy.at)) : '';
+        : sy.at ? T('Updates by itself · Instagram and Facebook checked ', 'Atualiza sozinho · Instagram e Facebook conferidos ') + '<span data-ct-ago>' + esc(ago(sy.at)) + '</span>' : '';
       var syncErr = sy.errors && Object.keys(sy.errors).length ? '<p class="tiny err">' + Object.keys(sy.errors).map(function (k) { return esc(k + ': ' + sy.errors[k]); }).join(' · ') + '</p>' : '';
       body = '<button class="btn btn-honey ct-send" data-act="ctPickSchedule">' + h.icon('calendar') + T('Schedule a post', 'Agendar post') + '</button>' +
-        '<div class="ct-sync"><span class="tiny muted">' + syncLine + '</span><button class="btn btn-ghost btn-sm" data-act="ctSync"' + (st.busy ? ' disabled' : '') + '>' + h.icon('refresh') + T('Update', 'Atualizar') + '</button></div>' + syncErr +
+        '<div class="ct-sync"><span class="tiny muted">' + syncLine + '</span></div>' + syncErr +
         '<h2 class="ct-h">' + T('Scheduled', 'Agendados') + (sched.length ? ' <span class="count">' + sched.length + '</span>' : '') + '</h2>' +
         (sched.length ? '<div class="ct-feed">' + sched.map(metaCard).join('') + '</div>'
           : '<p class="small muted ct-note">' + T('Nothing scheduled. Tap “Schedule a post”: you pick a video from Shared, the day and time, and the app publishes it by itself. What you schedule in Business Suite also shows up here (without the time, which Meta doesn’t give).',

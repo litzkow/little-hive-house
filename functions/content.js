@@ -90,7 +90,7 @@ async function syncMeta({ force = false } = {}) {
   const s = (await sref.get()).data() || {};
   const meta = (((await db().collection("ads").doc("auth").get()).data()) || {}).meta;
   if (!meta || !meta.token) return { connected: false };
-  if (!force && s.sync && Date.now() - Date.parse(s.sync.at) < 20 * 60000) return s.sync;
+  if (!force && s.sync && Date.now() - Date.parse(s.sync.at) < 10 * 60000) return s.sync;
   const G = require("./ads")._internal.graph;
   const q = await col().get();
   const items = q.docs.map((d) => ({ id: d.id, ...d.data() }));
