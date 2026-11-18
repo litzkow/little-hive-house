@@ -119,7 +119,7 @@ async function syncMeta({ force = false } = {}) {
           files: [], posted: {}, source: "instagram", by: "Instagram", at: nowIso() });
         // a video's own file on Instagram (its link expires in a few days; refreshed on every sync) to play it in the app
         touch(it, { igId: String(m.id), igLink: m.permalink || "", preview: preview || it.preview || "", igStats: stats, mediaUrl: kind === "video" ? m.media_url || "" : "", posted: { ...(it.posted || {}), instagram: it.posted && it.posted.instagram || new Date(at).toISOString() },
-          nets: { ...(it.nets || {}), instagram: true }, date: it.date || date, time: it.time || time });
+          nets: { ...(it.nets || {}), instagram: true }, date, time });     // the real day and time it went out
         counts.instagram += 1;
       });
     } catch (e) { errors.instagram = e.message; }
@@ -152,6 +152,7 @@ async function syncMeta({ force = false } = {}) {
           if (!it) it = add({ ...cleanItem({ title: firstLine(m.message).slice(0, 80) || "Post do Facebook", kind: "photo", status: "posted", date, time, caption: m.message || "", nets: { facebook: true } }),
             files: [], posted: {}, source: "facebook", by: "Facebook", at: nowIso() });
           touch(it, { fbPostId: String(m.id), fbLink: m.permalink_url || "", preview: it.preview || m.full_picture || "",
+            ...(it.igId ? {} : { date, time }),
             posted: { ...(it.posted || {}), facebook: it.posted && it.posted.facebook || new Date(at).toISOString() }, nets: { ...(it.nets || {}), facebook: true } });
           counts.facebook += 1;
         });

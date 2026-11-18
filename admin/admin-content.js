@@ -63,6 +63,13 @@
     var n = daysFrom(it.date), at = it.time ? (pt() ? ' às ' : ' at ') + hm(it.time) : '';
     return (n === 0 ? T('today', 'hoje') : n === 1 ? T('tomorrow', 'amanhã') : dayLabel(it.date)) + at;
   }
+  /* "qui 20/nov às 19h (amanhã)" */
+  function fullWhen(it, rel) {
+    if (!it.date) return '';
+    var n = daysFrom(it.date), at = it.time ? (pt() ? ' às ' : ' at ') + hm(it.time) : '';
+    var tag = !rel ? '' : n === 0 ? T(' (today)', ' (hoje)') : n === 1 ? T(' (tomorrow)', ' (amanhã)') : n === -1 ? T(' (yesterday)', ' (ontem)') : '';
+    return dayLabel(it.date) + at + tag;
+  }
   /* "agora", "há 5 min", "há 2 h", "ontem", "há 3 dias", "15/nov" */
   function ago(iso) {
     var s = (Date.now() - Date.parse(iso)) / 1000;
@@ -161,15 +168,16 @@
     }).join('');
     var sc = it.sched && !out ? it.sched : null;
     var pending = !out && !sc && it.source === 'meta-pending';
-    var badge = out ? '<span class="sp-pill ct-st-posted">' + T('Out', 'Já saiu') + ' · ' + esc(it.date ? dayLabel(it.date) : '') + '</span>'
-      : pending ? '<span class="sp-pill ct-st-scheduled">' + T('Scheduled in Business Suite', 'Agendado no Business Suite') + '</span>'
+    var badge = out ? '<span class="sp-pill ct-st-posted">' + T('Went out ', 'Saiu ') + esc(fullWhen(it, false)) + '</span>'
+      : pending ? '<span class="sp-pill ct-st-scheduled">' + (it.date ? T('Goes out ', 'Sai ') + esc(fullWhen(it, true)) : T('Scheduled in Business Suite', 'Agendado no Business Suite')) + '</span>'
       : sc && sc.state === 'processing' ? '<span class="sp-pill ct-st-scheduled">' + T('Publishing…', 'Publicando…') + '</span>'
       : sc && sc.state === 'error' ? '<span class="sp-pill ct-st-error">' + T('Didn’t go out', 'Não saiu') + '</span>'
-      : '<span class="sp-pill ct-st-scheduled">' + T('Goes out ', 'Sai ') + esc(goesOut(it)) + '</span>';
+      : '<span class="sp-pill ct-st-scheduled">' + T('Goes out ', 'Sai ') + esc(fullWhen(it, true) || T('no date', 'sem data')) + '</span>';
     var how = sc ? (sc.state === 'error' ? '<p class="small err">' + esc(sc.err || '') + '</p>'
       : '<p class="tiny muted">' + (sc.state === 'processing' ? T('Meta is processing the video; it goes out in a few minutes.', 'O Meta está processando o vídeo; sai em alguns minutos.')
         : T('The app publishes it by itself at that time.', 'O app publica sozinho nessa hora.')) + (sc.by ? ' · ' + T('scheduled by ', 'agendado por ') + esc(sc.by) : '') + '</p>')
-      : pending ? '<p class="tiny muted">' + T('Meta doesn’t tell the time it goes out. When it does, it moves to “Already out” by itself.', 'O Meta não informa a hora em que sai. Quando sair, ele passa para “Já saiu” sozinho.') + '</p>'
+      : pending ? '<p class="tiny muted">' + (it.date ? T('Scheduled in Business Suite; day and time noted by you. When it goes out, the real time shows.', 'Agendado no Business Suite; dia e hora anotados por vocês. Quando sair, aparece a hora real.')
+        : T('Scheduled in Business Suite. Meta doesn’t tell the time: tap “Note day and time”. When it goes out, it moves to “Already out” with the real time.', 'Agendado no Business Suite. O Meta não informa a hora: toque em “Informar dia e hora”. Quando sair, passa para “Já saiu” com a hora real.')) + '</p>'
       : !out ? '<p class="tiny muted">' + T('Scheduled in Business Suite (marked by hand).', 'Agendado no Business Suite (marcado à mão).') + '</p>' : '';
     var media = files.length ? '<div class="ct-files' + (files.length === 1 ? ' one' : '') + '">' + files.map(function (f) { return fileMedia(it, f, files.length === 1); }).join('') + '</div>' : metaMedia(it);
     var stats = it.igStats ? '<span>♥ ' + it.igStats.likes + '</span><span>💬 ' + it.igStats.comments + '</span>' : '';
@@ -177,6 +185,7 @@
     var acts = [];
     if (sc && sc.state === 'error') acts.push(btn('ctRetry', it, T('Try again', 'Tentar de novo'), true));
     if (sc && sc.state !== 'processing') acts.push(btn('ctUnschedule', it, T('Cancel schedule', 'Cancelar agendamento')));
+    if (pending) acts.push(btn('ctWhen', it, h.icon('calendar') + (it.date ? T('Change day and time', 'Mudar dia e hora') : T('Note day and time', 'Informar dia e hora')), !it.date));
     if (!out && !sc && !pending) acts.push(btn('ctPosted', it, T('Already out', 'Já saiu')));
     if (out && it.nets && it.nets.tiktok && !(it.posted && it.posted.tiktok)) acts.push(btn('ctTiktok', it, T('Posted on TikTok', 'Postei no TikTok')));
     acts.push(btn('ctEdit', it, T('Edit', 'Editar')));
@@ -430,13 +439,8 @@
   };
   /* "Agendar post" in No Meta: any video or photo from the phone (or one already in Shared), caption, day and time */
   ACT.ctPickSchedule = function () {
-    var shared = ((st.data && st.data.items) || []).filter(function (i) { return (i.status === 'ready' || i.status === 'todo' || i.status === 'idea') && (i.files || []).length; })
-      .sort(function (a, b) { return String(sentAt(b)).localeCompare(String(sentAt(a))); });
     var choose = '<label class="btn btn-honey ct-dlgpick">' + h.icon('upload') + '<span data-ct-picked>' + T('Choose from the phone', 'Escolher do celular') + '</span>' +
-      '<input type="file" name="files" accept="image/*,video/*" data-ct-dlgfile hidden></label>' +
-      (shared.length ? '<details class="ct-more"><summary>' + T('…or one already in Shared or Ideas', '…ou um que já está em Compartilhados ou Ideias') + '</summary><div class="ct-where">' + shared.map(function (i) {
-        return '<label><input type="radio" name="id" value="' + esc(i.id) + '"> <b>' + esc(i.title || T('(no name)', '(sem nome)')) + '</b><span class="tiny muted">' + esc((sender(i) ? sender(i) + ' · ' : '') + ago(sentAt(i))) + '</span></label>';
-      }).join('') + '</div></details>' : '');
+      '<input type="file" name="files" accept="image/*,video/*" data-ct-dlgfile hidden></label>';
     ask(T('Schedule a post', 'Agendar post'), choose +
       field('title', T('Name (just for you two)', 'Nome (só para vocês)'), '') +
       '<div class="row">' + field('date', T('Day', 'Dia'), addDays(st.data.today, 1), 'date') + field('time', T('Time', 'Hora'), '19:00', 'time') + '</div>' +
@@ -451,10 +455,6 @@
         return load('schedule', { id: id, path: path, date: v.date, time: v.time, caption: v.caption, nets: nets }, T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.'))
           .then(function (d) { if (d) { st.tab = 'meta'; rerender(); } });
       };
-      if (!files.length && v.id) {
-        var it = item(v.id), last = it && (it.files || [])[(it.files || []).length - 1];
-        return sched(v.id, last && last.path);
-      }
       if (!files.length) { h.toast(T('Choose the video or photo.', 'Escolha o vídeo ou a foto.'), true); return; }
       var vid = /^video\//.test(files[0].type);
       st.tab = 'shared'; st.busy = true; rerender();
@@ -479,9 +479,15 @@
     if (!el || !el.matches || !el.matches('[data-ct-dlgfile]')) return;
     var f = el.files && el.files[0], span = el.parentNode.querySelector('[data-ct-picked]');
     if (span && f) span.textContent = '✓ ' + f.name + ' · ' + size(f.size);
-    var r = el.closest('form') && el.closest('form').querySelectorAll('input[name="id"]');
-    if (r) Array.prototype.forEach.call(r, function (x) { x.checked = false; });
   });
+  /* Business Suite doesn't tell the time: they note it */
+  ACT.ctWhen = function (el) {
+    var it = item(el.getAttribute('data-id')); if (!it) return;
+    ask(T('When does it go out?', 'Quando sai?'), '<p class="small muted">' + T('The day and time you picked in Business Suite.', 'O dia e a hora que vocês escolheram no Business Suite.') + '</p>' +
+      '<div class="row">' + field('date', T('Day', 'Dia'), it.date || st.data.today, 'date') + field('time', T('Time', 'Hora'), it.time || '19:00', 'time') + '</div>', T('Save', 'Salvar')).then(function (v) {
+      if (v) load('save', { id: it.id, item: { date: v.date, time: v.time } }, T('Saved.', 'Salvo.'));
+    });
+  };
   ACT.ctUnschedule = function (el) {
     var id = el.getAttribute('data-id');
     h.dialog({ title: T('Cancel this schedule?', 'Cancelar o agendamento?'), html: '<p>' + T('It goes back to Shared and doesn’t go out.', 'Ele volta para Compartilhados e não sai.') + '</p>', ok: T('Cancel schedule', 'Cancelar agendamento'), cancel: T('Keep', 'Manter'), danger: true })
