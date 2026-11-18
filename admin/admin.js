@@ -109,6 +109,7 @@
     visits: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
     shop: '<path d="M4 9.5V20h16V9.5"/><path d="M3 9.5 5 4h14l2 5.5a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M10 20v-5h4v5"/>',
     supplies: '<path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="M4 8.5 12 13l8-4.5M12 13v7"/>',
+    camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
     megaphone: '<path d="M3 10v4a1 1 0 0 0 1 1h3l6 4V5L7 9H4a1 1 0 0 0-1 1z"/><path d="M17 8.5a5 5 0 0 1 0 7M7 15l1.5 5h3"/>',
     reports: '<path d="M3 21h18M6.5 17v-5M11 17V7M15.5 17v-8M20 17V4"/>',
     reviews: '<path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/>',
@@ -448,7 +449,7 @@
   /* The side menu: the everyday pages on top, the rest in groups that open and close (owners, Nov 2026: more sales
      channels are coming, Amazon and TikTok Shop, so each kind of thing gets its own group). The group of the page
      you are on opens by itself; the others remember whether you left them open. */
-  var NAV_TOP = [['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['messages', 'Messages', 'messages'], ['ads', 'Ads', 'megaphone']];
+  var NAV_TOP = [['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['messages', 'Messages', 'messages'], ['content', 'Content', 'camera'], ['ads', 'Ads', 'megaphone']];
   var NAV_GROUPS = [
     { id: 'stores', name: 'Stores', icon: 'shop', items: [['etsy', 'Etsy', 'shop'], ['links', 'Payment links', 'links']] },
     { id: 'sales', name: 'Customers & sales', icon: 'customers', items: [['customers', 'Customers', 'customers'], ['discounts', 'Discounts', 'discounts'], ['returns', 'Returns', 'refund'], ['reviews', 'Reviews', 'reviews']] },

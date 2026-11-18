@@ -17,7 +17,7 @@ const U = require("./util");
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
   admin_new_order: "orders", admin_contact: "messages", admin_suggestion: "messages", admin_quote: "quotes", admin_dispute: "disputes",
-  admin_delivery_check: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", admin_ads: "orders", push_test: null,
+  admin_delivery_check: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", admin_ads: "orders", admin_content: "messages", push_test: null,
 };
 const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
 const COLL = "adminPush";
@@ -156,6 +156,10 @@ function message(kind, data) {
       if (!d.text) return null;
       return { title: "📣 Anúncios", body: clip(d.text, 170), url: "/admin/#ads", tag: d.tag || "ads", urgency: "normal" };
     }
+    case "admin_content": {
+      if (!d.text) return null;
+      return { title: "🎬 Conteúdo", body: clip(d.text, 170), url: "/admin/#content", tag: d.tag || "content", urgency: "normal" };
+    }
     case "push_test":
       return { title: "🐝 Notificações ativadas", body: "É assim que os avisos da Little Hive House vão chegar neste aparelho.", url: "/admin/#settings", tag: "push-test", urgency: "normal" };
     default:
@@ -197,13 +201,13 @@ async function deliver(snap, msg, keys) {
 }
 
 /** Pushes an admin alert to every subscribed phone that wants this kind. Never throws. Returns {sent, gone, failed}. */
-async function notifyAdmins(kind, data, { only } = {}) {
+async function notifyAdmins(kind, data, { only, exceptUid } = {}) {
   const out = { sent: 0, gone: 0, failed: 0 };
   try {
     const msg = message(kind, data);
     if (!msg) return out;
     const q = await deps.db().collection(COLL).get();
-    const targets = q.docs.filter((d) => (only ? d.id === only : true) && wants(d.data(), kind));
+    const targets = q.docs.filter((d) => (only ? d.id === only : true) && !(exceptUid && d.data().uid === exceptUid) && wants(d.data(), kind));
     if (!targets.length) return out;
     const keys = await vapidKeys();
     const results = await Promise.all(targets.map((d) => deliver(d, msg, keys)));

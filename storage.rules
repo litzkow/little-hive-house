@@ -28,6 +28,15 @@ service firebase.storage {
     // Admins get a short-lived link from the adminPrintSheet callable; nobody reads or writes here from a browser.
     match /orders/{orderId}/{file=**} { allow read, write: if false; }
 
+    // Conteúdo (Hive Admin): the owners' own videos and photos for the social networks, kept as the original files
+    // (never resized): content/{itemId}/{file}. Only owners read, upload and delete; images and videos up to 4 GB.
+    match /content/{itemId}/{fileName} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && itemId.matches('[A-Za-z0-9_-]{6,40}')
+        && request.resource.size <= 4 * 1024 * 1024 * 1024
+        && request.resource.contentType.matches('(image|video)/.*');
+    }
+
     match /{allPaths=**} { allow read, write: if false; }
   }
 }
