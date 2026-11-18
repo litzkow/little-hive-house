@@ -866,3 +866,5 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .sp-pill.ct-st-error { background: #fde8e6; color: #b42318; }
 .ct-card .err { margin: 0; }
 .ct .ct-send[data-act="ctPickSchedule"] { width: 100%; justify-content: center; margin: 0 0 12px; }
+.ct-dlgpick { width: 100%; justify-content: center; margin: 4px 0 8px; cursor: pointer; }
+.ct-dlgpick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; }

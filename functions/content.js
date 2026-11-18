@@ -386,7 +386,8 @@ async function adminContent(data, auth) {
       await ref.set(upd, { merge: true });
       const kind = /^video\//.test(type) ? "um vídeo novo" : "uma foto nova";
       const where = cur.status === "idea" ? " nas Ideias" : "";
-      await tellOther(auth, `${name(auth)} mandou ${kind}${where}: ${cur.title || "sem nome"}. Toque para ver.`, `content-${id}`);
+      // a file sent only to be scheduled doesn't tell twice (the schedule tells)
+      if (!data.quiet) await tellOther(auth, `${name(auth)} mandou ${kind}${where}: ${cur.title || "sem nome"}. Toque para ver.`, `content-${id}`);
       return list();
     }
     case "removeFile": {

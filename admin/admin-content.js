@@ -261,11 +261,11 @@
   }
   function safeName(n) { return String(n || 'file').replace(/[^A-Za-z0-9._ ()-]/g, '_').slice(-100); }
   function onlyMedia(files) { return Array.prototype.slice.call(files || []).filter(function (f) { return /^(image|video)\//.test(f.type); }); }
-  function uploadAll(id, list) {
+  function uploadAll(id, list, then) {
     if (!list.length) { h.toast(T('Only photos and videos.', 'Só fotos e vídeos.'), true); return; }
     var i = 0;
-    var next = function () {
-      if (i >= list.length) { delete st.uploads[id]; return load('list', null, T('Sent. The other phone got a notification.', 'Enviado. O outro celular recebeu um aviso.')); }
+    var next = function (r) {
+      if (i >= list.length) { delete st.uploads[id]; if (then) return then(r); return load('list', null, T('Sent. The other phone got a notification.', 'Enviado. O outro celular recebeu um aviso.')); }
       var f = list[i++], path = 'content/' + id + '/' + Date.now() + '-' + safeName(f.name);
       st.uploads[id] = { pct: 0, text: T('Sending ', 'Enviando ') + (list.length > 1 ? i + '/' + list.length + ' · ' : '') + size(f.size) + '…' };
       rerender();
@@ -282,7 +282,7 @@
           }, reject, function () { resolve(dims); });
         });
       }).then(function (dims) {
-        return h.call('adminContent', { action: 'addFile', id: id, path: path, name: f.name, type: f.type, size: f.size, w: dims.w, h: dims.h, dur: dims.dur });
+        return h.call('adminContent', { action: 'addFile', id: id, path: path, name: f.name, type: f.type, size: f.size, w: dims.w, h: dims.h, dur: dims.dur, quiet: !!then });
       }).then(next).catch(function (e) {
         delete st.uploads[id];
         h.toast(T('The upload stopped: ', 'O envio parou: ') + h.friendlyError(e), true);
@@ -375,6 +375,7 @@
           out = {};
           Array.prototype.forEach.call(dlg.querySelectorAll('[name]'), function (e) {
             if (e.type === 'radio') { if (e.checked) out[e.name] = e.value; }
+            else if (e.type === 'file') out[e.name] = Array.prototype.slice.call(e.files || []);
             else out[e.name] = e.type === 'checkbox' ? e.checked : e.value;
           });
         }
@@ -427,18 +428,60 @@
         T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.')).then(function (d) { if (d) { st.tab = 'meta'; rerender(); } });
     });
   };
-  /* "Agendar post" in No Meta: pick which video from Shared */
+  /* "Agendar post" in No Meta: any video or photo from the phone (or one already in Shared), caption, day and time */
   ACT.ctPickSchedule = function () {
-    var list = ((st.data && st.data.items) || []).filter(function (i) { return (i.status === 'ready' || i.status === 'todo') && (i.files || []).length; })
+    var shared = ((st.data && st.data.items) || []).filter(function (i) { return (i.status === 'ready' || i.status === 'todo' || i.status === 'idea') && (i.files || []).length; })
       .sort(function (a, b) { return String(sentAt(b)).localeCompare(String(sentAt(a))); });
-    if (!list.length) { h.toast(T('Send the video first (Send a video or photo), then schedule it.', 'Mande o vídeo primeiro (Mandar vídeo ou foto) e depois agende.'), true); return; }
-    ask(T('Which one?', 'Qual vídeo?'), '<div class="ct-where">' + list.map(function (i, k) {
-      return '<label><input type="radio" name="id" value="' + esc(i.id) + '"' + (k === 0 ? ' checked' : '') + '> <b>' + esc(i.title || T('(no name)', '(sem nome)')) + '</b><span class="tiny muted">' +
-        esc((sender(i) ? sender(i) + ' · ' : '') + ago(sentAt(i))) + '</span></label>';
-    }).join('') + '</div>', T('Next', 'Continuar')).then(function (v) {
-      if (v && v.id) ACT.ctSchedule({ getAttribute: function () { return v.id; } });
+    var choose = '<label class="btn btn-honey ct-dlgpick">' + h.icon('upload') + '<span data-ct-picked>' + T('Choose from the phone', 'Escolher do celular') + '</span>' +
+      '<input type="file" name="files" accept="image/*,video/*" data-ct-dlgfile hidden></label>' +
+      (shared.length ? '<details class="ct-more"><summary>' + T('…or one already in Shared or Ideas', '…ou um que já está em Compartilhados ou Ideias') + '</summary><div class="ct-where">' + shared.map(function (i) {
+        return '<label><input type="radio" name="id" value="' + esc(i.id) + '"> <b>' + esc(i.title || T('(no name)', '(sem nome)')) + '</b><span class="tiny muted">' + esc((sender(i) ? sender(i) + ' · ' : '') + ago(sentAt(i))) + '</span></label>';
+      }).join('') + '</div></details>' : '');
+    ask(T('Schedule a post', 'Agendar post'), choose +
+      field('title', T('Name (just for you two)', 'Nome (só para vocês)'), '') +
+      '<div class="row">' + field('date', T('Day', 'Dia'), addDays(st.data.today, 1), 'date') + field('time', T('Time', 'Hora'), '19:00', 'time') + '</div>' +
+      '<div class="ct-checks"><label><input type="checkbox" name="ig" checked> Instagram</label><label><input type="checkbox" name="fb" checked> Facebook</label></div>' +
+      area('caption', T('Caption', 'Legenda'), '', 5) +
+      '<p class="tiny muted">' + T('At that day and time (New York), the app publishes it by itself, in full quality, and tells you both.', 'Nesse dia e hora (horário de Nova York), o app publica sozinho, na qualidade original, e avisa vocês dois.') + '</p>',
+      T('Schedule', 'Agendar')).then(function (v) {
+      if (!v) return;
+      var files = onlyMedia(v.files || []);
+      var nets = { instagram: !!v.ig, facebook: !!v.fb };
+      var sched = function (id, path) {
+        return load('schedule', { id: id, path: path, date: v.date, time: v.time, caption: v.caption, nets: nets }, T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.'))
+          .then(function (d) { if (d) { st.tab = 'meta'; rerender(); } });
+      };
+      if (!files.length && v.id) {
+        var it = item(v.id), last = it && (it.files || [])[(it.files || []).length - 1];
+        return sched(v.id, last && last.path);
+      }
+      if (!files.length) { h.toast(T('Choose the video or photo.', 'Escolha o vídeo ou a foto.'), true); return; }
+      var vid = /^video\//.test(files[0].type);
+      st.tab = 'shared'; st.busy = true; rerender();
+      h.call('adminContent', { action: 'save', withFile: true, item: { title: v.title, kind: vid ? 'video' : 'photo', status: 'ready', caption: v.caption, nets: {} } })
+        .then(function (d) {
+          st.data = d; st.busy = false;
+          uploadAll(d.id, files.slice(0, 1), function () {
+            var it2 = item(d.id) || {};
+            h.call('adminContent', { action: 'list' }).then(function (d2) {
+              st.data = d2; var f = ((item(d.id) || it2).files || [])[0];
+              return sched(d.id, f && f.path);
+            });
+          });
+          setTimeout(function () { var c = document.getElementById('ct-' + d.id); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+        })
+        .catch(function (e) { st.busy = false; h.toast(h.friendlyError(e), true); rerender(); });
     });
   };
+  /* the chosen file's name shows on the button */
+  document.addEventListener('change', function (ev) {
+    var el = ev.target;
+    if (!el || !el.matches || !el.matches('[data-ct-dlgfile]')) return;
+    var f = el.files && el.files[0], span = el.parentNode.querySelector('[data-ct-picked]');
+    if (span && f) span.textContent = '✓ ' + f.name + ' · ' + size(f.size);
+    var r = el.closest('form') && el.closest('form').querySelectorAll('input[name="id"]');
+    if (r) Array.prototype.forEach.call(r, function (x) { x.checked = false; });
+  });
   ACT.ctUnschedule = function (el) {
     var id = el.getAttribute('data-id');
     h.dialog({ title: T('Cancel this schedule?', 'Cancelar o agendamento?'), html: '<p>' + T('It goes back to Shared and doesn’t go out.', 'Ele volta para Compartilhados e não sai.') + '</p>', ok: T('Cancel schedule', 'Cancelar agendamento'), cancel: T('Keep', 'Manter'), danger: true })
