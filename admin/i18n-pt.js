@@ -3,6 +3,7 @@ window.LHH_PT = {
 "Customers & sales": "Clientes e vendas",
 "Numbers": "Números",
 "Ads": "Anúncios",
+"Where they came from": "De onde veio",
 "Instagram, Facebook, Etsy and others (Ads page)": "Instagram, Facebook, Etsy e outros (página Anúncios)",
 "Stores": "Lojas",
 "Studio": "Produção",

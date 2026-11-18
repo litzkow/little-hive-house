@@ -80,6 +80,48 @@
           'Cada venda conta como ' + Math.round(mg.pct * 100) + '% de lucro: a margem de verdade de vocês nos últimos 90 dias (' + mg.orders + ' pedidos), depois de ímãs, embalagem, etiqueta e taxas. O Etsy fica com uns 9,5% a mais.')) + '</p></section>';
   }
 
+  /* ---------- where each sale came from ---------- */
+  function hostName(src) {
+    var x = String(src || '').toLowerCase();
+    if (/instagram/.test(x)) return 'Instagram'; if (/facebook|^fb$/.test(x)) return 'Facebook'; if (/google/.test(x)) return 'Google';
+    if (/tiktok/.test(x)) return 'TikTok'; if (/pinterest/.test(x)) return 'Pinterest'; if (/etsy/.test(x)) return 'Etsy';
+    return String(src || '').replace(/^l\.|^m\.|^lm\./, '');
+  }
+  /** One line about what brought a sale (also used in the order page). */
+  function originText(o, post) {
+    o = o || {};
+    var name = hostName(o.source);
+    if (o.kind === 'ad') return T('Ad on ' + (name || 'an ad'), 'Anúncio no ' + (name || 'anúncio')) + (post ? ': “' + (post.caption ? post.caption.slice(0, 40) : '#' + post.id.slice(-5)) + '”' : (o.campaign ? ' (' + o.campaign + ')' : ''));
+    if (o.kind === 'social') return T(name + ' (normal post or profile, no ad)', name + ' (post normal ou perfil, sem anúncio)');
+    if (o.kind === 'search') return T(name + ' search (free)', 'Busca no ' + name + ' (grátis)');
+    if (o.kind === 'email') return T('Email to subscribers', 'E-mail para inscritos');
+    if (o.kind === 'site') return T('Link on ' + name, 'Link no ' + name);
+    return T('Typed the address or unknown', 'Digitou o endereço ou não identificado');
+  }
+  window.LHHAdsOrigin = function (ref) {
+    var r = ref || {}, src = String(r.source || '').toLowerCase(), med = String(r.medium || '').toLowerCase(), kind;
+    if (!src && !med) kind = 'direct';
+    else if (/^(paid|cpc|ppc|paidsocial|paid_social|ads?)$/.test(med)) kind = 'ad';
+    else if (/mail/.test(med) || /mail|newsletter/.test(src)) kind = 'email';
+    else if (/google|bing|duckduckgo|yahoo|search/.test(src)) kind = 'search';
+    else if (/instagram|facebook|^fb$|tiktok|pinterest/.test(src) || med === 'social') kind = 'social';
+    else kind = 'site';
+    return originText({ kind: kind, source: r.source, campaign: r.campaign }, /^\d{5,}$/.test(String(r.content || '')) && kind === 'ad' ? { id: String(r.content), caption: '' } : null);
+  };
+  function salesCard(d) {
+    var list = d.sales || [];
+    if (!list.length) return '<section class="card gap-top"><div class="card-head"><div><h2>' + T('Where each sale came from (this month)', 'De onde veio cada venda (este mês)') + '</h2>' +
+      '<p class="sub">' + T('No site sales this month yet.', 'Nenhuma venda no site este mês ainda.') + '</p></div></div></section>';
+    var count = {}; list.forEach(function (x) { count[x.origin.kind] = (count[x.origin.kind] || 0) + 1; });
+    return '<section class="card gap-top"><div class="card-head"><div><h2>' + T('Where each sale came from (this month)', 'De onde veio cada venda (este mês)') + '</h2>' +
+      '<p class="sub">' + T(list.length + ' site sales · ' + (count.ad || 0) + ' from ads', list.length + ' vendas no site · ' + (count.ad || 0) + ' de anúncios') + '</p></div></div>' +
+      '<ul class="sp-buys ads-sales">' + list.map(function (x) {
+        return '<li><span><a href="#order/' + encodeURIComponent(x.id) + '"><b>' + esc(x.number || T('Order', 'Pedido')) + '</b></a><small>' + esc(day(x.day)) + ' · ' +
+          '<span class="ads-o ' + esc(x.origin.kind) + '">' + esc(originText(x.origin, x.post)) + '</span></small></span><span class="sp-cost">' + money(x.total) + '</span></li>';
+      }).join('') + '</ul><p class="tiny muted">' + T('Etsy sales come from Etsy itself; Etsy doesn’t tell apps which ones came from Etsy Ads (its own dashboard shows it).',
+        'As vendas do Etsy acontecem no próprio Etsy, e ele não conta para os apps quais vieram do Etsy Ads (o painel do Etsy mostra).') + '</p></section>';
+  }
+
   /* ---------- pieces ---------- */
   function capCard(d) {
     var c = d.config, t = d.totals, pct = c.monthCap > 0 ? Math.min(100, Math.round(t.total / c.monthCap * 100)) : 100;
@@ -236,7 +278,7 @@
       '<div class="actions"><button class="btn btn-ghost btn-sm" data-act="adsRun"' + (st.busy ? ' disabled' : '') + '>' + (st.busy ? T('Working…', 'Trabalhando…') : T('Run now', 'Rodar agora')) + '</button></div></div>';
     if (!d) return { title: T('Ads', 'Anúncios'), html: '<div translate="no">' + head + (st.err ? '<p class="err">' + esc(st.err) + '</p>' : '<div class="loading"><span>' + T('Loading…', 'Carregando…') + '</span></div>') + '</div>' };
     var chans = '<h2 class="sp-h2">' + T('Channels', 'Canais') + '</h2><div class="sp-grid">' + ['meta', 'etsy', 'google', 'tiktok', 'amazon'].map(function (k) { return chan(d, k); }).join('') + '</div>';
-    return { title: T('Ads', 'Anúncios'), html: '<div translate="no" class="ads">' + head + proposals(d) + worth(d) + tiles(d) + capCard(d) + chans + posts(d) + chart(d) + logCard(d) + manualCard(d) + rulesCard(d) + '</div>' };
+    return { title: T('Ads', 'Anúncios'), html: '<div translate="no" class="ads">' + head + proposals(d) + worth(d) + tiles(d) + capCard(d) + chans + posts(d) + salesCard(d) + chart(d) + logCard(d) + manualCard(d) + rulesCard(d) + '</div>' };
   };
 
   /* ---------- dialogs ---------- */

@@ -277,3 +277,35 @@ test("days in New York time", () => {
   assert.equal(A.dayStartSec("2026-07-04"), Date.parse("2026-07-04T04:00:00Z") / 1000);
   assert.equal(A.addDays("2026-11-30", 1), "2026-12-01");
 });
+
+test("where each sale came from: an ad (which post), a normal Instagram post, Google, email or nothing", () => {
+  const { A } = setup();
+  assert.deepEqual(A.originOf({ source: "instagram", medium: "paid", campaign: "hive-boost", content: "18000000000000003" }),
+    { kind: "ad", channel: "meta", post: "18000000000000003", campaign: "hive-boost", source: "instagram" });
+  assert.equal(A.originOf({ source: "l.instagram.com", medium: "referral" }).kind, "social");
+  assert.equal(A.originOf({ source: "google", medium: "cpc" }).kind, "ad");
+  assert.equal(A.originOf({ source: "google.com", medium: "referral" }).kind, "search");
+  assert.equal(A.originOf({ source: "newsletter", medium: "email" }).kind, "email");
+  assert.equal(A.originOf(null).kind, "direct");
+});
+
+test("the orders themselves count for the post that brought them, even when Google Analytics missed it", async () => {
+  const { db, A } = setup();
+  db.docs.set("ads/auth", { meta: META });
+  db.docs.set("ads/config", { ...A.DEFAULTS, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
+  db.docs.set("ads/state", { metaCampaignId: "c1", boosts: { "18000000000000003": { id: "18000000000000003", adsetId: "as3", adId: "ad3", daily: 2, status: "active", caption: "Packing" } } });
+  const now = new Date().toISOString();
+  db.docs.set("orders/o1", { number: "LHH-1012", status: "paid", createdAt: now, paidAt: now, pricing: { total: 26.5, tax: 2.5 },
+    ref: { source: "instagram", medium: "paid", campaign: "hive-boost", content: "18000000000000003" } });
+  db.docs.set("orders/o2", { number: "LHH-1013", status: "paid", createdAt: now, paidAt: now, pricing: { total: 10 }, ref: { source: "l.instagram.com", medium: "referral" } });
+  db.docs.set("orders/o3", { number: "LHH-1014", status: "pending", createdAt: now, pricing: { total: 99 }, ref: { source: "instagram", medium: "paid", content: "18000000000000003" } });
+  net({ meta: { "GET act_123/insights": { data: [] }, "GET ad3/insights": { data: [{ spend: "9.00", inline_link_clicks: "30" }] }, [`GET ${META.igUserId}/media`]: { data: [] } }, ga: [] });
+  await A.run();
+  const st = db.get("ads/state");
+  assert.equal(st.boosts["18000000000000003"].revenue, 24);           // $26.50 - $2.50 tax; the unpaid one doesn't count
+  assert.equal(st.boosts["18000000000000003"].status, "active");      // it sold, so it isn't stopped at $9
+  assert.equal(db.get(`adsDaily/${A.dayKey()}`).site.meta.revenue, 24);
+  const v = await A.adminAds({ action: "view" }, ADMIN);
+  assert.deepEqual(v.sales.map((x) => [x.number, x.origin.kind]).sort(), [["LHH-1012", "ad"], ["LHH-1013", "social"]]);
+  assert.equal(v.sales.find((x) => x.number === "LHH-1012").post.caption, "Packing");
+});

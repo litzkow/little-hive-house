@@ -647,7 +647,8 @@
       '<div class="sect"><div class="row between"><h3>Ship to</h3>' + (lines.length ? '<button class="btn btn-ghost btn-sm" data-act="copy" data-copy="' + esc(addr) + '">' + icon('copy') + 'Copy</button>' : '') + '</div>' +
       (lines.length ? '<address class="addr">' + esc(addr) + '</address>' : '<p class="muted">No address yet (not paid).</p>') + '</div>' +
       (o.giftMessage ? '<div class="sect"><h3>Gift message</h3><p class="quote" translate="no">' + esc(o.giftMessage) + '</p></div>' : '') +
-      (o.notes ? '<div class="sect"><h3>Note from the customer</h3><p class="quote" translate="no">' + esc(o.notes) + '</p></div>' : '') + '</section>';
+      (o.notes ? '<div class="sect"><h3>Note from the customer</h3><p class="quote" translate="no">' + esc(o.notes) + '</p></div>' : '') +
+      (window.LHHAdsOrigin && o.source !== 'etsy' && o.status !== 'pending' ? '<div class="sect"><h3>Where they came from</h3><p translate="no"><a href="#ads">' + esc(window.LHHAdsOrigin(o.ref)) + '</a></p></div>' : '') + '</section>';
   }
   function paymentCard(o) {
     var p = R.pricing(o), fee = R.stripeFee(o, S.settings), refunded = R.refundedTotal(o), left = R.refundable(o);

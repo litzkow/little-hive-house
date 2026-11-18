@@ -172,6 +172,8 @@
         btn.textContent = 'Opening secure checkout…';
         var data = { cart: payloadCart(), giftMessage: $('co-gift').value.trim(), notes: $('co-notes').value.trim(), marketing: $('co-mkt').checked };
         if (S.isMember(who) && who.email) data.email = who.email;
+        var ref = S.referral && S.referral();   /* which ad or site brought them (Hive Admin › Ads) */
+        if (ref) data.ref = ref;
         return S.call('createCheckout', data);
       })
       .then(function (r) {

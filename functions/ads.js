@@ -310,6 +310,43 @@ async function siteByPost(days) {
   return s.byPost;
 }
 
+/* ---------- each sale and where it came from (orders.ref, saved at checkout from assets/store.js) ---------- */
+const SALE = new Set(["paid", "in_production", "shipped", "delivered", "refunded", "partially_refunded"]);
+const PAID_MEDIUM = /^(paid|cpc|ppc|paidsocial|paid_social|ads?)$/i;
+/** Pure: what brought an order. kind: ad | social | search | email | site | direct; channel: meta | google | tiktok | etsy | other. */
+function originOf(ref) {
+  const r = ref || {}, src = String(r.source || "").toLowerCase(), med = String(r.medium || "").toLowerCase();
+  const channel = /instagram|facebook|^fb$|^ig$|meta|messenger/.test(src) ? "meta" : /google|gclid/.test(src) ? "google" : /tiktok/.test(src) ? "tiktok"
+    : /etsy/.test(src) ? "etsy" : /pinterest/.test(src) ? "pinterest" : src ? "other" : "";
+  if (!src && !med) return { kind: "direct", channel: "" };
+  if (PAID_MEDIUM.test(med)) return { kind: "ad", channel: channel || "other", post: /^\d{5,}$/.test(String(r.content || "")) ? String(r.content) : "", campaign: r.campaign || "", source: src };
+  if (/mail/.test(med) || /mail|newsletter|resend/.test(src)) return { kind: "email", channel: "email", source: src };
+  if (/google|bing|duckduckgo|yahoo|search/.test(src) && !/ads/.test(src)) return { kind: "search", channel: channel || "other", source: src };
+  if (channel === "meta" || channel === "tiktok" || channel === "pinterest" || med === "social") return { kind: "social", channel, source: src };
+  return { kind: "site", channel: channel || "other", source: src };
+}
+const orderTotal = (o) => r2(num(o.pricing && o.pricing.total) - num(o.pricing && o.pricing.tax));
+const orderDay = (o) => dayKey(Date.parse(o.paidAt || o.createdAt || 0) || 0);
+/** The site's sales since `since` (YYYY-MM-DD): per day (from the orders themselves) and each one with its origin. */
+async function orderSales(since) {
+  const q = await db().collection("orders").where("createdAt", ">=", new Date(dayStartSec(addDays(since, -1)) * 1000).toISOString()).get();
+  const days = {}, byPost = {}, list = [];
+  q.docs.forEach((d) => {
+    const o = d.data();
+    if (!SALE.has(o.status)) return;
+    const k = orderDay(o);
+    if (k < since) return;
+    const total = orderTotal(o), org = originOf(o.ref);
+    list.push({ id: d.id, number: o.number || "", day: k, at: o.paidAt || o.createdAt, total, origin: org, ref: o.ref || null });
+    if (org.kind !== "ad") return;
+    const x = (days[k] = days[k] || { adOrders: 0, adRevenue: 0, meta: { orders: 0, revenue: 0 } });
+    x.adOrders += 1; x.adRevenue = r2(x.adRevenue + total);
+    if (org.channel === "meta") { x.meta.orders += 1; x.meta.revenue = r2(x.meta.revenue + total); }
+    if (org.post) { const p = (byPost[org.post] = byPost[org.post] || { orders: 0, revenue: 0 }); p.orders += 1; p.revenue = r2(p.revenue + total); }
+  });
+  return { days, byPost, list: list.sort((a, b) => String(b.at).localeCompare(String(a.at))) };
+}
+
 /* ---------- the log, proposals and notifications ---------- */
 async function log(channel, kind, pt, en, extra) {
   await db().collection("adsLog").add({ at: nowIso(), channel, kind, pt, en: en || pt, ...(extra || {}) });
@@ -419,6 +456,18 @@ async function run({ by = "robot" } = {}) {
     Object.entries(s.days).forEach(([k, v]) => put(k, "site", v));
     byPost = await siteByPost(cfg.rules.postDays);
   } catch (e) { errors.site = e.message; }
+  // the orders themselves say which ad brought them: they win over Google Analytics when they count more
+  try {
+    const os = await orderSales(addDays(dayKey(), -(cfg.rules.postDays - 1)));
+    Object.entries(os.days).forEach(([k, v]) => {
+      if (k < since) return;
+      const s0 = (days[k] && days[k].site) || { orders: 0, revenue: 0, adOrders: 0, adRevenue: 0, meta: { orders: 0, revenue: 0 } };
+      const m0 = s0.meta || { orders: 0, revenue: 0 };
+      put(k, "site", { ...s0, adOrders: Math.max(num(s0.adOrders), v.adOrders), adRevenue: Math.max(num(s0.adRevenue), v.adRevenue),
+        meta: { orders: Math.max(num(m0.orders), v.meta.orders), revenue: Math.max(num(m0.revenue), v.meta.revenue) } });
+    });
+    Object.entries(os.byPost).forEach(([id, v]) => { const g = byPost[id] || { orders: 0, revenue: 0 }; byPost[id] = { orders: Math.max(g.orders, v.orders), revenue: Math.max(g.revenue, v.revenue) }; });
+  } catch (e) { errors.orders = e.message; }
 
   // save the days (only the parts that were read, so a failed read keeps yesterday's numbers)
   const batchDays = Object.keys(days).sort();
@@ -563,13 +612,18 @@ async function view() {
     return { day: k, spend: r2(num(d.meta && d.meta.spend) + num(d.etsy && d.etsy.spend)), sales: r2(num(d.site && d.site.adRevenue) + num(d.etsy && d.etsy.revenue)) };
   });
   const boosts = Object.values(state.boosts || {}).sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+  let sales = [];
+  try {
+    const caps = {}; (state.posts || []).forEach((p) => { caps[p.id] = p.caption; }); Object.values(state.boosts || {}).forEach((b) => { caps[b.id] = caps[b.id] || b.caption; });
+    sales = (await orderSales(`${month}-01`)).list.slice(0, 60).map((x) => ({ ...x, post: x.origin.post ? { id: x.origin.post, caption: caps[x.origin.post] || "" } : null }));
+  } catch (e) { sales = []; }
   let etsyConnected = false;
   try { const a = await require("./etsy")._internal.readAuth(); etsyConnected = !!(a && a.shopId); } catch (e) { etsyConnected = false; }
   return {
     config: cfg, planned: plannedDaily(cfg), month, today, daysInMonth: daysInMonth(month), dayOfMonth: dayOfMonth(today),
     totals, meta: metaPublic(auth.meta), etsy: { connected: etsyConnected, advice: state.etsyAdvice || etsyAdvice(cfg, totals) },
     boosts, posts: (state.posts || []).map((p) => ({ ...p, never: !!(state.never || {})[p.id], boosted: !!(state.boosts || {})[p.id] })),
-    lastRun: state.lastRun || null, log: logs, proposals: props, manual: manual.slice(0, 30), last30, minDaily: MIN_DAILY,
+    lastRun: state.lastRun || null, log: logs, proposals: props, manual: manual.slice(0, 30), last30, minDaily: MIN_DAILY, sales,
   };
 }
 
@@ -676,5 +730,5 @@ async function adminAds(data, auth) {
   }
 }
 
-module.exports = { adminAds, run, plan, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
+module.exports = { adminAds, run, plan, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
   _internal: { graph, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };

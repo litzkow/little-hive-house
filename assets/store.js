@@ -303,13 +303,36 @@
     var d = new Date(v); return isNaN(d) ? null : d;
   }
 
+  /* Where the visitor came from (an ad, an Instagram post, Google, another site): kept 30 days on this device and sent
+     with the order, so the owners see which ad brought each sale. Only the link's marketing tags (utm_*) and the name of
+     the site that sent the visitor; nothing personal. A paid click is not replaced by a plain visit that comes later. */
+  var RKEY = 'lhh-ref', RDAYS = 30 * 86400000;
+  (function rememberRef() {
+    try {
+      var q = new URLSearchParams(location.search), r = null, tag = function (k) { return String(q.get(k) || '').slice(0, 80); };
+      if (q.get('utm_source') || q.get('utm_medium') || q.get('fbclid') || q.get('gclid') || q.get('ttclid')) {
+        r = { source: tag('utm_source') || (q.get('fbclid') ? 'facebook' : q.get('gclid') ? 'google' : q.get('ttclid') ? 'tiktok' : ''),
+              medium: tag('utm_medium') || (q.get('gclid') ? 'cpc' : q.get('fbclid') || q.get('ttclid') ? 'social' : ''), campaign: tag('utm_campaign'), content: tag('utm_content') };
+      } else if (document.referrer) {
+        var host = new URL(document.referrer).hostname.replace(/^www\./, '');
+        if (host && host !== location.hostname.replace(/^www\./, '')) r = { source: host.slice(0, 80), medium: 'referral', campaign: '', content: '' };
+      }
+      if (!r) return;
+      var cur = store(RKEY);
+      if (cur && /^(paid|cpc|ppc|paid_social|ads?)$/i.test(cur.medium || '') && !/^(paid|cpc|ppc|paid_social|ads?)$/i.test(r.medium) && Date.now() - (cur.at || 0) < RDAYS) return;
+      r.landing = location.pathname.slice(0, 80); r.at = Date.now();
+      store(RKEY, r);
+    } catch (e) { /* private mode: nothing kept */ }
+  })();
+  function referral() { var r = store(RKEY); return r && Date.now() - (Number(r.at) || 0) < RDAYS ? r : null; }
+
   window.LHHStore = {
     configured: configured, base: base, support: SUPPORT,
     ready: ready, need: need, onUser: onUser, isMember: isMember, user: function () { return user; },
     signIn: signIn, signUp: signUp, signOut: signOut, sendReset: sendReset, ensureUser: ensureUser,
     call: call, myOrders: myOrders, getOrder: getOrder, getProfile: getProfile, saveProfile: saveProfile,
     verified: verified, refreshUser: refreshUser, resendVerify: resendVerify,
-    upload: upload, favorites: favorites, addHearts: addHearts, message: message, toDate: toDate
+    upload: upload, favorites: favorites, addHearts: addHearts, message: message, toDate: toDate, referral: referral
   };
 
   addHearts(document);

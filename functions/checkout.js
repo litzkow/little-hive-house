@@ -113,6 +113,16 @@ async function checkPhotos(items, auth) {
 }
 
 /** createCheckout({cart, email?, giftMessage?, notes?, marketing?}) -> {url, orderId} */
+/** Where the customer came from (assets/store.js referral): only short marketing tags, for Hive Admin › Ads. */
+function cleanRef(r) {
+  if (!r || typeof r !== "object") return null;
+  const out = {};
+  ["source", "medium", "campaign", "content", "landing"].forEach((k) => { const v = U.text(typeof r[k] === "string" ? r[k] : "", 80).replace(/[<>]/g, ""); if (v) out[k] = v; });
+  const at = Number(r.at);
+  if (Number.isFinite(at) && at > 0) out.at = new Date(Math.min(at, Date.now())).toISOString();
+  return out.source || out.medium ? out : null;
+}
+
 async function createCheckout(data, auth, rawRequest) {
   data = data || {};
   need("STRIPE_SECRET_KEY");
@@ -136,7 +146,7 @@ async function createCheckout(data, auth, rawRequest) {
     fulfillment: null, refunds: [], refundedTotal: 0, adminNotes: [],
     timeline: [{ at, status: "pending", text: O.TIMELINE_TEXT.pending }],
     emails: { confirmation: null, shipped: null, delivered: null, refund: [] },
-    source: "site", createdAt: at, paidAt: null, updatedAt: at,
+    source: "site", ref: cleanRef(data.ref), createdAt: at, paidAt: null, updatedAt: at,
   };
   await ref.set(order);
   let session;

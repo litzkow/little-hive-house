@@ -775,3 +775,5 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .ads-worth-list li { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--line-soft); }
 .ads-v { font-size: 12.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
 .ads-v.good { background: var(--c-deliv-bg); color: var(--c-deliv); } .ads-v.bad { background: var(--c-ref-bg); color: var(--c-ref); } .ads-v.early { background: var(--honey-wash); color: var(--ink); border: 1px solid var(--honey); }
+.ads-sales a { color: var(--ink); }
+.ads-o.ad { color: var(--c-deliv); font-weight: 600; }

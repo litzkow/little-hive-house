@@ -84,9 +84,13 @@ test("checkout → paid → ship → deliver → partial refund → dashboard re
   // 7 designs + a team package: bundle (2 groups of 3), 10% off at 19+? no: 7 + 12 = 19 magnets -> no volume
   const cart = [{ kind: "design", id: "places/new-york", qty: 4, price: 0.01 }, { kind: "design", id: "bee-kind/bee-kind", qty: 3 },
     { kind: "package", id: "teams-12", qty: 1 }];
-  const r = await checkout.createCheckout({ cart, email: "Ana@Example.com", giftMessage: "For you", marketing: true }, null);
+  const r = await checkout.createCheckout({ cart, email: "Ana@Example.com", giftMessage: "For you", marketing: true,
+    ref: { source: "instagram", medium: "paid", campaign: "hive-boost", content: "18000000000000003", landing: "/", at: Date.now() - 3600000, evil: "<x>", email: "a@b.c" } }, null);
   assert.match(r.url, /^https:\/\/checkout\.stripe\.com/);
   const order0 = db.get(`orders/${r.orderId}`);
+  // where the customer came from (Hive Admin › Ads): only the marketing tags
+  assert.deepEqual(Object.keys(order0.ref).sort(), ["at", "campaign", "content", "landing", "medium", "source"]);
+  assert.equal(order0.ref.content, "18000000000000003");
   assert.equal(order0.status, "pending");
   assert.equal(order0.number, null);
   assert.equal(order0.email, "ana@example.com");
