@@ -99,10 +99,10 @@ async function syncMeta({ force = false } = {}) {
   // the same Meta id; or the same start of caption within 2 days; or, when the caption was changed in Meta, the one post
   // the owners marked "scheduled in Meta" for that same day
   const match = (key, id, caption, date) => items.find((i) => i[key] === id)
-    || (same(caption, "") && items.find((i) => !i[key] && i.date && dayDiff(i.date, date) <= 2 && same(i.caption, caption)))
+    || (same(caption, "") && items.find((i) => !i[key] && (i.source === "meta-pending" || (i.date && dayDiff(i.date, date) <= 2)) && same(i.caption, caption)))
     || (() => { const c = items.filter((i) => !i[key] && i.status === "scheduled" && i.date === date); return c.length === 1 ? c[0] : null; })();
   const add = (it) => { it.id = null; items.push(it); changed.set(it, it); return it; };
-  const counts = { instagram: 0, facebook: 0, scheduled: 0 }, errors = {};
+  const counts = { instagram: 0, facebook: 0, scheduled: 0 }, errors = {}, gone = [];
 
   // Instagram: what is already posted
   if (meta.igUserId) {
@@ -156,6 +156,25 @@ async function syncMeta({ force = false } = {}) {
           counts.facebook += 1;
         });
       } catch (e) { errors.facebook = errors.facebook || e.message; }
+      // Business Suite keeps what is scheduled as an unpublished Page video (no time is given): it shows as scheduled
+      try {
+        const j = await G(page, "GET", `${meta.pageId}/videos`, { fields: "id,description,published,picture,source,created_time", limit: 50 });
+        const seen = new Set();
+        ((j && j.data) || []).filter((v) => v.published === false).forEach((v) => {
+          seen.add(String(v.id));
+          let it = items.find((i) => i.fbPendingId === String(v.id))
+            || (same(v.description, "") && items.find((i) => !i.fbPendingId && i.status !== "posted" && same(i.caption, v.description)));
+          if (it && it.status === "posted") return;
+          if (!it) it = add({ ...cleanItem({ title: firstLine(v.description).slice(0, 80) || "Vídeo agendado", kind: "video", status: "scheduled", caption: v.description || "",
+            nets: { instagram: true, facebook: true } }), files: [], posted: {}, source: "meta-pending", by: "Meta Business Suite", at: nowIso() });
+          touch(it, { fbPendingId: String(v.id), preview: v.picture || it.preview || "", mediaUrl: v.source || it.mediaUrl || "", pendingSince: v.created_time || "",
+            status: it.sched || it.status === "posted" ? it.status : "scheduled" });
+          counts.scheduled += 1;
+        });
+        // a pending one that is gone from Meta (deleted there) goes away here too
+        items.filter((i) => i.id && i.source === "meta-pending" && i.status === "scheduled" && !seen.has(i.fbPendingId)
+          && !(i.posted && (i.posted.instagram || i.posted.facebook))).forEach((i) => gone.push(i.id));
+      } catch (e) { errors.pending = e.message; }
     }
   }
   for (const it of changed.values()) {
@@ -165,6 +184,7 @@ async function syncMeta({ force = false } = {}) {
     data.updatedAt = nowIso();
     if (id) await col().doc(id).set(data, { merge: true }); else await col().add(data);
   }
+  for (const id of gone) await col().doc(id).delete();
   const out = { at: nowIso(), connected: true, counts, errors, ig: meta.igUsername || "" };
   await sref.set({ sync: out }, { merge: true });
   return out;

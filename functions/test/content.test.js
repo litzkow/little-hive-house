@@ -111,6 +111,7 @@ test("Meta: Instagram posts and Facebook scheduled/published posts come in and m
     if (path === "999" && u.searchParams.get("fields") === "access_token") return ok({ access_token: "PAGE" + "y".repeat(40) });
     if (path === "999/scheduled_posts") { assert.match(u.searchParams.get("access_token"), /^PAGE/); return ok({ data: [{ id: "999_5", message: "Holiday gift guide, fridge edition:\nFor grandma", scheduled_publish_time: Math.floor((now + 86400000) / 1000), full_picture: "https://cdn/c.jpg" }] }); }
     if (path === "999/posts") return ok({ data: [{ id: "999_4", message: "Grandma's fridge, upgraded.", created_time: new Date(now - 3500000).toISOString(), permalink_url: "https://fb.com/p/4" }] });
+    if (path === "999/videos") return ok({ data: [] });
     throw new Error("unexpected " + url);
   };
   const v = await C.adminContent({ action: "list" }, THIAGO);
@@ -159,6 +160,7 @@ test("fixes once: plan posts with no file back to to-make; cover photos out; sam
     if (path === "999") return ok({ access_token: "PAGE" + "y".repeat(40) });
     if (path === "999/scheduled_posts") return ok({ data: [] });
     if (path === "999/posts") return ok({ data: [{ id: "999_9", created_time: new Date(now - 86400000 * 3).toISOString(), full_picture: "https://cdn/cover.jpg" }] });
+    if (path === "999/videos") return ok({ data: [] });
     throw new Error("unexpected " + url);
   };
   v = await C.adminContent({ action: "sync" }, THIAGO);
@@ -263,4 +265,38 @@ test("scheduled in the app: when Instagram refuses the file it says why, and it 
   const c3 = v2.items.find((i) => i.id === "v3");
   assert.equal(c3.status, "ready");
   assert.equal(c3.sched, null);
+});
+
+test("scheduled in Business Suite: the unpublished Page video shows as scheduled (video and caption), then becomes posted", async () => {
+  const { db, C } = setup();
+  require("../ads")._internal.setPause(1);
+  db.docs.set("settings/content", { seeded: "x", fix1: "x", fix2: "x" });
+  db.docs.set("ads/auth", { meta: { token: "EAAB" + "x".repeat(60), adAccountId: "act_1", pageId: "999", igUserId: "1784" } });
+  let out = false, pend = [{ id: "v55", published: false, description: "Packing this one with a whole lot of love\nThis order is going to Ohio", source: "https://video.fb/v55.mp4", picture: "https://pic/v55.jpg", created_time: new Date().toISOString() },
+    { id: "v56", published: true, description: "old" }];
+  const now = Date.now();
+  globalThis.fetch = async (url) => {
+    const u = new URL(url), path = u.pathname.replace(/^\/v\d+\.\d+\//, "");
+    const ok = (j) => ({ ok: true, status: 200, json: async () => j });
+    if (path === "1784/media") return ok({ data: out ? [{ id: "1901", caption: "Packing this one with a whole lot of love\nThis order is going to Ohio", media_type: "VIDEO", media_product_type: "REELS",
+      permalink: "https://instagram.com/reel/z", timestamp: new Date(now + 5 * 86400000).toISOString(), thumbnail_url: "https://cdn/z.jpg", media_url: "https://cdn/z.mp4" }] : [] });
+    if (path === "999") return ok({ access_token: "PAGE" + "y".repeat(40) });
+    if (path === "999/scheduled_posts" || path === "999/posts") return ok({ data: [] });
+    if (path === "999/videos") return ok({ data: out ? [] : pend });
+    throw new Error("unexpected " + url);
+  };
+  let v = await C.adminContent({ action: "sync" }, THIAGO);
+  let p = v.items.filter((i) => i.fbPendingId === "v55");
+  assert.equal(p.length, 1);
+  assert.equal(p[0].status, "scheduled");
+  assert.equal(p[0].mediaUrl, "https://video.fb/v55.mp4");
+  assert.equal(p[0].source, "meta-pending");
+  assert.equal(v.sync.counts.scheduled, 1);
+  v = await C.adminContent({ action: "sync" }, THIAGO);
+  assert.equal(v.items.filter((i) => i.fbPendingId === "v55").length, 1);            // not twice
+  out = true;                                                                         // five days later it goes out
+  v = await C.adminContent({ action: "sync" }, THIAGO);
+  assert.equal(v.items.length, 1);
+  assert.equal(v.items[0].status, "posted");
+  assert.equal(v.items[0].igId, "1901");
 });

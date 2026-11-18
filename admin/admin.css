@@ -865,3 +865,4 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 @media (max-width: 560px) { .ct-feed { grid-template-columns: 1fr; } .ct-send { flex: 1; justify-content: center; } }
 .sp-pill.ct-st-error { background: #fde8e6; color: #b42318; }
 .ct-card .err { margin: 0; }
+.ct .ct-send[data-act="ctPickSchedule"] { width: 100%; justify-content: center; margin: 0 0 12px; }

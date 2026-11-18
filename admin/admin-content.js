@@ -160,13 +160,16 @@
       return '<span class="ct-net' + (done ? ' done' : '') + '">' + (done ? '✓ ' : '') + n[1] + '</span>';
     }).join('');
     var sc = it.sched && !out ? it.sched : null;
+    var pending = !out && !sc && it.source === 'meta-pending';
     var badge = out ? '<span class="sp-pill ct-st-posted">' + T('Out', 'Já saiu') + ' · ' + esc(it.date ? dayLabel(it.date) : '') + '</span>'
+      : pending ? '<span class="sp-pill ct-st-scheduled">' + T('Scheduled in Business Suite', 'Agendado no Business Suite') + '</span>'
       : sc && sc.state === 'processing' ? '<span class="sp-pill ct-st-scheduled">' + T('Publishing…', 'Publicando…') + '</span>'
       : sc && sc.state === 'error' ? '<span class="sp-pill ct-st-error">' + T('Didn’t go out', 'Não saiu') + '</span>'
       : '<span class="sp-pill ct-st-scheduled">' + T('Goes out ', 'Sai ') + esc(goesOut(it)) + '</span>';
     var how = sc ? (sc.state === 'error' ? '<p class="small err">' + esc(sc.err || '') + '</p>'
       : '<p class="tiny muted">' + (sc.state === 'processing' ? T('Meta is processing the video; it goes out in a few minutes.', 'O Meta está processando o vídeo; sai em alguns minutos.')
         : T('The app publishes it by itself at that time.', 'O app publica sozinho nessa hora.')) + (sc.by ? ' · ' + T('scheduled by ', 'agendado por ') + esc(sc.by) : '') + '</p>')
+      : pending ? '<p class="tiny muted">' + T('Meta doesn’t tell the time it goes out. When it does, it moves to “Already out” by itself.', 'O Meta não informa a hora em que sai. Quando sair, ele passa para “Já saiu” sozinho.') + '</p>'
       : !out ? '<p class="tiny muted">' + T('Scheduled in Business Suite (marked by hand).', 'Agendado no Business Suite (marcado à mão).') + '</p>' : '';
     var media = files.length ? '<div class="ct-files' + (files.length === 1 ? ' one' : '') + '">' + files.map(function (f) { return fileMedia(it, f, files.length === 1); }).join('') + '</div>' : metaMedia(it);
     var stats = it.igStats ? '<span>♥ ' + it.igStats.likes + '</span><span>💬 ' + it.igStats.comments + '</span>' : '';
@@ -174,7 +177,7 @@
     var acts = [];
     if (sc && sc.state === 'error') acts.push(btn('ctRetry', it, T('Try again', 'Tentar de novo'), true));
     if (sc && sc.state !== 'processing') acts.push(btn('ctUnschedule', it, T('Cancel schedule', 'Cancelar agendamento')));
-    if (!out && !sc) acts.push(btn('ctPosted', it, T('Already out', 'Já saiu')));
+    if (!out && !sc && !pending) acts.push(btn('ctPosted', it, T('Already out', 'Já saiu')));
     if (out && it.nets && it.nets.tiktok && !(it.posted && it.posted.tiktok)) acts.push(btn('ctTiktok', it, T('Posted on TikTok', 'Postei no TikTok')));
     acts.push(btn('ctEdit', it, T('Edit', 'Editar')));
     return '<article class="card ct-card ct-' + esc(it.status) + '" id="ct-' + esc(it.id) + '">' +
@@ -202,7 +205,7 @@
     var newest = function (a, b) { return String(sentAt(b)).localeCompare(String(sentAt(a))); };
     var shared = all.filter(function (i) { return i.status === 'ready' || i.status === 'todo'; }).sort(newest);
     var ideas = all.filter(function (i) { return i.status === 'idea'; }).sort(newest);
-    var sched = all.filter(function (i) { return i.status === 'scheduled'; }).sort(function (a, b) { return (a.date || '9').localeCompare(b.date || '9') || String(a.time).localeCompare(String(b.time)); });
+    var sched = all.filter(function (i) { return i.status === 'scheduled'; }).sort(function (a, b) { return (a.date || '9').localeCompare(b.date || '9') || String(a.time).localeCompare(String(b.time)) || String(b.pendingSince || '').localeCompare(String(a.pendingSince || '')); });
     var posted = all.filter(function (i) { return i.status === 'posted'; }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || String(b.time).localeCompare(String(a.time)); });
     var newIn = function (arr) { return arr.filter(isNew).length; };
     var TABS = [['shared', T('Shared', 'Compartilhados'), shared.length, newIn(shared)], ['meta', T('On Meta', 'No Meta'), sched.length + posted.length, 0],
@@ -228,11 +231,12 @@
       var syncLine = sy.connected === false ? T('Connect Meta on the Ads page to bring in what is posted.', 'Conecte o Meta na página Anúncios para trazer o que já saiu.')
         : sy.at ? T('Instagram and Facebook checked ', 'Instagram e Facebook conferidos ') + esc(ago(sy.at)) : '';
       var syncErr = sy.errors && Object.keys(sy.errors).length ? '<p class="tiny err">' + Object.keys(sy.errors).map(function (k) { return esc(k + ': ' + sy.errors[k]); }).join(' · ') + '</p>' : '';
-      body = '<div class="ct-sync"><span class="tiny muted">' + syncLine + '</span><button class="btn btn-ghost btn-sm" data-act="ctSync"' + (st.busy ? ' disabled' : '') + '>' + h.icon('refresh') + T('Update', 'Atualizar') + '</button></div>' + syncErr +
+      body = '<button class="btn btn-honey ct-send" data-act="ctPickSchedule">' + h.icon('calendar') + T('Schedule a post', 'Agendar post') + '</button>' +
+        '<div class="ct-sync"><span class="tiny muted">' + syncLine + '</span><button class="btn btn-ghost btn-sm" data-act="ctSync"' + (st.busy ? ' disabled' : '') + '>' + h.icon('refresh') + T('Update', 'Atualizar') + '</button></div>' + syncErr +
         '<h2 class="ct-h">' + T('Scheduled', 'Agendados') + (sched.length ? ' <span class="count">' + sched.length + '</span>' : '') + '</h2>' +
         (sched.length ? '<div class="ct-feed">' + sched.map(metaCard).join('') + '</div>'
-          : '<p class="small muted ct-note">' + T('Meta doesn’t let any app read the Business Suite schedule. When you schedule a video there, tap “Scheduled in Meta” on it in Shared: it shows up here, and when it goes out the app moves it to “Out” by itself.',
-            'O Meta não deixa nenhum app ler a agenda do Business Suite. Agendou um vídeo lá, toque em “Agendei no Meta” nele, em Compartilhados: ele aparece aqui e, quando sair, o app passa para “Já saiu” sozinho.') + '</p>') +
+          : '<p class="small muted ct-note">' + T('Nothing scheduled. Tap “Schedule a post”: you pick a video from Shared, the day and time, and the app publishes it by itself. What you schedule in Business Suite also shows up here (without the time, which Meta doesn’t give).',
+            'Nada agendado. Toque em “Agendar post”: você escolhe um vídeo de Compartilhados, o dia e a hora, e o app publica sozinho. O que vocês agendarem no Business Suite também aparece aqui (sem a hora, que o Meta não informa).') + '</p>') +
         '<h2 class="ct-h">' + T('Already out', 'Já saiu') + (posted.length ? ' <span class="count">' + posted.length + '</span>' : '') + '</h2>' +
         (posted.length ? '<div class="ct-feed">' + posted.slice(0, cap).map(metaCard).join('') + '</div>' + more(posted) : '<p class="muted">' + T('Nothing yet.', 'Nada ainda.') + '</p>');
     }
@@ -421,6 +425,18 @@
       if (!v) return;
       load('schedule', { id: it.id, path: v.path || (files[files.length - 1] || {}).path, date: v.date, time: v.time, caption: v.caption, nets: { instagram: !!v.ig, facebook: !!v.fb } },
         T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.')).then(function (d) { if (d) { st.tab = 'meta'; rerender(); } });
+    });
+  };
+  /* "Agendar post" in No Meta: pick which video from Shared */
+  ACT.ctPickSchedule = function () {
+    var list = ((st.data && st.data.items) || []).filter(function (i) { return (i.status === 'ready' || i.status === 'todo') && (i.files || []).length; })
+      .sort(function (a, b) { return String(sentAt(b)).localeCompare(String(sentAt(a))); });
+    if (!list.length) { h.toast(T('Send the video first (Send a video or photo), then schedule it.', 'Mande o vídeo primeiro (Mandar vídeo ou foto) e depois agende.'), true); return; }
+    ask(T('Which one?', 'Qual vídeo?'), '<div class="ct-where">' + list.map(function (i, k) {
+      return '<label><input type="radio" name="id" value="' + esc(i.id) + '"' + (k === 0 ? ' checked' : '') + '> <b>' + esc(i.title || T('(no name)', '(sem nome)')) + '</b><span class="tiny muted">' +
+        esc((sender(i) ? sender(i) + ' · ' : '') + ago(sentAt(i))) + '</span></label>';
+    }).join('') + '</div>', T('Next', 'Continuar')).then(function (v) {
+      if (v && v.id) ACT.ctSchedule({ getAttribute: function () { return v.id; } });
     });
   };
   ACT.ctUnschedule = function (el) {
