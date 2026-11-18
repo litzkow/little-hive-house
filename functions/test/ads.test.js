@@ -295,14 +295,16 @@ test("the next Reel: they ask, it waits until a new Reel is out, then it's boost
   // the Reel goes out (a photo too: only the Reel counts)
   media.data.unshift({ id: "18000000000000009", caption: "Wrapping a gift", media_product_type: "REELS", media_type: "VIDEO", timestamp: new Date().toISOString(), like_count: 0 });
   media.data.unshift({ id: "18000000000000008", caption: "Photo", media_type: "IMAGE", timestamp: new Date().toISOString() });
+  media.data.push({ id: "18000000000000006", caption: "Old photo", media_type: "IMAGE", timestamp: new Date(Date.now() - 5 * 86400000).toISOString(), like_count: 50 });
+  db.docs.set("ads/config", { ...db.get("ads/config"), rules: { ...db.get("ads/config").rules, maxPosts: 3 } });
   const r = await A.boostNextReel();
   assert.equal(r.boosted, "18000000000000009");
   const st = db.get("ads/state");
   assert.equal(st.nextReel, undefined);
   assert.equal(st.boosts["18000000000000009"].status, "active");
   assert.equal(st.boosts["18000000000000009"].by, "owner@lhh.com");
-  assert.equal(st.boosts["18000000000000003"].status, "paused");
-  assert.equal(calls.find((c) => c.path === "ad3").params.status, "PAUSED");
+  assert.equal(st.boosts["18000000000000003"].status, "active");     // room for both with 3: nothing paused
+  assert.equal(st.boosts["18000000000000006"], undefined);             // the rest waits for the morning run
   assert.equal(calls.find((c) => c.path === "act_123/ads").params.adset_id, "shared1");
   assert.deepEqual(await A.boostNextReel(), { waiting: false });
 });

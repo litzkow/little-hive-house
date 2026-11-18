@@ -475,7 +475,7 @@ function etsyAdvice(cfg, t) {
 const money = (n) => `$${(Number(n) || 0).toFixed(2)}`;
 
 /** Reads every channel, saves the days and the Reports cost, then lets the robot act. Never throws: errors go in the log. */
-async function run({ by = "robot" } = {}) {
+async function run({ by = "robot", onlyNext = false } = {}) {
   const cfg = await config();
   const auth = (await read("auth")) || {};
   const meta = auth.meta || null;
@@ -550,7 +550,8 @@ async function run({ by = "robot" } = {}) {
       // the new Reel the owners asked for, once it is out
       const nr = state.nextReel ? posts.find((p) => p.type === "reel" && p.eligible !== false && !state.boosts[p.id] && !state.never[p.id]
         && Date.parse(p.at || 0) >= Date.parse(state.nextReel.after)) : null;
-      const P = plan({ boosts, allowed, posts: candidates, rules: cfg.rules, capReached, auto: cfg.auto, nextReel: nr || null });
+      // the run the new Reel starts boosts only the Reel; filling the rest waits for the morning
+      const P = plan({ boosts, allowed, posts: candidates, rules: cfg.rules, capReached, auto: cfg.auto && !onlyNext, nextReel: nr || null });
       for (const p of P.pause) {
         const b = state.boosts[p.id];
         try {
@@ -672,7 +673,7 @@ async function boostNextReel() {
   const out = posts.find((p) => p.type === "reel" && Date.parse(p.at || 0) >= after && !(state.boosts || {})[p.id] && !(state.never || {})[p.id]);
   if (!out) return { waiting: true };
   if (!out.eligible) return { waiting: true, notYet: out.id };
-  const r = await run({ by: "robot" });
+  const r = await run({ by: "robot", onlyNext: true });
   return { waiting: false, boosted: out.id, errors: r.errors };
 }
 
