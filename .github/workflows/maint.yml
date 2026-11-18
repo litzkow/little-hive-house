@@ -166,6 +166,10 @@ jobs:
         if: always() && inputs.task == 'check-analytics'
         env: { CHECK: api }
         run: node tools/maint/check-analytics.js
+      - name: "Anúncios: mudar teto e orçamentos (value = JSON)"
+        if: inputs.task == 'set-ads'
+        env: { VALUE: "${{ inputs.value }}" }
+        run: node tools/maint/set-ads.js
       - name: "Anúncios: o robô rodou agora"
         if: always() && inputs.task == 'check-ads'
         env: { CHECK: fresh }
