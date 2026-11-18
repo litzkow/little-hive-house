@@ -431,3 +431,22 @@ test("posts: Reels come first, then the most liked; a post less than a day old w
   assert.deepEqual(posts.map((p) => p.id), ["r2", "r1", "p1"]);
   assert.equal(posts[0].type, "reel");
 });
+
+test("posts: among Reels, sends and saves count more than likes (Instagram's numbers); without numbers, likes + comments", async () => {
+  const { A } = setup();
+  const old = new Date(Date.now() - 3 * 86400000).toISOString();
+  net({ meta: {
+    [`GET ${META.igUserId}/media`]: { data: [
+      { id: "18000000000000001", caption: "Liked", media_product_type: "REELS", media_type: "VIDEO", timestamp: old, like_count: 40, comments_count: 0 },
+      { id: "18000000000000002", caption: "Shared", media_product_type: "REELS", media_type: "VIDEO", timestamp: old, like_count: 5, comments_count: 0 },
+      { id: "18000000000000003", caption: "Photo", media_type: "IMAGE", timestamp: old, like_count: 90, comments_count: 0 },
+    ] },
+    "GET 18000000000000001/insights": { data: [{ name: "reach", values: [{ value: 300 }] }, { name: "shares", values: [{ value: 0 }] }, { name: "saved", values: [{ value: 1 }] }, { name: "ig_reels_avg_watch_time", values: [{ value: 3000 }] }] },
+    "GET 18000000000000002/insights": { data: [{ name: "reach", values: [{ value: 200 }] }, { name: "shares", values: [{ value: 6 }] }, { name: "saved", values: [{ value: 4 }] }, { name: "ig_reels_avg_watch_time", values: [{ value: 7000 }] }] },
+  } });
+  const p = await A._internal.recentPosts(META, RULES);
+  assert.deepEqual(p.map((x) => x.id), ["18000000000000002", "18000000000000001", "18000000000000003"]);
+  assert.equal(p[0].shares, 6); assert.equal(p[0].watch, 7);
+  const q = await A._internal.recentPosts(META, RULES, { insights: false });
+  assert.deepEqual(q.map((x) => x.id), ["18000000000000001", "18000000000000002", "18000000000000003"]);
+});

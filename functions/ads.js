@@ -163,13 +163,13 @@ const metaPublic = (m) => (m ? { connected: true, accountName: m.accountName, ad
   igUsername: m.igUsername, igReady: !!(m.igUserId && m.pageId), tokenEnd: String(m.token || "").slice(-4), connectedAt: m.connectedAt } : { connected: false });
 
 /** The shop's recent Instagram posts, best first (likes + 3 x comments), with whether Meta lets them be boosted. */
-async function recentPosts(meta, rules) {
+async function recentPosts(meta, rules, { insights = true } = {}) {
   if (!meta.igUserId) return [];
   const j = await graph(meta, "GET", `${meta.igUserId}/media`, {
     fields: "id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count,thumbnail_url,media_url,boost_eligibility_info", limit: 40,
   });
   const since = Date.now() - (rules ? rules.postDays : 90) * DAY;
-  return ((j && j.data) || []).filter((m) => Date.parse(m.timestamp || 0) >= since).map((m) => {
+  const list = ((j && j.data) || []).filter((m) => Date.parse(m.timestamp || 0) >= since).map((m) => {
     const elig = m.boost_eligibility_info || {};
     return {
       id: String(m.id), caption: String(m.caption || "").slice(0, 140), type: m.media_product_type === "REELS" ? "reel" : String(m.media_type || "").toLowerCase(),
@@ -177,8 +177,22 @@ async function recentPosts(meta, rules) {
       thumb: m.thumbnail_url || (m.media_type === "VIDEO" ? "" : m.media_url) || "", score: num(m.like_count) + 3 * num(m.comments_count),
       eligible: elig.eligible_to_boost !== false, why: elig.eligible_to_boost === false ? String(elig.boost_ineligible_reason || "") : "",
     };
-  // Reels first (they reach people who don't follow yet, for less), then likes + comments
-  }).sort((a, b) => (b.type === "reel") - (a.type === "reel") || b.score - a.score || String(b.at).localeCompare(String(a.at)));
+  });
+  // what Instagram says people did with each post: sends and saves weigh the most (they show someone wants it), then
+  // watch time and likes. One call per post, only for the newest 15; a post without numbers keeps likes + comments.
+  if (insights) {
+    for (const p of list.filter((x) => x.eligible).slice(0, 15)) {
+      try {
+        const metric = p.type === "reel" ? "reach,shares,saved,views,ig_reels_avg_watch_time" : "reach,shares,saved,views";
+        const j = await graph(meta, "GET", `${p.id}/insights`, { metric });
+        const m = {}; ((j && j.data) || []).forEach((x) => { m[x.name] = num((x.values && x.values[0] && x.values[0].value) != null ? x.values[0].value : x.total_value && x.total_value.value); });
+        p.reach = m.reach || 0; p.shares = m.shares || 0; p.saves = m.saved || 0; p.views = m.views || 0; p.watch = r2((m.ig_reels_avg_watch_time || 0) / 1000);
+        p.score = 5 * p.shares + 4 * p.saves + 3 * p.comments + p.likes + Math.min(10, p.watch) + p.reach / 100;
+      } catch (e) { /* no numbers for this one: likes + comments stay */ }
+    }
+  }
+  // Reels first (they reach people who don't follow yet, for less), then sends, saves, watch time, likes and comments
+  return list.sort((a, b) => (b.type === "reel") - (a.type === "reel") || b.score - a.score || String(b.at).localeCompare(String(a.at)));
 }
 const MIN_AGE = DAY;          // a post is boosted after a day out: by then its likes show whether people like it
 
@@ -668,7 +682,7 @@ async function boostNextReel() {
   const meta = ((await read("auth")) || {}).meta;
   if (!meta || !meta.igUserId) return { waiting: true };
   const cfg = await config();
-  const posts = await recentPosts(meta, cfg.rules);
+  const posts = await recentPosts(meta, cfg.rules, { insights: false });   // every 5 minutes: only the list
   const after = Date.parse(state.nextReel.after);
   const out = posts.find((p) => p.type === "reel" && Date.parse(p.at || 0) >= after && !(state.boosts || {})[p.id] && !(state.never || {})[p.id]);
   if (!out) return { waiting: true };

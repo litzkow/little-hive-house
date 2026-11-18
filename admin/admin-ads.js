@@ -222,7 +222,9 @@
     var numbers = b ? '<p class="tiny">' + T('Spent ', 'Gastou ') + '<b>' + dollars(x.spend) + '</b> · ' + n2(x.clicks) + (x.clicks === 1 ? T(' click', ' clique') : T(' clicks', ' cliques')) + ' · ' +
       (x.carts > 0 ? n2(x.carts) + T(' in cart · ', ' no carrinho · ') : '') +
       (x.revenue > 0 ? T('sold ', 'vendeu ') + '<b>' + dollars(x.revenue) + '</b>' : T('no sale yet', 'nenhuma venda ainda')) + '</p>' + warnLine(b) :
-      '<p class="tiny muted">' + n2(p.likes) + ' ♥ · ' + n2(p.comments) + (p.comments === 1 ? T(' comment', ' comentário') : T(' comments', ' comentários')) + (p.at ? ' · ' + esc(h.fmtDate(p.at)) : '') + '</p>';
+      '<p class="tiny muted">' + n2(p.likes) + ' ♥ · ' + n2(p.comments) + (p.comments === 1 ? T(' comment', ' comentário') : T(' comments', ' comentários')) + (p.at ? ' · ' + esc(h.fmtDate(p.at)) : '') + '</p>' +
+      (p.views || p.reach ? '<p class="tiny muted">' + n2(p.views) + T(' views · ', ' visualizações · ') + n2(p.shares) + T(' sends · ', ' envios · ') + n2(p.saves) + T(' saves', ' salvos') +
+        (p.watch ? ' · ' + n2(p.watch) + T(' s watched on average', ' s assistidos em média') : '') + '</p>' : '');
     var dis = st.busy ? ' disabled' : '';
     var btns = '';
     if (b && b.status === 'active') btns = '<button class="btn btn-ghost btn-sm" data-act="adsPost" data-what="pause" data-id="' + esc(x.id) + '"' + dis + '>' + T('Pause', 'Pausar') + '</button>';
@@ -251,7 +253,7 @@
         'Hoje: ' + dollars(d.allowed) + ' para os ' + active + ' posts impulsionados juntos; o Meta põe mais no que funciona.') : '') + (seasonNote ? ' ' + esc(seasonNote) : '') + '</p>';
     return '<h2 class="sp-h2">' + T('Boosted posts', 'Posts impulsionados') + '</h2>' + next + budget +
       (boosted ? '<div class="ads-posts">' + boosted + '</div>' : '<p class="small muted">' + T('None yet. The robot starts with the best posts at the next run.', 'Nenhum ainda. O robô começa pelos melhores posts na próxima rodada.') + '</p>') +
-      '<h2 class="sp-h2">' + T('Recent posts (best first)', 'Posts recentes (melhores primeiro)') + '</h2>' +
+      '<h2 class="sp-h2">' + T('Recent posts (best first: Reels, then sends, saves and watch time)', 'Posts recentes (melhores primeiro: Reels, depois envios, salvos e tempo assistido)') + '</h2>' +
       (line ? '<div class="ads-posts">' + line + '</div>' : '<p class="small muted">' + T('The posts show up after the first run.', 'Os posts aparecem depois da primeira rodada.') + '</p>');
   }
 
