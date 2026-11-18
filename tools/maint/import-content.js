@@ -29,11 +29,31 @@ async function unlock() {
   return out;
 }
 const say = (s) => console.log(`::warning title=conteudo::${String(s).replace(/%/g, "%25").replace(/\n/g, " | ").slice(0, 1800)}`);
+/* {replace: "post title", files: [{file}]}: the post keeps everything; its video is swapped for the new one and the old
+   file is deleted from Storage (a schedule that pointed at it points at the new one) */
+async function replaceFile(m, base) {
+  const q = await db.collection("content").where("title", "==", m.replace).get();
+  if (q.size !== 1) { say(`${m.replace}: achei ${q.size} posts com esse nome, não troquei nada`); return; }
+  const doc = q.docs[0], it = doc.data();
+  const old = (it.files || []).filter((f) => /^video\//.test(f.type || ""));
+  if (old.length !== 1) { say(`${m.replace}: o post tem ${old.length} vídeos, não troquei nada`); return; }
+  const f = m.files[0], o = old[0];
+  const dest = `content/${doc.id}/${base}-${f.file}`;
+  await bucket.upload(path.join(DIR, f.file), { destination: dest, resumable: true, metadata: { contentType: "video/mp4", metadata: { name: o.name, firebaseStorageDownloadTokens: crypto.randomUUID() } } });
+  const nf = { ...o, path: dest, size: f.size, w: f.w || o.w, h: f.h || o.h, dur: f.dur || o.dur };
+  const patch = { files: (it.files || []).map((x) => (x.path === o.path ? nf : x)), updatedAt: new Date().toISOString() };
+  if (it.sched && it.sched.path === o.path) patch.sched = { ...it.sched, path: dest };
+  await doc.ref.set(patch, { merge: true });
+  try { await bucket.file(o.path).delete(); } catch (e) { say(`${m.replace}: o arquivo antigo já não existia`); }
+  const where = it.status === "posted" ? " (este já saiu no Meta: lá continua o vídeo antigo)" : it.sched ? " (agendado: vai sair o vídeo novo)" : "";
+  say(`${m.replace}: vídeo trocado (${o.name}), o antigo foi apagado${where}`);
+}
 (async () => {
   DIR = await unlock();
   const man = JSON.parse(fs.readFileSync(path.join(DIR, "manifest.json"), "utf8"));
   const base = Date.now();
   for (const m of man) {
+    if (m.replace) { await replaceFile(m, base); continue; }
     const ref = db.collection("content").doc();
     const at = new Date(base - (m.order || 0) * 60000).toISOString();     // the first one shows on top
     const files = [];
