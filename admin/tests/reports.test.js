@@ -240,3 +240,14 @@ test('growth plan: each product priced like the cart (bundle, volume discount, f
   const so = R.planSoFar([], { startupInvestment: 1000 });
   assert.equal(so.left, 1000); assert.equal(so.paidPct, 0);
 });
+
+test('ads spend (Anúncios page) is a cost of the month it was paid', () => {
+  const settings = { monthlyFixedCosts: 0, adSpendByDay: { '2026-11-02': 4, '2026-11-30': 1.5, '2026-12-01': 9, 'junk': 5 } };
+  const nov = R.monthMetrics([], settings, '2026-11');
+  assert.equal(nov.adSpend, 5.5);
+  assert.equal(nov.costs, 5.5);
+  assert.equal(nov.profit, -5.5);
+  const t = R.totalsOf([nov, R.monthMetrics([], settings, '2026-12')]);
+  assert.equal(t.adSpend, 14.5);
+  assert.equal(t.costs, 14.5);
+});

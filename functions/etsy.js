@@ -393,4 +393,4 @@ async function patchTexts(l, listingId) {
   await call("PATCH", `/shops/${a.shopId}/listings/${listingId}`, { form: listingTexts(l, s) });
 }
 
-module.exports = { adminEtsy, setImageFetcher, _internal: { inventory, findTaxonomy, SCOPES, redirectUri, LISTINGS, patchTexts } };
+module.exports = { adminEtsy, setImageFetcher, _internal: { inventory, findTaxonomy, SCOPES, redirectUri, LISTINGS, patchTexts, call, readAuth: () => readDoc("auth") } };

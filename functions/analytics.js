@@ -227,5 +227,5 @@ async function warm() {
   }
 }
 
-module.exports = { adminAnalytics, adminAnalyticsLive, warm, shape, shapeLive, requests, periods, cleanPath, RANGES,
+module.exports = { adminAnalytics, adminAnalyticsLive, warm, shape, shapeLive, requests, periods, cleanPath, RANGES, ga, rows,
   _reset: () => { tokenCache = null; } };

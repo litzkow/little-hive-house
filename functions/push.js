@@ -17,7 +17,7 @@ const U = require("./util");
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
   admin_new_order: "orders", admin_contact: "messages", admin_suggestion: "messages", admin_quote: "quotes", admin_dispute: "disputes",
-  admin_delivery_check: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", push_test: null,
+  admin_delivery_check: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", admin_ads: "orders", push_test: null,
 };
 const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
 const COLL = "adminPush";
@@ -151,6 +151,10 @@ function message(kind, data) {
       const names = it.map((x) => x.name).slice(0, 3).join(", ");
       return { title: it.some((x) => x.status === "out") ? "🛒 Material acabando" : "🛒 Hora de comprar material", body: `${names}${it.length > 3 ? ` e mais ${it.length - 3}` : ""}. Veja em Materiais.`,
         url: "/admin/#supplies", tag: "supplies", urgency: "normal" };
+    }
+    case "admin_ads": {
+      if (!d.text) return null;
+      return { title: "📣 Anúncios", body: clip(d.text, 170), url: "/admin/#ads", tag: d.tag || "ads", urgency: "normal" };
     }
     case "push_test":
       return { title: "🐝 Notificações ativadas", body: "É assim que os avisos da Little Hive House vão chegar neste aparelho.", url: "/admin/#settings", tag: "push-test", urgency: "normal" };

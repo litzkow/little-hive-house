@@ -32,7 +32,7 @@
   var REPORT_COLS = [
     ['Orders', 'orders', 'int'], ['Magnets sold', 'magnets', 'int'], ['Gross sales', 'grossSales', 'money'], ['Discounts', 'discounts', 'money'],
     ['Shipping charged', 'shippingCharged', 'money'], ['Refunds', 'refunds', 'money'], ['Net sales', 'netSales', 'money'], ['Stripe fees', 'stripeFees', 'money'],
-    ['Shipping labels', 'labels', 'money'], ['Product costs', 'productCosts', 'money'], ['Fixed costs', 'fixedCosts', 'money'], ['Total costs', 'costs', 'money'],
+    ['Shipping labels', 'labels', 'money'], ['Product costs', 'productCosts', 'money'], ['Fixed costs', 'fixedCosts', 'money'], ['Ads', 'adSpend', 'money'], ['Total costs', 'costs', 'money'],
     ['Profit', 'profit', 'money'], ['Margin', 'margin', 'pct'], ['ROI', 'roi', 'pct'], ['Avg order', 'aov', 'money'], ['Repeat customers', 'repeatRate', 'pct'],
     ['Stripe Tax fees', 'stripeTaxFees', 'money'], ['Income tax reserve', 'incomeTaxReserve', 'money'], ['Profit after tax reserve', 'profitAfterTax', 'money'],
     ['Sales tax collected', 'salesTax', 'money'], ['Sales tax refunded', 'taxRefunded', 'money'], ['Sales tax owed', 'taxOwed', 'money']
@@ -74,6 +74,7 @@
       ['Shipping labels', -m.labels, ''],
       ['Product costs', -m.productCosts, h.int(m.magnets) + ' magnets × ' + money(S.settings.magnetUnitCost) + ' + ' + money(S.settings.packagingCost) + ' packaging per order'],
       ['Fixed costs', -m.fixedCosts, money(S.settings.monthlyFixedCosts) + ' a month'],
+      ['Ads', -m.adSpend, 'Instagram, Facebook, Etsy and others (Ads page)'],
       ['Profit', m.profit, (m.margin == null ? '' : h.pct(m.margin) + ' margin') + (m.roi == null ? '' : ' · ' + h.pct(m.roi) + ' return on costs'), 'sum big'],
       ['Set aside for income tax', -m.incomeTaxReserve, m.incomeTaxPct + '% of profit (change it in Settings)'],
       ['Yours to keep', m.profitAfterTax, 'Profit after the income tax reserve', 'sum']
@@ -162,7 +163,7 @@
     var pl = [
       ['Gross sales', m.grossSales], ['Discounts', -m.discounts], ['Shipping charged', m.shippingCharged], ['Refunds', -m.refunds],
       ['Net sales', m.netSales, 'sum'], ['Stripe fees', -m.stripeFees], ['Stripe Tax fees', -m.stripeTaxFees], ['Shipping labels', -m.labels],
-      ['Product costs', -m.productCosts], ['Fixed costs', -m.fixedCosts], ['Profit', m.profit, 'sum'],
+      ['Product costs', -m.productCosts], ['Fixed costs', -m.fixedCosts], ['Ads', -m.adSpend], ['Profit', m.profit, 'sum'],
       ['Set aside for income tax (' + m.incomeTaxPct + '%)', -m.incomeTaxReserve], ['Yours to keep', m.profitAfterTax, 'sum']
     ];
     var plHtml = '<table><tbody>' + pl.map(function (x) { return '<tr' + (x[2] ? ' class="sum"' : '') + '><td>' + h.esc(x[0]) + '</td><td class="n' + (x[1] < 0 ? ' neg' : '') + '">' + h.signedMoney(x[1]) + '</td></tr>'; }).join('') + '</tbody></table>';

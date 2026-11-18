@@ -12,10 +12,10 @@ const CALLABLES = [
   "submitReview", "unsubscribe", "setMarketing", "myOrders", "myOrder", "sendVerifyEmail",
   "claimAdmin", "adminSetStatus", "adminShip", "adminCapture", "adminPush", "adminMarkDelivered", "adminRefund", "adminAddNote", "adminPhotoFraming", "adminResendEmail",
   "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview", "adminNewsletter", "adminTestSheet", "adminLastTestSheet", "adminDeleteOrder",
-  "adminPrintSheet", "adminPrintBatch", "adminEtsy", "adminLabelQuote", "adminBuyLabel", "adminLabelPdf", "adminPreviewEmail", "adminAnalytics", "adminAnalyticsLive", "returnLookup", "returnQuote", "returnStart", "adminReturnDecide", "adminReturnPhotos", "adminSupplies",
+  "adminPrintSheet", "adminPrintBatch", "adminEtsy", "adminLabelQuote", "adminBuyLabel", "adminLabelPdf", "adminPreviewEmail", "adminAnalytics", "adminAnalyticsLive", "returnLookup", "returnQuote", "returnStart", "adminReturnDecide", "adminReturnPhotos", "adminSupplies", "adminAds",
 ];
 const HTTP = ["clientLog", "stripeWebhook"];
-const SCHEDULED = ["deliveredFollowUp", "trackShipments", "salesTaxReminder", "autoNewsletter", "analyticsWarm"];
+const SCHEDULED = ["deliveredFollowUp", "trackShipments", "salesTaxReminder", "autoNewsletter", "analyticsWarm", "adsDaily"];
 
 class HttpsError extends Error { constructor(code, message, details) { super(message); this.code = code; this.details = details; } }
 const stubs = {

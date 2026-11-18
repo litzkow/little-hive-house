@@ -27,6 +27,7 @@ const labels = lazy("./labels");
 const analytics = lazy("./analytics");
 const returns = lazy("./returns");
 const supplies = lazy("./supplies");
+const ads = lazy("./ads");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -109,6 +110,7 @@ exports.adminReturnDecide = callable("adminReturnDecide", returns, null, { timeo
 exports.adminReturnPhotos = callable("adminReturnPhotos", returns);
 // Materiais (supplies.js): what the shop has, what orders used, purchases
 exports.adminSupplies = callable("adminSupplies", supplies, null, { timeoutSeconds: 60 });
+exports.adminAds = callable("adminAds", ads, null, { timeoutSeconds: 300, memory: "512MiB" });
 exports.adminAnalytics = callable("adminAnalytics", analytics, null, { timeoutSeconds: 60 });
 exports.adminAnalyticsLive = callable("adminAnalyticsLive", analytics, null, { timeoutSeconds: 30 });
 
@@ -167,4 +169,10 @@ exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09
   await scheduled().deletePhotos().catch((err) => console.warn("[deletePhotos] failed", err.message));
   // materials that got low (supplies.js)
   await supplies().checkSupplies().catch((err) => console.warn("[checkSupplies] failed", err.message));
+});
+
+/* ---------- every morning: the ads robot reads what each channel spent and sold, and acts inside the teto (ads.js) ---------- */
+exports.adsDaily = onSchedule({ region: REGION, schedule: "every day 07:40", timeZone: "America/New_York", timeoutSeconds: 300, memory: "512MiB" }, async () => {
+  const r = await ads().run({ by: "robot" });
+  console.log("[adsDaily]", JSON.stringify({ total: r.totals.total, did: r.did.length, errors: r.errors }));
 });

@@ -1,0 +1,282 @@
+/* Little Hive House admin: Ads (functions/ads.js adminAds). The month's cap the owners approve, what each channel spends
+   and sells, the Instagram posts the robot boosts (and the owners' say over each one), Etsy advice, spend logged by hand
+   and what the robot did and why. The screen picks its own language (T(en, pt)) and is marked translate="no". */
+(function () {
+  'use strict';
+  var A = window.LHHAdmin, h = A.h, V = A.VIEWS, ACT = A.ACT;
+  var esc = h.esc, money = h.money;
+  function T(en, pt) { return h.LANG() === 'pt' ? pt : en; }
+  var st = { data: null, err: null, loading: false, busy: false };
+
+  function load(action, args, done) {
+    st.busy = true;
+    if (A.parseHash().view === 'ads') { var y0 = scrollY; h.route(); scrollTo(0, y0); }
+    return h.call('adminAds', Object.assign({ action: action || 'view' }, args || {})).then(function (d) { st.data = d; st.err = null; if (done) h.toast(done); })
+      .catch(function (e) { var m = h.friendlyError(e); if (!action || action === 'view') st.err = m; else h.toast(m, true); })
+      .then(function () { st.busy = false; st.loading = false; if (A.parseHash().view === 'ads') { var y = scrollY; h.route(); scrollTo(0, y); } });
+  }
+  function n2(v) { return (Math.round((Number(v) || 0) * 100) / 100).toLocaleString(h.LANG() === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  function dollars(v) { return money(v); }
+  function day(k) { return h.fmtDate(k + 'T12:00:00'); }
+
+  var NAMES = {
+    meta: ['Instagram & Facebook', 'Instagram e Facebook'], etsy: ['Etsy Ads', 'Etsy Ads'], google: ['Google', 'Google'], tiktok: ['TikTok', 'TikTok'], amazon: ['Amazon', 'Amazon'], all: ['All', 'Todos']
+  };
+  function cname(k) { var n = NAMES[k] || [k, k]; return T(n[0], n[1]); }
+
+  /* ---------- pieces ---------- */
+  function capCard(d) {
+    var c = d.config, t = d.totals, pct = c.monthCap > 0 ? Math.min(100, Math.round(t.total / c.monthCap * 100)) : 100;
+    var left = Math.max(0, c.monthCap - t.total), daysLeft = d.daysInMonth - d.dayOfMonth + 1;
+    var over = d.planned * daysLeft + t.total > c.monthCap + 0.01;
+    return '<section class="card ads-cap"><div class="card-head"><div><h2>' + T('Monthly cap', 'Teto do mês') + ': ' + dollars(c.monthCap) + '</h2>' +
+      '<p class="sub">' + (c.capAt ? T('Approved by ' + esc(c.capBy || '') + ' on ' + esc(h.fmtDate(c.capAt)), 'Aprovado por ' + esc(c.capBy || '') + ' em ' + esc(h.fmtDate(c.capAt))) :
+        T('The most the shop can spend on ads in a month. The robot never goes past it.', 'O máximo que a loja pode gastar com anúncios no mês. O robô nunca passa disso.')) + '</p></div>' +
+      '<button class="btn btn-ghost btn-sm" data-act="adsCap">' + T('Change cap', 'Mudar teto') + '</button></div>' +
+      '<div class="sp-bar ads-bar' + (pct >= 100 ? ' full' : pct >= 80 ? ' near' : '') + '"><i style="width:' + Math.max(2, pct) + '%"></i></div>' +
+      '<p class="small">' + T('Spent <b>' + dollars(t.total) + '</b> so far this month · ' + dollars(left) + ' left for ' + daysLeft + ' days',
+        'Gasto até agora no mês: <b>' + dollars(t.total) + '</b> · sobram ' + dollars(left) + ' para ' + daysLeft + ' dias') + '</p>' +
+      '<p class="small muted">' + T('Plan: ' + dollars(d.planned) + ' a day on the channels that are on (about ' + dollars(d.planned * d.daysInMonth) + ' a month).',
+        'Plano: ' + dollars(d.planned) + ' por dia nos canais ligados (uns ' + dollars(d.planned * d.daysInMonth) + ' por mês).') +
+      (over ? ' <b>' + T('That passes the cap: the robot spends less each day so it fits.', 'Isso passa do teto: o robô gasta menos por dia para caber.') + '</b>' : '') + '</p>' +
+      '<label class="ads-auto"><input type="checkbox" data-act="adsAuto"' + (c.auto ? ' checked' : '') + (st.busy ? ' disabled' : '') + '> ' +
+        T('The robot runs the ads by itself inside the cap (every morning)', 'O robô cuida dos anúncios sozinho dentro do teto (toda manhã)') + '</label></section>';
+  }
+
+  function proposals(d) {
+    if (!d.proposals.length) return '';
+    return d.proposals.map(function (p) {
+      return '<section class="card ads-prop"><p><b>' + T('The robot asks', 'O robô pede') + ':</b> ' + esc(T(p.en || p.pt, p.pt)) + '</p><div class="row">' +
+        '<button class="btn btn-honey btn-sm" data-act="adsApprove" data-id="' + esc(p.id) + '"' + (st.busy ? ' disabled' : '') + '>' + T('Approve', 'Aprovar') + '</button>' +
+        '<button class="btn btn-ghost btn-sm" data-act="adsDecline" data-id="' + esc(p.id) + '"' + (st.busy ? ' disabled' : '') + '>' + T('No, keep it', 'Não, deixa assim') + '</button></div></section>';
+    }).join('');
+  }
+
+  function tiles(d) {
+    var t = d.totals, sales = Math.round((t.sales.ads + t.sales.etsy) * 100) / 100, orders = t.sales.adOrders + t.sales.etsyOrders;
+    var ret = t.total > 0 ? sales / t.total : null;
+    return '<div class="tiles">' +
+      h.tile(T('Spent this month', 'Gasto no mês'), dollars(t.total), T('of ' + dollars(d.config.monthCap), 'de ' + dollars(d.config.monthCap)), true) +
+      h.tile(T('Sales from ads', 'Vendas dos anúncios'), dollars(sales), orders ? T(orders + (orders === 1 ? ' order' : ' orders'), orders + (orders === 1 ? ' pedido' : ' pedidos')) : T('None yet', 'Nenhuma ainda')) +
+      h.tile(T('Return', 'Retorno'), ret == null ? '—' : dollars(ret), ret == null ? T('per $1 spent', 'para cada $1 gasto') : T('back for each $1 spent', 'de volta para cada $1 gasto')) +
+      h.tile(T('Site sales this month', 'Vendas do site no mês'), dollars(t.sales.site), T('all sales, with or without ads', 'todas, com ou sem anúncio')) +
+      '</div>';
+  }
+
+  function chan(d, k) {
+    var c = d.config.channels[k], t = d.totals, spend = t.spend[k] || 0;
+    var head = '<div class="sp-top"><b>' + esc(cname(k)) + '</b><span class="sp-pill">' + (c.on ? T('On', 'Ligado') + ' · ' + dollars(c.daily) + T('/day', '/dia') : T('Off', 'Desligado')) + '</span></div>';
+    var body = '', acts = '<button class="btn btn-ghost btn-sm" data-act="adsChan" data-k="' + k + '"' + (st.busy ? ' disabled' : '') + '>' + T('Change', 'Mudar') + '</button>';
+    if (k === 'meta') {
+      var m = d.meta;
+      if (!m.connected) {
+        body = '<p class="small">' + T('Not connected yet. Connect once and the robot boosts your best Instagram posts, pauses the ones that don’t sell and keeps inside the cap.',
+          'Ainda não conectado. Conecte uma vez e o robô impulsiona os melhores posts do Instagram, pausa os que não vendem e fica dentro do teto.') + '</p>';
+        acts = '<button class="btn btn-honey btn-sm" data-act="adsConnect"' + (st.busy ? ' disabled' : '') + '>' + T('Connect Meta', 'Conectar Meta') + '</button>' + acts;
+      } else {
+        body = '<p class="small">' + T('Ad account', 'Conta de anúncios') + ': <b>' + esc(m.accountName || m.adAccountId) + '</b>' + (m.igUsername ? ' · Instagram <b>@' + esc(m.igUsername) + '</b>' : '') + '</p>' +
+          (m.igReady ? '' : '<p class="small err">' + T('The Instagram account or the Facebook Page isn’t linked to this token, so no post can be boosted. Give the system user the Page and the Instagram account and connect again.',
+            'A conta do Instagram ou a página do Facebook não está ligada a este token, então nenhum post pode ser impulsionado. Dê ao usuário do sistema a página e o Instagram e conecte de novo.') + '</p>') +
+          (m.accountStatus && m.accountStatus !== 1 ? '<p class="small err">' + T('Meta says the ad account isn’t active (status ' + esc(m.accountStatus) + '). Check the payment method in Meta.', 'O Meta diz que a conta de anúncios não está ativa (status ' + esc(m.accountStatus) + '). Confira a forma de pagamento no Meta.') + '</p>' : '') +
+          '<p class="small">' + T('This month: spent ', 'Este mês: gastou ') + '<b>' + dollars(spend) + '</b> · ' + T('sales from the ads ', 'vendas pelos anúncios ') + '<b>' + dollars(t.sales.meta) + '</b></p>';
+        acts += '<button class="btn btn-ghost btn-sm" data-act="adsConnect"' + (st.busy ? ' disabled' : '') + '>' + T('Connect again', 'Conectar de novo') + '</button>';
+      }
+    } else if (k === 'etsy') {
+      var a = d.etsy.advice || {};
+      body = (d.etsy.connected ? '<p class="small">' + T('Read from Etsy by itself: spent ', 'Lido do Etsy sozinho: gastou ') + '<b>' + dollars(spend) + '</b> · ' + T('Etsy sales ', 'vendas no Etsy ') + '<b>' + dollars(t.sales.etsy) + '</b></p>'
+        : '<p class="small err">' + T('Etsy isn’t connected, so the app can’t read the ad spend. Connect it on the Etsy page.', 'O Etsy não está conectado, então o app não consegue ler o gasto. Conecte na página do Etsy.') + '</p>') +
+        (a.pt ? '<p class="small ads-advice ' + esc(a.kind || '') + '">' + esc(T(a.en || a.pt, a.pt)) + '</p>' : '') +
+        '<p class="tiny muted">' + T('Etsy doesn’t let any app change Etsy Ads: the budget is set in the Etsy app (Shop Manager › Marketing › Etsy Ads).', 'O Etsy não deixa nenhum app mudar o Etsy Ads: o orçamento é colocado no app do Etsy (Gerenciador da loja › Marketing › Etsy Ads).') + '</p>';
+      acts = '<a class="btn btn-ghost btn-sm" href="https://www.etsy.com/your/shops/me/advertising" target="_blank" rel="noopener">' + T('Open Etsy Ads', 'Abrir Etsy Ads') + ' ›</a>' + acts;
+    } else {
+      var why = {
+        google: ['Free first: your products in Google Shopping through Merchant Center. Paid Google ads come later.', 'Primeiro o grátis: os produtos no Google Shopping pelo Merchant Center. O anúncio pago do Google vem depois.'],
+        tiktok: ['TikTok ads start at $20 a day, too much for now. Keep posting videos for free.', 'O TikTok cobra no mínimo $20 por dia, muito para agora. Continuem postando vídeos de graça.'],
+        amazon: ['Comes in when the Amazon seller account is approved.', 'Entra quando a conta de vendedor da Amazon for aprovada.']
+      }[k];
+      body = '<p class="small">' + esc(T(why[0], why[1])) + '</p>' + (spend ? '<p class="small">' + T('Logged by hand this month: ', 'Registrado à mão este mês: ') + '<b>' + dollars(spend) + '</b></p>' : '');
+      acts = '<button class="btn btn-ghost btn-sm" data-act="adsManual" data-k="' + k + '"' + (st.busy ? ' disabled' : '') + '>' + T('Log spend', 'Registrar gasto') + '</button>' + acts;
+    }
+    return '<section class="card sp-card ads-chan' + (c.on ? '' : ' off') + '">' + head + body + '<div class="row sp-acts">' + acts + '</div></section>';
+  }
+
+  function boostLine(b) {
+    var stat = b.status === 'active' ? T('Boosting', 'Impulsionando') + ' · ' + dollars(b.daily) + T('/day', '/dia')
+      : b.status === 'stopped' ? (b.why === 'owner' ? T('Never boost', 'Nunca impulsionar') : T('Stopped: spent without selling', 'Parado: gastou sem vender'))
+      : b.why === 'cap' ? T('Paused: cap reached', 'Pausado: teto do mês') : b.why === 'owner' ? T('Paused by you', 'Pausado por vocês') : T('Paused', 'Pausado');
+    return '<span class="sp-pill ads-' + esc(b.status) + '">' + esc(stat) + '</span>';
+  }
+  function postCard(p, b) {
+    var x = b || {};
+    var img = /^https:\/\//.test(p.thumb || x.thumb || '') ? '<img src="' + esc(p.thumb || x.thumb) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="ads-noimg"></span>';
+    var link = /^https:\/\//.test(p.permalink || x.permalink || '') ? '<a class="tiny" href="' + esc(p.permalink || x.permalink) + '" target="_blank" rel="noopener">' + T('See on Instagram', 'Ver no Instagram') + ' ›</a>' : '';
+    var numbers = b ? '<p class="tiny">' + T('Spent ', 'Gastou ') + '<b>' + dollars(x.spend) + '</b> · ' + n2(x.clicks) + (x.clicks === 1 ? T(' click', ' clique') : T(' clicks', ' cliques')) + ' · ' +
+      (x.revenue > 0 ? T('sold ', 'vendeu ') + '<b>' + dollars(x.revenue) + '</b>' : T('no sale yet', 'nenhuma venda ainda')) + '</p>' :
+      '<p class="tiny muted">' + n2(p.likes) + ' ♥ · ' + n2(p.comments) + (p.comments === 1 ? T(' comment', ' comentário') : T(' comments', ' comentários')) + (p.at ? ' · ' + esc(h.fmtDate(p.at)) : '') + '</p>';
+    var dis = st.busy ? ' disabled' : '';
+    var btns = '';
+    if (b && b.status === 'active') btns = '<button class="btn btn-ghost btn-sm" data-act="adsPost" data-what="pause" data-id="' + esc(x.id) + '"' + dis + '>' + T('Pause', 'Pausar') + '</button>';
+    else if (p.never || (b && b.why === 'owner' && b.status === 'stopped')) btns = '<button class="btn btn-ghost btn-sm" data-act="adsPost" data-what="allow" data-id="' + esc(p.id || x.id) + '"' + dis + '>' + T('Let the robot choose', 'Deixar o robô escolher') + '</button>';
+    else if (p.eligible === false) btns = '<span class="tiny muted">' + T('Meta doesn’t allow boosting this one', 'O Meta não deixa impulsionar este') + '</span>';
+    else btns = '<button class="btn btn-honey btn-sm" data-act="adsPost" data-what="boost" data-id="' + esc(p.id || x.id) + '"' + dis + '>' + T('Boost now', 'Impulsionar') + '</button>';
+    if (!(b && b.status === 'stopped' && b.why === 'owner') && !p.never) btns += '<button class="btn btn-ghost btn-sm" data-act="adsPost" data-what="never" data-id="' + esc(p.id || x.id) + '"' + dis + '>' + T('Never', 'Nunca') + '</button>';
+    return '<article class="card ads-post">' + img + '<div class="ads-post-in"><div class="sp-top">' + (b ? boostLine(x) : (p.never ? '<span class="sp-pill">' + T('Never boost', 'Nunca impulsionar') + '</span>' : '<span class="sp-pill">' + T('In line', 'Na fila') + '</span>')) + link + '</div>' +
+      '<p class="small ads-cap-text">' + esc(p.caption || x.caption || T('(no caption)', '(sem legenda)')) + '</p>' + numbers + '<div class="row sp-acts">' + btns + '</div></div></article>';
+  }
+  function posts(d) {
+    if (!d.meta.connected) return '';
+    var byId = {}; d.boosts.forEach(function (b) { byId[b.id] = b; });
+    var boosted = d.boosts.map(function (b) { var p = d.posts.find(function (x) { return x.id === b.id; }) || {}; return postCard(Object.assign({ id: b.id }, p), b); }).join('');
+    var line = d.posts.filter(function (p) { return !byId[p.id]; }).slice(0, 12).map(function (p) { return postCard(p, null); }).join('');
+    return '<h2 class="sp-h2">' + T('Boosted posts', 'Posts impulsionados') + '</h2>' +
+      (boosted ? '<div class="ads-posts">' + boosted + '</div>' : '<p class="small muted">' + T('None yet. The robot starts with the best posts at the next run.', 'Nenhum ainda. O robô começa pelos melhores posts na próxima rodada.') + '</p>') +
+      '<h2 class="sp-h2">' + T('Recent posts (best first)', 'Posts recentes (melhores primeiro)') + '</h2>' +
+      (line ? '<div class="ads-posts">' + line + '</div>' : '<p class="small muted">' + T('The posts show up after the first run.', 'Os posts aparecem depois da primeira rodada.') + '</p>');
+  }
+
+  function chart(d) {
+    if (!d.last30.length) return '';
+    return '<section class="card gap-top"><div class="card-head"><div><h2>' + T('Ad spend, last 30 days', 'Gasto com anúncios, últimos 30 dias') + '</h2></div></div>' +
+      h.chart('ads-spend', { data: d.last30.map(function (x) { return { label: day(x.day), tick: String(Number(x.day.slice(8))), value: x.spend, tip: day(x.day) + ' · ' + T('sales from ads ', 'vendas dos anúncios ') + money(x.sales) }; }), height: 180, aria: 'Ad spend by day' }) + '</section>';
+  }
+
+  function logCard(d) {
+    var run = d.lastRun;
+    var errs = run && run.errors ? Object.keys(run.errors).map(function (k) { return '<li class="err">' + esc(cname(k === 'site' ? 'all' : k)) + ': ' + esc(run.errors[k]) + '</li>'; }).join('') : '';
+    return '<section class="card gap-top"><div class="card-head"><div><h2>' + T('What the robot did', 'O que o robô fez') + '</h2><p class="sub">' +
+      (run ? T('Last check: ', 'Última verificação: ') + esc(h.fmtDT(run.at)) : T('It hasn’t run yet. It runs every morning, or tap Run now.', 'Ainda não rodou. Ele roda toda manhã, ou toque em Rodar agora.')) + '</p></div></div>' +
+      (errs ? '<ul class="ads-errs">' + errs + '</ul>' : '') +
+      (d.log.length ? '<ul class="sp-buys ads-log">' + d.log.map(function (l) {
+        return '<li><span><b>' + esc(T(l.en || l.pt, l.pt)) + '</b><small>' + esc(h.fmtDT(l.at)) + ' · ' + esc(cname(l.channel)) + '</small></span></li>';
+      }).join('') + '</ul>' : '<p class="small muted">' + T('Nothing yet.', 'Nada ainda.') + '</p>') + '</section>';
+  }
+
+  function manualCard(d) {
+    if (!d.manual.length) return '';
+    return '<section class="card gap-top"><div class="card-head"><div><h2>' + T('Spend logged by hand', 'Gastos registrados à mão') + '</h2></div></div><ul class="sp-buys">' + d.manual.map(function (m) {
+      return '<li><span><b>' + esc(cname(m.channel)) + (m.note ? ' · ' + esc(m.note) : '') + '</b><small>' + esc(day(m.date)) + '</small></span><span class="sp-cost">' + money(m.amount) +
+        '<button class="icon-btn" data-act="adsDelManual" data-id="' + esc(m.id) + '" aria-label="' + T('Remove', 'Apagar') + '">' + h.icon('trash') + '</button></span></li>';
+    }).join('') + '</ul></section>';
+  }
+
+  function rulesCard(d) {
+    var r = d.config.rules;
+    return '<details class="card gap-top ads-rules"><summary><b>' + T('The robot’s rules', 'As regras do robô') + '</b></summary><ul class="small">' +
+      '<li>' + T('Each new post starts at ' + dollars(r.perPost) + ' a day; at most ' + r.maxPosts + ' posts at a time.', 'Cada post novo começa com ' + dollars(r.perPost) + ' por dia; no máximo ' + r.maxPosts + ' posts ao mesmo tempo.') + '</li>' +
+      '<li>' + T('A post that spends ' + dollars(r.stopAfter) + ' without a sale is stopped.', 'O post que gastar ' + dollars(r.stopAfter) + ' sem vender é parado.') + '</li>' +
+      '<li>' + T('A post that brings back ' + n2(r.growRoas) + 'x what it costs gets $1 more a day, up to ' + dollars(r.maxPerPost) + '.', 'O post que trouxer ' + n2(r.growRoas) + 'x o que custou ganha mais $1 por dia, até ' + dollars(r.maxPerPost) + '.') + '</li>' +
+      '<li>' + T('Only posts from the last ' + r.postDays + ' days; the best first (likes + comments).', 'Só posts dos últimos ' + r.postDays + ' dias; os melhores primeiro (curtidas + comentários).') + '</li>' +
+      '<li>' + T('The cap is never passed. When the ads pay off and the cap gets close, the robot asks you to approve a higher one.', 'O teto nunca é passado. Quando os anúncios dão retorno e o teto está perto, o robô pede para vocês aprovarem um maior.') + '</li>' +
+      '<li>' + T('A sale counts for an ad when the customer came to the site from the ad’s link (Google Analytics).', 'Uma venda conta para o anúncio quando o cliente chegou ao site pelo link do anúncio (Google Analytics).') + '</li>' +
+      '</ul><button class="btn btn-ghost btn-sm" data-act="adsRules"' + (st.busy ? ' disabled' : '') + '>' + T('Change the rules', 'Mudar as regras') + '</button></details>';
+  }
+
+  V.ads = function () {
+    if (!st.data && !st.loading && !st.err) { st.loading = true; load('view'); }
+    var d = st.data;
+    var head = '<div class="page-head"><div><p class="eyebrow">Marketing</p><h1>' + T('Ads', 'Anúncios') + '</h1>' +
+      '<p class="sub">' + T('Every morning the robot checks what each ad spent and sold, stops what doesn’t sell, gives more to what sells and never passes the cap you approved.',
+        'Toda manhã o robô confere quanto cada anúncio gastou e vendeu, para o que não vende, dá mais para o que vende e nunca passa do teto que vocês aprovaram.') + '</p></div>' +
+      '<div class="actions"><button class="btn btn-ghost btn-sm" data-act="adsRun"' + (st.busy ? ' disabled' : '') + '>' + (st.busy ? T('Working…', 'Trabalhando…') : T('Run now', 'Rodar agora')) + '</button></div></div>';
+    if (!d) return { title: T('Ads', 'Anúncios'), html: '<div translate="no">' + head + (st.err ? '<p class="err">' + esc(st.err) + '</p>' : '<div class="loading"><span>' + T('Loading…', 'Carregando…') + '</span></div>') + '</div>' };
+    var chans = '<h2 class="sp-h2">' + T('Channels', 'Canais') + '</h2><div class="sp-grid">' + ['meta', 'etsy', 'google', 'tiktok', 'amazon'].map(function (k) { return chan(d, k); }).join('') + '</div>';
+    return { title: T('Ads', 'Anúncios'), html: '<div translate="no" class="ads">' + head + proposals(d) + tiles(d) + capCard(d) + chans + posts(d) + chart(d) + logCard(d) + manualCard(d) + rulesCard(d) + '</div>' };
+  };
+
+  /* ---------- dialogs ---------- */
+  function ask(title, inner, okText) {
+    return new Promise(function (resolve) {
+      var dlg = document.createElement('dialog'); dlg.className = 'modal'; dlg.setAttribute('translate', 'no');
+      dlg.innerHTML = '<form method="dialog" class="in"><h2>' + esc(title) + '</h2>' + inner + '<div class="row end"><button class="btn btn-ghost" value="cancel">' + T('Cancel', 'Cancelar') + '</button><button class="btn btn-honey" value="ok">' + esc(okText || 'OK') + '</button></div></form>';
+      document.body.appendChild(dlg);
+      dlg.addEventListener('close', function () {
+        var out = null;
+        if (dlg.returnValue === 'ok') { out = {}; Array.prototype.forEach.call(dlg.querySelectorAll('[name]'), function (el) { out[el.name] = el.type === 'checkbox' ? el.checked : el.value; }); }
+        dlg.remove(); resolve(out);
+      });
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    });
+  }
+  function field(name, label, value, type, extra) {
+    return '<label class="field"><span>' + esc(label) + '</span><input class="input" name="' + name + '" value="' + esc(value == null ? '' : value) + '"' + (type ? ' type="' + type + '"' : '') +
+      (type === 'number' ? ' inputmode="decimal" step="any" min="0"' : '') + (extra || '') + '></label>';
+  }
+
+  ACT.adsRun = function () { load('run', {}, T('Done. The numbers are up to date.', 'Pronto. Os números estão em dia.')); };
+  ACT.adsCap = function () {
+    var c = st.data.config;
+    ask(T('Monthly cap', 'Teto do mês'), '<p class="small">' + T('The most the shop may spend on ads in a month, all channels together. Saving it is your approval: the robot works alone inside it and asks before going over.',
+      'O máximo que a loja pode gastar com anúncios no mês, todos os canais juntos. Salvar é a aprovação de vocês: o robô trabalha sozinho dentro dele e pergunta antes de passar.') + '</p>' +
+      field('cap', T('Cap ($ a month)', 'Teto ($ por mês)'), c.monthCap, 'number'), T('Approve', 'Aprovar')).then(function (v) {
+      if (v && v.cap !== '') load('save', { config: { monthCap: Number(v.cap) } }, T('Cap saved.', 'Teto salvo.'));
+    });
+  };
+  ACT.adsAuto = function (el) { load('save', { config: { auto: !!el.checked } }); };
+  ACT.adsApprove = function (el) { load('approve', { id: el.getAttribute('data-id') }, T('Approved.', 'Aprovado.')); };
+  ACT.adsDecline = function (el) { load('decline', { id: el.getAttribute('data-id') }); };
+  ACT.adsChan = function (el) {
+    var k = el.getAttribute('data-k'), c = st.data.config.channels[k], min = (st.data.minDaily || {})[k] || 1;
+    ask(cname(k), '<label class="field ads-check"><input type="checkbox" name="on"' + (c.on ? ' checked' : '') + '> <span>' + T('On', 'Ligado') + '</span></label>' +
+      field('daily', T('Budget a day ($, at least ' + money(min) + ')', 'Orçamento por dia ($, no mínimo ' + money(min) + ')'), c.daily, 'number') +
+      (k === 'etsy' ? '<p class="tiny muted">' + T('Put the same amount in the Etsy app: the app can’t change it there.', 'Coloque o mesmo valor no app do Etsy: o app não consegue mudar lá.') + '</p>' : '') +
+      (k === 'meta' ? '<p class="tiny muted">' + T('The robot splits it among the boosted posts.', 'O robô divide entre os posts impulsionados.') + '</p>' : ''), T('Save', 'Salvar')).then(function (v) {
+      if (!v) return;
+      var ch = {}; ch[k] = { on: !!v.on, daily: Number(v.daily) || 0 };
+      load('save', { config: { channels: ch } }, T('Saved.', 'Salvo.'));
+    });
+  };
+  ACT.adsRules = function () {
+    var r = st.data.config.rules;
+    ask(T('The robot’s rules', 'As regras do robô'), field('perPost', T('New post starts with ($ a day)', 'Post novo começa com ($ por dia)'), r.perPost, 'number') +
+      field('maxPosts', T('Posts at the same time', 'Posts ao mesmo tempo'), r.maxPosts, 'number') +
+      field('stopAfter', T('Stop a post after spending ($) with no sale', 'Parar o post depois de gastar ($) sem vender'), r.stopAfter, 'number') +
+      field('growRoas', T('Give more when sales are this many times the cost', 'Dar mais quando vender esta quantidade de vezes o custo'), r.growRoas, 'number') +
+      field('maxPerPost', T('Most a day for one post ($)', 'Máximo por dia para um post ($)'), r.maxPerPost, 'number') +
+      field('postDays', T('Only posts from the last (days)', 'Só posts dos últimos (dias)'), r.postDays, 'number'), T('Save', 'Salvar')).then(function (v) {
+      if (!v) return;
+      var rules = {}; Object.keys(v).forEach(function (k) { if (v[k] !== '') rules[k] = Number(v[k]); });
+      load('save', { config: { rules: rules } }, T('Saved.', 'Salvo.'));
+    });
+  };
+  ACT.adsManual = function (el) {
+    var k = el.getAttribute('data-k');
+    ask(T('Log spend: ', 'Registrar gasto: ') + cname(k), field('amount', T('How much ($)', 'Quanto ($)'), '', 'number') + field('date', T('Day', 'Dia'), h.today(), 'date') +
+      field('note', T('Note (optional)', 'Observação (opcional)'), ''), T('Save', 'Salvar')).then(function (v) {
+      if (v && v.amount) load('manual', { channel: k, amount: Number(v.amount), date: v.date, note: v.note }, T('Saved. It counts in the cap and in Reports.', 'Salvo. Conta no teto e nos Relatórios.'));
+    });
+  };
+  ACT.adsDelManual = function (el) {
+    var id = el.getAttribute('data-id');
+    h.dialog({ title: T('Remove this spend?', 'Apagar este gasto?'), html: '', ok: T('Remove', 'Apagar'), cancel: T('Cancel', 'Cancelar'), danger: true }).then(function (ok) { if (ok) load('removeManual', { id: id }); });
+  };
+  ACT.adsPost = function (el) {
+    var what = el.getAttribute('data-what'), id = el.getAttribute('data-id');
+    var msg = { boost: T('Boosting…', 'Impulsionando…'), pause: T('Paused.', 'Pausado.'), never: T('This post won’t be boosted.', 'Este post não vai ser impulsionado.'), allow: T('The robot can choose it again.', 'O robô pode escolher de novo.') }[what];
+    load('post', { id: id, what: what }, msg);
+  };
+  ACT.adsConnect = function () {
+    var steps = T(
+      '<ol class="small ads-steps"><li>Easier on a computer. Open <b>business.facebook.com/settings</b> (Little Hive House business).</li>' +
+      '<li><b>Accounts › Ad accounts</b>: if there isn’t one, create “Little Hive House”, in US dollars and New York time, and add a card under <b>Payment methods</b>.</li>' +
+      '<li>Open <b>developers.facebook.com/apps</b> › <b>Create app</b> › type <b>Business</b> › name “Hive Admin” › pick the Little Hive House business. In the app, add the <b>Marketing API</b> product.</li>' +
+      '<li>Back in business settings: <b>Users › System users › Add</b> › name “Hive Admin”, role <b>Admin</b>.</li>' +
+      '<li>On that system user, <b>Assign assets</b>: the ad account (full control), the Facebook Page (full control), the Instagram account (full control) and the Hive Admin app.</li>' +
+      '<li><b>Generate new token</b> › app “Hive Admin” › expiry <b>Never</b> › tick: ads_management, ads_read, business_management, pages_show_list, pages_read_engagement, instagram_basic › <b>Generate</b>.</li>' +
+      '<li>Copy the token and paste it here. It is kept on the shop’s server and never shown again; don’t send it in chats or emails.</li></ol>',
+      '<ol class="small ads-steps"><li>É mais fácil no computador. Abra <b>business.facebook.com/settings</b> (empresa Little Hive House).</li>' +
+      '<li><b>Contas › Contas de anúncios</b>: se não tiver, crie “Little Hive House”, em dólar americano e horário de Nova York, e coloque um cartão em <b>Formas de pagamento</b>.</li>' +
+      '<li>Abra <b>developers.facebook.com/apps</b> › <b>Criar app</b> › tipo <b>Empresa</b> (Business) › nome “Hive Admin” › escolha a empresa Little Hive House. No app, adicione o produto <b>API de Marketing</b>.</li>' +
+      '<li>Volte nas configurações da empresa: <b>Usuários › Usuários do sistema › Adicionar</b> › nome “Hive Admin”, função <b>Administrador</b>.</li>' +
+      '<li>Nesse usuário do sistema, <b>Atribuir ativos</b>: a conta de anúncios (controle total), a página do Facebook (controle total), a conta do Instagram (controle total) e o app Hive Admin.</li>' +
+      '<li><b>Gerar novo token</b> › app “Hive Admin” › validade <b>Nunca</b> › marque: ads_management, ads_read, business_management, pages_show_list, pages_read_engagement, instagram_basic › <b>Gerar</b>.</li>' +
+      '<li>Copie o token e cole aqui. Ele fica guardado no servidor da loja e não aparece de novo; não mande em chat nem e-mail.</li></ol>');
+    ask(T('Connect Instagram & Facebook', 'Conectar Instagram e Facebook'), steps +
+      '<label class="field"><span>' + T('Token', 'Token') + '</span><textarea class="input" name="token" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></label>' +
+      '<details class="small"><summary>' + T('Optional', 'Opcional') + '</summary>' +
+      field('adAccountId', T('Ad account ID (only if you have more than one)', 'ID da conta de anúncios (só se tiver mais de uma)'), '') +
+      field('appSecret', T('App secret (only if Meta asks for “appsecret_proof”)', 'Chave secreta do app (só se o Meta pedir “appsecret_proof”)'), '', 'password', ' autocomplete="off"') + '</details>',
+      T('Connect', 'Conectar')).then(function (v) {
+      if (v && v.token) load('connectMeta', { token: v.token, adAccountId: v.adAccountId, appSecret: v.appSecret }, T('Connected.', 'Conectado.'));
+    });
+  };
+})();

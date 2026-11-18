@@ -735,3 +735,32 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .et-page p.ok { color: var(--ok); display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .et-page .btn svg { width: 18px; height: 18px; }
 .et-todo { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+
+/* Anúncios (admin-ads.js) */
+.ads-cap .ads-bar { margin: 2px 0 8px; height: 10px; }
+.ads-bar.near i { background: var(--honey); }
+.ads-bar.full i { background: var(--danger); }
+.ads-auto { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14.5px; }
+.ads-auto input, .ads-check input { width: 20px; height: 20px; accent-color: var(--honey); }
+.ads-check { display: flex; align-items: center; gap: 8px; flex-direction: row; }
+.ads-prop { border-color: var(--honey); background: var(--honey-wash); margin-bottom: 14px; }
+.ads-prop p { margin: 0 0 10px; }
+.ads-chan.off { opacity: .78; }
+.ads-advice { padding: 8px 10px; border-radius: 8px; background: var(--sunk); }
+.ads-advice.stop, .ads-advice.off { background: color-mix(in srgb, var(--danger) 12%, var(--surface, #fff)); }
+.ads-advice.raise { background: var(--honey-wash); }
+.ads-posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.ads-post { display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: start; padding: 12px; }
+.ads-post img, .ads-noimg { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; background: var(--sunk); display: block; }
+.ads-post-in { display: grid; gap: 4px; min-width: 0; }
+.ads-post-in p { margin: 0; }
+.ads-cap-text { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ads-post .sp-top { flex-wrap: wrap; }
+.sp-pill.ads-active { background: var(--c-deliv-bg); color: var(--c-deliv); }
+.sp-pill.ads-stopped { background: var(--c-ref-bg); color: var(--c-ref); }
+.ads-errs { margin: 0 0 10px; padding-left: 18px; font-size: 14px; }
+.ads-log li span b { font-weight: 500; }
+.ads-rules summary { cursor: pointer; }
+.ads-rules ul { margin: 10px 0 12px; padding-left: 18px; display: grid; gap: 4px; }
+.ads-steps { padding-left: 18px; display: grid; gap: 6px; margin: 0 0 12px; }
+@media (max-width: 560px) { .ads-post { grid-template-columns: 64px 1fr; } .ads-post img, .ads-noimg { width: 64px; height: 64px; } }

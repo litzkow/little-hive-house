@@ -12,7 +12,8 @@
      (total x Stripe % + fixed fee from Settings).
    - Shipping labels: the label cost typed when shipping, or the default label cost for shipped orders without one.
    - Product costs: magnet cost x magnets + packaging cost per order.
-   - Profit = net sales - (Stripe fees + labels + product costs + monthly fixed costs).
+   - Ads: what Instagram/Facebook and Etsy charged for ads, plus spend logged by hand (Anúncios page, settings adSpendByDay).
+   - Profit = net sales - (Stripe fees + labels + product costs + monthly fixed costs + ads).
    - Margin = profit / net sales. ROI = profit / costs. */
 (function (root, factory) {
   var api = factory();
@@ -60,6 +61,10 @@
     out.googleReviewUrl = s && typeof s.googleReviewUrl === 'string' ? s.googleReviewUrl : '';
     // purchases logged in Materiais (functions/supplies.js) add to the money put into the shop
     out.purchasesTotal = s && isFinite(Number(s.purchasesTotal)) ? Number(s.purchasesTotal) : 0;
+    // ad spend per day (functions/ads.js): {"2026-11-20": 3.5}
+    out.adSpendByDay = {};
+    var ad = s && s.adSpendByDay && typeof s.adSpendByDay === 'object' ? s.adSpendByDay : {};
+    Object.keys(ad).forEach(function (k) { if (/^\d{4}-\d{2}-\d{2}$/.test(k) && isFinite(Number(ad[k]))) out.adSpendByDay[k] = Number(ad[k]); });
     // where USPS labels come from (functions/labels.js)
     var a = s && s.shipFrom && typeof s.shipFrom === 'object' ? s.shipFrom : {};
     out.shipFrom = { name: a.name || '', company: a.company || '', street1: a.street1 || '', street2: a.street2 || '', city: a.city || '', state: a.state || '', zip: a.zip || '', phone: a.phone || '' };
@@ -196,7 +201,7 @@
   /* ---------- a period ---------- */
   function emptyMetrics() {
     return { orders: 0, magnets: 0, grossSales: 0, discounts: 0, shippingCharged: 0, refunds: 0, refundCount: 0, netSales: 0,
-             stripeFees: 0, feesEstimated: 0, labels: 0, labelsEstimated: 0, productCosts: 0, fixedCosts: 0, costs: 0,
+             stripeFees: 0, feesEstimated: 0, labels: 0, labelsEstimated: 0, productCosts: 0, fixedCosts: 0, adSpend: 0, costs: 0,
              profit: 0, margin: null, roi: null, aov: 0, customers: 0, returningCustomers: 0, repeatRate: null, totalCollected: 0,
              salesTax: 0, taxRefunded: 0, taxOwed: 0, taxByState: {}, stripeTaxFees: 0, incomeTaxPct: 0, incomeTaxReserve: 0, profitAfterTax: 0 };
   }
@@ -252,11 +257,13 @@
     if (!first || range.to <= first) months = 0;
     else if (first > range.from) months = Math.max(1, Math.min(months, monthsBetween(first, range.to)));
     m.fixedCosts = s.monthlyFixedCosts * months;
-    ['grossSales', 'discounts', 'shippingCharged', 'refunds', 'stripeFees', 'labels', 'productCosts', 'fixedCosts', 'totalCollected',
+    /* ads count on the day they were paid (a day belongs to the range when its noon does) */
+    Object.keys(s.adSpendByDay).forEach(function (k) { var p = k.split('-'); if (inRange(new Date(+p[0], +p[1] - 1, +p[2], 12).getTime())) m.adSpend += s.adSpendByDay[k]; });
+    ['grossSales', 'discounts', 'shippingCharged', 'refunds', 'stripeFees', 'labels', 'productCosts', 'fixedCosts', 'adSpend', 'totalCollected',
      'salesTax', 'taxRefunded', 'stripeTaxFees'].forEach(function (k) { m[k] = round2(m[k]); });
     Object.keys(m.taxByState).forEach(function (k) { m.taxByState[k] = round2(m.taxByState[k]); });
     m.netSales = round2(m.grossSales - m.discounts + m.shippingCharged - m.refunds);
-    m.costs = round2(m.stripeFees + m.stripeTaxFees + m.labels + m.productCosts + m.fixedCosts);
+    m.costs = round2(m.stripeFees + m.stripeTaxFees + m.labels + m.productCosts + m.fixedCosts + m.adSpend);
     m.profit = round2(m.netSales - m.costs);
     taxLines(m, s.incomeTaxPct);
     m.margin = m.netSales > 0 ? round2(m.profit / m.netSales * 100) : null;
@@ -289,12 +296,12 @@
   function totalsOf(rows) {
     var t = emptyMetrics();
     ['orders', 'magnets', 'grossSales', 'discounts', 'shippingCharged', 'refunds', 'refundCount', 'stripeFees', 'feesEstimated', 'labels',
-     'labelsEstimated', 'productCosts', 'fixedCosts', 'totalCollected', 'salesTax', 'taxRefunded', 'stripeTaxFees'].forEach(function (k) {
+     'labelsEstimated', 'productCosts', 'fixedCosts', 'adSpend', 'totalCollected', 'salesTax', 'taxRefunded', 'stripeTaxFees'].forEach(function (k) {
       t[k] = round2(rows.reduce(function (a, r) { return a + num(r[k]); }, 0));
     });
     rows.forEach(function (r) { Object.keys(r.taxByState || {}).forEach(function (k) { t.taxByState[k] = round2((t.taxByState[k] || 0) + r.taxByState[k]); }); });
     t.netSales = round2(t.grossSales - t.discounts + t.shippingCharged - t.refunds);
-    t.costs = round2(t.stripeFees + t.stripeTaxFees + t.labels + t.productCosts + t.fixedCosts);
+    t.costs = round2(t.stripeFees + t.stripeTaxFees + t.labels + t.productCosts + t.fixedCosts + t.adSpend);
     t.profit = round2(t.netSales - t.costs);
     taxLines(t, rows.length ? rows[rows.length - 1].incomeTaxPct : 0);   /* reserve on the whole period's profit */
     t.margin = t.netSales > 0 ? round2(t.profit / t.netSales * 100) : null;
