@@ -176,8 +176,10 @@ async function recentPosts(meta, rules) {
       thumb: m.thumbnail_url || (m.media_type === "VIDEO" ? "" : m.media_url) || "", score: num(m.like_count) + 3 * num(m.comments_count),
       eligible: elig.eligible_to_boost !== false, why: elig.eligible_to_boost === false ? String(elig.boost_ineligible_reason || "") : "",
     };
-  }).sort((a, b) => b.score - a.score || String(b.at).localeCompare(String(a.at)));
+  // Reels first (they reach people who don't follow yet, for less), then likes + comments
+  }).sort((a, b) => (b.type === "reel") - (a.type === "reel") || b.score - a.score || String(b.at).localeCompare(String(a.at)));
 }
+const MIN_AGE = DAY;          // a post is boosted after a day out: by then its likes show whether people like it
 
 function landing(mediaId) {
   const q = new URLSearchParams({ utm_source: "instagram", utm_medium: "paid", utm_campaign: "hive-boost", utm_content: String(mediaId) });
@@ -390,8 +392,19 @@ function plan({ boosts, allowed, posts, rules, capReached }) {
       b.daily = r2(b.daily + 1);
     }
   });
-  // 4. room left: boost the next best posts
-  let count = active.length;
+  // 4. a Reel is waiting and the money is on a photo that sold nothing: the photo gives its place to the Reel
+  if (posts[0] && posts[0].type === "reel") {
+    const photo = active.slice().reverse().find((b) => b.type && b.type !== "reel" && !(b.revenue > 0) && !out.grow.some((g) => g.id === b.id));
+    const room = allowed - sum();
+    if (photo && room < rules.perPost - 0.001) {
+      out.pause.push({ id: photo.id, why: "reel" });
+      active = active.filter((b) => b !== photo);
+      out.start.push({ id: posts[0].id, daily: photo.daily });
+      posts = posts.slice(1);
+    }
+  }
+  // 5. room left: boost the next best posts
+  let count = active.length + out.start.length;
   for (const p of posts) {
     if (count >= rules.maxPosts) break;
     if (sum() + out.start.reduce((t, s) => t + s.daily, 0) + rules.perPost > allowed + 0.001) break;
@@ -502,7 +515,8 @@ async function run({ by = "robot" } = {}) {
       let posts = [];
       try { posts = await recentPosts(meta, cfg.rules); } catch (e) { errors.meta = errors.meta || e.message; }
       state.posts = posts.slice(0, 24);
-      const candidates = posts.filter((p) => p.eligible && !state.never[p.id] && !state.boosts[p.id]);
+      const candidates = posts.filter((p) => p.eligible && !state.never[p.id] && !state.boosts[p.id] && Date.now() - Date.parse(p.at || 0) >= MIN_AGE);
+      boosts.forEach((b) => { const p = posts.find((x) => x.id === b.id); b.type = (p && p.type) || state.boosts[b.id].type || ""; });
       const P = plan({ boosts, allowed, posts: candidates, rules: cfg.rules, capReached });
       for (const p of P.pause) {
         const b = state.boosts[p.id];
@@ -510,8 +524,10 @@ async function run({ by = "robot" } = {}) {
           await setAdset(meta, b, { status: "PAUSED" });
           b.status = p.why === "no-sales" ? "stopped" : "paused"; b.why = p.why; b.pausedAt = nowIso();
           const pt = p.why === "no-sales" ? `Pausei o post ${short(b)}: gastou ${money(b.spend)} e não vendeu.`
+            : p.why === "reel" ? `Pausei o post ${short(b)} para passar o dinheiro para um Reel (Reels alcançam mais gente por menos).`
             : p.why === "cap" ? `Pausei o post ${short(b)}: o teto do mês (${money(cfg.monthCap)}) chegou.` : `Pausei o post ${short(b)} para caber no orçamento do dia.`;
           const en = p.why === "no-sales" ? `Paused post ${short(b)}: spent ${money(b.spend)} and sold nothing.`
+            : p.why === "reel" ? `Paused post ${short(b)} to move its money to a Reel.`
             : p.why === "cap" ? `Paused post ${short(b)}: the month's cap (${money(cfg.monthCap)}) was reached.` : `Paused post ${short(b)} to fit the day's budget.`;
           await log("meta", "pause", pt, en, { post: p.id }); did.push(pt);
         } catch (e) { errors.meta = e.message; await log("meta", "error", `Não consegui pausar o post ${short(b)}: ${e.message}`, `Couldn't pause post ${short(b)}: ${e.message}`); }
@@ -529,7 +545,7 @@ async function run({ by = "robot" } = {}) {
         const post = candidates.find((p) => p.id === s.id);
         try {
           const made = await boost(meta, state, post, s.daily);
-          state.boosts[post.id] = { id: post.id, ...made, status: "active", startedAt: nowIso(), by, caption: post.caption, permalink: post.permalink, thumb: post.thumb, spend: 0, clicks: 0, revenue: 0 };
+          state.boosts[post.id] = { id: post.id, ...made, type: post.type || "", status: "active", startedAt: nowIso(), by, caption: post.caption, permalink: post.permalink, thumb: post.thumb, spend: 0, clicks: 0, revenue: 0 };
           const pt = `Comecei a impulsionar o post ${short(state.boosts[post.id])} com ${money(made.daily)} por dia.`;
           await log("meta", "start", pt, `Started boosting post ${short(state.boosts[post.id])} at ${money(made.daily)} a day.`, { post: post.id }); did.push(pt);
         } catch (e) {

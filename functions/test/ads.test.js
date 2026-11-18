@@ -85,6 +85,23 @@ test("plan: the teto reached pauses everything; a smaller budget pauses the weak
   assert.deepEqual(p.start, []);
 });
 
+test("plan: a Reel waiting takes the place of a photo that sold nothing; a photo that sells keeps its money", () => {
+  const { A } = setup();
+  const photo = { id: "ph", type: "image", daily: 1, spend: 0.5, clicks: 2, revenue: 0 };
+  let p = A.plan({ boosts: [photo], allowed: 1, posts: [{ id: "rl", type: "reel" }, { id: "im", type: "image" }], rules: RULES, capReached: false });
+  assert.deepEqual(p.pause, [{ id: "ph", why: "reel" }]);
+  assert.deepEqual(p.start, [{ id: "rl", daily: 1 }]);
+  // the photo sold: it stays; no room for the Reel today
+  p = A.plan({ boosts: [{ ...photo, revenue: 12 }], allowed: 1, posts: [{ id: "rl", type: "reel" }], rules: RULES, capReached: false });
+  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, []);
+  // a Reel boosted already is never swapped for another Reel
+  p = A.plan({ boosts: [{ ...photo, type: "reel" }], allowed: 1, posts: [{ id: "rl", type: "reel" }], rules: RULES, capReached: false });
+  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, []);
+  // with room in the budget, the Reel just starts too
+  p = A.plan({ boosts: [photo], allowed: 5, posts: [{ id: "rl", type: "reel" }], rules: RULES, capReached: false });
+  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, [{ id: "rl", daily: 2 }]);
+});
+
 test("month totals and Etsy advice", () => {
   const { A } = setup();
   const daily = {
@@ -146,9 +163,9 @@ test("a morning run: saves the days, boosts the best eligible post with a tracke
       "GET act_123/insights": { data: [{ date_start: today, spend: "1.50", impressions: "300", inline_link_clicks: "9" }] },
       [`GET ${META.igUserId}/media`]: { data: [
         { id: "18000000000000001", caption: "Old one", timestamp: new Date(Date.now() - 400 * 86400000).toISOString(), like_count: 900, comments_count: 0 },
-        { id: "18000000000000002", caption: "Not allowed", timestamp: new Date().toISOString(), like_count: 80, comments_count: 1, boost_eligibility_info: { eligible_to_boost: false } },
-        { id: "18000000000000003", caption: "Packing an order with me", timestamp: new Date().toISOString(), like_count: 40, comments_count: 5 },
-        { id: "18000000000000004", caption: "Fall collection", timestamp: new Date().toISOString(), like_count: 10, comments_count: 0 },
+        { id: "18000000000000002", caption: "Not allowed", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), like_count: 80, comments_count: 1, boost_eligibility_info: { eligible_to_boost: false } },
+        { id: "18000000000000003", caption: "Packing an order with me", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), like_count: 40, comments_count: 5 },
+        { id: "18000000000000004", caption: "Fall collection", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), like_count: 10, comments_count: 0 },
       ] },
       "POST act_123/campaigns": { id: "c1" },
       "POST act_123/adsets": (p) => ({ id: `as-${p.name.slice(5, 22)}` }),
@@ -230,7 +247,7 @@ test("a Meta error never breaks the run: it goes in the log and the page shows i
   db.docs.set("ads/auth", { meta: META });
   net({ meta: {
     "GET act_123/insights": { error: { message: "Invalid OAuth access token.", code: 190 } },
-    [`GET ${META.igUserId}/media`]: { data: [{ id: "18000000000000003", caption: "x", timestamp: new Date().toISOString(), like_count: 1 }] },
+    [`GET ${META.igUserId}/media`]: { data: [{ id: "18000000000000003", caption: "x", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), like_count: 1 }] },
     "POST act_123/campaigns": { error: { message: "Ad account has no payment method", code: 100 } },
   } });
   const r = await A.run();
@@ -308,4 +325,17 @@ test("the orders themselves count for the post that brought them, even when Goog
   const v = await A.adminAds({ action: "view" }, ADMIN);
   assert.deepEqual(v.sales.map((x) => [x.number, x.origin.kind]).sort(), [["LHH-1012", "ad"], ["LHH-1013", "social"]]);
   assert.equal(v.sales.find((x) => x.number === "LHH-1012").post.caption, "Packing");
+});
+
+test("posts: Reels come first, then the most liked; a post less than a day old waits", async () => {
+  const { A } = setup();
+  const old = new Date(Date.now() - 3 * 86400000).toISOString();
+  globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ data: [
+    { id: "p1", caption: "Welcome", media_type: "IMAGE", media_product_type: "FEED", timestamp: old, like_count: 90, comments_count: 4 },
+    { id: "r1", caption: "Packing", media_type: "VIDEO", media_product_type: "REELS", timestamp: old, like_count: 12, comments_count: 1 },
+    { id: "r2", caption: "Tonight", media_type: "VIDEO", media_product_type: "REELS", timestamp: new Date().toISOString(), like_count: 30, comments_count: 0 },
+  ] }) });
+  const posts = await A._internal.recentPosts(META, RULES);
+  assert.deepEqual(posts.map((p) => p.id), ["r2", "r1", "p1"]);
+  assert.equal(posts[0].type, "reel");
 });
