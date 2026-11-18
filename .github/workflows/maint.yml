@@ -19,6 +19,7 @@ on:
 
 jobs:
   maint:
+    if: inputs.task != 'import-content'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -230,3 +231,37 @@ jobs:
             client-errors|fix-crops|autocrop-check|check-order|check-shippo|check-analytics) echo "(done in its own steps above)" ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac
+
+  # Conteúdo: põe vídeos editados na aba Conteúdo (Compartilhados). VALUE = a tag do rascunho de release com os arquivos.
+  import-content:
+    if: inputs.task == 'import-content'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      PROJECT: ${{ vars.FIREBASE_PROJECT || 'little-hive-house' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER || 'projects/752604920358/locations/global/workloadIdentityPools/github/providers/github' }}
+          service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: "Conteúdo: baixar os vídeos do rascunho"
+        run: gh release download "${{ inputs.value }}" -R "${{ github.repository }}" -D /tmp/import
+      - name: "Conteúdo: subir para o app"
+        working-directory: tools/maint
+        env: { DIR: /tmp/import }
+        run: |
+          echo '{"private":true}' > package.json
+          npm install --no-audit --no-fund @google-cloud/firestore@7 @google-cloud/storage@7 >/dev/null
+          node import-content.js
+      - name: "Conteúdo: apagar o rascunho"
+        if: always()
+        run: gh release delete "${{ inputs.value }}" -R "${{ github.repository }}" -y || true
