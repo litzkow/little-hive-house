@@ -95,7 +95,7 @@
       ? '<video class="ct-media' + (url ? '' : ' ct-wait') + '" data-ct-path="' + esc(f.path) + '"' + (url ? ' src="' + esc(url) + '#t=0.1"' : '') + ' preload="metadata" playsinline controls></video>'
       : '<img class="ct-media' + (url ? '' : ' ct-wait') + '" data-ct-path="' + esc(f.path) + '"' + (url ? ' src="' + esc(url) + '"' : '') + ' alt="" loading="lazy">';
     return '<figure class="ct-file' + (big ? ' big' : '') + '">' + media + '<figcaption>' +
-      '<button class="btn btn-honey btn-sm" data-act="ctSave" data-id="' + esc(it.id) + '" data-path="' + esc(f.path) + '">' + h.icon('download') + T('Save to phone', 'Salvar no celular') + '</button>' +
+      '<button class="btn btn-honey btn-sm" data-act="ctSave" data-id="' + esc(it.id) + '" data-path="' + esc(f.path) + '">' + h.icon('download') + T('Save to phone', 'Baixar no celular') + '</button>' +
       '<span class="tiny muted ct-fname">' + esc(String(f.name || '').replace(/\.[a-z0-9]+$/i, '')) + ' · ' + size(f.size) + (f.dur ? ' · ' + f.dur + 's' : '') + '</span>' +
       '<button class="icon-btn" data-act="ctDelFile" data-id="' + esc(it.id) + '" data-path="' + esc(f.path) + '" aria-label="' + T('Delete file', 'Apagar arquivo') + '">' + h.icon('trash') + '</button>' +
       '</figcaption></figure>';
@@ -103,7 +103,9 @@
   function metaMedia(it) {
     var link = it.igLink || it.fbLink || '';
     if (it.kind === 'video' && /^https:\/\//.test(it.mediaUrl || ''))
-      return '<figure class="ct-file big"><video class="ct-media" src="' + esc(it.mediaUrl) + '" poster="' + esc(it.preview || '') + '" preload="none" playsinline controls></video></figure>';
+      return '<figure class="ct-file big"><video class="ct-media" src="' + esc(it.mediaUrl) + '" poster="' + esc(it.preview || '') + '" preload="none" playsinline controls></video>' +
+        '<figcaption><a class="btn btn-honey btn-sm" href="' + esc(it.mediaUrl) + '" target="_blank" rel="noopener" download>' + h.icon('download') + T('Download', 'Baixar') + '</a>' +
+        '<span class="tiny muted ct-fname">' + T('opens the video: tap Share › Save Video', 'abre o vídeo: toque em Compartilhar › Salvar vídeo') + '</span></figcaption></figure>';
     if (/^https:\/\//.test(it.preview || ''))
       return '<figure class="ct-file big"><a href="' + esc(link || it.preview) + '" target="_blank" rel="noopener"><img class="ct-media" src="' + esc(it.preview) + '" alt="" loading="lazy" referrerpolicy="no-referrer"></a></figure>';
     return '';
