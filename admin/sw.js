@@ -6,7 +6,7 @@
    It also shows the owners' notifications (Web Push from functions/push.js: new orders, messages, card holds…). */
 'use strict';
 
-var CACHE = 'hive-admin-shell-v78';
+var CACHE = 'hive-admin-shell-v79';
 var SHELL = ['./', 'index.html', 'admin.css', 'boot.js', 'i18n-pt.js', 'i18n.js', 'reports.js', 'zip.js', 'admin.js', 'admin-order.js', 'admin-more.js', 'admin-plan.js', 'admin-visits.js', 'admin-returns.js', 'admin-etsy.js', 'admin-supplies.js', 'admin-ads.js', 'admin-content.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', '../assets/favicon.svg'];
 
@@ -45,7 +45,8 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   var key = shellKey(event.request);
   if (!key) return;                      // not part of the app shell: the browser handles it, nothing is cached
-  event.respondWith(fetch(event.request).then(function (res) {
+  // always ask the server (a cheap 304 when nothing changed), never the browser's own cache: a new version shows on the next open
+  event.respondWith(fetch(event.request.url, { cache: 'no-cache', credentials: 'same-origin' }).then(function (res) {
     if (res.ok && res.type === 'basic') {
       var copy = res.clone();
       caches.open(CACHE).then(function (cache) { return cache.put(key, copy); });
