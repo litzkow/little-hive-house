@@ -10,27 +10,21 @@ const say = (s) => console.log(`::warning title=meta::${String(s).replace(/\n/g,
   const meta = ((await db.collection("ads").doc("auth").get()).data() || {}).meta;
   const pg = await G(meta, "GET", meta.pageId, { fields: "access_token" });
   const page = { token: pg.access_token, appSecret: meta.appSecret };
+  const show = (label, arr) => say(`${label}: ${arr.length} → ` + arr.slice(0, 8).map((x) => JSON.stringify({ id: x.id, pub: x.published ?? x.is_published,
+    st: x.status && x.status.publishing_phase, sched: x.scheduled_publish_time, t: x.created_time || x.updated_time, d: (x.description || x.message || x.name || "").slice(0, 30) })).join(" | "));
   const tries = [
-    ["scheduled_posts", `${meta.pageId}/scheduled_posts`, { fields: "id,message,scheduled_publish_time" }],
-    ["promotable_posts não publicados", `${meta.pageId}/promotable_posts`, { is_published: false, fields: "id,message,scheduled_publish_time,is_published" }],
-    ["videos", `${meta.pageId}/videos`, { fields: "id,description,published,scheduled_publish_time,created_time", limit: 50 }],
-    ["video_reels", `${meta.pageId}/video_reels`, { fields: "id,description,published,scheduled_publish_time,created_time", limit: 50 }],
-    ["feed", `${meta.pageId}/feed`, { fields: "id,message,is_published,scheduled_publish_time,created_time", limit: 50 }],
+    ["video_reels", `${meta.pageId}/video_reels`, { fields: "id,description,published,status,scheduled_publish_time,created_time,updated_time", limit: 50 }],
+    ["videos", `${meta.pageId}/videos`, { fields: "id,description,published,status,scheduled_publish_time,created_time", limit: 50 }],
+    ["videos uploaded", `${meta.pageId}/videos`, { type: "uploaded", fields: "id,description,published,status,scheduled_publish_time,created_time", limit: 50 }],
+    ["photos uploaded", `${meta.pageId}/photos`, { type: "uploaded", fields: "id,name,published,created_time", limit: 50 }],
+    ["scheduled_posts", `${meta.pageId}/scheduled_posts`, { fields: "id,message,scheduled_publish_time,created_time" }],
+    ["published_posts", `${meta.pageId}/published_posts`, { fields: "id,message,created_time,is_published", limit: 10 }],
+    ["ads_posts", `${meta.pageId}/ads_posts`, { fields: "id,message,created_time,is_published,scheduled_publish_time", limit: 25, include_inline_create: true }],
   ];
   for (const [label, path, params] of tries) {
-    try {
-      const j = await G(page, "GET", path, params);
-      const d = j.data || [];
-      const sched = d.filter((x) => x.scheduled_publish_time || x.published === false || x.is_published === false);
-      say(`${label}: ${d.length} itens, ${sched.length} não publicados/agendados` + (sched.length ? " → " + sched.slice(0, 6).map((x) => `${x.scheduled_publish_time || "?"} ${(x.message || x.description || "").slice(0, 40)}`).join(" | ") : ""));
-    } catch (e) { say(`${label}: erro ${e.message}`); }
+    try { const j = await G(page, "GET", path, params); show(label, j.data || []); } catch (e) { say(`${label}: erro ${e.message.slice(0, 160)}`); }
   }
-  try {
-    const j = await G(page, "GET", `${meta.pageId}/videos`, { fields: "id,description,published,status,scheduled_publish_time,length,picture,source,permalink_url,created_time", limit: 50 });
-    for (const v of (j.data || []).filter((x) => x.published === false)) {
-      say(`vídeo não publicado ${v.id}: ${JSON.stringify({ desc: (v.description || "").slice(0, 60), status: v.status, sched: v.scheduled_publish_time, len: v.length, temSource: !!v.source, temPicture: !!v.picture, criado: v.created_time })}`);
-    }
-  } catch (e) { say(`videos detalhe: erro ${e.message}`); }
+  try { const j = await G(meta, "GET", `${meta.igUserId}/media`, { fields: "id,caption,timestamp,media_product_type", limit: 50 }); say(`instagram publicados: ${(j.data || []).length}`); } catch (e) { say(`ig: ${e.message}`); }
   try {
     const j = await G(meta, "GET", `${meta.igUserId}/content_publishing_limit`, { fields: "quota_usage,config" });
     say(`instagram limite de publicação: ${JSON.stringify(j.data || j)}`);
