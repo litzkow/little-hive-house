@@ -20,30 +20,26 @@ function setup() {
   return { db, bucket, pushes, C: require("../content") };
 }
 
-test("the plan comes in once, from today on, with captions and scripts", async () => {
+test("the old 6-month plan goes away once (only untouched planned posts); nothing new is seeded", async () => {
   const { db, C } = setup();
-  const v = await C.adminContent({ action: "list" }, THIAGO);
-  const today = C._today();
-  assert.ok(v.items.length > 0);
-  assert.ok(v.items.every((i) => i.date >= today));
-  assert.ok(v.items.every((i) => i.status === "todo"));            // only a plan: nothing is ready until a file comes
-  const vid = v.items.find((i) => i.kind === "video");
-  assert.equal(vid.status, "todo");
-  assert.equal(vid.nets.tiktok, true);
-  assert.ok(vid.script.length > 10 && vid.caption.includes("#"));
-  const post = v.items.find((i) => i.kind === "photo");
-  assert.equal(post.nets.tiktok, false);
-  const again = await C.adminContent({ action: "list" }, KARINA);
-  assert.equal(again.items.length, v.items.length);              // not twice
+  db.docs.set("settings/content", { fix1: "x" });
+  db.docs.set("content/p1", { title: "Gift guide", kind: "photo", status: "todo", source: "plan", date: "2026-12-01", files: [], posted: {} });
+  db.docs.set("content/p2", { title: "Made it", kind: "video", status: "ready", source: "plan", date: "2026-12-02", files: [{ path: "content/p2/x.mov" }], posted: {} });
+  db.docs.set("content/p3", { title: "On Meta", kind: "photo", status: "scheduled", source: "plan", date: "2026-12-03", files: [], posted: {} });
+  db.docs.set("content/a1", { title: "Ours", kind: "idea", status: "idea", source: "app", files: [], posted: {} });
+  let v = await C.adminContent({ action: "list" }, THIAGO);
+  assert.deepEqual(v.items.map((i) => i.id).sort(), ["a1", "p2", "p3"]);
+  db.docs.set("content/p4", { title: "Later", kind: "photo", status: "todo", source: "plan", files: [], posted: {} });
+  v = await C.adminContent({ action: "list" }, KARINA);
+  assert.ok(v.items.some((i) => i.id === "p4"));                 // only once
   await assert.rejects(C.adminContent({ action: "list" }, { uid: "x", token: {} }), /admins/);
-  assert.ok(db.get("settings/content").seeded);
 });
 
 test("a new post, its original file, a push to the other owner only, posted networks and deleting", async () => {
   const { db, bucket, pushes, C } = setup();
-  db.docs.set("settings/content", { seeded: "x" });
-  await assert.rejects(C.adminContent({ action: "save", item: { title: "" } }, THIAGO), /title/);
-  let v = await C.adminContent({ action: "save", item: { title: "Packing an order", kind: "video", date: "2026-11-20", time: "19:00", caption: "Pack with me #smallbusiness" } }, THIAGO);
+  db.docs.set("settings/content", { seeded: "x", fix1: "x", fix2: "x" });
+  await assert.rejects(C.adminContent({ action: "save", item: { title: "", kind: "idea", status: "idea" } }, THIAGO), /idea/);
+  let v = await C.adminContent({ action: "save", item: { title: "Packing an order", kind: "video", status: "todo", date: "2026-11-20", time: "19:00", caption: "Pack with me #smallbusiness" } }, THIAGO);
   const id = v.id;
   let it = v.items.find((i) => i.id === id);
   assert.deepEqual(it.nets, { instagram: true, facebook: true, tiktok: true });
@@ -60,7 +56,22 @@ test("a new post, its original file, a push to the other owner only, posted netw
   assert.equal(it.status, "ready");
   assert.equal(pushes.length, 1);
   assert.equal(pushes[0].to, "https://push/karina");                 // only the other owner
-  assert.match(pushes[0].body, /thiago mandou um vídeo: Packing an order/);
+  assert.match(pushes[0].body, /Thiago mandou um vídeo novo: Packing an order/);
+  assert.equal(it.files[0].byName, "Thiago");
+  // a video sent as an idea stays an idea and says so; a written idea tells the other one too
+  v = await C.adminContent({ action: "save", item: { title: "Cat on the fridge", kind: "idea", status: "idea" } }, KARINA);
+  assert.match(pushes[1].body, /Karina anotou uma ideia: Cat on the fridge/);
+  assert.equal(pushes[1].to, "https://push/thiago");
+  const idea = v.id, ipath = `content/${idea}/1-cat.mov`;
+  bucket.files.set(ipath, { data: Buffer.alloc(100), contentType: "video/quicktime" });
+  v = await C.adminContent({ action: "addFile", id: idea, path: ipath, name: "cat.mov" }, KARINA);
+  assert.equal(v.items.find((i) => i.id === idea).status, "idea");
+  assert.match(pushes[2].body, /Karina mandou um vídeo novo nas Ideias: Cat on the fridge/);
+  await C.adminContent({ action: "remove", id: idea }, KARINA);
+  // with no title, a video gets one
+  v = await C.adminContent({ action: "save", item: { kind: "video", status: "ready" }, withFile: true }, THIAGO);
+  assert.equal(v.items.find((i) => i.id === v.id).title, "Vídeo novo");
+  await C.adminContent({ action: "remove", id: v.id }, THIAGO);
   // out on Instagram and Facebook: posted (TikTok still unticked); unticking everything takes it back
   v = await C.adminContent({ action: "posted", id, nets: { instagram: true, facebook: true } }, KARINA);
   assert.equal(v.items.find((i) => i.id === id).status, "posted");
@@ -85,7 +96,7 @@ test("a new post, its original file, a push to the other owner only, posted netw
 test("Meta: Instagram posts and Facebook scheduled/published posts come in and match the planned ones", async () => {
   const { db, C } = setup();
   require("../ads")._internal.setPause(1);
-  db.docs.set("settings/content", { seeded: "x" });
+  db.docs.set("settings/content", { seeded: "x", fix1: "x", fix2: "x" });
   db.docs.set("ads/auth", { meta: { token: "EAAB" + "x".repeat(60), adAccountId: "act_1", pageId: "999", igUserId: "1784" } });
   const now = Date.now(), day = C._nyParts(now).date, tomorrow = C._nyParts(now + 86400000);
   db.docs.set("content/plan1", { title: "Packing", kind: "video", status: "todo", date: day, time: "19:00", caption: "Grandma's fridge, upgraded.\nThe whole family", nets: { instagram: true, facebook: true, tiktok: false }, posted: {}, files: [] });
@@ -126,7 +137,7 @@ test("Meta: Instagram posts and Facebook scheduled/published posts come in and m
 test("fixes once: plan posts with no file back to to-make; cover photos out; same-day scheduled post matched; video plays", async () => {
   const { db, C } = setup();
   require("../ads")._internal.setPause(1);
-  db.docs.set("settings/content", { seeded: "x", sync: { at: new Date().toISOString() } });
+  db.docs.set("settings/content", { seeded: "x", fix2: "x", sync: { at: new Date().toISOString() } });
   db.docs.set("content/a", { title: "Gift guide", kind: "photo", status: "ready", source: "plan", date: "2026-12-01", files: [], posted: {} });
   db.docs.set("content/b", { title: "Mine", kind: "video", status: "ready", source: "plan", date: "2026-12-02", files: [{ path: "content/b/x.mov" }], posted: {} });
   db.docs.set("content/c", { title: "Post do Facebook", kind: "photo", status: "posted", source: "facebook", caption: "", posted: { facebook: "x" } });

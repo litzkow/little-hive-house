@@ -184,9 +184,23 @@ async function fixOnce() {
   await ref.set({ fix1: nowIso() }, { merge: true });
 }
 
+/* Once: the 6-month calendar that came in as planned posts isn't what the owners are doing (they changed dates and
+   ideas), so the planned posts nobody touched (no file, not scheduled or posted) go away. The page is now for passing
+   videos to each other and seeing what is on Meta; anything with a date is made by them. */
+async function fixOnce2() {
+  const ref = db().collection("settings").doc("content");
+  if (((await ref.get()).data() || {}).fix2) return;
+  const q = await col().get();
+  for (const d of q.docs) {
+    const i = d.data();
+    if (i.source === "plan" && !(i.files || []).length && !["scheduled", "posted"].includes(i.status)) await d.ref.delete();
+  }
+  await ref.set({ fix2: nowIso(), seeded: true }, { merge: true });
+}
+
 async function list(opts) {
-  await seed();
   await fixOnce();
+  await fixOnce2();
   let sync = null;
   try { sync = await syncMeta(opts || {}); } catch (e) { sync = { at: nowIso(), errors: { meta: e.message } }; }
   const q = await col().get();
@@ -195,9 +209,11 @@ async function list(opts) {
   return { items, today: today(), sync };
 }
 
+/** The first name of who did it: "Thiago", "Karina". */
 const name = (auth) => {
   const e = String((auth && auth.token && auth.token.email) || "");
-  return (auth && auth.token && auth.token.name) || e.split("@")[0] || "Alguém";
+  const n = String((auth && auth.token && auth.token.name) || e.split("@")[0].replace(/[._\d-]+/g, " ") || "Alguém").trim().split(/\s+/)[0];
+  return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
 };
 async function tellOther(auth, text, tag) {
   try { await require("./push").notifyAdmins("admin_content", { text, tag }, { exceptUid: auth && auth.uid }); } catch (e) { /* never blocks */ }
@@ -226,8 +242,11 @@ async function adminContent(data, auth) {
         return { ...(await list()), id };
       }
       const item = cleanItem(data.item);
-      if (!item.title) fail("invalid-argument", "Give it a title.");
-      const r = await col().add({ ...item, files: [], posted: {}, source: "app", by: U.who(auth), at: nowIso(), updatedAt: nowIso() });
+      if (!item.title && item.kind === "idea") fail("invalid-argument", "Write the idea.");
+      if (!item.title) item.title = item.kind === "photo" ? "Foto nova" : "Vídeo novo";
+      const r = await col().add({ ...item, files: [], posted: {}, source: "app", by: U.who(auth), byName: name(auth), at: nowIso(), updatedAt: nowIso() });
+      // a written idea tells the other one too (a video idea tells when its file arrives)
+      if (item.status === "idea" && !data.withFile) await tellOther(auth, `${name(auth)} anotou uma ideia: ${item.title}`, `content-${r.id}`);
       return { ...(await list()), id: r.id };
     }
     case "addFile": {
@@ -242,12 +261,13 @@ async function adminContent(data, auth) {
       if (!/^(image|video)\//.test(type)) fail("invalid-argument", "Only photos and videos.");
       const files = (cur.files || []).filter((f) => f.path !== path);
       files.push({ path, name: U.text(data.name, 140) || path.split("/").pop(), type, size: Number(meta.size) || Number(data.size) || 0,
-        w: Number(data.w) || 0, h: Number(data.h) || 0, dur: Number(data.dur) || 0, at: nowIso(), by: U.who(auth) });
-      const upd = { files, updatedAt: nowIso() };
-      if (cur.status === "todo" || cur.status === "idea") upd.status = "ready";
+        w: Number(data.w) || 0, h: Number(data.h) || 0, dur: Number(data.dur) || 0, at: nowIso(), by: U.who(auth), byName: name(auth) });
+      const upd = { files, updatedAt: nowIso(), lastFileAt: nowIso() };
+      if (cur.status === "todo") upd.status = "ready";      // an idea stays an idea, with its video
       await ref.set(upd, { merge: true });
-      const kind = /^video\//.test(type) ? "um vídeo" : "uma foto";
-      await tellOther(auth, `${name(auth)} mandou ${kind}: ${cur.title || "post novo"}. Toque para baixar.`, `content-${id}`);
+      const kind = /^video\//.test(type) ? "um vídeo novo" : "uma foto nova";
+      const where = cur.status === "idea" ? " nas Ideias" : "";
+      await tellOther(auth, `${name(auth)} mandou ${kind}${where}: ${cur.title || "sem nome"}. Toque para ver.`, `content-${id}`);
       return list();
     }
     case "removeFile": {
