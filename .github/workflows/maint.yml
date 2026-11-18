@@ -229,6 +229,7 @@ jobs:
             add-purchase) node tools/maint/add-purchase.js ;;
             supply-bought) node tools/maint/supply-bought.js ;;
             content-key) node tools/maint/content-key.js ;;
+            content-fix-sent) node tools/maint/content-fix-sent.js ;;
             client-errors|fix-crops|autocrop-check|check-order|check-shippo|check-analytics) echo "(done in its own steps above)" ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac
