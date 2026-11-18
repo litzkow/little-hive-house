@@ -123,6 +123,17 @@ function cleanRef(r) {
   return out.source || out.medium ? out : null;
 }
 
+/** What the Meta Conversions API needs to match the sale to the ad (metaevents.js): the browser's IP and user agent and
+   Meta's own cookies. With Global Privacy Control on, only that choice is kept. */
+function client(fb, rawRequest) {
+  fb = fb && typeof fb === "object" ? fb : {};
+  if (fb.gpc === true) return { gpc: true };
+  const ok = (v) => (/^fb\.\d\.\d+\.[\w.-]{1,200}$/.test(String(v || "")) ? String(v) : "");
+  const ua = rawRequest && rawRequest.headers ? String(rawRequest.headers["user-agent"] || "").slice(0, 400) : "";
+  const c = { ip: U.clientIp(rawRequest).slice(0, 64), ua, fbp: ok(fb.fbp), fbc: ok(fb.fbc) };
+  Object.keys(c).forEach((k) => { if (!c[k]) delete c[k]; });
+  return c;
+}
 async function createCheckout(data, auth, rawRequest) {
   data = data || {};
   need("STRIPE_SECRET_KEY");
@@ -147,6 +158,7 @@ async function createCheckout(data, auth, rawRequest) {
     timeline: [{ at, status: "pending", text: O.TIMELINE_TEXT.pending }],
     emails: { confirmation: null, shipped: null, delivered: null, refund: [] },
     source: "site", ref: cleanRef(data.ref), createdAt: at, paidAt: null, updatedAt: at,
+    client: client(data.fb, rawRequest),
   };
   await ref.set(order);
   let session;
@@ -316,6 +328,7 @@ async function completeCheckout(session) {
     const adminData = { ...data, printSheet: ps ? { ...ps.meta, attached: attach } : null };
     await mail.send({ to: mailAdmin(), kind: "admin_new_order", data: adminData, replyTo: after.email || undefined,
       attachments: attach ? files : undefined });
+    await require("./metaevents").purchase(after, orderId);   // the sale to Meta too (never blocks the order)
     if (after.marketing && after.email) {
       await db.collection("subscribers").doc(U.emailKey(after.email))
         .set({ email: after.email, at: nowIso(), source: "checkout", unsubscribed: false }, { merge: true }).catch(() => {});

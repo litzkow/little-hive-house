@@ -54,52 +54,72 @@ function net({ meta = {}, ga = [] } = {}) {
 }
 const META = { token: "EAAB" + "x".repeat(60), adAccountId: "act_123", pageId: "999", igUserId: "17841400000000000", accountName: "LHH", igUsername: "littlehivehouse" };
 
-test("plan: stops what spent enough and sold nothing, grows what sells, boosts the next best posts", () => {
+test("plan: the robot stops what spent enough and nobody put in the cart, or what the same people saw 4+ times, and fills the room", () => {
   const { A } = setup();
   const p = A.plan({
     boosts: [
-      { id: "11111", daily: 2, spend: 9, clicks: 40, revenue: 0 },     // spent $9, no sale -> stop
-      { id: "22222", daily: 2, spend: 6, clicks: 30, revenue: 30 },    // 5x return -> +$1
+      { id: "11111", spend: 9, clicks: 40, carts: 0, revenue: 0 },                      // $9, no cart, no sale -> stop
+      { id: "22222", spend: 9, clicks: 30, carts: 2, revenue: 0 },                      // carts: keep learning
+      { id: "33333", spend: 3, clicks: 10, frequency: 4.6, impressions: 900 },          // tired
     ],
-    allowed: 6, posts: [{ id: "33333" }, { id: "44444" }], rules: RULES, capReached: false,
+    allowed: 6, posts: [{ id: "44444" }, { id: "55555" }, { id: "66666" }], rules: RULES, capReached: false, auto: true,
   });
-  assert.deepEqual(p.pause, [{ id: "11111", why: "no-sales" }]);
-  assert.deepEqual(p.grow, [{ id: "22222", daily: 3 }]);
-  assert.deepEqual(p.start, [{ id: "33333", daily: 2 }]);   // $3 + $2 fits the $6; a fourth $2 would not
+  assert.deepEqual(p.pause, [{ id: "11111", why: "no-sales" }, { id: "33333", why: "tired" }]);
+  assert.equal(p.budget, 6);                                                             // one budget for all of them
+  assert.deepEqual(p.start.map((s) => s.id), ["44444", "55555"]);                        // 3 at most
 });
 
-test("plan: fills the room with new posts, never past maxPosts or the day's budget", () => {
+test("plan: what the owners chose stays (the robot only warns); with the robot off nothing new starts", () => {
   const { A } = setup();
-  let p = A.plan({ boosts: [], allowed: 5, posts: [{ id: "1" }, { id: "2" }, { id: "3" }, { id: "4" }], rules: RULES, capReached: false });
-  assert.deepEqual(p.start.map((s) => s.id), ["1", "2"]);   // $2 + $2, a third would be $6 > $5
-  p = A.plan({ boosts: [], allowed: 50, posts: [{ id: "1" }, { id: "2" }, { id: "3" }, { id: "4" }], rules: RULES, capReached: false });
-  assert.equal(p.start.length, 3);
+  const boosts = [{ id: "mine", spend: 9, clicks: 40, revenue: 0, owner: true }];
+  let p = A.plan({ boosts, allowed: 4, posts: [{ id: "x" }], rules: RULES, capReached: false, auto: true });
+  assert.deepEqual(p.pause, []); assert.deepEqual(p.warn, [{ id: "mine", why: "no-sales" }]);
+  assert.deepEqual(p.start.map((s) => s.id), ["x"]);
+  p = A.plan({ boosts: [{ ...boosts[0], owner: false }], allowed: 4, posts: [{ id: "x" }], rules: RULES, capReached: false, auto: false });
+  assert.deepEqual(p.pause, []); assert.deepEqual(p.warn.length, 1); assert.deepEqual(p.start, []);
 });
 
-test("plan: the teto reached pauses everything; a smaller budget pauses the weakest first", () => {
+test("plan: the teto reached (or the calendar) leaves the budget at 0 and starts nothing", () => {
   const { A } = setup();
-  const boosts = [{ id: "a", daily: 2, spend: 3, clicks: 5, revenue: 0 }, { id: "b", daily: 2, spend: 3, clicks: 20, revenue: 12 }];
-  assert.deepEqual(A.plan({ boosts, allowed: 4, posts: [], rules: RULES, capReached: true }).pause.map((x) => x.why), ["cap", "cap"]);
-  const p = A.plan({ boosts, allowed: 2.5, posts: [{ id: "c" }], rules: RULES, capReached: false });
-  assert.deepEqual(p.pause, [{ id: "a", why: "budget" }]);
+  const boosts = [{ id: "a", spend: 3, clicks: 5, revenue: 0 }];
+  let p = A.plan({ boosts, allowed: 4, posts: [{ id: "c" }], rules: RULES, capReached: true, auto: true });
+  assert.equal(p.budget, 0); assert.deepEqual(p.start, []);
+  p = A.plan({ boosts, allowed: 0, posts: [{ id: "c" }], rules: RULES, capReached: false, auto: true });
+  assert.equal(p.budget, 0); assert.deepEqual(p.start, []);
+});
+
+test("plan: a Reel waiting takes the place of a photo that sold nothing; the Reel they asked for goes first, past any limit", () => {
+  const { A } = setup();
+  const R1 = { ...RULES, maxPosts: 1 };
+  const photo = { id: "ph", type: "image", spend: 0.5, clicks: 2, revenue: 0 };
+  let p = A.plan({ boosts: [photo], allowed: 4, posts: [{ id: "rl", type: "reel" }, { id: "im", type: "image" }], rules: R1, capReached: false, auto: true });
+  assert.deepEqual(p.pause, [{ id: "ph", why: "reel" }]);
+  assert.deepEqual(p.start, [{ id: "rl", next: false }]);
+  // the photo sold: it stays
+  p = A.plan({ boosts: [{ ...photo, revenue: 12 }], allowed: 4, posts: [{ id: "rl", type: "reel" }], rules: R1, capReached: false, auto: true });
+  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, []);
+  // a Reel boosted already is never swapped for another Reel by the robot...
+  const reel = { ...photo, type: "reel" };
+  p = A.plan({ boosts: [reel], allowed: 4, posts: [{ id: "rl", type: "reel" }], rules: R1, capReached: false, auto: true });
+  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, []);
+  // ...but the new Reel the owners asked for takes the weakest place, even with the robot off
+  p = A.plan({ boosts: [reel], allowed: 4, posts: [], rules: R1, capReached: false, auto: false, nextReel: { id: "new", type: "reel" } });
+  assert.deepEqual(p.pause, [{ id: "ph", why: "room" }]); assert.deepEqual(p.start, [{ id: "new", next: true }]);
+  // an owner's choice is never the one moved out
+  p = A.plan({ boosts: [{ ...reel, owner: true }], allowed: 4, posts: [], rules: R1, capReached: false, auto: true, nextReel: { id: "new", type: "reel" } });
   assert.deepEqual(p.start, []);
 });
 
-test("plan: a Reel waiting takes the place of a photo that sold nothing; a photo that sells keeps its money", () => {
+test("the calendar: Black Friday week the usual, Dec 2–14 double, from Dec 15 nothing (the post office), inside the cap", () => {
   const { A } = setup();
-  const photo = { id: "ph", type: "image", daily: 1, spend: 0.5, clicks: 2, revenue: 0 };
-  let p = A.plan({ boosts: [photo], allowed: 1, posts: [{ id: "rl", type: "reel" }, { id: "im", type: "image" }], rules: RULES, capReached: false });
-  assert.deepEqual(p.pause, [{ id: "ph", why: "reel" }]);
-  assert.deepEqual(p.start, [{ id: "rl", daily: 1 }]);
-  // the photo sold: it stays; no room for the Reel today
-  p = A.plan({ boosts: [{ ...photo, revenue: 12 }], allowed: 1, posts: [{ id: "rl", type: "reel" }], rules: RULES, capReached: false });
-  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, []);
-  // a Reel boosted already is never swapped for another Reel
-  p = A.plan({ boosts: [{ ...photo, type: "reel" }], allowed: 1, posts: [{ id: "rl", type: "reel" }], rules: RULES, capReached: false });
-  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, []);
-  // with room in the budget, the Reel just starts too
-  p = A.plan({ boosts: [photo], allowed: 5, posts: [{ id: "rl", type: "reel" }], rules: RULES, capReached: false });
-  assert.deepEqual(p.pause, []); assert.deepEqual(p.start, [{ id: "rl", daily: 2 }]);
+  const cfg = A.cleanConfig({ monthCap: 1000, channels: { meta: { on: true, daily: 4 }, etsy: { on: false, daily: 2 } } });
+  const t = { total: 0 };
+  assert.equal(A.dailyAllowed(cfg, t, "2026-11-27"), 4);
+  assert.equal(A.dailyAllowed(cfg, t, "2026-12-05"), 8);
+  assert.equal(A.dailyAllowed(cfg, t, "2026-12-16"), 0);
+  assert.equal(A.dailyAllowed(cfg, t, "2027-01-03"), 4);
+  assert.equal(A.dailyAllowed(cfg, { total: 990 }, "2026-12-05"), 0.37);  // $10 left for 27 days: inside the cap
+  assert.equal(A.dailyAllowed(A.cleanConfig({ ...cfg, rules: { holiday: false } }), t, "2026-12-16"), 4);
 });
 
 test("month totals and Etsy advice", () => {
@@ -181,14 +201,16 @@ test("a morning run: saves the days, boosts the best eligible post with a tracke
   assert.equal(day.meta.spend, 1.5);
   assert.equal(day.site.adRevenue, 24);
   assert.equal(day.site.revenue, 54);
-  // the campaign, then one ad set + creative + ad per post: the two best eligible recent posts ($2 + $2 fit the $4 a day)
+  // the campaign, then ONE ad set for all (landing page views, the day's $4 shared), and a creative + ad per post
   const camp = calls.find((c) => c.path === "act_123/campaigns");
   assert.equal(camp.params.objective, "OUTCOME_TRAFFIC");
   assert.equal(camp.params.special_ad_categories, "[]");
   const sets = calls.filter((c) => c.path === "act_123/adsets");
-  assert.equal(sets.length, 2);
-  assert.equal(sets[0].params.daily_budget, "200");
+  assert.equal(sets.length, 1);
+  assert.equal(sets[0].params.daily_budget, "400");
+  assert.equal(sets[0].params.optimization_goal, "LANDING_PAGE_VIEWS");
   assert.deepEqual(JSON.parse(sets[0].params.targeting).geo_locations, { countries: ["US"] });
+  assert.deepEqual(calls.filter((c) => c.path === "act_123/ads").map((c) => c.params.adset_id), ["as- · Hive Admin", "as- · Hive Admin"]);
   const cr = calls.filter((c) => c.path === "act_123/adcreatives");
   assert.deepEqual(cr.map((c) => c.params.source_instagram_media_id), ["18000000000000003", "18000000000000004"]);
   const link = JSON.parse(cr[0].params.call_to_action).value.link;
@@ -197,6 +219,8 @@ test("a morning run: saves the days, boosts the best eligible post with a tracke
   assert.equal(cr[0].params.object_id, "999");
   const st = db.get("ads/state");
   assert.equal(st.boosts["18000000000000003"].status, "active");
+  assert.equal(st.boosts["18000000000000003"].shared, true);
+  assert.equal(st.adsetId, "as- · Hive Admin");
   assert.equal(st.metaCampaignId, "c1");
   assert.equal(st.boosts["18000000000000002"], undefined);       // not eligible
   assert.equal(st.boosts["18000000000000001"], undefined);       // older than 90 days
@@ -208,23 +232,24 @@ test("a morning run: saves the days, boosts the best eligible post with a tracke
   assert.ok(v.log.filter((l) => l.kind === "start").length === 2);
 });
 
-test("the next run pauses a post that spent past the limit without a sale, and keeps one that sells", async () => {
-  const { db, A } = setup();
+test("the next run pauses (in the shared ad set) what spent past the limit with no cart, keeps what sells, and only warns about the owners' choice", async () => {
+  const { db, pushes, A } = setup();
   db.docs.set("ads/auth", { meta: META });
   db.docs.set("ads/config", { ...A.DEFAULTS, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
-  db.docs.set("ads/state", { metaCampaignId: "c1", boosts: {
-    "18000000000000003": { id: "18000000000000003", adsetId: "as3", adId: "ad3", daily: 2, status: "active", caption: "Packing" },
-    "18000000000000004": { id: "18000000000000004", adsetId: "as4", adId: "ad4", daily: 2, status: "active", caption: "Fall" },
+  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", boosts: {
+    "18000000000000003": { id: "18000000000000003", adsetId: "shared1", adId: "ad3", shared: true, status: "active", caption: "Packing", by: "robot" },
+    "18000000000000004": { id: "18000000000000004", adsetId: "shared1", adId: "ad4", shared: true, status: "active", caption: "Fall", by: "robot" },
+    "18000000000000005": { id: "18000000000000005", adsetId: "shared1", adId: "ad5", shared: true, status: "active", caption: "Mine", by: "Thiago" },
   } });
   const ymd = A.dayKey().replace(/-/g, "");
   const calls = net({
     meta: {
       "GET act_123/insights": { data: [] },
       "GET ad3/insights": { data: [{ spend: "4.00", inline_link_clicks: "30" }] },
-      "GET ad4/insights": { data: [{ spend: "9.10", inline_link_clicks: "12" }] },
+      "GET ad4/insights": { data: [{ spend: "9.10", inline_link_clicks: "12", actions: [{ action_type: "link_click", value: "12" }] }] },
+      "GET ad5/insights": { data: [{ spend: "9.50", inline_link_clicks: "8" }] },
       [`GET ${META.igUserId}/media`]: { data: [] },
-      "POST as4": { success: true },
-      "POST as3": { success: true },
+      "POST ad4": { success: true },
     },
     ga: [[ymd, "instagram", "paid", "18000000000000003", 24, 1]],
   });
@@ -233,13 +258,78 @@ test("the next run pauses a post that spent past the limit without a sale, and k
   assert.equal(st.boosts["18000000000000004"].status, "stopped");
   assert.equal(st.boosts["18000000000000003"].status, "active");
   assert.equal(st.boosts["18000000000000003"].revenue, 24);
-  const pause = calls.find((c) => c.path === "as4");
-  assert.equal(pause.params.status, "PAUSED");
-  // 24 / 4 = 6x return after more than $3: one more dollar a day, since $3 still fits the $4 a day for Meta
-  assert.equal(calls.find((c) => c.path === "as3").params.daily_budget, "300");
-  assert.equal(st.boosts["18000000000000003"].daily, 3);
+  assert.equal(st.boosts["18000000000000005"].status, "active");     // theirs: only a warning
+  assert.equal(st.boosts["18000000000000005"].warn, "no-sales");
+  assert.equal(calls.find((c) => c.path === "ad4").params.status, "PAUSED");
+  assert.equal(calls.filter((c) => c.method === "POST" && c.path === "shared1").length, 0);   // same $4: nothing to change
   const v = await A.adminAds({ action: "view" }, ADMIN);
   assert.ok(v.log.some((l) => l.kind === "pause" && /\$9\.10/.test(l.pt)));
+  assert.ok(v.log.some((l) => l.kind === "warn" && /Mine/.test(l.pt)));
+  // the warning is said once
+  const n = pushes.length;
+  await A.run();
+  assert.equal(db.get("adsLog") === undefined || true, true);
+  assert.equal((await A.adminAds({ action: "view" }, ADMIN)).log.filter((l) => l.kind === "warn").length, 1);
+  assert.ok(pushes.length >= n);
+});
+
+test("the next Reel: they ask, it waits until a new Reel is out, then it's boosted first (the weakest robot pick makes room)", async () => {
+  const { db, A } = setup();
+  db.docs.set("ads/auth", { meta: META });
+  db.docs.set("ads/config", { ...A.DEFAULTS, rules: { ...A.DEFAULTS.rules, maxPosts: 1 }, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
+  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", boosts: {
+    "18000000000000003": { id: "18000000000000003", adsetId: "shared1", adId: "ad3", shared: true, status: "active", caption: "Packing", by: "robot", type: "reel" },
+  } });
+  const asked = new Date(Date.now() - 3600000).toISOString();
+  await A.adminAds({ action: "nextReel", after: asked }, ADMIN);
+  const media = { data: [{ id: "18000000000000003", caption: "Packing", media_product_type: "REELS", media_type: "VIDEO", timestamp: new Date(Date.now() - 3 * 86400000).toISOString(), like_count: 9 }] };
+  const calls = net({ meta: {
+    "GET act_123/insights": { data: [] }, "GET ad3/insights": { data: [{ spend: "1.00" }] },
+    [`GET ${META.igUserId}/media`]: media,
+    "POST ad3": { success: true },
+    "POST act_123/adcreatives": (p) => ({ id: `cr-${p.source_instagram_media_id}` }),
+    "POST act_123/ads": (p) => ({ id: "ad-new" }),
+  } });
+  assert.deepEqual(await A.boostNextReel(), { waiting: true });          // nothing new yet
+  assert.equal(calls.filter((c) => c.path === "act_123/ads").length, 0);
+  // the Reel goes out (a photo too: only the Reel counts)
+  media.data.unshift({ id: "18000000000000009", caption: "Wrapping a gift", media_product_type: "REELS", media_type: "VIDEO", timestamp: new Date().toISOString(), like_count: 0 });
+  media.data.unshift({ id: "18000000000000008", caption: "Photo", media_type: "IMAGE", timestamp: new Date().toISOString() });
+  const r = await A.boostNextReel();
+  assert.equal(r.boosted, "18000000000000009");
+  const st = db.get("ads/state");
+  assert.equal(st.nextReel, undefined);
+  assert.equal(st.boosts["18000000000000009"].status, "active");
+  assert.equal(st.boosts["18000000000000009"].by, "owner@lhh.com");
+  assert.equal(st.boosts["18000000000000003"].status, "paused");
+  assert.equal(calls.find((c) => c.path === "ad3").params.status, "PAUSED");
+  assert.equal(calls.find((c) => c.path === "act_123/ads").params.adset_id, "shared1");
+  assert.deepEqual(await A.boostNextReel(), { waiting: false });
+});
+
+test("the owners swap what's boosted: the one they pick in, the one they say (or the weakest robot pick) out", async () => {
+  const { db, A } = setup();
+  db.docs.set("ads/auth", { meta: META });
+  db.docs.set("ads/config", { ...A.DEFAULTS, rules: { ...A.DEFAULTS.rules, maxPosts: 1 }, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
+  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE",
+    posts: [{ id: "18000000000000007", caption: "Other reel", type: "reel" }],
+    boosts: { "18000000000000003": { id: "18000000000000003", adsetId: "shared1", adId: "ad3", shared: true, status: "active", caption: "Packing", by: "robot" } } });
+  const calls = net({ meta: {
+    "POST ad3": { success: true },
+    "POST act_123/adcreatives": (p) => ({ id: `cr-${p.source_instagram_media_id}` }),
+    "POST act_123/ads": () => ({ id: "ad7" }),
+  } });
+  await A.adminAds({ action: "post", id: "18000000000000007", what: "boost", instead: "18000000000000003" }, ADMIN);
+  const st = db.get("ads/state");
+  assert.equal(st.boosts["18000000000000003"].status, "paused");
+  assert.equal(st.boosts["18000000000000007"].status, "active");
+  assert.equal(st.boosts["18000000000000007"].type, "reel");
+  assert.equal(calls.find((c) => c.path === "act_123/ads").params.adset_id, "shared1");
+  // pausing theirs acts on the ad, not the shared ad set
+  calls.length = 0;
+  net({ meta: { "POST ad7": { success: true } } });
+  await A.adminAds({ action: "post", id: "18000000000000007", what: "pause" }, ADMIN);
+  assert.equal(db.get("ads/state").boosts["18000000000000007"].status, "paused");
 });
 
 test("a Meta error never breaks the run: it goes in the log and the page shows it", async () => {

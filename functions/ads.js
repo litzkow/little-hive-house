@@ -37,7 +37,7 @@ const DEFAULTS = {
   monthCap: 200,
   auto: true,
   channels: { meta: { on: true, daily: 4 }, etsy: { on: true, daily: 2 }, google: { on: false, daily: 0 }, tiktok: { on: false, daily: 0 }, amazon: { on: false, daily: 0 } },
-  rules: { perPost: 2, maxPosts: 3, maxPerPost: 5, stopAfter: 8, growRoas: 3, postDays: 90 },
+  rules: { perPost: 2, maxPosts: 3, maxPerPost: 5, stopAfter: 8, growRoas: 3, postDays: 90, holiday: true },
 };
 /* Platform floors the app enforces (TikTok: $20 a day per ad group; Meta and Etsy: $1). */
 const MIN_DAILY = { meta: 1, etsy: 1, google: 1, tiktok: 20, amazon: 1 };
@@ -77,6 +77,7 @@ function cleanConfig(c) {
     stopAfter: r2(clamp(num(x.stopAfter != null ? x.stopAfter : R.stopAfter), 1, 1000)),
     growRoas: r2(clamp(num(x.growRoas != null ? x.growRoas : R.growRoas), 1, 50)),
     postDays: Math.round(clamp(num(x.postDays != null ? x.postDays : R.postDays), 7, 365)),
+    holiday: x.holiday !== false,
   };
   if (out.rules.maxPerPost < out.rules.perPost) out.rules.maxPerPost = out.rules.perPost;
   ["capAt", "capBy"].forEach((k) => { if (c[k]) out[k] = String(c[k]); });
@@ -200,34 +201,55 @@ function minFromError(e) {
   const m = /(?:at least|minimum[^$]*)\s*\$?\s*(\d+(?:\.\d+)?)/i.exec((e && e.message) || "");
   return m ? Number(m[1]) : null;
 }
-/** Boosts one Instagram post: an ad set with its own daily budget (US, 18–65, Meta's automatic audience) and the ad. */
-async function boost(meta, state, post, daily) {
+/** The one ad set every boosted Reel lives in (made the first time): one daily budget for all of them, and Meta gives
+   it to the ad that works. US, 18–65, Meta's automatic audience; optimized for landing page views (people who wait for
+   the shop to open), not for clicks, which find people who click and leave. */
+const TARGETING = { geo_locations: { countries: ["US"] }, age_min: 18, age_max: 65, targeting_automation: { advantage_audience: 1 } };
+async function sharedAdset(meta, state, daily) {
+  if (state.adsetId) return state.adsetId;
   const cid = await campaign(meta, state);
-  const adsetBody = (d) => ({
-    name: `Post ${post.id} · ${String(post.caption || "").slice(0, 40) || "Instagram"}`, campaign_id: cid, daily_budget: cents(d),
-    billing_event: "IMPRESSIONS", optimization_goal: "LINK_CLICKS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE",
-    targeting: { geo_locations: { countries: ["US"] }, age_min: 18, age_max: 65, targeting_automation: { advantage_audience: 1 } }, status: "ACTIVE",
-  });
-  let adset;
-  try { adset = await graph(meta, "POST", `${meta.adAccountId}/adsets`, adsetBody(daily)); } catch (e) {
+  const body = (d) => ({ name: "Reels · Hive Admin", campaign_id: cid, daily_budget: cents(d), billing_event: "IMPRESSIONS",
+    optimization_goal: "LANDING_PAGE_VIEWS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE", targeting: TARGETING, status: "ACTIVE" });
+  let a;
+  try { a = await graph(meta, "POST", `${meta.adAccountId}/adsets`, body(daily)); } catch (e) {
     const min = minFromError(e);
     if (!min || min <= daily || min > daily * 3) throw e;
     daily = min;
-    adset = await graph(meta, "POST", `${meta.adAccountId}/adsets`, adsetBody(daily));
+    a = await graph(meta, "POST", `${meta.adAccountId}/adsets`, body(daily));
   }
-  try {
-    const creative = await graph(meta, "POST", `${meta.adAccountId}/adcreatives`, {
-      name: `Instagram ${post.id}`, object_id: meta.pageId, instagram_user_id: meta.igUserId, source_instagram_media_id: post.id,
-      call_to_action: { type: "SHOP_NOW", value: { link: landing(post.id) } },
-    });
-    const ad = await graph(meta, "POST", `${meta.adAccountId}/ads`, { name: `Post ${post.id}`, adset_id: adset.id, creative: { creative_id: creative.id }, status: "ACTIVE" });
-    return { adsetId: String(adset.id), adId: String(ad.id), creativeId: String(creative.id), daily };
-  } catch (e) {
-    await graph(meta, "POST", String(adset.id), { status: "DELETED" }).catch(() => {});   // no empty ad set left behind
-    throw e;
-  }
+  state.adsetId = String(a.id); state.adsetDaily = daily; state.adsetStatus = "ACTIVE";
+  return state.adsetId;
 }
-const setAdset = (meta, b, params) => graph(meta, "POST", b.adsetId, params);
+/** Boosts one Instagram post: one more ad in the shared ad set (the Pixel follows what it brings). */
+async function boost(meta, state, post, daily) {
+  const adsetId = await sharedAdset(meta, state, Math.max(1, num(daily) || 1));
+  const creative = await graph(meta, "POST", `${meta.adAccountId}/adcreatives`, {
+    name: `Instagram ${post.id}`, object_id: meta.pageId, instagram_user_id: meta.igUserId, source_instagram_media_id: post.id,
+    call_to_action: { type: "SHOP_NOW", value: { link: landing(post.id) } },
+  });
+  const ad = await graph(meta, "POST", `${meta.adAccountId}/ads`, { name: `Post ${post.id} · ${String(post.caption || "").slice(0, 40) || "Instagram"}`, adset_id: adsetId,
+    creative: { creative_id: creative.id }, status: "ACTIVE",
+    tracking_specs: meta.pixelId ? [{ "action.type": ["offsite_conversion"], fb_pixel: [meta.pixelId] }] : undefined });
+  return { adsetId, adId: String(ad.id), creativeId: String(creative.id), shared: true, daily: 0 };
+}
+/** On or off: an ad in the shared ad set, or (boosts made before it) the post's own ad set. */
+const setStatus = (meta, b, status) => graph(meta, "POST", b.shared ? b.adId : b.adsetId, { status });
+/** The shared ad set's budget for today (0 = paused). */
+async function setBudget(meta, state, daily) {
+  if (!state.adsetId) return;
+  if (!(daily >= 1)) {
+    if (state.adsetStatus !== "PAUSED") { await graph(meta, "POST", state.adsetId, { status: "PAUSED" }); state.adsetStatus = "PAUSED"; }
+    return;
+  }
+  if (state.adsetDaily === daily && state.adsetStatus === "ACTIVE") return;
+  try { await graph(meta, "POST", state.adsetId, { daily_budget: cents(daily), status: "ACTIVE" }); } catch (e) {
+    const min = minFromError(e);
+    if (!min || min > daily * 3) throw e;
+    daily = min;
+    await graph(meta, "POST", state.adsetId, { daily_budget: cents(daily), status: "ACTIVE" });
+  }
+  state.adsetDaily = daily; state.adsetStatus = "ACTIVE";
+}
 
 /* ---------- reading spend and sales ---------- */
 /** Meta: the account's spend, clicks and impressions per day from `since` to today. */
@@ -241,9 +263,11 @@ async function metaDays(meta, since, until) {
 }
 /** Meta: each boosted ad's spend and clicks since it started. */
 async function metaAdStats(meta, b) {
-  const j = await graph(meta, "GET", `${b.adId}/insights`, { fields: "spend,inline_link_clicks,impressions", date_preset: "maximum" });
+  const j = await graph(meta, "GET", `${b.adId}/insights`, { fields: "spend,inline_link_clicks,impressions,frequency,actions", date_preset: "maximum" });
   const r = ((j && j.data) || [])[0] || {};
-  return { spend: r2(r.spend), clicks: num(r.inline_link_clicks), impressions: num(r.impressions) };
+  const act = (re) => ((r.actions || []).filter((a) => re.test(a.action_type)).map((a) => num(a.value)).sort((x, y) => y - x)[0]) || 0;
+  return { spend: r2(r.spend), clicks: num(r.inline_link_clicks), impressions: num(r.impressions), frequency: r2(r.frequency),
+    carts: act(/(^|\.)add_to_cart$/), buys: act(/(^|\.)purchase$/) };
 }
 
 /** Etsy: ad fees from the payment ledger and the shop's sales, per day. */
@@ -358,57 +382,65 @@ async function notify(text, tag) {
 }
 
 /* ---------- the robot ---------- */
+/** The calendar (rules.holiday): Black Friday week costs the most, so no more than the usual; Dec 2–14 is the time to
+   spend (prices fall after Cyber Monday and people still buy for Christmas); from Dec 15 the post office can't deliver
+   by Christmas, so finding new buyers stops until the year turns. Returns the factor on the usual daily budget. */
+function season(day) {
+  const md = String(day).slice(5);
+  if (md >= "11-26" && md <= "12-01") return { factor: 1, why: "peak" };
+  if (md >= "12-02" && md <= "12-14") return { factor: 2, why: "lastcall" };
+  if (md >= "12-15" && md <= "12-31") return { factor: 0, why: "shipping" };
+  return { factor: 1, why: "" };
+}
+/** How much Meta may spend today: the usual daily budget (times the calendar), never more than what keeps the month
+   inside the cap. */
+function dailyAllowed(cfg, totals, today) {
+  const month = monthOf(today);
+  const left = daysInMonth(month) - dayOfMonth(today) + 1;
+  const room = Math.max(0, cfg.monthCap - totals.total);
+  const others = CHANNELS.filter((k) => k !== "meta" && cfg.channels[k].on).reduce((t, k) => t + cfg.channels[k].daily, 0);
+  const f = cfg.rules.holiday === false ? 1 : season(today).factor;
+  return r2(Math.max(0, Math.min(cfg.channels.meta.on ? cfg.channels.meta.daily * f : 0, room / left - others)));
+}
+
 /**
- * Pure: what to do today with the boosted posts. Nothing here talks to Meta.
- *   boosts:   [{id, daily, spend, clicks, revenue}] the active ones
- *   allowed:  how much a day Meta may spend now (inside the teto)
- *   posts:    candidates, best first (already without the boosted, paused-for-good and "never" ones)
- * Returns { pause: [{id, why}], grow: [{id, daily}], start: [{id, daily}] }.
+ * Pure: what to do today. Nothing here talks to Meta.
+ *   boosts:   [{id, type, owner, spend, clicks, impressions, frequency, carts, revenue}] the active ones
+ *   allowed:  today's budget for the shared ad set (all boosted posts share it)
+ *   posts:    candidates, best first (Reels first; without the boosted, "never" and less-than-a-day-old ones)
+ *   auto:     the robot chooses (else only the owners do; the robot only warns)
+ *   nextReel: the new Reel the owners asked to boost as soon as it is out (goes first, whatever its age)
+ * Returns { budget, pause: [{id, why}], warn: [{id, why}], start: [{id, next}] }.
  */
-function plan({ boosts, allowed, posts, rules, capReached }) {
-  const out = { pause: [], grow: [], start: [] };
+function plan({ boosts, allowed, posts, rules, capReached, auto, nextReel }) {
+  const out = { budget: 0, pause: [], warn: [], start: [] };
+  if (!capReached && allowed >= 1) out.budget = r2(allowed);
   let active = boosts.slice();
-  if (capReached || allowed < 1) {
-    active.forEach((b) => out.pause.push({ id: b.id, why: "cap" }));
-    return out;
-  }
-  // 1. spent enough to know and sold nothing: stop it
+  // spent enough to know and nobody even put it in the cart (or bought); or the same people saw it 4+ times
   active = active.filter((b) => {
-    if (b.spend >= rules.stopAfter && !(b.revenue > 0)) { out.pause.push({ id: b.id, why: "no-sales" }); return false; }
-    return true;
+    const why = b.spend >= rules.stopAfter && !(b.revenue > 0) && !(b.carts > 0) ? "no-sales"
+      : b.frequency > 4 && b.impressions >= 500 ? "tired" : "";
+    if (!why) return true;
+    if (b.owner || !auto) { out.warn.push({ id: b.id, why }); return true; }
+    out.pause.push({ id: b.id, why });
+    return false;
   });
-  const roas = (b) => (b.spend > 0 ? b.revenue / b.spend : (b.revenue > 0 ? Infinity : 0));
-  // 2. over the day's budget (the teto got closer): pause the weakest until it fits
-  const sum = () => r2(active.reduce((t, b) => t + b.daily, 0));
-  active.sort((a, b) => roas(b) - roas(a) || b.clicks - a.clicks);
-  while (active.length && sum() > allowed + 0.001) {
-    const weakest = active.pop();
-    out.pause.push({ id: weakest.id, why: "budget" });
-  }
-  // 3. selling well: one more dollar a day, the best first, while it fits
-  active.forEach((b) => {
-    if (b.spend >= 3 && roas(b) >= rules.growRoas && b.daily + 1 <= rules.maxPerPost && sum() + 1 <= allowed + 0.001) {
-      out.grow.push({ id: b.id, daily: r2(b.daily + 1) });
-      b.daily = r2(b.daily + 1);
+  if (!out.budget) return out;           // the cap or the calendar: the ad set rests, nothing new starts
+  const queue = nextReel ? [{ ...nextReel, next: true }, ...posts.filter((p) => p.id !== nextReel.id)] : posts.slice();
+  let count = active.length;
+  for (const p of queue) {
+    if (!auto && !p.next) break;
+    if (count >= rules.maxPosts) {
+      // a Reel waiting (or the one they asked for) takes the place of a photo, or of the weakest, that sold nothing
+      const swap = p.next || p.type === "reel";
+      const out1 = swap && active.filter((b) => !b.owner && !(b.revenue > 0) && (p.next || b.type !== "reel"))
+        .sort((x, y) => (x.carts || 0) - (y.carts || 0) || x.clicks - y.clicks)[0];
+      if (!out1) break;
+      out.pause.push({ id: out1.id, why: p.next ? "room" : "reel" });
+      active = active.filter((b) => b !== out1);
+      count -= 1;
     }
-  });
-  // 4. a Reel is waiting and the money is on a photo that sold nothing: the photo gives its place to the Reel
-  if (posts[0] && posts[0].type === "reel") {
-    const photo = active.slice().reverse().find((b) => b.type && b.type !== "reel" && !(b.revenue > 0) && !out.grow.some((g) => g.id === b.id));
-    const room = allowed - sum();
-    if (photo && room < rules.perPost - 0.001) {
-      out.pause.push({ id: photo.id, why: "reel" });
-      active = active.filter((b) => b !== photo);
-      out.start.push({ id: posts[0].id, daily: photo.daily });
-      posts = posts.slice(1);
-    }
-  }
-  // 5. room left: boost the next best posts
-  let count = active.length + out.start.length;
-  for (const p of posts) {
-    if (count >= rules.maxPosts) break;
-    if (sum() + out.start.reduce((t, s) => t + s.daily, 0) + rules.perPost > allowed + 0.001) break;
-    out.start.push({ id: p.id, daily: rules.perPost });
+    out.start.push({ id: p.id, next: !!p.next });
     count += 1;
   }
   return out;
@@ -496,64 +528,83 @@ async function run({ by = "robot" } = {}) {
 
   // the robot (Instagram/Facebook); Etsy only gets advice
   const capReached = cfg.monthCap > 0 ? totals.total >= cfg.monthCap - 0.01 : true;
-  const daysLeft = daysInMonth(month) - dayOfMonth(today) + 1;
-  const room = Math.max(0, cfg.monthCap - totals.total);
-  const others = CHANNELS.filter((k) => k !== "meta" && cfg.channels[k].on).reduce((t, k) => t + cfg.channels[k].daily, 0);
-  const allowed = r2(Math.max(0, Math.min(cfg.channels.meta.on ? cfg.channels.meta.daily : 0, room / daysLeft - others)));
+  const allowed = dailyAllowed(cfg, totals, today);
   const did = [];
-  if (meta && cfg.auto && meta.igUserId && meta.pageId) {
+  if (meta && meta.igUserId && meta.pageId) {
     try {
       const activeIds = Object.keys(state.boosts).filter((id) => state.boosts[id].status === "active");
       const boosts = [];
       for (const id of activeIds) {
         const b = state.boosts[id];
-        let st = { spend: num(b.spend), clicks: num(b.clicks) };
+        let st = { spend: num(b.spend), clicks: num(b.clicks), impressions: num(b.impressions), frequency: num(b.frequency), carts: num(b.carts) };
         try { st = await metaAdStats(meta, b); } catch (e) { errors.meta = errors.meta || e.message; }
         Object.assign(b, st, { revenue: num(byPost[id] && byPost[id].revenue), orders: num(byPost[id] && byPost[id].orders) });
-        boosts.push({ id, daily: num(b.daily), spend: st.spend, clicks: st.clicks, revenue: b.revenue });
+        boosts.push({ id, spend: st.spend, clicks: st.clicks, impressions: num(st.impressions), frequency: num(st.frequency), carts: num(st.carts),
+          revenue: b.revenue, owner: !!b.by && b.by !== "robot", type: b.type || "" });
       }
       let posts = [];
       try { posts = await recentPosts(meta, cfg.rules); } catch (e) { errors.meta = errors.meta || e.message; }
-      state.posts = posts.slice(0, 24);
+      if (posts.length) state.posts = posts.slice(0, 24);
       const candidates = posts.filter((p) => p.eligible && !state.never[p.id] && !state.boosts[p.id] && Date.now() - Date.parse(p.at || 0) >= MIN_AGE);
-      boosts.forEach((b) => { const p = posts.find((x) => x.id === b.id); b.type = (p && p.type) || state.boosts[b.id].type || ""; });
-      const P = plan({ boosts, allowed, posts: candidates, rules: cfg.rules, capReached });
+      boosts.forEach((b) => { const p = posts.find((x) => x.id === b.id); b.type = (p && p.type) || b.type; });
+      // the new Reel the owners asked for, once it is out
+      const nr = state.nextReel ? posts.find((p) => p.type === "reel" && p.eligible !== false && !state.boosts[p.id] && !state.never[p.id]
+        && Date.parse(p.at || 0) >= Date.parse(state.nextReel.after)) : null;
+      const P = plan({ boosts, allowed, posts: candidates, rules: cfg.rules, capReached, auto: cfg.auto, nextReel: nr || null });
       for (const p of P.pause) {
         const b = state.boosts[p.id];
         try {
-          await setAdset(meta, b, { status: "PAUSED" });
+          await setStatus(meta, b, "PAUSED");
           b.status = p.why === "no-sales" ? "stopped" : "paused"; b.why = p.why; b.pausedAt = nowIso();
-          const pt = p.why === "no-sales" ? `Pausei o post ${short(b)}: gastou ${money(b.spend)} e não vendeu.`
-            : p.why === "reel" ? `Pausei o post ${short(b)} para passar o dinheiro para um Reel (Reels alcançam mais gente por menos).`
-            : p.why === "cap" ? `Pausei o post ${short(b)}: o teto do mês (${money(cfg.monthCap)}) chegou.` : `Pausei o post ${short(b)} para caber no orçamento do dia.`;
-          const en = p.why === "no-sales" ? `Paused post ${short(b)}: spent ${money(b.spend)} and sold nothing.`
-            : p.why === "reel" ? `Paused post ${short(b)} to move its money to a Reel.`
-            : p.why === "cap" ? `Paused post ${short(b)}: the month's cap (${money(cfg.monthCap)}) was reached.` : `Paused post ${short(b)} to fit the day's budget.`;
+          const pt = p.why === "no-sales" ? `Pausei o post ${short(b)}: gastou ${money(b.spend)} e ninguém pôs no carrinho.`
+            : p.why === "tired" ? `Pausei o post ${short(b)}: as mesmas pessoas já viram mais de 4 vezes.`
+            : p.why === "reel" ? `Pausei o post ${short(b)} para passar o lugar para um Reel (Reels alcançam mais gente por menos).`
+            : `Pausei o post ${short(b)} para abrir lugar para o Reel novo.`;
+          const en = p.why === "no-sales" ? `Paused post ${short(b)}: spent ${money(b.spend)} and nobody added to cart.`
+            : p.why === "tired" ? `Paused post ${short(b)}: the same people saw it more than 4 times.`
+            : p.why === "reel" ? `Paused post ${short(b)} to give its place to a Reel.` : `Paused post ${short(b)} to make room for the new Reel.`;
           await log("meta", "pause", pt, en, { post: p.id }); did.push(pt);
         } catch (e) { errors.meta = e.message; await log("meta", "error", `Não consegui pausar o post ${short(b)}: ${e.message}`, `Couldn't pause post ${short(b)}: ${e.message}`); }
       }
-      for (const g of P.grow) {
-        const b = state.boosts[g.id];
-        try {
-          await setAdset(meta, b, { daily_budget: cents(g.daily) });
-          b.daily = g.daily;
-          const pt = `O post ${short(b)} está vendendo (${money(b.revenue)} com ${money(b.spend)}). Subi para ${money(g.daily)} por dia.`;
-          await log("meta", "grow", pt, `Post ${short(b)} is selling (${money(b.revenue)} on ${money(b.spend)}). Raised to ${money(g.daily)} a day.`, { post: g.id }); did.push(pt);
-        } catch (e) { errors.meta = e.message; }
+      // what the owners chose stays; the robot only says it once
+      for (const w of P.warn) {
+        const b = state.boosts[w.id];
+        b.warn = w.why;
+        if ((b.warned || {})[w.why]) continue;
+        b.warned = { ...(b.warned || {}), [w.why]: nowIso() };
+        const pt = w.why === "no-sales" ? `O post ${short(b)} gastou ${money(b.spend)} e ninguém pôs no carrinho. Vale trocar por outro.`
+          : `O post ${short(b)} está cansando: as mesmas pessoas já viram mais de 4 vezes. Vale trocar por outro.`;
+        await log("meta", "warn", pt, w.why === "no-sales" ? `Post ${short(b)} spent ${money(b.spend)} and nobody added to cart. Worth swapping.` : `Post ${short(b)} is getting tired. Worth swapping.`, { post: w.id });
+        did.push(pt);
       }
       for (const s of P.start) {
-        const post = candidates.find((p) => p.id === s.id);
+        const post = s.next ? nr : candidates.find((p) => p.id === s.id);
         try {
-          const made = await boost(meta, state, post, s.daily);
-          state.boosts[post.id] = { id: post.id, ...made, type: post.type || "", status: "active", startedAt: nowIso(), by, caption: post.caption, permalink: post.permalink, thumb: post.thumb, spend: 0, clicks: 0, revenue: 0 };
-          const pt = `Comecei a impulsionar o post ${short(state.boosts[post.id])} com ${money(made.daily)} por dia.`;
-          await log("meta", "start", pt, `Started boosting post ${short(state.boosts[post.id])} at ${money(made.daily)} a day.`, { post: post.id }); did.push(pt);
+          const made = await boost(meta, state, post, P.budget || allowed);
+          state.boosts[post.id] = { id: post.id, ...made, type: post.type || "", status: "active", startedAt: nowIso(), by: s.next ? (state.nextReel.by || by) : by,
+            caption: post.caption, permalink: post.permalink, thumb: post.thumb, spend: 0, clicks: 0, revenue: 0 };
+          if (s.next) delete state.nextReel;
+          const pt = s.next ? `O Reel novo saiu e comecei a impulsionar: ${short(state.boosts[post.id])}.` : `Comecei a impulsionar o post ${short(state.boosts[post.id])}.`;
+          await log("meta", "start", pt, `Started boosting post ${short(state.boosts[post.id])}.`, { post: post.id }); did.push(pt);
         } catch (e) {
           errors.meta = e.message;
           state.failed = { ...(state.failed || {}), [post.id]: { at: nowIso(), error: e.message } };
           await log("meta", "error", `Não consegui impulsionar o post ${short(post)}: ${e.message}`, `Couldn't boost post ${short(post)}: ${e.message}`, { post: post.id });
           break;   // one failure a day is enough to look at; tomorrow tries again
         }
+      }
+      if (!P.budget) for (const b of Object.values(state.boosts)) {
+        if (b.status !== "active" || b.shared) continue;
+        try { await setStatus(meta, b, "PAUSED"); b.status = "paused"; b.why = capReached ? "cap" : "season"; b.pausedAt = nowIso(); } catch (e) { errors.meta = e.message; }
+      }
+      // one budget for all the boosted posts; nothing boosted (or the cap, or the calendar) = the ad set rests
+      const anyActive = Object.values(state.boosts).some((b) => b.status === "active" && b.shared);
+      const before = state.adsetStatus;
+      try { await setBudget(meta, state, anyActive ? P.budget : 0); } catch (e) { errors.meta = e.message; }
+      if (anyActive && before === "ACTIVE" && state.adsetStatus === "PAUSED" && !capReached) {
+        const why = season(today).why === "shipping" && cfg.rules.holiday !== false
+          ? "Os anúncios descansam até o fim do ano: depois de 15/dez os Correios não entregam antes do Natal." : "Os anúncios descansam hoje: não sobra orçamento dentro do teto.";
+        await log("meta", "pause", why, "The ads rest for now.", {}); did.push(why);
       }
     } catch (e) { errors.meta = e.message; }
   }
@@ -609,6 +660,22 @@ async function syncReports(manual) {
   return byDay;
 }
 
+/** Every few minutes while the owners wait for a new Reel: once it's out on Instagram, the run boosts it. */
+async function boostNextReel() {
+  const state = (await read("state")) || {};
+  if (!state.nextReel) return { waiting: false };
+  const meta = ((await read("auth")) || {}).meta;
+  if (!meta || !meta.igUserId) return { waiting: true };
+  const cfg = await config();
+  const posts = await recentPosts(meta, cfg.rules);
+  const after = Date.parse(state.nextReel.after);
+  const out = posts.find((p) => p.type === "reel" && Date.parse(p.at || 0) >= after && !(state.boosts || {})[p.id] && !(state.never || {})[p.id]);
+  if (!out) return { waiting: true };
+  if (!out.eligible) return { waiting: true, notYet: out.id };
+  const r = await run({ by: "robot" });
+  return { waiting: false, boosted: out.id, errors: r.errors };
+}
+
 /* ---------- what the page shows ---------- */
 async function view() {
   const cfg = await config();
@@ -639,6 +706,9 @@ async function view() {
     config: cfg, planned: plannedDaily(cfg), month, today, daysInMonth: daysInMonth(month), dayOfMonth: dayOfMonth(today),
     totals, meta: metaPublic(auth.meta), etsy: { connected: etsyConnected, advice: state.etsyAdvice || etsyAdvice(cfg, totals) },
     boosts, posts: (state.posts || []).map((p) => ({ ...p, never: !!(state.never || {})[p.id], boosted: !!(state.boosts || {})[p.id] })),
+    nextReel: state.nextReel || null, pixel: !!(auth.meta && auth.meta.pixelId),
+    season: cfg.rules.holiday === false ? "" : season(today).why, allowed: dailyAllowed(cfg, totals, today),
+    shared: state.adsetId ? { daily: num(state.adsetDaily), status: state.adsetStatus || "" } : null,
     lastRun: state.lastRun || null, log: logs, proposals: props, manual: manual.slice(0, 30), last30, minDaily: MIN_DAILY, sales,
   };
 }
@@ -701,29 +771,57 @@ async function adminAds(data, auth) {
       const state = (await read("state")) || {};
       state.boosts = state.boosts || {}; state.never = state.never || {};
       const b = state.boosts[id];
-      if (what === "never") { state.never[id] = true; if (b && b.status === "active") { await setAdset(meta, b, { status: "PAUSED" }); b.status = "stopped"; b.why = "owner"; } }
+      if ((what === "never" || what === "pause" || what === "boost") && !meta) fail("failed-precondition", "Instagram/Facebook isn't connected yet.");
+      if (what === "never") {
+        state.never[id] = true;
+        if (b && b.status === "active") { await setStatus(meta, b, "PAUSED"); b.status = "stopped"; b.why = "owner"; b.pausedAt = nowIso(); }
+        await log("meta", "never", `Vocês pediram para nunca impulsionar o post ${short(b || (state.posts || []).find((p) => p.id === id) || { id })}.`, "You asked never to boost this post.", { post: id, by: U.who(auth) });
+      }
       else if (what === "allow") { delete state.never[id]; }
       else if (what === "pause") {
         if (!b || b.status !== "active") fail("failed-precondition", "This post isn't being boosted.");
-        await setAdset(meta, b, { status: "PAUSED" }); b.status = "paused"; b.why = "owner"; b.pausedAt = nowIso();
+        await setStatus(meta, b, "PAUSED"); b.status = "paused"; b.why = "owner"; b.pausedAt = nowIso();
         await log("meta", "pause", `Post ${short(b)} pausado por vocês.`, `Post ${short(b)} paused by you.`, { post: id, by: U.who(auth) });
       } else if (what === "boost") {
-        if (!meta) fail("failed-precondition", "Instagram/Facebook isn't connected yet.");
-        const totals = (await view()).totals;
-        const activeDaily = Object.values(state.boosts).filter((x) => x.status === "active").reduce((t, x) => t + num(x.daily), 0);
-        const month = monthOf(dayKey()), daysLeft = daysInMonth(month) - dayOfMonth(dayKey()) + 1;
-        const daily = b ? num(b.daily) || cfg.rules.perPost : cfg.rules.perPost;
-        if (totals.total + (activeDaily + daily) * daysLeft > cfg.monthCap + 0.01)
-          fail("failed-precondition", `This would pass the monthly cap (${money(cfg.monthCap)}). Raise the cap or pause another post first.`);
-        if (b) { await setAdset(meta, b, { status: "ACTIVE" }); b.status = "active"; b.why = ""; }
+        const v = await view();
+        if (v.config.monthCap > 0 && v.totals.total >= v.config.monthCap - 0.01) fail("failed-precondition", `The monthly cap (${money(cfg.monthCap)}) was reached. Raise the cap first.`);
+        // "instead": the one they're swapping out; else, with no room, the weakest the robot chose makes room
+        const instead = U.text(data.instead || "", 40).replace(/\D/g, "");
+        let out = instead && state.boosts[instead] && state.boosts[instead].status === "active" ? state.boosts[instead] : null;
+        const active = Object.values(state.boosts).filter((x) => x.status === "active" && x.id !== id);
+        if (!out && active.length >= cfg.rules.maxPosts) {
+          out = active.filter((x) => !x.by || x.by === "robot").sort((x, y) => num(x.revenue) - num(y.revenue) || num(x.carts) - num(y.carts) || num(x.clicks) - num(y.clicks))[0];
+          if (!out) fail("failed-precondition", `There are already ${cfg.rules.maxPosts} posts boosted. Pause one first.`);
+        }
+        if (out) {
+          await setStatus(meta, out, "PAUSED"); out.status = "paused"; out.why = "owner"; out.pausedAt = nowIso();
+          await log("meta", "pause", `Post ${short(out)} pausado para dar lugar a outro escolhido por vocês.`, `Post ${short(out)} paused to make room for one you chose.`, { post: out.id, by: U.who(auth) });
+        }
+        if (b && b.shared) { await setStatus(meta, b, "ACTIVE"); b.status = "active"; b.why = ""; b.by = U.who(auth); }
         else {
           const post = (state.posts || []).find((p) => p.id === id) || { id };
-          const made = await boost(meta, state, post, daily);
-          state.boosts[id] = { id, ...made, status: "active", startedAt: nowIso(), by: U.who(auth), caption: post.caption || "", permalink: post.permalink || "", thumb: post.thumb || "", spend: 0, clicks: 0, revenue: 0 };
+          if (b && !b.shared) { try { await setStatus(meta, b, "PAUSED"); } catch (e) { /* the old ad set; the new ad replaces it */ } }
+          const made = await boost(meta, state, post, dailyAllowed(cfg, v.totals, dayKey()) || cfg.channels.meta.daily);
+          state.boosts[id] = { id, ...made, type: post.type || "", status: "active", startedAt: nowIso(), by: U.who(auth), caption: post.caption || "", permalink: post.permalink || "", thumb: post.thumb || "", spend: 0, clicks: 0, revenue: 0 };
         }
         delete state.never[id];
-        await log("meta", "start", `Post ${short(state.boosts[id])} impulsionado por vocês (${money(state.boosts[id].daily)} por dia).`, `Post ${short(state.boosts[id])} boosted by you (${money(state.boosts[id].daily)} a day).`, { post: id, by: U.who(auth) });
+        try { await setBudget(meta, state, dailyAllowed(cfg, v.totals, dayKey())); } catch (e) { /* the morning run sets it again */ }
+        await log("meta", "start", `Post ${short(state.boosts[id])} impulsionado por vocês.`, `Post ${short(state.boosts[id])} boosted by you.`, { post: id, by: U.who(auth) });
       } else fail("invalid-argument", "Unknown choice.");
+      await doc("state").set(state);
+      return view();
+    }
+    case "nextReel": {
+      // boost the next Reel that goes out, as soon as it's out (on: true), or not (on: false)
+      const state = (await read("state")) || {};
+      if (data.on === false) {
+        delete state.nextReel;
+        await log("meta", "next", "Cancelado: impulsionar o próximo Reel.", "Cancelled: boost the next Reel.", { by: U.who(auth) });
+      } else {
+        const after = data.after && !isNaN(Date.parse(data.after)) ? new Date(Date.parse(data.after)).toISOString() : nowIso();
+        state.nextReel = { after, by: U.who(auth), at: nowIso() };
+        await log("meta", "next", "O próximo Reel que sair vai ser impulsionado assim que sair.", "The next Reel will be boosted as soon as it's out.", { by: U.who(auth) });
+      }
       await doc("state").set(state);
       return view();
     }
@@ -746,5 +844,5 @@ async function adminAds(data, auth) {
   }
 }
 
-module.exports = { adminAds, run, plan, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
+module.exports = { adminAds, run, plan, season, dailyAllowed, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
   _internal: { graph, version: () => META_VERSION(), boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };

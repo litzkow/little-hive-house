@@ -138,7 +138,7 @@
         'Plano: ' + dollars(d.planned) + ' por dia nos canais ligados (uns ' + dollars(d.planned * d.daysInMonth) + ' por mês).') +
       (over ? ' <b>' + T('That passes the cap: the robot spends less each day so it fits.', 'Isso passa do teto: o robô gasta menos por dia para caber.') + '</b>' : '') + '</p>' +
       '<label class="ads-auto"><input type="checkbox" data-act="adsAuto"' + (c.auto ? ' checked' : '') + (st.busy ? ' disabled' : '') + '> ' +
-        T('The robot runs the ads by itself inside the cap (every morning)', 'O robô cuida dos anúncios sozinho dentro do teto (toda manhã)') + '</label></section>';
+        T('The robot chooses and swaps by itself (every morning, inside the cap); you can change it whenever you want', 'O robô escolhe e troca sozinho (toda manhã, dentro do teto); vocês podem mudar quando quiserem') + '</label></section>';
   }
 
   function proposals(d) {
@@ -176,7 +176,9 @@
           (m.igReady ? '' : '<p class="small err">' + T('The Instagram account or the Facebook Page isn’t linked to this token, so no post can be boosted. Give the system user the Page and the Instagram account and connect again.',
             'A conta do Instagram ou a página do Facebook não está ligada a este token, então nenhum post pode ser impulsionado. Dê ao usuário do sistema a página e o Instagram e conecte de novo.') + '</p>') +
           (m.accountStatus && m.accountStatus !== 1 ? '<p class="small err">' + T('Meta says the ad account isn’t active (status ' + esc(m.accountStatus) + '). Check the payment method in Meta.', 'O Meta diz que a conta de anúncios não está ativa (status ' + esc(m.accountStatus) + '). Confira a forma de pagamento no Meta.') + '</p>' : '') +
-          '<p class="small">' + T('This month: spent ', 'Este mês: gastou ') + '<b>' + dollars(spend) + '</b> · ' + T('sales from the ads ', 'vendas pelos anúncios ') + '<b>' + dollars(t.sales.meta) + '</b></p>';
+          '<p class="small">' + T('This month: spent ', 'Este mês: gastou ') + '<b>' + dollars(spend) + '</b> · ' + T('sales from the ads ', 'vendas pelos anúncios ') + '<b>' + dollars(t.sales.meta) + '</b></p>' +
+          '<p class="tiny ' + (d.pixel ? 'muted' : 'err') + '">' + (d.pixel ? T('Meta Pixel on: Meta sees the visits, carts and sales the ads bring.', 'Pixel do Meta ligado: o Meta vê as visitas, carrinhos e vendas que os anúncios trazem.')
+            : T('Meta Pixel not set up yet.', 'Pixel do Meta ainda não configurado.')) + '</p>';
         acts += '<button class="btn btn-ghost btn-sm" data-act="adsConnect"' + (st.busy ? ' disabled' : '') + '>' + T('Connect again', 'Conectar de novo') + '</button>';
       }
     } else if (k === 'etsy') {
@@ -199,17 +201,27 @@
   }
 
   function boostLine(b) {
-    var stat = b.status === 'active' ? T('Boosting', 'Impulsionando') + ' · ' + dollars(b.daily) + T('/day', '/dia')
-      : b.status === 'stopped' ? (b.why === 'owner' ? T('Never boost', 'Nunca impulsionar') : T('Stopped: spent without selling', 'Parado: gastou sem vender'))
-      : b.why === 'cap' ? T('Paused: cap reached', 'Pausado: teto do mês') : b.why === 'owner' ? T('Paused by you', 'Pausado por vocês') : T('Paused', 'Pausado');
+    var who = !b.by || b.by === 'robot' ? T('chosen by the robot', 'escolhido pelo robô') : T('chosen by you', 'escolhido por vocês');
+    var why = { 'no-sales': T('Stopped: spent and nobody put it in the cart', 'Parado: gastou e ninguém pôs no carrinho'), tired: T('Paused: the same people saw it 4+ times', 'Pausado: as mesmas pessoas já viram 4+ vezes'),
+      reel: T('Paused: gave its place to a Reel', 'Pausado: deu lugar a um Reel'), room: T('Paused: gave its place to the new Reel', 'Pausado: deu lugar ao Reel novo'),
+      cap: T('Paused: cap reached', 'Pausado: teto do mês'), season: T('Paused until January (post office)', 'Pausado até janeiro (Correios)') };
+    var stat = b.status === 'active' ? T('Boosting', 'Impulsionando') + ' · ' + who
+      : b.why === 'owner' ? (b.status === 'stopped' ? T('Never boost', 'Nunca impulsionar') : T('Paused by you', 'Pausado por vocês'))
+      : why[b.why] || T('Paused', 'Pausado');
     return '<span class="sp-pill ads-' + esc(b.status) + '">' + esc(stat) + '</span>';
+  }
+  function warnLine(b) {
+    if (!b || b.status !== 'active' || !b.warn) return '';
+    return '<p class="tiny ct-warn">' + esc(b.warn === 'tired' ? T('Getting tired: the same people saw it 4+ times. Worth swapping.', 'Cansando: as mesmas pessoas já viram 4+ vezes. Vale trocar.')
+      : T('Spent ' + money(b.spend) + ' and nobody put it in the cart. Worth swapping.', 'Gastou ' + money(b.spend) + ' e ninguém pôs no carrinho. Vale trocar.')) + '</p>';
   }
   function postCard(p, b) {
     var x = b || {};
     var img = /^https:\/\//.test(p.thumb || x.thumb || '') ? '<img src="' + esc(p.thumb || x.thumb) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="ads-noimg"></span>';
     var link = /^https:\/\//.test(p.permalink || x.permalink || '') ? '<a class="tiny" href="' + esc(p.permalink || x.permalink) + '" target="_blank" rel="noopener">' + T('See on Instagram', 'Ver no Instagram') + ' ›</a>' : '';
     var numbers = b ? '<p class="tiny">' + T('Spent ', 'Gastou ') + '<b>' + dollars(x.spend) + '</b> · ' + n2(x.clicks) + (x.clicks === 1 ? T(' click', ' clique') : T(' clicks', ' cliques')) + ' · ' +
-      (x.revenue > 0 ? T('sold ', 'vendeu ') + '<b>' + dollars(x.revenue) + '</b>' : T('no sale yet', 'nenhuma venda ainda')) + '</p>' :
+      (x.carts > 0 ? n2(x.carts) + T(' in cart · ', ' no carrinho · ') : '') +
+      (x.revenue > 0 ? T('sold ', 'vendeu ') + '<b>' + dollars(x.revenue) + '</b>' : T('no sale yet', 'nenhuma venda ainda')) + '</p>' + warnLine(b) :
       '<p class="tiny muted">' + n2(p.likes) + ' ♥ · ' + n2(p.comments) + (p.comments === 1 ? T(' comment', ' comentário') : T(' comments', ' comentários')) + (p.at ? ' · ' + esc(h.fmtDate(p.at)) : '') + '</p>';
     var dis = st.busy ? ' disabled' : '';
     var btns = '';
@@ -218,7 +230,7 @@
     else if (p.eligible === false) btns = '<span class="tiny muted">' + T('Meta doesn’t allow boosting this one', 'O Meta não deixa impulsionar este') + '</span>';
     else btns = '<button class="btn btn-honey btn-sm" data-act="adsPost" data-what="boost" data-id="' + esc(p.id || x.id) + '"' + dis + '>' + T('Boost now', 'Impulsionar') + '</button>';
     if (!(b && b.status === 'stopped' && b.why === 'owner') && !p.never) btns += '<button class="btn btn-ghost btn-sm" data-act="adsPost" data-what="never" data-id="' + esc(p.id || x.id) + '"' + dis + '>' + T('Never', 'Nunca') + '</button>';
-    return '<article class="card ads-post">' + img + '<div class="ads-post-in"><div class="sp-top">' + (b ? boostLine(x) : (p.never ? '<span class="sp-pill">' + T('Never boost', 'Nunca impulsionar') + '</span>' : '<span class="sp-pill">' + T('In line', 'Na fila') + '</span>')) + link + '</div>' +
+    return '<article class="card ads-post">' + img + '<div class="ads-post-in"><div class="sp-top">' + (b ? boostLine(x) : (p.never ? '<span class="sp-pill">' + T('Never boost', 'Nunca impulsionar') + '</span>' : '<span class="sp-pill">' + (p.type === 'reel' ? 'Reel · ' : '') + T('In line', 'Na fila') + '</span>')) + link + '</div>' +
       '<p class="small ads-cap-text">' + esc(p.caption || x.caption || T('(no caption)', '(sem legenda)')) + '</p>' + numbers + '<div class="row sp-acts">' + btns + '</div></div></article>';
   }
   function posts(d) {
@@ -226,7 +238,18 @@
     var byId = {}; d.boosts.forEach(function (b) { byId[b.id] = b; });
     var boosted = d.boosts.map(function (b) { var p = d.posts.find(function (x) { return x.id === b.id; }) || {}; return postCard(Object.assign({ id: b.id }, p), b); }).join('');
     var line = d.posts.filter(function (p) { return !byId[p.id]; }).slice(0, 12).map(function (p) { return postCard(p, null); }).join('');
-    return '<h2 class="sp-h2">' + T('Boosted posts', 'Posts impulsionados') + '</h2>' +
+    var dis = st.busy ? ' disabled' : '';
+    var next = d.nextReel ? '<section class="card ads-next"><p class="small"><b>' + T('Waiting for the next Reel.', 'Esperando o próximo Reel.') + '</b> ' +
+        T('As soon as it’s out on Instagram it is boosted first (checked every 5 minutes).', 'Assim que sair no Instagram ele é impulsionado primeiro (confere a cada 5 minutos).') + '</p>' +
+        '<div class="row sp-acts"><button class="btn btn-ghost btn-sm" data-act="adsNextReel" data-on="0"' + dis + '>' + T('Cancel', 'Cancelar') + '</button></div></section>'
+      : '<div class="row sp-acts"><button class="btn btn-ghost btn-sm" data-act="adsNextReel" data-on="1"' + dis + '>' + T('Boost the next Reel that goes out', 'Impulsionar o próximo Reel que sair') + '</button></div>';
+    var active = d.boosts.filter(function (b) { return b.status === 'active'; }).length;
+    var seasonNote = d.season === 'shipping' ? T('From Dec 15 the post office can’t deliver by Christmas: the ads rest until January.', 'Depois de 15/dez os Correios não entregam antes do Natal: os anúncios descansam até janeiro.')
+      : d.season === 'lastcall' ? T('Dec 2–14: last days to buy for Christmas, so the day’s budget is doubled (inside the cap).', '2 a 14/dez: últimos dias para comprar para o Natal, então o orçamento do dia dobra (dentro do teto).')
+      : d.season === 'peak' ? T('Black Friday week: ads cost the most now, so the budget stays the usual.', 'Semana da Black Friday: o anúncio está mais caro, então o orçamento fica o de sempre.') : '';
+    var budget = '<p class="small">' + (active ? T('Today: ' + dollars(d.allowed) + ' for all ' + active + ' boosted posts together; Meta puts more into the one that works.',
+        'Hoje: ' + dollars(d.allowed) + ' para os ' + active + ' posts impulsionados juntos; o Meta põe mais no que funciona.') : '') + (seasonNote ? ' ' + esc(seasonNote) : '') + '</p>';
+    return '<h2 class="sp-h2">' + T('Boosted posts', 'Posts impulsionados') + '</h2>' + next + budget +
       (boosted ? '<div class="ads-posts">' + boosted + '</div>' : '<p class="small muted">' + T('None yet. The robot starts with the best posts at the next run.', 'Nenhum ainda. O robô começa pelos melhores posts na próxima rodada.') + '</p>') +
       '<h2 class="sp-h2">' + T('Recent posts (best first)', 'Posts recentes (melhores primeiro)') + '</h2>' +
       (line ? '<div class="ads-posts">' + line + '</div>' : '<p class="small muted">' + T('The posts show up after the first run.', 'Os posts aparecem depois da primeira rodada.') + '</p>');
@@ -260,10 +283,11 @@
   function rulesCard(d) {
     var r = d.config.rules;
     return '<details class="card gap-top ads-rules"><summary><b>' + T('The robot’s rules', 'As regras do robô') + '</b></summary><ul class="small">' +
-      '<li>' + T('Each new post starts at ' + dollars(r.perPost) + ' a day; at most ' + r.maxPosts + ' posts at a time.', 'Cada post novo começa com ' + dollars(r.perPost) + ' por dia; no máximo ' + r.maxPosts + ' posts ao mesmo tempo.') + '</li>' +
-      '<li>' + T('A post that spends ' + dollars(r.stopAfter) + ' without a sale is stopped.', 'O post que gastar ' + dollars(r.stopAfter) + ' sem vender é parado.') + '</li>' +
-      '<li>' + T('A post that brings back ' + n2(r.growRoas) + 'x what it costs gets $1 more a day, up to ' + dollars(r.maxPerPost) + '.', 'O post que trouxer ' + n2(r.growRoas) + 'x o que custou ganha mais $1 por dia, até ' + dollars(r.maxPerPost) + '.') + '</li>' +
-      '<li>' + T('Only posts from the last ' + r.postDays + ' days; the best first (likes + comments).', 'Só posts dos últimos ' + r.postDays + ' dias; os melhores primeiro (curtidas + comentários).') + '</li>' +
+      '<li>' + T('At most ' + r.maxPosts + ' posts at a time, in one budget: Meta puts more into the one that works. Reels first.', 'No máximo ' + r.maxPosts + ' posts ao mesmo tempo, num orçamento só: o Meta põe mais no que funciona. Reels primeiro.') + '</li>' +
+      '<li>' + T('The ads look for people who wait for the site to open (not just clicks).', 'Os anúncios procuram quem espera o site abrir (não só quem clica).') + '</li>' +
+      '<li>' + T('A post the robot chose that spends ' + dollars(r.stopAfter) + ' and nobody puts in the cart is swapped; also when the same people saw it 4+ times. If you chose it, the robot only warns.', 'O post escolhido pelo robô que gastar ' + dollars(r.stopAfter) + ' sem ninguém pôr no carrinho é trocado; também quando as mesmas pessoas já viram 4+ vezes. Se foram vocês que escolheram, o robô só avisa.') + '</li>' +
+      '<li>' + T('Only posts from the last ' + r.postDays + ' days and at least a day old (except the next Reel you asked for).', 'Só posts dos últimos ' + r.postDays + ' dias e com pelo menos um dia (menos o próximo Reel que vocês pediram).') + '</li>' +
+      (r.holiday !== false ? '<li>' + T('Christmas: Black Friday week the usual; Dec 2–14 double; from Dec 15 the ads rest until January.', 'Natal: semana da Black Friday o de sempre; 2 a 14/dez o dobro; a partir de 15/dez os anúncios descansam até janeiro.') + '</li>' : '') +
       '<li>' + T('The cap is never passed. When the ads pay off and the cap gets close, the robot asks you to approve a higher one.', 'O teto nunca é passado. Quando os anúncios dão retorno e o teto está perto, o robô pede para vocês aprovarem um maior.') + '</li>' +
       '<li>' + T('A sale counts for an ad when the customer came to the site from the ad’s link (Google Analytics).', 'Uma venda conta para o anúncio quando o cliente chegou ao site pelo link do anúncio (Google Analytics).') + '</li>' +
       '</ul><button class="btn btn-ghost btn-sm" data-act="adsRules"' + (st.busy ? ' disabled' : '') + '>' + T('Change the rules', 'Mudar as regras') + '</button></details>';
@@ -273,8 +297,8 @@
     if (!st.data && !st.loading && !st.err) { st.loading = true; load('view'); }
     var d = st.data;
     var head = '<div class="page-head"><div><p class="eyebrow">Marketing</p><h1>' + T('Ads', 'Anúncios') + '</h1>' +
-      '<p class="sub">' + T('Every morning the robot checks what each ad spent and sold, stops what doesn’t sell, gives more to what sells and never passes the cap you approved.',
-        'Toda manhã o robô confere quanto cada anúncio gastou e vendeu, para o que não vende, dá mais para o que vende e nunca passa do teto que vocês aprovaram.') + '</p></div>' +
+      '<p class="sub">' + T('Every morning the robot checks what each ad spent and brought, swaps what doesn’t work (Reels first) and never passes the cap you approved. You see everything here and can change it whenever you want.',
+        'Toda manhã o robô confere quanto cada anúncio gastou e trouxe, troca o que não funciona (Reels primeiro) e nunca passa do teto que vocês aprovaram. Vocês veem tudo aqui e podem mudar quando quiserem.') + '</p></div>' +
       '<div class="actions"><button class="btn btn-ghost btn-sm" data-act="adsRun"' + (st.busy ? ' disabled' : '') + '>' + (st.busy ? T('Working…', 'Trabalhando…') : T('Run now', 'Rodar agora')) + '</button></div></div>';
     if (!d) return { title: T('Ads', 'Anúncios'), html: '<div translate="no">' + head + (st.err ? '<p class="err">' + esc(st.err) + '</p>' : '<div class="loading"><span>' + T('Loading…', 'Carregando…') + '</span></div>') + '</div>' };
     var chans = '<h2 class="sp-h2">' + T('Channels', 'Canais') + '</h2><div class="sp-grid">' + ['meta', 'etsy', 'google', 'tiktok', 'amazon'].map(function (k) { return chan(d, k); }).join('') + '</div>';
@@ -289,7 +313,7 @@
       document.body.appendChild(dlg);
       dlg.addEventListener('close', function () {
         var out = null;
-        if (dlg.returnValue === 'ok') { out = {}; Array.prototype.forEach.call(dlg.querySelectorAll('[name]'), function (el) { out[el.name] = el.type === 'checkbox' ? el.checked : el.value; }); }
+        if (dlg.returnValue === 'ok') { out = {}; Array.prototype.forEach.call(dlg.querySelectorAll('[name]'), function (el) { if (el.type === 'radio') { if (el.checked) out[el.name] = el.value; } else out[el.name] = el.type === 'checkbox' ? el.checked : el.value; }); }
         dlg.remove(); resolve(out);
       });
       if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
@@ -317,7 +341,7 @@
     ask(cname(k), '<label class="field ads-check"><input type="checkbox" name="on"' + (c.on ? ' checked' : '') + '> <span>' + T('On', 'Ligado') + '</span></label>' +
       field('daily', T('Budget a day ($, at least ' + money(min) + ')', 'Orçamento por dia ($, no mínimo ' + money(min) + ')'), c.daily, 'number') +
       (k === 'etsy' ? '<p class="tiny muted">' + T('Put the same amount in the Etsy app: the app can’t change it there.', 'Coloque o mesmo valor no app do Etsy: o app não consegue mudar lá.') + '</p>' : '') +
-      (k === 'meta' ? '<p class="tiny muted">' + T('The robot splits it among the boosted posts.', 'O robô divide entre os posts impulsionados.') + '</p>' : ''), T('Save', 'Salvar')).then(function (v) {
+      (k === 'meta' ? '<p class="tiny muted">' + T('One budget for all the boosted posts: Meta puts more into the one that works.', 'Um orçamento só para todos os posts impulsionados: o Meta põe mais no que funciona.') + '</p>' : ''), T('Save', 'Salvar')).then(function (v) {
       if (!v) return;
       var ch = {}; ch[k] = { on: !!v.on, daily: Number(v.daily) || 0 };
       load('save', { config: { channels: ch } }, T('Saved.', 'Salvo.'));
@@ -325,14 +349,12 @@
   };
   ACT.adsRules = function () {
     var r = st.data.config.rules;
-    ask(T('The robot’s rules', 'As regras do robô'), field('perPost', T('New post starts with ($ a day)', 'Post novo começa com ($ por dia)'), r.perPost, 'number') +
-      field('maxPosts', T('Posts at the same time', 'Posts ao mesmo tempo'), r.maxPosts, 'number') +
-      field('stopAfter', T('Stop a post after spending ($) with no sale', 'Parar o post depois de gastar ($) sem vender'), r.stopAfter, 'number') +
-      field('growRoas', T('Give more when sales are this many times the cost', 'Dar mais quando vender esta quantidade de vezes o custo'), r.growRoas, 'number') +
-      field('maxPerPost', T('Most a day for one post ($)', 'Máximo por dia para um post ($)'), r.maxPerPost, 'number') +
-      field('postDays', T('Only posts from the last (days)', 'Só posts dos últimos (dias)'), r.postDays, 'number'), T('Save', 'Salvar')).then(function (v) {
+    ask(T('The robot’s rules', 'As regras do robô'), field('maxPosts', T('Posts at the same time', 'Posts ao mesmo tempo'), r.maxPosts, 'number') +
+      field('stopAfter', T('Swap a post after spending ($) with nobody putting it in the cart', 'Trocar o post depois de gastar ($) sem ninguém pôr no carrinho'), r.stopAfter, 'number') +
+      field('postDays', T('Only posts from the last (days)', 'Só posts dos últimos (dias)'), r.postDays, 'number') +
+      '<label class="field ads-check"><input type="checkbox" name="holiday"' + (r.holiday !== false ? ' checked' : '') + '> <span>' + T('Christmas calendar (double Dec 2–14, rest from Dec 15)', 'Calendário do Natal (dobro de 2 a 14/dez, descanso a partir de 15/dez)') + '</span></label>', T('Save', 'Salvar')).then(function (v) {
       if (!v) return;
-      var rules = {}; Object.keys(v).forEach(function (k) { if (v[k] !== '') rules[k] = Number(v[k]); });
+      var rules = {}; Object.keys(v).forEach(function (k) { if (k === 'holiday') rules[k] = !!v[k]; else if (v[k] !== '') rules[k] = Number(v[k]); });
       load('save', { config: { rules: rules } }, T('Saved.', 'Salvo.'));
     });
   };
@@ -348,9 +370,23 @@
     h.dialog({ title: T('Remove this spend?', 'Apagar este gasto?'), html: '', ok: T('Remove', 'Apagar'), cancel: T('Cancel', 'Cancelar'), danger: true }).then(function (ok) { if (ok) load('removeManual', { id: id }); });
   };
   ACT.adsPost = function (el) {
-    var what = el.getAttribute('data-what'), id = el.getAttribute('data-id');
-    var msg = { boost: T('Boosting…', 'Impulsionando…'), pause: T('Paused.', 'Pausado.'), never: T('This post won’t be boosted.', 'Este post não vai ser impulsionado.'), allow: T('The robot can choose it again.', 'O robô pode escolher de novo.') }[what];
-    load('post', { id: id, what: what }, msg);
+    var what = el.getAttribute('data-what'), id = el.getAttribute('data-id'), d = st.data;
+    var msg = { boost: T('Boosting.', 'Impulsionando.'), pause: T('Paused.', 'Pausado.'), never: T('This post won’t be boosted.', 'Este post não vai ser impulsionado.'), allow: T('The robot can choose it again.', 'O robô pode escolher de novo.') }[what];
+    var active = (d.boosts || []).filter(function (b) { return b.status === 'active' && b.id !== id; });
+    if (what !== 'boost' || active.length < d.config.rules.maxPosts) return load('post', { id: id, what: what }, msg);
+    // no room: which one comes out?
+    ask(T('Swap which one?', 'Trocar qual?'), '<p class="small">' + T('There are already ' + active.length + ' posts boosted. Pick the one that stops:', 'Já tem ' + active.length + ' posts impulsionados. Escolha o que para:') + '</p>' +
+      active.map(function (b, i) {
+        return '<label class="field ads-check"><input type="radio" name="out" value="' + esc(b.id) + '"' + (i === 0 ? ' checked' : '') + '> <span>' + esc(b.caption || ('#' + String(b.id).slice(-5))) +
+          ' · ' + T('spent ', 'gastou ') + money(b.spend) + (b.revenue > 0 ? ' · ' + T('sold ', 'vendeu ') + money(b.revenue) : '') + '</span></label>';
+      }).join(''), T('Swap', 'Trocar')).then(function (v) {
+      if (!v) return;
+      load('post', { id: id, what: 'boost', instead: v.out }, T('Swapped.', 'Trocado.'));
+    });
+  };
+  ACT.adsNextReel = function (el) {
+    var on = el.getAttribute('data-on') === '1';
+    load('nextReel', { on: on }, on ? T('Done: the next Reel is boosted as soon as it’s out.', 'Pronto: o próximo Reel é impulsionado assim que sair.') : T('Cancelled.', 'Cancelado.'));
   };
   ACT.adsConnect = function () {
     var steps = T(

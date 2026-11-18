@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "51"
+VERSION = "52"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -361,11 +361,16 @@ def vol_badge():
     return f'<span class="deal alt">{pct}% off {n}+ magnets</span>'
 
 
+# the Meta Pixel (1824876368823217): page views, and each store event under Meta's name, so the ads can find buyers.
+# Not loaded when the browser sends Global Privacy Control (see privacy.html). Purchase carries the order number,
+# the same event_id the server sends (functions/metaevents.js), so Meta counts it once.
+PIXEL_JS = '(function(){if(navigator.globalPrivacyControl)return;!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","1824876368823217");fbq("track","PageView");})();window.lhhTrack=function(n,p){try{gtag("event",n,p||{});}catch(e){}try{var M={view_item:"ViewContent",add_to_cart:"AddToCart",begin_checkout:"InitiateCheckout",purchase:"Purchase",add_to_wishlist:"AddToWishlist"}[n];if(M&&window.fbq){p=p||{};var it=p.items||[],d={currency:p.currency||"USD",content_type:"product",content_ids:it.map(function(i){return String(i.item_id)}),num_items:it.reduce(function(t,i){return t+(Number(i.quantity)||1)},0)};if(p.value!=null)d.value=Number(p.value)||0;if(M==="Purchase"&&p.transaction_id)fbq("track",M,d,{eventID:String(p.transaction_id)});else fbq("track",M,d);}}catch(e){}};'
+
 # Google Analytics 4 (Firebase project little-hive-house, property 562104666): visits for the Hive Admin's Visits page.
 GA_ID = "G-VHW80371B0"
 GA_TAG = (f'<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>\n'
           f'<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag("js",new Date());'
-          f'gtag("config","{GA_ID}");window.lhhTrack=function(n,p){{try{{gtag("event",n,p||{{}});}}catch(e){{}}}};</script>')
+          f'gtag("config","{GA_ID}");' + PIXEL_JS + '</script>')
 
 # the shop's social accounts live in tools/social.json: add a line there and every spot below picks it up
 # (top strip, header, phone menu, home band, footer, contact page, Google's sameAs, business and thank-you cards).

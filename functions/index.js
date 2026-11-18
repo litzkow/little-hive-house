@@ -179,6 +179,8 @@ exports.contentPublish = onSchedule({ region: REGION, schedule: "every 5 minutes
   const r = await content().publishDue();
   // what is scheduled or already out on Instagram and Facebook is checked here too (every 10 minutes), without anyone opening the app
   try { await content().syncMeta(); } catch (e) { console.log("[contentPublish] sync", e.message); }
+  // the Reel the owners asked to boost as soon as it's out
+  try { const n = await ads().boostNextReel(); if (n.boosted) console.log("[contentPublish] next reel", JSON.stringify(n)); } catch (e) { console.log("[contentPublish] next reel", e.message); }
   if (r.done || r.processing || r.error) console.log("[contentPublish]", JSON.stringify(r));
 });
 

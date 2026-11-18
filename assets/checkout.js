@@ -174,6 +174,9 @@
         if (S.isMember(who) && who.email) data.email = who.email;
         var ref = S.referral && S.referral();   /* which ad or site brought them (Hive Admin › Ads) */
         if (ref) data.ref = ref;
+        /* Meta's cookies, so the sale is matched to the ad (none when the browser asks for no tracking) */
+        var ck = function (n) { var m = document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : ''; };
+        data.fb = navigator.globalPrivacyControl ? { gpc: true } : { fbp: ck('_fbp'), fbc: ck('_fbc') };
         return S.call('createCheckout', data);
       })
       .then(function (r) {
