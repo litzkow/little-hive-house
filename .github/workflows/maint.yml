@@ -208,8 +208,13 @@ jobs:
         run: |
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/etsy-publish.js
+      - name: "Conteúdo: o que a aba tem agora, depois de ler o Meta"
+        if: inputs.task == 'check-content'
+        run: |
+          (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
+          node tools/maint/check-content.js
       - name: Run
-        if: inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
+        if: inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
