@@ -24,6 +24,62 @@
   };
   function cname(k) { var n = NAMES[k] || [k, k]; return T(n[0], n[1]); }
 
+  /* ---------- is it worth it? ----------
+     A sale isn't all profit: magnets, packaging, label and fees come out of it. The share left is the shop's real margin
+     over the last 90 days (Reports' numbers, without the ads), or 45% until there are a few orders. Etsy keeps about 9.5%
+     more (transaction 6.5% + payment 3% + $0.25). Profit from the ads = sales from the ads x margin - what the ads cost. */
+  var TEST = 10;   // under $10 spent it's too early to judge
+  function margin() {
+    var R = A.R, S = A.S, out = { pct: 0.45, est: true, orders: 0 };
+    try {
+      if (!S.orders || !R || !R.summarize) return out;
+      var to = Date.now(), m = R.summarize(S.orders, Object.assign({}, S.settings, { adSpendByDay: {} }), { from: to - 90 * 86400000, to: to }, { months: 3 });
+      if (m.orders >= 3 && m.netSales > 0) { out.pct = Math.min(0.8, Math.max(0.05, m.profit / m.netSales)); out.est = false; out.orders = m.orders; }
+    } catch (e) { /* keep the estimate */ }
+    return out;
+  }
+  function verdict(spend, sales, pct) {
+    var profit = Math.round((sales * pct - spend) * 100) / 100;
+    if (spend < 0.01 && sales < 0.01) return { kind: 'idle', profit: 0 };
+    if (profit >= 0 && sales > 0) return { kind: 'good', profit: profit };
+    if (spend < TEST) return { kind: 'early', profit: profit };
+    return { kind: 'bad', profit: profit };
+  }
+  var VERDICT = {
+    idle: ['Nothing spent yet', 'Nada gasto ainda'], early: ['Too early to tell', 'Ainda é cedo para saber'],
+    good: ['Worth it', 'Está valendo a pena'], bad: ['Not worth it', 'Não está valendo a pena']
+  };
+  function signed(v) { return (v < 0 ? '−' : '+') + money(Math.abs(v)); }
+  function worth(d) {
+    var t = d.totals, mg = margin(), etsyPct = Math.max(0.02, mg.pct - 0.095);
+    var rows = [
+      { k: 'meta', spend: t.spend.meta, sales: t.sales.meta, pct: mg.pct },
+      { k: 'etsy', spend: t.spend.etsy, sales: t.sales.etsy, pct: etsyPct }
+    ];
+    var other = (t.spend.google || 0) + (t.spend.tiktok || 0) + (t.spend.amazon || 0);
+    if (other > 0) rows.push({ k: 'other', spend: other, sales: 0, pct: mg.pct });
+    rows.forEach(function (r) { r.v = verdict(r.spend, r.sales, r.pct); });
+    var spend = t.total, profit = Math.round(rows.reduce(function (a, r) { return a + r.v.profit; }, 0) * 100) / 100;
+    var sales = Math.round((t.sales.meta + t.sales.etsy) * 100) / 100;
+    var all = verdict(spend, sales, sales > 0 ? (profit + spend) / sales : mg.pct);
+    var line = function (r) {
+      var name = r.k === 'other' ? T('Google, TikTok, Amazon', 'Google, TikTok, Amazon') : cname(r.k);
+      var txt = r.v.kind === 'idle' ? T('nothing spent yet', 'nada gasto ainda')
+        : T('spent ' + money(r.spend) + ', sold ' + money(r.sales) + ' → ', 'gastou ' + money(r.spend) + ', vendeu ' + money(r.sales) + ' → ') + '<b class="' + (r.v.profit < 0 ? 'neg' : 'pos') + '">' + signed(r.v.profit) + '</b>';
+      return '<li><span><b>' + esc(name) + '</b> <span class="ads-v ' + r.v.kind + '">' + esc(T(VERDICT[r.v.kind][0], VERDICT[r.v.kind][1])) + '</span></span><span class="small">' + txt + '</span></li>';
+    };
+    var head = all.kind === 'good' ? T('Yes. This month the ads left ' + money(profit) + ' of profit after paying for themselves.', 'Sim. Este mês os anúncios deixaram ' + money(profit) + ' de lucro, já pagando o que custaram.')
+      : all.kind === 'bad' ? T('No. This month the ads cost ' + money(-profit) + ' more than the profit they brought. The robot stops what doesn’t sell; you can also turn a channel off below.', 'Não. Este mês os anúncios custaram ' + money(-profit) + ' a mais do que o lucro que trouxeram. O robô para o que não vende; vocês também podem desligar um canal aqui embaixo.')
+      : all.kind === 'early' ? T('Spent ' + money(spend) + ' so far. It takes about ' + money(TEST) + ' to know; until then the robot limits each post to ' + money(d.config.rules.stopAfter) + ' without a sale.', 'Gastou ' + money(spend) + ' até agora. Precisa de uns ' + money(TEST) + ' para saber; até lá o robô limita cada post a ' + money(d.config.rules.stopAfter) + ' sem venda.')
+      : T('When the ads start, this shows here whether they are paying off.', 'Quando os anúncios começarem, aqui vai aparecer se estão dando lucro ou prejuízo.');
+    return '<section class="card ads-worth ' + all.kind + '"><p class="eyebrow">' + T('Is it worth it? (this month)', 'Está valendo a pena? (este mês)') + '</p>' +
+      '<h2>' + esc(T(VERDICT[all.kind][0], VERDICT[all.kind][1])) + (all.kind === 'idle' ? '' : ' <span class="' + (profit < 0 ? 'neg' : 'pos') + '">' + signed(profit) + '</span>') + '</h2>' +
+      '<p class="small">' + head + '</p><ul class="ads-worth-list">' + rows.map(line).join('') + '</ul>' +
+      '<p class="tiny muted">' + (mg.est ? T('Each sale counts as about 45% profit until the shop has a few more orders; then it uses your real margin.', 'Cada venda conta como uns 45% de lucro até a loja ter mais alguns pedidos; depois usa a margem de verdade de vocês.')
+        : T('Each sale counts as ' + Math.round(mg.pct * 100) + '% profit: your real margin over the last 90 days (' + mg.orders + ' orders), after magnets, packaging, label and fees. Etsy keeps about 9.5% more.',
+          'Cada venda conta como ' + Math.round(mg.pct * 100) + '% de lucro: a margem de verdade de vocês nos últimos 90 dias (' + mg.orders + ' pedidos), depois de ímãs, embalagem, etiqueta e taxas. O Etsy fica com uns 9,5% a mais.')) + '</p></section>';
+  }
+
   /* ---------- pieces ---------- */
   function capCard(d) {
     var c = d.config, t = d.totals, pct = c.monthCap > 0 ? Math.min(100, Math.round(t.total / c.monthCap * 100)) : 100;
@@ -180,7 +236,7 @@
       '<div class="actions"><button class="btn btn-ghost btn-sm" data-act="adsRun"' + (st.busy ? ' disabled' : '') + '>' + (st.busy ? T('Working…', 'Trabalhando…') : T('Run now', 'Rodar agora')) + '</button></div></div>';
     if (!d) return { title: T('Ads', 'Anúncios'), html: '<div translate="no">' + head + (st.err ? '<p class="err">' + esc(st.err) + '</p>' : '<div class="loading"><span>' + T('Loading…', 'Carregando…') + '</span></div>') + '</div>' };
     var chans = '<h2 class="sp-h2">' + T('Channels', 'Canais') + '</h2><div class="sp-grid">' + ['meta', 'etsy', 'google', 'tiktok', 'amazon'].map(function (k) { return chan(d, k); }).join('') + '</div>';
-    return { title: T('Ads', 'Anúncios'), html: '<div translate="no" class="ads">' + head + proposals(d) + tiles(d) + capCard(d) + chans + posts(d) + chart(d) + logCard(d) + manualCard(d) + rulesCard(d) + '</div>' };
+    return { title: T('Ads', 'Anúncios'), html: '<div translate="no" class="ads">' + head + proposals(d) + worth(d) + tiles(d) + capCard(d) + chans + posts(d) + chart(d) + logCard(d) + manualCard(d) + rulesCard(d) + '</div>' };
   };
 
   /* ---------- dialogs ---------- */
