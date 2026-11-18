@@ -26,6 +26,12 @@ const say = (s) => console.log(`::warning title=meta::${String(s).replace(/\n/g,
     } catch (e) { say(`${label}: erro ${e.message}`); }
   }
   try {
+    const j = await G(page, "GET", `${meta.pageId}/videos`, { fields: "id,description,published,status,scheduled_publish_time,length,picture,source,permalink_url,created_time", limit: 50 });
+    for (const v of (j.data || []).filter((x) => x.published === false)) {
+      say(`vídeo não publicado ${v.id}: ${JSON.stringify({ desc: (v.description || "").slice(0, 60), status: v.status, sched: v.scheduled_publish_time, len: v.length, temSource: !!v.source, temPicture: !!v.picture, criado: v.created_time })}`);
+    }
+  } catch (e) { say(`videos detalhe: erro ${e.message}`); }
+  try {
     const j = await G(meta, "GET", `${meta.igUserId}/content_publishing_limit`, { fields: "quota_usage,config" });
     say(`instagram limite de publicação: ${JSON.stringify(j.data || j)}`);
   } catch (e) { say(`instagram limite: erro ${e.message}`); }
