@@ -245,62 +245,214 @@ async function fileLink(path) {
   return url;
 }
 
+/* What a schedule carries (sched): format ("reel" | "post" | "story"), files [{path, type, alt}] in order (2-10 make a
+   carousel), cover {path} (an image: the Reel's cover, chosen from the phone or a moment of the video), offsetMs (the
+   moment, for Instagram), opts {shareToFeed, trial, audioName, collaborators[], tags[{u, x, y}], firstComment,
+   commentsOff, fbCaption, fbTitle}. Progress is kept in sched.ig / sched.fb so a run that stops never posts twice. */
+const isVid = (f) => /^video\//.test((f && f.type) || "");
+function schedFiles(sc) { return sc.files && sc.files.length ? sc.files : sc.path ? [{ path: sc.path, type: sc.type || "" }] : []; }
+function schedFormat(sc) {
+  const fs = schedFiles(sc);
+  if (sc.format === "story") return "story";
+  if (fs.length === 1 && isVid(fs[0])) return "reel";
+  return "post";
+}
+/* a POST that Graph can't take as a form: an upload by link (rupload) or a file sent as multipart */
+async function rawPost(auth, url, { headers = {}, form = null } = {}) {
+  const crypto = require("crypto");
+  const proof = auth.appSecret ? crypto.createHmac("sha256", auth.appSecret).update(auth.token).digest("hex") : "";
+  let body;
+  if (form) {
+    body = new FormData();
+    Object.entries(form).forEach(([k, v]) => body.append(k, v));
+    body.append("access_token", auth.token); if (proof) body.append("appsecret_proof", proof);
+  }
+  const res = await globalThis.fetch(url, { method: "POST", headers: form ? headers : { Authorization: `OAuth ${auth.token}`, ...headers }, body });
+  let j = null; try { j = await res.json(); } catch (e) { j = null; }
+  if (!res.ok || (j && (j.error || j.success === false))) throw new Error(`Meta: ${(j && j.error && (j.error.error_user_msg || j.error.message)) || (j && j.debug_info && j.debug_info.message) || `HTTP ${res.status}`}`);
+  return j || {};
+}
+const igTags = (o, withPlace) => ((o.tags || []).length ? o.tags.map((t, k) => (withPlace
+  ? { username: t.u, x: t.x != null ? t.x : [0.5, 0.3, 0.7, 0.5, 0.3, 0.7][k % 6], y: t.y != null ? t.y : [0.5, 0.35, 0.35, 0.75, 0.75, 0.75][k % 6] }
+  : { username: t.u })) : undefined);
+
+async function igPublish(G, meta, it, sc, patch, warn) {
+  const files = schedFiles(sc), fmt = schedFormat(sc), o = sc.opts || {}, ig = sc.ig || (sc.ig = {});
+  if (sc.igCreation && !ig.creation) ig.creation = sc.igCreation;          // schedules made before the options
+  const collab = (o.collaborators || []).length ? o.collaborators : undefined;
+  const wait = () => new Promise((r) => setTimeout(r, WAIT_MS));
+  const ready = async (id) => {                                           // Meta processes videos for a minute or two
+    for (let k = 0; k < 9; k++) {
+      const s = await G(meta, "GET", id, { fields: "status_code,status" });
+      if (s.status_code === "FINISHED" || !s.status_code) return true;
+      if (s.status_code === "ERROR" || s.status_code === "EXPIRED") throw Object.assign(new Error("O Instagram não aceitou o arquivo (formato ou tamanho)."), { reset: true });
+      await wait();
+    }
+    return false;
+  };
+  // create; if Instagram refuses because of a collaborator or a tag, it goes out without them (and says so)
+  const create = async (params) => {
+    try { return await G(meta, "POST", `${meta.igUserId}/media`, params); } catch (e) {
+      if (!params.collaborators && !params.user_tags) throw e;
+      const r = await G(meta, "POST", `${meta.igUserId}/media`, { ...params, collaborators: undefined, user_tags: undefined });
+      warn(`o Instagram não aceitou ${params.collaborators ? "os colaboradores" : ""}${params.collaborators && params.user_tags ? " e " : ""}${params.user_tags ? "as marcações" : ""} (confira os @), então saiu sem ${params.collaborators && params.user_tags ? "eles" : params.collaborators ? "eles" : "elas"}`);
+      return r;
+    }
+  };
+  try {
+    if (!ig.creation) {
+      const url0 = await fileLink(files[0].path);
+      let params;
+      if (fmt === "story") {
+        params = { media_type: "STORIES", [isVid(files[0]) ? "video_url" : "image_url"]: url0, user_tags: igTags(o, !isVid(files[0])) };
+      } else if (fmt === "reel") {
+        params = { media_type: "REELS", video_url: url0, caption: it.caption || "", share_to_feed: o.shareToFeed !== false, collaborators: collab,
+          cover_url: sc.cover && sc.cover.path && sc.offsetMs == null ? await fileLink(sc.cover.path) : undefined,
+          thumb_offset: sc.offsetMs != null ? Math.max(0, Math.round(sc.offsetMs)) : undefined,
+          audio_name: o.audioName || undefined, user_tags: igTags(o, false), trial_params: o.trial ? { graduation_strategy: o.trial } : undefined };
+      } else if (files.length === 1) {
+        params = { image_url: url0, caption: it.caption || "", alt_text: files[0].alt || undefined, user_tags: igTags(o, true), collaborators: collab };
+      } else {
+        ig.children = ig.children || [];
+        for (let k = 0; k < files.length; k++) {
+          if (ig.children[k]) continue;
+          const f = files[k], u = await fileLink(f.path);
+          const firstImage = files.findIndex((x) => !isVid(x)) === k;
+          const p = isVid(f) ? { media_type: "VIDEO", video_url: u, is_carousel_item: true }
+            : { image_url: u, is_carousel_item: true, alt_text: f.alt || undefined, user_tags: firstImage ? igTags(o, true) : undefined };
+          let r;
+          try { r = await G(meta, "POST", `${meta.igUserId}/media`, p); } catch (e) {
+            if (!p.user_tags) throw e;
+            r = await G(meta, "POST", `${meta.igUserId}/media`, { ...p, user_tags: undefined });
+            warn("o Instagram não aceitou as marcações (confira os @), então saiu sem elas");
+          }
+          ig.children[k] = String(r.id);
+        }
+        for (let k = 0; k < files.length; k++) {
+          if (!isVid(files[k]) || (ig.childOk || []).includes(ig.children[k])) continue;
+          if (!(await ready(ig.children[k]))) return false;
+          ig.childOk = [...(ig.childOk || []), ig.children[k]];
+        }
+        params = { media_type: "CAROUSEL", children: ig.children.join(","), caption: it.caption || "", collaborators: collab };
+      }
+      const r = await create(params);
+      ig.creation = String(r.id);
+    }
+    if (!(await ready(ig.creation))) return false;
+    const pbl = await G(meta, "POST", `${meta.igUserId}/media_publish`, { creation_id: ig.creation });
+    patch.igId = String(pbl.id); ig.mediaId = String(pbl.id);
+  } catch (e) {
+    if (e.reset) { ig.creation = ""; ig.children = []; ig.childOk = []; }
+    throw e;
+  }
+  try { const pm = await G(meta, "GET", patch.igId, { fields: "permalink" }); patch.igLink = pm.permalink || ""; } catch (e) { /* comes with the next sync */ }
+  if (fmt !== "story" && o.firstComment) {
+    try { await G(meta, "POST", `${patch.igId}/comments`, { message: o.firstComment }); } catch (e) { warn(`o primeiro comentário não entrou no Instagram (${e.message.replace(/^Meta: /, "")})`); }
+  }
+  if (fmt !== "story" && o.commentsOff) {
+    try { await G(meta, "POST", patch.igId, { comment_enabled: false }); } catch (e) { warn("não deu para desligar os comentários no Instagram"); }
+  }
+  return true;
+}
+
+async function fbPublish(G, meta, it, sc, patch, warn) {
+  const files = schedFiles(sc), fmt = schedFormat(sc), o = sc.opts || {}, fb = sc.fb || (sc.fb = {});
+  const pg = await G(meta, "GET", meta.pageId, { fields: "access_token" });
+  const page = { token: pg.access_token, appSecret: meta.appSecret };
+  const caption = o.fbCaption || it.caption || "";
+  const V = require("./ads")._internal.version();
+  const rupload = (id, url) => rawPost(page, `https://rupload.facebook.com/video-upload/${V}/${id}`, { headers: { file_url: url } });
+  let objectId = "";
+  if (fmt === "story") {
+    if (isVid(files[0])) {
+      if (!fb.videoId) fb.videoId = String((await G(page, "POST", `${meta.pageId}/video_stories`, { upload_phase: "start" })).video_id);
+      if (!fb.uploaded) { await rupload(fb.videoId, await fileLink(files[0].path)); fb.uploaded = true; }
+      const r = await G(page, "POST", `${meta.pageId}/video_stories`, { upload_phase: "finish", video_id: fb.videoId });
+      patch.fbPostId = String(r.post_id || fb.videoId);
+    } else {
+      if (!fb.photoId) fb.photoId = String((await G(page, "POST", `${meta.pageId}/photos`, { url: await fileLink(files[0].path), published: false })).id);
+      const r = await G(page, "POST", `${meta.pageId}/photo_stories`, { photo_id: fb.photoId });
+      patch.fbPostId = String(r.post_id || fb.photoId);
+    }
+    return true;
+  }
+  if (fmt === "reel") {
+    const url = await fileLink(files[0].path);
+    if (!fb.videoId && !fb.plain) {
+      try { fb.videoId = String((await G(page, "POST", `${meta.pageId}/video_reels`, { upload_phase: "start" })).video_id); } catch (e) { fb.plain = true; }
+    }
+    if (fb.plain) {                                         // Pages that can't take Reels: a normal Page video
+      const r = await G(page, "POST", `${meta.pageId}/videos`, { file_url: url, description: caption, title: o.fbTitle || it.title || "" }, "graph-video.facebook.com");
+      fb.videoId = String(r.id);
+    } else {
+      if (!fb.uploaded) { await rupload(fb.videoId, url); fb.uploaded = true; }
+      await G(page, "POST", `${meta.pageId}/video_reels`, { upload_phase: "finish", video_id: fb.videoId, video_state: "PUBLISHED", description: caption, title: o.fbTitle || undefined });
+    }
+    patch.fbVideoId = fb.videoId; objectId = fb.videoId;
+    if (sc.cover && sc.cover.path) {
+      try {
+        const [buf] = await deps.bucket().file(sc.cover.path).download();
+        await rawPost(page, `https://graph.facebook.com/${V}/${fb.videoId}/thumbnails`, { form: { source: new Blob([buf], { type: "image/jpeg" }), is_preferred: "true" } });
+      } catch (e) { warn("a capa não entrou no Facebook (lá ficou a capa automática)"); }
+    }
+  } else if (files.length === 1) {
+    const p = { url: await fileLink(files[0].path), caption, alt_text_custom: files[0].alt || undefined };
+    let r;
+    try { r = await G(page, "POST", `${meta.pageId}/photos`, p); } catch (e) { if (!p.alt_text_custom) throw e; r = await G(page, "POST", `${meta.pageId}/photos`, { ...p, alt_text_custom: undefined }); }
+    patch.fbPostId = String(r.post_id || r.id); objectId = patch.fbPostId;
+  } else {
+    fb.photos = fb.photos || [];
+    for (let k = 0; k < files.length; k++) {
+      if (fb.photos[k]) continue;
+      const p = { url: await fileLink(files[k].path), published: false, alt_text_custom: files[k].alt || undefined };
+      let r;
+      try { r = await G(page, "POST", `${meta.pageId}/photos`, p); } catch (e) { if (!p.alt_text_custom) throw e; r = await G(page, "POST", `${meta.pageId}/photos`, { ...p, alt_text_custom: undefined }); }
+      fb.photos[k] = String(r.id);
+    }
+    const r = await G(page, "POST", `${meta.pageId}/feed`, { message: caption, attached_media: fb.photos.map((id) => ({ media_fbid: id })) });
+    patch.fbPostId = String(r.id); objectId = patch.fbPostId;
+  }
+  if (o.firstComment && objectId) {
+    try { await G(page, "POST", `${objectId}/comments`, { message: o.firstComment }); } catch (e) { warn(`o primeiro comentário não entrou no Facebook (${e.message.replace(/^Meta: /, "")})`); }
+  }
+  return true;
+}
+
 async function publishOne(doc, it) {
   const G = require("./ads")._internal.graph;
   const meta = await metaAuth();
   const sc = { ...it.sched }, done = { ...(sc.done || {}) }, patch = {};
-  const isVideo = /^video\//.test(sc.type || "");
-  try {
-    if (!meta || !meta.token) throw new Error("O Meta não está conectado (Anúncios › Conectar Meta).");
-    const url = await fileLink(sc.path);
-    if (sc.nets.instagram && !done.instagram) {
-      if (!meta.igUserId) throw new Error("A conta do Instagram não está ligada à conexão do Meta.");
-      if (!sc.igCreation) {
-        const r = await G(meta, "POST", `${meta.igUserId}/media`, isVideo ? { media_type: "REELS", video_url: url, caption: it.caption || "", share_to_feed: true } : { image_url: url, caption: it.caption || "" });
-        sc.igCreation = String(r.id);
-      }
-      let status = "";
-      for (let k = 0; k < 9; k++) {                    // a Reel takes a minute or two to be processed by Meta
-        const s = await G(meta, "GET", sc.igCreation, { fields: "status_code,status" });
-        status = s.status_code || "";
-        if (status === "FINISHED" || status === "ERROR" || status === "EXPIRED" || !isVideo) break;
-        await new Promise((r) => setTimeout(r, WAIT_MS));
-      }
-      if (status === "ERROR" || status === "EXPIRED") { sc.igCreation = ""; throw new Error("O Instagram não aceitou o arquivo (formato ou tamanho)."); }
-      if (status === "FINISHED" || !isVideo) {
-        const pbl = await G(meta, "POST", `${meta.igUserId}/media_publish`, { creation_id: sc.igCreation });
-        done.instagram = nowIso(); patch.igId = String(pbl.id);
-        try { const pm = await G(meta, "GET", String(pbl.id), { fields: "permalink" }); patch.igLink = pm.permalink || ""; } catch (e) { /* link comes with the next sync */ }
-      }
-    }
-    if (sc.nets.facebook && !done.facebook) {
-      const pg = await G(meta, "GET", meta.pageId, { fields: "access_token" });
-      const page = { token: pg.access_token, appSecret: meta.appSecret };
-      if (isVideo) {
-        const r = await G(page, "POST", `${meta.pageId}/videos`, { file_url: url, description: it.caption || "", title: it.title || "" }, "graph-video.facebook.com");
-        patch.fbVideoId = String(r.id);
-      } else {
-        const r = await G(page, "POST", `${meta.pageId}/photos`, { url, caption: it.caption || "" });
-        patch.fbPostId = String(r.post_id || r.id);
-      }
-      done.facebook = nowIso();
-    }
-    sc.done = done;
-    const all = ["instagram", "facebook"].filter((n) => sc.nets[n]).every((n) => done[n]);
-    sc.state = all ? "done" : "processing"; sc.err = "";
+  const warns = new Set(sc.warns || []);
+  const warn = (s) => warns.add(s);
+  const save = async (extra) => {
+    sc.done = done; sc.warns = [...warns];
     const posted = { ...(it.posted || {}) };
     Object.keys(done).forEach((n) => { posted[n] = posted[n] || done[n]; });
-    await doc.ref.set({ ...patch, sched: sc, posted, ...(all ? { status: "posted" } : {}), updatedAt: nowIso() }, { merge: true });
+    await doc.ref.set({ ...patch, sched: sc, posted, ...extra, updatedAt: nowIso() }, { merge: true });
+  };
+  try {
+    if (!meta || !meta.token) throw new Error("O Meta não está conectado (Anúncios › Conectar Meta).");
+    if (!schedFiles(sc).length) throw new Error("O post não tem arquivo.");
+    let waiting = false;
+    if (sc.nets.instagram && !done.instagram) {
+      if (!meta.igUserId) throw new Error("A conta do Instagram não está ligada à conexão do Meta.");
+      if (await igPublish(G, meta, it, sc, patch, warn)) done.instagram = nowIso(); else waiting = true;
+    }
+    if (sc.nets.facebook && !done.facebook) {
+      if (await fbPublish(G, meta, it, sc, patch, warn)) done.facebook = nowIso();
+    }
+    const all = !waiting && ["instagram", "facebook"].filter((n) => sc.nets[n]).every((n) => done[n]);
+    sc.state = all ? "done" : "processing"; sc.err = "";
+    await save(all ? { status: "posted" } : {});
     if (all) {
       const nets = ["instagram", "facebook"].filter((n) => sc.nets[n]).map((n) => (n === "instagram" ? "Instagram" : "Facebook")).join(" e ");
-      try { await require("./push").notifyAdmins("admin_content", { text: `Saiu no ${nets} ✓ ${it.title || ""}`, tag: `content-${doc.id}` }); } catch (e) { /* never blocks */ }
+      const note = warns.size ? ` (atenção: ${[...warns].join("; ")})` : "";
+      try { await require("./push").notifyAdmins("admin_content", { text: `Saiu no ${nets} ✓ ${it.title || ""}${note}`, tag: `content-${doc.id}` }); } catch (e) { /* never blocks */ }
     }
     return all ? "done" : "processing";
   } catch (e) {
-    sc.state = "error"; sc.err = String(e.message || e).replace(/^Meta: /, "").slice(0, 300); sc.done = done;
-    const posted = { ...(it.posted || {}) };
-    Object.keys(done).forEach((n) => { posted[n] = posted[n] || done[n]; });
-    await doc.ref.set({ ...patch, sched: sc, posted, updatedAt: nowIso() }, { merge: true });
+    sc.state = "error"; sc.err = String(e.message || e).replace(/^Meta: /, "").slice(0, 300);
+    await save({});
     try { await require("./push").notifyAdmins("admin_content", { text: `Não deu para publicar “${it.title || ""}”: ${sc.err}`, tag: `content-${doc.id}` }); } catch (x) { /* never blocks */ }
     return "error";
   }
@@ -401,13 +553,14 @@ async function adminContent(data, auth) {
     }
     case "remove": {
       const cur = await read();
-      for (const f of cur.files || []) { try { await deps.bucket().file(f.path).delete(); } catch (e) { /* already gone */ } }
+      for (const f of [...(cur.files || []), ...(cur.cover && cur.cover.path ? [cur.cover] : [])]) { try { await deps.bucket().file(f.path).delete(); } catch (e) { /* already gone */ } }
       await ref.delete();
       return list();
     }
     case "schedule": {
-      // the app publishes it at that day and time (New York time)
+      // the app publishes it at that day and time (New York time), with what Business Suite would let them choose
       const cur = await read();
+      if (cur.sched && ["processing", "done"].includes(cur.sched.state)) fail("failed-precondition", "It is already going out; it can't be changed now.");
       const date = /^\d{4}-\d{2}-\d{2}$/.test(String(data.date || "")) ? String(data.date) : "";
       const time = /^\d{2}:\d{2}$/.test(String(data.time || "")) ? String(data.time) : "";
       if (!date || !time) fail("invalid-argument", "Pick the day and the time.");
@@ -415,17 +568,65 @@ async function adminContent(data, auth) {
       if (at < Date.now() + 60000) fail("invalid-argument", "Pick a time in the future.");
       const nets = { instagram: !!(data.nets && data.nets.instagram), facebook: !!(data.nets && data.nets.facebook) };
       if (!nets.instagram && !nets.facebook) fail("invalid-argument", "Choose Instagram, Facebook or both.");
-      const file = (cur.files || []).find((f) => f.path === data.path) || (cur.files || [])[0];
-      if (!file) fail("failed-precondition", "Send the video or photo first.");
+      const media = (cur.files || []).filter((f) => /^(image|video)\//.test(f.type || ""));
+      // which files, in order (a carousel); old callers send one path
+      const want = Array.isArray(data.files) ? data.files.map((x) => U.text(x, 220)) : data.path ? [U.text(data.path, 220)] : [];
+      let files = want.length ? want.map((p) => media.find((f) => f.path === p)).filter(Boolean) : media.slice(-1);
+      if (want.length && files.length !== want.length) fail("not-found", "One of the files isn't in this post anymore.");
+      if (!files.length) fail("failed-precondition", "Send the video or photo first.");
+      if (files.length > 10) fail("invalid-argument", "Up to 10 photos or videos in a carousel.");
+      const oldAlt = {}; ((cur.sched && cur.sched.files) || []).forEach((f) => { oldAlt[f.path] = f.alt || ""; });
+      const alts = (data.alts && typeof data.alts === "object") ? data.alts : oldAlt;
+      files = files.map((f) => ({ path: f.path, type: f.type, name: f.name || "", alt: /^image\//.test(f.type) ? U.text(alts[f.path], 1000) : "" }));
+      const vids = files.filter((f) => /^video\//.test(f.type)).length;
+      let format = data.format === "story" ? "story" : files.length === 1 && vids ? "reel" : "post";
+      if (format === "story" && files.length > 1) fail("invalid-argument", "A Story is one photo or one video.");
+      if (nets.facebook && format === "post" && files.length > 1 && vids) fail("invalid-argument", "Facebook doesn't take a carousel with videos. Use only photos, or post it only on Instagram.");
+      // the options (anything not sent stays as it was when editing a schedule)
+      const o0 = (cur.sched && cur.sched.opts) || {}, oi = data.opts || {};
+      const user = (v) => String(v || "").trim().replace(/^@+/, "").toLowerCase();
+      const users = (arr, max) => [...new Set((Array.isArray(arr) ? arr : String(arr || "").split(/[\s,]+/)).map(user).filter((u) => /^[a-z0-9._]{1,30}$/.test(u)))].slice(0, max);
+      const tags = (Array.isArray(oi.tags) ? oi.tags : []).map((t) => (typeof t === "string" ? { u: user(t) } : { u: user(t.u), x: t.x, y: t.y }))
+        .filter((t) => /^[a-z0-9._]{1,30}$/.test(t.u)).slice(0, 20)
+        .map((t) => ({ u: t.u, ...(Number.isFinite(t.x) && Number.isFinite(t.y) ? { x: Math.min(1, Math.max(0, Math.round(t.x * 100) / 100)), y: Math.min(1, Math.max(0, Math.round(t.y * 100) / 100)) } : {}) }));
+      const opts = {
+        shareToFeed: oi.shareToFeed !== undefined ? !!oi.shareToFeed : o0.shareToFeed !== false,
+        trial: ["MANUAL", "SS_PERFORMANCE"].includes(oi.trial) ? oi.trial : oi.trial !== undefined ? "" : o0.trial || "",
+        audioName: oi.audioName !== undefined ? U.text(oi.audioName, 60) : o0.audioName || "",
+        collaborators: oi.collaborators !== undefined ? users(oi.collaborators, 3) : o0.collaborators || [],
+        tags: oi.tags !== undefined ? tags : o0.tags || [],
+        firstComment: oi.firstComment !== undefined ? U.text(oi.firstComment, 2200) : o0.firstComment || "",
+        commentsOff: oi.commentsOff !== undefined ? !!oi.commentsOff : !!o0.commentsOff,
+        fbCaption: oi.fbCaption !== undefined ? U.text(oi.fbCaption, 5000) : o0.fbCaption || "",
+        fbTitle: oi.fbTitle !== undefined ? U.text(oi.fbTitle, 100) : o0.fbTitle || "",
+      };
+      if (format !== "reel") { opts.trial = ""; opts.audioName = ""; }
+      // the Reel's cover: a photo from the phone or a moment of the video (an image the app made of that moment)
+      let cover = null, offsetMs = null;
+      if (format === "reel") {
+        const cp = data.cover !== undefined ? U.text(data.cover, 220) : (cur.sched && cur.sched.cover && cur.sched.cover.path) || "";
+        if (cp) {
+          if (!cp.startsWith(`content/${id}/`) || !/^content\/[A-Za-z0-9_-]+\/[A-Za-z0-9._ ()-]{1,140}$/.test(cp)) fail("invalid-argument", "That cover isn't from this post.");
+          cover = { path: cp };
+        }
+        const off = data.offsetMs !== undefined ? data.offsetMs : cur.sched ? cur.sched.offsetMs : null;
+        offsetMs = off === null || off === undefined || off === "" || !Number.isFinite(Number(off)) ? null : Math.max(0, Math.round(Number(off)));
+      }
       const meta = await metaAuth();
       if (!meta || !meta.token) fail("failed-precondition", "Connect Meta first (Ads › Connect Meta).");
       const missing = await missingScopes(meta, nets);
       if (missing.length) fail("failed-precondition", `The Meta connection can't publish yet (missing ${missing.join(", ")}). Make a new token in Meta Business with those permissions and paste it in Ads › Connect Meta.`);
       const caption = data.caption !== undefined ? U.text(data.caption, 2200) : cur.caption || "";
-      await ref.set({ status: "scheduled", date, time, caption, nets: { ...(cur.nets || {}), ...nets },
-        sched: { at: new Date(at).toISOString(), nets, path: file.path, type: file.type, state: "waiting", err: "", done: {}, igCreation: "", by: name(auth) },
-        updatedAt: nowIso() }, { merge: true });
-      await tellOther(auth, `${name(auth)} agendou pelo app: ${cur.title || "um post"} · sai ${ptWhen(date, time)}`, `content-${id}`);
+      const again = !!(cur.sched && cur.status === "scheduled");
+      // an old cover that was replaced goes away
+      const oldCover = cur.sched && cur.sched.cover && cur.sched.cover.path;
+      if (oldCover && (!cover || cover.path !== oldCover)) { try { await deps.bucket().file(oldCover).delete(); } catch (e) { /* gone */ } }
+      // update (not merge): the whole schedule is replaced, so no progress from an older one is left in it
+      await ref.update({ status: "scheduled", date, time, caption, nets: { ...(cur.nets || {}), ...nets }, cover: cover || null,
+        sched: { at: new Date(at).toISOString(), nets, format, files, path: files[0].path, type: files[0].type, cover, offsetMs, opts,
+          state: "waiting", err: "", done: {}, ig: {}, fb: {}, warns: [], igCreation: "", by: name(auth) },
+        updatedAt: nowIso() });
+      await tellOther(auth, `${name(auth)} ${again ? "mudou o agendamento de" : "agendou pelo app:"} ${cur.title || "um post"} · sai ${ptWhen(date, time)}`, `content-${id}`);
       return list();
     }
     case "unschedule": {
@@ -437,7 +638,7 @@ async function adminContent(data, auth) {
     case "retry": {
       const cur = await read();
       if (!cur.sched || cur.sched.state !== "error") fail("failed-precondition", "Nothing to retry.");
-      await ref.set({ sched: { ...cur.sched, state: "waiting", err: "", at: new Date(Math.max(Date.parse(cur.sched.at), Date.now())).toISOString() }, updatedAt: nowIso() }, { merge: true });
+      await ref.update({ sched: { ...cur.sched, state: "waiting", err: "", at: new Date(Math.max(Date.parse(cur.sched.at), Date.now())).toISOString() }, updatedAt: nowIso() });
       await publishOne(await ref.get(), (await ref.get()).data());
       return list();
     }

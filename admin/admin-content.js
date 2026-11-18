@@ -177,6 +177,25 @@
   }
 
   /* on Meta: scheduled (marked by them) or already out */
+  /* what was chosen for a schedule, in a line or two; after it went out, what didn't make it */
+  function schedSummary(sc, out) {
+    if (!sc) return '';
+    var o = sc.opts || {}, n = (sc.files || []).length || 1, parts = [];
+    if (out) return (sc.warns || []).length ? '<p class="small ct-warn">' + T('Heads up: ', 'Atenção: ') + esc(sc.warns.join('; ')) + '.</p>' : '';
+    parts.push(sc.format === 'story' ? 'Story' : sc.format === 'reel' ? 'Reel' : n > 1 ? T('Carousel of ', 'Carrossel de ') + n : T('Photo post', 'Post de foto'));
+    if (sc.format === 'reel') {
+      parts.push(sc.cover && sc.offsetMs == null ? T('cover: phone photo', 'capa: foto do celular') : sc.offsetMs != null ? T('cover: moment ', 'capa: momento ') + (sc.offsetMs / 1000).toFixed(1) + 's' : T('automatic cover', 'capa automática'));
+      if (o.shareToFeed === false) parts.push(T('not on the grid', 'fora do feed'));
+      if (o.trial) parts.push(T('test Reel', 'Reel de teste'));
+      if (o.audioName) parts.push(T('audio: ', 'áudio: ') + o.audioName);
+    }
+    if ((o.collaborators || []).length) parts.push(T('with ', 'com ') + o.collaborators.map(function (u) { return '@' + u; }).join(', '));
+    if ((o.tags || []).length) parts.push(o.tags.length + T(' tagged', ' marcado' + (o.tags.length > 1 ? 's' : '')));
+    if (o.firstComment) parts.push(T('first comment', '1º comentário'));
+    if (o.commentsOff) parts.push(T('comments off', 'comentários desligados'));
+    if (o.fbCaption) parts.push(T('own caption on Facebook', 'legenda própria no Facebook'));
+    return '<p class="tiny ct-opts">' + parts.map(esc).join(' · ') + '</p>';
+  }
   function metaCard(it) {
     var files = it.files || [], out = it.status === 'posted';
     var nets = NETS.filter(function (n) { return it.nets && it.nets[n[0]]; }).map(function (n) {
@@ -196,11 +215,13 @@
       : pending ? '<p class="tiny muted">' + (it.date ? T('Scheduled in Business Suite; day and time noted by you. When it goes out, the real time shows.', 'Agendado no Business Suite; dia e hora anotados por vocês. Quando sair, aparece a hora real.')
         : T('Scheduled in Business Suite. Meta doesn’t tell the time: tap “Note day and time”. When it goes out, it moves to “Already out” with the real time.', 'Agendado no Business Suite. O Meta não informa a hora: toque em “Informar dia e hora”. Quando sair, passa para “Já saiu” com a hora real.')) + '</p>'
       : !out ? '<p class="tiny muted">' + T('Scheduled in Business Suite (marked by hand).', 'Agendado no Business Suite (marcado à mão).') + '</p>' : '';
+    var opt = schedSummary(it.sched, out);
     var media = files.length ? '<div class="ct-files' + (files.length === 1 ? ' one' : '') + '">' + files.map(function (f) { return fileMedia(it, f, files.length === 1); }).join('') + '</div>' : metaMedia(it);
     var stats = it.igStats ? '<span>♥ ' + it.igStats.likes + '</span><span>💬 ' + it.igStats.comments + '</span>' : '';
     var links = (it.igLink ? '<a href="' + esc(it.igLink) + '" target="_blank" rel="noopener">Instagram ›</a>' : '') + (it.fbLink ? '<a href="' + esc(it.fbLink) + '" target="_blank" rel="noopener">Facebook ›</a>' : '');
     var acts = [];
     if (sc && sc.state === 'error') acts.push(btn('ctRetry', it, T('Try again', 'Tentar de novo'), true));
+    if (sc && sc.state !== 'processing') acts.push(btn('ctReschedule', it, T('Edit schedule', 'Editar agendamento'), sc.state !== 'error'));
     if (sc && sc.state !== 'processing') acts.push(btn('ctUnschedule', it, T('Cancel schedule', 'Cancelar agendamento')));
     if (pending) acts.push(btn('ctWhen', it, h.icon('calendar') + (it.date ? T('Change day and time', 'Mudar dia e hora') : T('Note day and time', 'Informar dia e hora')), !it.date));
     if (!out && !sc && !pending) acts.push(btn('ctPosted', it, T('Already out', 'Já saiu')));
@@ -208,7 +229,7 @@
     acts.push(btn('ctEdit', it, T('Edit', 'Editar')));
     return '<article class="card ct-card ct-' + esc(it.status) + '" id="ct-' + esc(it.id) + '">' +
       '<div class="ct-top">' + badge + (nets ? '<div class="ct-nets">' + nets + '</div>' : '') + '</div>' +
-      (it.title ? '<h3>' + esc(it.title) + '</h3>' : '') + how + media +
+      (it.title ? '<h3>' + esc(it.title) + '</h3>' : '') + how + opt + media +
       (stats || links ? '<p class="small ct-links">' + stats + links + '</p>' : '') +
       details(it) + '<div class="row sp-acts">' + acts.join('') + '</div></article>';
   }
@@ -438,66 +459,244 @@
       load('save', { id: it.id, item: { title: v.title, status: v.status, date: v.date, time: v.time, caption: v.caption, notes: v.notes } }, T('Saved.', 'Salvo.'));
     });
   };
-  /* scheduling in the app: at that time the server publishes it on Instagram / Facebook */
+  /* ---------- scheduling: one window with what Business Suite lets you choose ----------
+     Files (1 to 10; 2 or more make a carousel), Reel / Post / Story, Instagram / Facebook, day and time, caption (and
+     another one for Facebook), the Reel's cover (a moment of the video or a photo from the phone), show on the feed,
+     test Reel, audio name, collaborators, tagged people (tap the photo to place them), alt text, first comment,
+     comments off, the Facebook video title. Location isn't there: Meta closed place search to outside apps. */
+  function schedWindow(o) {
+    // o: { it (a post with files, or null), files: [entry], edit: bool }; entry: { path?, file?, type, name, url? }
+    return new Promise(function (resolve) {
+      var it = o.it || {}, sc = (o.edit && it.sched) || {}, op = sc.opts || {};
+      var S = {
+        files: o.files.slice(0, 10),
+        format: sc.format === 'story' ? 'story' : '',
+        alts: {}, tags: (op.tags || []).map(function (t) { return { u: t.u, x: t.x, y: t.y }; }), sel: 0,
+        coverMode: sc.cover && sc.offsetMs == null ? 'photo' : 'moment', offsetMs: sc.offsetMs != null ? sc.offsetMs : null,
+        coverFile: null, coverBlob: null, coverChanged: false
+      };
+      ((sc.files) || []).forEach(function (f) { S.alts[f.path] = f.alt || ''; });
+      var key = function (e) { return e.path || e.name + ':' + (e.file && e.file.size); };
+      var dlg = document.createElement('dialog'); dlg.className = 'modal ct-sch'; dlg.setAttribute('translate', 'no');
+      document.body.appendChild(dlg);
+      var isV = function (e) { return /^video\//.test(e.type || ''); };
+      var fmt = function () {
+        if (S.files.length === 1 && S.format === 'story') return 'story';
+        if (S.files.length === 1 && isV(S.files[0])) return 'reel';
+        return 'post';
+      };
+      var srcOf = function (e, cb) {
+        if (e.url) return cb(e.url);
+        if (e.file) { e.url = URL.createObjectURL(e.file); return cb(e.url); }
+        urlOf(e.path).then(function (u) { e.url = u; cb(u); }).catch(function () {});
+      };
+      var thumbs = function () {
+        return '<div class="ct-sch-files">' + S.files.map(function (e, k) {
+          return '<div class="ct-sch-file" data-k="' + k + '">' + (isV(e) ? '<video muted playsinline preload="metadata" data-sch-src="' + k + '"></video>' : '<img alt="" data-sch-src="' + k + '">') +
+            '<span class="ct-sch-n">' + (k + 1) + '</span>' +
+            (S.files.length > 1 ? '<button type="button" class="ct-sch-x" data-sch-del="' + k + '" aria-label="' + T('Remove', 'Tirar') + '">×</button>' : '') +
+            (k > 0 ? '<button type="button" class="ct-sch-mv" data-sch-left="' + k + '" aria-label="' + T('Move left', 'Para a esquerda') + '">‹</button>' : '') + '</div>';
+        }).join('') + (S.files.length < 10 && !o.edit ? '<label class="ct-sch-add">+<input type="file" accept="image/*,video/*" multiple data-sch-more hidden></label>' : '') + '</div>';
+      };
+      var radio = function (name, val, cur, label) { return '<label class="ct-sch-pill"><input type="radio" name="' + name + '" value="' + val + '"' + (val === cur ? ' checked' : '') + '><span>' + label + '</span></label>'; };
+      var keepVals = function () {
+        var v = {}; Array.prototype.forEach.call(dlg.querySelectorAll('[name]'), function (e) { v[e.name] = e.type === 'checkbox' ? e.checked : e.type === 'radio' ? (e.checked ? e.value : v[e.name]) : e.value; });
+        return v;
+      };
+      var V = {
+        date: it.date && it.date >= st.data.today && o.edit ? it.date : addDays(st.data.today, 1), time: (o.edit && it.time) || '19:00',
+        ig: o.edit ? !!(sc.nets && sc.nets.instagram) : true, fb: o.edit ? !!(sc.nets && sc.nets.facebook) : true,
+        caption: it.caption || '', fbOwn: !!op.fbCaption, fbCaption: op.fbCaption || '', fbTitle: op.fbTitle || '',
+        feed: op.shareToFeed !== false, trial: op.trial || '', audio: op.audioName || '',
+        collab: (op.collaborators || []).map(function (u) { return '@' + u; }).join(', '),
+        first: op.firstComment || '', off: !!op.commentsOff, title: it.title || ''
+      };
+      var draw = function () {
+        var f = fmt(), one = S.files.length === 1, mixedVid = S.files.length > 1 && S.files.some(isV);
+        var photoFirst = S.files.filter(function (e) { return !isV(e); })[0];
+        var h1 = '<form method="dialog" class="in"><h2>' + (o.edit ? T('Edit schedule', 'Editar agendamento') : T('Schedule a post', 'Agendar post')) + '</h2>' + thumbs();
+        var kind = one ? '<div class="ct-sch-pills">' + (isV(S.files[0]) ? radio('format', '', S.format, 'Reel') : radio('format', '', S.format, T('Post', 'Post'))) + radio('format', 'story', S.format, 'Story') + '</div>'
+          : '<p class="tiny muted">' + T('Carousel with ', 'Carrossel com ') + S.files.length + T(' items, in this order (‹ moves one to the left).', ' itens, nessa ordem (‹ passa um para a esquerda).') + '</p>';
+        var nets = '<div class="ct-checks"><label><input type="checkbox" name="ig"' + (V.ig ? ' checked' : '') + '> Instagram</label><label' + (mixedVid ? ' class="muted"' : '') + '><input type="checkbox" name="fb"' + (V.fb && !mixedVid ? ' checked' : '') + (mixedVid ? ' disabled' : '') + '> Facebook</label></div>' +
+          (mixedVid ? '<p class="tiny muted">' + T('Facebook doesn’t take a carousel with a video: this one goes only to Instagram.', 'O Facebook não aceita carrossel com vídeo: este vai só para o Instagram.') + '</p>' : '');
+        if (!o.edit) h1 = h1.replace('<form method="dialog" class="in">', '<form method="dialog" class="in">');
+        var when = '<div class="row">' + field('date', T('Day', 'Dia'), V.date, 'date') + field('time', T('Time (New York)', 'Hora (Nova York)'), V.time, 'time') + '</div>';
+        var cap = f === 'story' ? '<p class="tiny muted">' + T('Stories have no caption.', 'Story não tem legenda.') + '</p>'
+          : area('caption', T('Caption', 'Legenda'), V.caption, 5) +
+            '<label class="ct-sch-check"><input type="checkbox" name="fbOwn"' + (V.fbOwn ? ' checked' : '') + ' data-sch-redraw> ' + T('Another caption on Facebook', 'Legenda diferente no Facebook') + '</label>' +
+            (V.fbOwn ? area('fbCaption', T('Facebook caption', 'Legenda do Facebook'), V.fbCaption, 4) : '');
+        if (!o.edit && !V.title) V.title = '';
+        var name = o.it ? '' : field('title', T('Name (just for you two)', 'Nome (só para vocês)'), V.title);
+        var cover = '', reel = '';
+        if (f === 'reel') {
+          cover = '<fieldset class="ct-sch-box"><legend>' + T('Cover', 'Capa') + '</legend><div class="ct-sch-pills">' + radio('coverMode', 'moment', S.coverMode, T('A moment of the video', 'Um momento do vídeo')) + radio('coverMode', 'photo', S.coverMode, T('A photo from the phone', 'Foto do celular')) + '</div>' +
+            (S.coverMode === 'moment'
+              ? '<div class="ct-sch-cover"><video muted playsinline preload="auto" data-sch-cv></video></div><input type="range" min="0" max="1000" step="1" value="0" data-sch-slider class="ct-sch-range"><p class="tiny muted">' + T('Slide to the moment you want as the cover.', 'Arraste até o momento que você quer de capa.') + '</p>'
+              : '<div class="ct-sch-cover">' + (S.coverFile || (o.edit && sc.cover && !S.coverChanged) ? '<img alt="" data-sch-cimg>' : '<span class="muted small">' + T('No photo yet', 'Nenhuma foto ainda') + '</span>') + '</div>' +
+                '<label class="btn btn-ghost btn-sm ct-dlgpick">' + h.icon('upload') + T('Choose the cover photo', 'Escolher a foto da capa') + '<input type="file" accept="image/*" data-sch-cfile hidden></label>') + '</fieldset>';
+          reel = '<fieldset class="ct-sch-box"><legend>Reel</legend>' +
+            '<label class="ct-sch-check"><input type="checkbox" name="feed"' + (V.feed ? ' checked' : '') + '> ' + T('Also show it on the profile grid', 'Mostrar também no feed do perfil') + '</label>' +
+            select('trial', T('Test Reel (shown to non-followers first)', 'Reel de teste (aparece primeiro para quem não segue)'), V.trial, [['', T('No', 'Não')], ['MANUAL', T('Yes; I decide in Instagram when it goes to followers', 'Sim; eu decido no Instagram quando vai para os seguidores')], ['SS_PERFORMANCE', T('Yes; Instagram shares it with followers if it does well', 'Sim; o Instagram mostra aos seguidores se for bem')]]) +
+            field('audio', T('Audio name (instead of “Original audio”)', 'Nome do áudio (no lugar de “Áudio original”)'), V.audio) +
+            field('fbTitle', T('Video title on Facebook', 'Título do vídeo no Facebook'), V.fbTitle) + '</fieldset>';
+        }
+        var people = f === 'story' ? '' : '<fieldset class="ct-sch-box"><legend>' + T('People', 'Pessoas') + '</legend>' +
+          field('collab', T('Collaborators (up to 3, Instagram)', 'Colaboradores (até 3, Instagram)'), V.collab) +
+          '<label class="field"><span>' + T('Tag people (Instagram)', 'Marcar pessoas (Instagram)') + '</span><div class="ct-sch-tagin"><input class="input" data-sch-tag placeholder="@usuario"><button type="button" class="btn btn-ghost btn-sm" data-sch-addtag>' + T('Add', 'Adicionar') + '</button></div></label>' +
+          (S.tags.length ? '<div class="ct-sch-tags">' + S.tags.map(function (t, k) { return '<span class="ct-sch-tag' + (k === S.sel ? ' on' : '') + '" data-sch-seltag="' + k + '">@' + esc(t.u) + '<button type="button" data-sch-deltag="' + k + '" aria-label="' + T('Remove', 'Tirar') + '">×</button></span>'; }).join('') + '</div>' : '') +
+          (S.tags.length && photoFirst && f !== 'reel' ? '<p class="tiny muted">' + T('Tap the photo to place the chosen tag.', 'Toque na foto para pôr a marcação escolhida.') + '</p><div class="ct-sch-place" data-sch-place><img alt="">' +
+            S.tags.map(function (t, k) { return '<i style="left:' + ((t.x != null ? t.x : 0.5) * 100) + '%;top:' + ((t.y != null ? t.y : 0.5) * 100) + '%"' + (k === S.sel ? ' class="on"' : '') + '>@' + esc(t.u) + '</i>'; }).join('') + '</div>' : '') + '</fieldset>';
+        var alts = S.files.some(function (e) { return !isV(e); }) && f !== 'story' ? '<details class="ct-sch-box"><summary>' + T('Alt text (for screen readers)', 'Texto alternativo (para quem usa leitor de tela)') + '</summary>' +
+          S.files.map(function (e, k) { return isV(e) ? '' : '<label class="field"><span>' + T('Photo ', 'Foto ') + (k + 1) + '</span><input class="input" name="alt_' + k + '" maxlength="1000" value="' + esc(S.alts[key(e)] || '') + '"></label>'; }).join('') + '</details>' : '';
+        var comments = f === 'story' ? '' : '<fieldset class="ct-sch-box"><legend>' + T('Comments', 'Comentários') + '</legend>' +
+          area('first', T('First comment (goes in right after it’s out)', 'Primeiro comentário (entra logo depois que sair)'), V.first, 2) +
+          '<label class="ct-sch-check"><input type="checkbox" name="off"' + (V.off ? ' checked' : '') + '> ' + T('Turn comments off on Instagram', 'Desligar os comentários no Instagram') + '</label></fieldset>';
+        var note = '<p class="tiny muted">' + T('Location can’t be set from the app (Meta doesn’t allow it for outside apps). At that day and time the app publishes it by itself, in full quality, and tells you both.',
+          'Local não dá para pôr pelo app (o Meta não deixa apps de fora). Nesse dia e hora o app publica sozinho, na qualidade original, e avisa vocês dois.') + '</p>';
+        dlg.innerHTML = h1 + kind + name + nets + when + cap + cover + reel + people + alts + comments + note +
+          '<div class="row end ct-sch-foot"><button class="btn btn-ghost" value="cancel">' + T('Cancel', 'Cancelar') + '</button><button class="btn btn-honey" value="ok">' + (o.edit ? T('Save', 'Salvar') : T('Schedule', 'Agendar')) + '</button></div></form>';
+        // pictures
+        Array.prototype.forEach.call(dlg.querySelectorAll('[data-sch-src]'), function (el) { srcOf(S.files[+el.getAttribute('data-sch-src')], function (u) { el.src = isV(S.files[+el.getAttribute('data-sch-src')]) ? u + '#t=0.1' : u; }); });
+        var pl = dlg.querySelector('[data-sch-place] img'); if (pl && photoFirst) srcOf(photoFirst, function (u) { pl.src = u; });
+        var ci = dlg.querySelector('[data-sch-cimg]');
+        if (ci) { if (S.coverFile) ci.src = URL.createObjectURL(S.coverFile); else urlOf(sc.cover.path).then(function (u) { ci.src = u; }).catch(function () {}); }
+        var cv = dlg.querySelector('[data-sch-cv]'), sl = dlg.querySelector('[data-sch-slider]');
+        if (cv) {
+          srcOf(S.files[0], function (u) { cv.src = u; });
+          cv.addEventListener('loadedmetadata', function () {
+            var d = cv.duration || 1, t = S.offsetMs != null ? S.offsetMs / 1000 : Math.min(0.1, d);
+            sl.value = String(Math.round(t / d * 1000)); cv.currentTime = t;
+          });
+          var primed = false;
+          sl.addEventListener('input', function () {
+            if (!primed) { primed = true; var pp = cv.play(); if (pp && pp.then) pp.then(function () { cv.pause(); }).catch(function () {}); }
+            var d = cv.duration || 0; if (!d) return;
+            var t = +sl.value / 1000 * d; cv.currentTime = t; S.offsetMs = Math.round(t * 1000); S.coverChanged = true;
+          });
+        }
+      };
+      draw();
+      var sync = function () { var v = keepVals(); Object.keys(v).forEach(function (k) { if (k.indexOf('alt_') === 0) { var e = S.files[+k.slice(4)]; if (e) S.alts[key(e)] = v[k]; } else if (k !== 'format' && k !== 'coverMode') V[k] = v[k]; }); };
+      var addFiles = function (list) {
+        onlyMedia(list).forEach(function (f) { if (S.files.length < 10) S.files.push({ file: f, type: f.type, name: f.name }); });
+      };
+      dlg.addEventListener('change', function (ev) {
+        var el = ev.target;
+        if (el.name === 'format') { sync(); S.format = el.value; draw(); return; }
+        if (el.name === 'coverMode') { sync(); S.coverMode = el.value; S.coverChanged = true; draw(); return; }
+        if (el.hasAttribute('data-sch-redraw')) { sync(); draw(); return; }
+        if (el.hasAttribute('data-sch-more')) { sync(); addFiles(el.files); draw(); return; }
+        if (el.hasAttribute('data-sch-cfile') && el.files && el.files[0]) { sync(); S.coverFile = el.files[0]; S.coverChanged = true; draw(); }
+      });
+      dlg.addEventListener('click', function (ev) {
+        var b = ev.target.closest('button, [data-sch-seltag], [data-sch-place]'); if (!b) return;
+        if (b.hasAttribute('data-sch-del')) { ev.preventDefault(); sync(); S.files.splice(+b.getAttribute('data-sch-del'), 1); draw(); }
+        else if (b.hasAttribute('data-sch-left')) { ev.preventDefault(); sync(); var k = +b.getAttribute('data-sch-left'); var x = S.files[k]; S.files[k] = S.files[k - 1]; S.files[k - 1] = x; draw(); }
+        else if (b.hasAttribute('data-sch-addtag')) {
+          ev.preventDefault(); sync();
+          var inp = dlg.querySelector('[data-sch-tag]'), u = String(inp.value || '').trim().replace(/^@+/, '').toLowerCase();
+          if (/^[a-z0-9._]{1,30}$/.test(u) && S.tags.length < 20 && !S.tags.some(function (t) { return t.u === u; })) { S.tags.push({ u: u }); S.sel = S.tags.length - 1; }
+          else if (u) h.toast(T('Type an Instagram username, like @karina.', 'Digite um usuário do Instagram, tipo @karina.'), true);
+          draw();
+        }
+        else if (b.hasAttribute('data-sch-deltag')) { ev.preventDefault(); ev.stopPropagation(); sync(); S.tags.splice(+b.getAttribute('data-sch-deltag'), 1); S.sel = 0; draw(); }
+        else if (b.hasAttribute('data-sch-seltag')) { sync(); S.sel = +b.getAttribute('data-sch-seltag'); draw(); }
+        else if (b.hasAttribute('data-sch-place') && S.tags[S.sel]) {
+          var r = b.getBoundingClientRect(); sync();
+          S.tags[S.sel].x = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)); S.tags[S.sel].y = Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height));
+          draw();
+        }
+      });
+      dlg.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target.hasAttribute('data-sch-tag')) { ev.preventDefault(); dlg.querySelector('[data-sch-addtag]').click(); } });
+      dlg.addEventListener('close', function () {
+        if (dlg.returnValue !== 'ok') { dlg.remove(); return resolve(null); }
+        sync();
+        var f = fmt(), finish = function (blob) {
+          dlg.remove();
+          resolve({
+            files: S.files, format: f, date: V.date, time: V.time, title: V.title,
+            nets: { instagram: !!V.ig, facebook: !!V.fb && !(S.files.length > 1 && S.files.some(isV)) },
+            caption: V.caption, alts: S.alts, key: key, coverBlob: blob || null,
+            coverKeep: f === 'reel' && !S.coverChanged && sc.cover ? sc.cover.path : '', offsetMs: f === 'reel' && S.coverMode === 'moment' ? S.offsetMs : null,
+            opts: { shareToFeed: !!V.feed, trial: V.trial || '', audioName: V.audio || '', collaborators: V.collab || '', tags: S.tags,
+              firstComment: V.first || '', commentsOff: !!V.off, fbCaption: V.fbOwn ? V.fbCaption || '' : '', fbTitle: V.fbTitle || '' }
+          });
+        };
+        if (f !== 'reel') return finish(null);
+        if (S.coverMode === 'photo') return finish(S.coverFile);
+        // the chosen moment becomes a picture too (Facebook takes the cover as a picture)
+        var cvv = dlg.querySelector('[data-sch-cv]');
+        if (!cvv || !cvv.videoWidth || S.offsetMs == null) return finish(null);
+        try {
+          var c = document.createElement('canvas'); c.width = cvv.videoWidth; c.height = cvv.videoHeight;
+          c.getContext('2d').drawImage(cvv, 0, 0, c.width, c.height);
+          c.toBlob(function (b) { finish(b); }, 'image/jpeg', 0.92);
+        } catch (e) { finish(null); }      // Instagram still gets the moment; Facebook keeps its automatic cover
+      });
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    });
+  }
+  /* puts the cover picture in Storage, next to the post's files (not shown as one of them) */
+  function putCover(id, blob) {
+    if (!blob) return Promise.resolve('');
+    var path = 'content/' + id + '/' + Date.now() + '-capa.jpg';
+    return storage().then(function (s) { return s.ref(path).put(blob, { contentType: 'image/jpeg', customMetadata: { name: 'capa.jpg' } }); }).then(function () { return path; });
+  }
+  function sendSchedule(id, v, paths) {
+    var alts = {};
+    v.files.forEach(function (e, k) { if (paths[k]) alts[paths[k]] = v.alts[v.key(e)] || ''; });
+    return putCover(id, v.coverBlob).then(function (cover) {
+      return load('schedule', { id: id, files: paths, format: v.format, date: v.date, time: v.time, caption: v.caption, nets: v.nets,
+        alts: alts, cover: cover || v.coverKeep || '', offsetMs: v.offsetMs, opts: v.opts },
+        T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.'));
+    }).then(function (d) { if (d) { st.tab = 'meta'; rerender(); } return d; })
+      .catch(function (e) { h.toast(h.friendlyError(e), true); });
+  }
+  /* "Agendar" on a post in Shared: its photos and videos */
   ACT.ctSchedule = function (el) {
     var it = item(el.getAttribute('data-id')); if (!it) return;
-    var files = it.files || [];
-    var pick = files.length > 1 ? '<div class="ct-where">' + files.map(function (f, k) {
-      return '<label><input type="radio" name="path" value="' + esc(f.path) + '"' + (k === files.length - 1 ? ' checked' : '') + '> <b>' + esc(String(f.name || '').replace(/\.[a-z0-9]+$/i, '')) + '</b><span class="tiny muted">' + size(f.size) + '</span></label>';
-    }).join('') + '</div>' : '';
-    ask(T('Schedule', 'Agendar'), '<p class="small muted">' + T('At that day and time (New York), the app publishes it by itself, in full quality, and tells you both.',
-      'Nesse dia e hora (horário de Nova York), o app publica sozinho, na qualidade original, e avisa vocês dois.') + '</p>' + pick +
-      '<div class="row">' + field('date', T('Day', 'Dia'), it.date && it.date >= st.data.today ? it.date : addDays(st.data.today, 1), 'date') + field('time', T('Time', 'Hora'), it.time || '19:00', 'time') + '</div>' +
-      '<div class="ct-checks"><label><input type="checkbox" name="ig" checked> Instagram</label><label><input type="checkbox" name="fb" checked> Facebook</label></div>' +
-      area('caption', T('Caption', 'Legenda'), it.caption, 5), T('Schedule', 'Agendar')).then(function (v) {
-      if (!v) return;
-      load('schedule', { id: it.id, path: v.path || (files[files.length - 1] || {}).path, date: v.date, time: v.time, caption: v.caption, nets: { instagram: !!v.ig, facebook: !!v.fb } },
-        T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.')).then(function (d) { if (d) { st.tab = 'meta'; rerender(); } });
+    var files = (it.files || []).filter(function (f) { return /^(image|video)\//.test(f.type || ''); });
+    schedWindow({ it: it, files: files.map(function (f) { return { path: f.path, type: f.type, name: f.name }; }) }).then(function (v) {
+      if (v) sendSchedule(it.id, v, v.files.map(function (e) { return e.path; }));
     });
   };
-  /* "Agendar post" in No Meta: any video or photo from the phone (or one already in Shared), caption, day and time */
+  /* "Editar agendamento": the same window, filled in */
+  ACT.ctReschedule = function (el) {
+    var it = item(el.getAttribute('data-id')); if (!it || !it.sched) return;
+    var all = it.files || [];
+    var files = (it.sched.files && it.sched.files.length ? it.sched.files : [{ path: it.sched.path, type: it.sched.type }])
+      .map(function (f) { var x = all.find(function (a) { return a.path === f.path; }) || f; return { path: x.path, type: x.type, name: x.name }; });
+    schedWindow({ it: it, files: files, edit: true }).then(function (v) {
+      if (v) sendSchedule(it.id, v, v.files.map(function (e) { return e.path; }));
+    });
+  };
+  /* "Agendar post" in No Meta: photos and videos from the phone */
   ACT.ctPickSchedule = function () {
-    var choose = '<label class="btn btn-honey ct-dlgpick">' + h.icon('upload') + '<span data-ct-picked>' + T('Choose from the phone', 'Escolher do celular') + '</span>' +
-      '<input type="file" name="files" accept="image/*,video/*" data-ct-dlgfile hidden></label>';
-    ask(T('Schedule a post', 'Agendar post'), choose +
-      field('title', T('Name (just for you two)', 'Nome (só para vocês)'), '') +
-      '<div class="row">' + field('date', T('Day', 'Dia'), addDays(st.data.today, 1), 'date') + field('time', T('Time', 'Hora'), '19:00', 'time') + '</div>' +
-      '<div class="ct-checks"><label><input type="checkbox" name="ig" checked> Instagram</label><label><input type="checkbox" name="fb" checked> Facebook</label></div>' +
-      area('caption', T('Caption', 'Legenda'), '', 5) +
-      '<p class="tiny muted">' + T('At that day and time (New York), the app publishes it by itself, in full quality, and tells you both.', 'Nesse dia e hora (horário de Nova York), o app publica sozinho, na qualidade original, e avisa vocês dois.') + '</p>',
-      T('Schedule', 'Agendar')).then(function (v) {
-      if (!v) return;
-      var files = onlyMedia(v.files || []);
-      var nets = { instagram: !!v.ig, facebook: !!v.fb };
-      var sched = function (id, path) {
-        return load('schedule', { id: id, path: path, date: v.date, time: v.time, caption: v.caption, nets: nets }, T('Scheduled. It goes out by itself.', 'Agendado. Sai sozinho na hora.'))
-          .then(function (d) { if (d) { st.tab = 'meta'; rerender(); } });
-      };
-      if (!files.length) { h.toast(T('Choose the video or photo.', 'Escolha o vídeo ou a foto.'), true); return; }
-      var vid = /^video\//.test(files[0].type);
-      st.tab = 'shared'; st.busy = true; rerender();
-      h.call('adminContent', { action: 'save', withFile: true, item: { title: v.title, kind: vid ? 'video' : 'photo', status: 'ready', caption: v.caption, nets: {} } })
-        .then(function (d) {
-          st.data = d; st.busy = false;
-          uploadAll(d.id, files.slice(0, 1), function () {
-            var it2 = item(d.id) || {};
-            h.call('adminContent', { action: 'list' }).then(function (d2) {
-              st.data = d2; var f = ((item(d.id) || it2).files || [])[0];
-              return sched(d.id, f && f.path);
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,video/*'; inp.multiple = true;
+    inp.addEventListener('change', function () {
+      var list = onlyMedia(inp.files).slice(0, 10);
+      if (!list.length) return;
+      schedWindow({ it: null, files: list.map(function (f) { return { file: f, type: f.type, name: f.name }; }) }).then(function (v) {
+        if (!v) return;
+        var local = v.files.map(function (e) { return e.file; });
+        var vid = local.some(function (f) { return /^video\//.test(f.type); });
+        st.tab = 'shared'; st.busy = true; rerender();
+        h.call('adminContent', { action: 'save', withFile: true, item: { title: v.title, kind: vid ? 'video' : 'photo', status: 'ready', caption: v.caption, nets: {} } })
+          .then(function (d) {
+            st.data = d; st.busy = false;
+            uploadAll(d.id, local, function () {
+              return h.call('adminContent', { action: 'list' }).then(function (d2) {
+                st.data = d2; var got = ((item(d.id) || {}).files || []).map(function (f) { return f.path; });
+                return sendSchedule(d.id, v, got);
+              });
             });
-          });
-          setTimeout(function () { var c = document.getElementById('ct-' + d.id); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
-        })
-        .catch(function (e) { st.busy = false; h.toast(h.friendlyError(e), true); rerender(); });
+            setTimeout(function () { var c = document.getElementById('ct-' + d.id); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+          })
+          .catch(function (e) { st.busy = false; h.toast(h.friendlyError(e), true); rerender(); });
+      });
     });
+    inp.click();
   };
-  /* the chosen file's name shows on the button */
-  document.addEventListener('change', function (ev) {
-    var el = ev.target;
-    if (!el || !el.matches || !el.matches('[data-ct-dlgfile]')) return;
-    var f = el.files && el.files[0], span = el.parentNode.querySelector('[data-ct-picked]');
-    if (span && f) span.textContent = '✓ ' + f.name + ' · ' + size(f.size);
-  });
   /* Business Suite doesn't tell the time: they note it */
   ACT.ctWhen = function (el) {
     var it = item(el.getAttribute('data-id')); if (!it) return;

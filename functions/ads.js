@@ -731,4 +731,4 @@ async function adminAds(data, auth) {
 }
 
 module.exports = { adminAds, run, plan, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
-  _internal: { graph, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
+  _internal: { graph, version: () => META_VERSION(), boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };

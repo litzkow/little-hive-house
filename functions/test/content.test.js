@@ -300,3 +300,176 @@ test("scheduled in Business Suite: the unpublished Page video shows as scheduled
   assert.equal(v.items[0].status, "posted");
   assert.equal(v.items[0].igId, "1901");
 });
+
+/* ---------- the schedule options (what Business Suite lets them choose) ---------- */
+function metaMock(handlers) {
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url), path = u.pathname.replace(/^\/(video-upload\/)?v\d+\.\d+\//, "");
+    const body = init.body instanceof FormData ? Object.fromEntries(init.body.entries()) : init.body ? Object.fromEntries(new URLSearchParams(String(init.body))) : Object.fromEntries(u.searchParams);
+    const c = { host: u.host, path, method: init.method || "GET", body, headers: init.headers || {} };
+    calls.push(c);
+    const ok = (j) => ({ ok: true, status: 200, json: async () => j });
+    if (path === "debug_token") return ok({ data: { scopes: ["instagram_content_publish", "pages_manage_posts"] } });
+    if (path === "999" && u.searchParams.get("fields") === "access_token") return ok({ access_token: "PAGE" + "y".repeat(40) });
+    for (const [test, reply] of handlers) {
+      if (test(c)) { const r = typeof reply === "function" ? reply(c) : reply; return r && r.__err ? { ok: false, status: 400, json: async () => ({ error: { message: r.__err } }) } : ok(r); }
+    }
+    throw new Error("unexpected " + c.method + " " + url);
+  };
+  return calls;
+}
+function optsSetup(files) {
+  const s = setup();
+  require("../ads")._internal.setPause(1); s.C._setWait(1);
+  s.db.docs.set("settings/content", { seeded: "x", fix1: "x", fix2: "x", sync: { at: new Date().toISOString() } });
+  s.db.docs.set("ads/auth", { meta: { token: "EAAB" + "x".repeat(60), adAccountId: "act_1", pageId: "999", igUserId: "1784" } });
+  files.forEach((f) => s.bucket.files.set(f.path, { data: Buffer.alloc(40), contentType: f.type }));
+  s.db.docs.set("content/k1", { title: "Brasil", kind: "photo", status: "ready", source: "app", caption: "Honoring our roots", nets: {}, posted: {}, files });
+  return { ...s, when: s.C._nyParts(Date.now() + 2 * 3600000) };
+}
+const F3 = [{ path: "content/k1/1-a.jpg", name: "a.jpg", type: "image/jpeg" }, { path: "content/k1/2-b.mp4", name: "b.mp4", type: "video/mp4" }, { path: "content/k1/3-c.jpg", name: "c.jpg", type: "image/jpeg" }];
+
+test("options: an Instagram carousel (photos and a video) with alt text, tags, collaborators, first comment and comments off", async () => {
+  const { db, pushes, C, when } = optsSetup(F3);
+  let kid = 0, vpoll = 0;
+  const calls = metaMock([
+    [(c) => c.path === "1784/media" && c.body.is_carousel_item === "true", () => ({ id: "ch" + (++kid) })],
+    [(c) => c.path === "ch2" && c.method === "GET", () => ({ status_code: ++vpoll < 2 ? "IN_PROGRESS" : "FINISHED" })],
+    [(c) => c.path === "1784/media" && c.body.media_type === "CAROUSEL", { id: "car1" }],
+    [(c) => c.path === "car1", { status_code: "FINISHED" }],
+    [(c) => c.path === "1784/media_publish", { id: "ig5" }],
+    [(c) => c.path === "ig5" && c.method === "GET", { permalink: "https://instagram.com/p/5" }],
+    [(c) => c.path === "ig5/comments", { id: "cm1" }],
+    [(c) => c.path === "ig5" && c.method === "POST", { success: true }],
+  ]);
+  // Facebook can't take a carousel with a video
+  await assert.rejects(C.adminContent({ action: "schedule", id: "k1", files: F3.map((f) => f.path), date: when.date, time: when.time, nets: { instagram: true, facebook: true } }, THIAGO), /carousel with videos/);
+  await C.adminContent({ action: "schedule", id: "k1", files: F3.map((f) => f.path), date: when.date, time: when.time, nets: { instagram: true },
+    alts: { "content/k1/1-a.jpg": "A green saudade magnet" },
+    opts: { collaborators: "@karina.lhh, bad!name, @Shop_2", tags: [{ u: "@vo.maria", x: 0.2, y: 0.8 }, "tio_ze"], firstComment: "Which one is yours?", commentsOff: true } }, THIAGO);
+  let it = db.get("content/k1");
+  assert.equal(it.sched.format, "post");
+  assert.deepEqual(it.sched.opts.collaborators, ["karina.lhh", "shop_2"]);
+  assert.deepEqual(it.sched.opts.tags, [{ u: "vo.maria", x: 0.2, y: 0.8 }, { u: "tio_ze" }]);
+  assert.deepEqual(await C.publishDue(Date.now() + 3 * 3600000), { done: 1, processing: 0, error: 0 });
+  const kids = calls.filter((c) => c.body.is_carousel_item === "true");
+  assert.equal(kids.length, 3);
+  assert.equal(kids[0].body.alt_text, "A green saudade magnet");
+  assert.deepEqual(JSON.parse(kids[0].body.user_tags), [{ username: "vo.maria", x: 0.2, y: 0.8 }, { username: "tio_ze", x: 0.3, y: 0.35 }]);
+  assert.equal(kids[1].body.media_type, "VIDEO");
+  assert.equal(kids[2].body.user_tags, undefined);                     // tags go on the first photo
+  const parent = calls.find((c) => c.body.media_type === "CAROUSEL");
+  assert.equal(parent.body.children, "ch1,ch2,ch3");
+  assert.deepEqual(JSON.parse(parent.body.collaborators), ["karina.lhh", "shop_2"]);
+  assert.equal(calls.find((c) => c.path === "ig5/comments").body.message, "Which one is yours?");
+  assert.equal(calls.find((c) => c.path === "ig5" && c.method === "POST").body.comment_enabled, "false");
+  it = db.get("content/k1");
+  assert.equal(it.status, "posted"); assert.equal(it.igLink, "https://instagram.com/p/5");
+  assert.match(pushes.at(-1).body, /Saiu no Instagram ✓ Brasil$/);
+});
+
+test("options: a Reel with a cover photo, test Reel, audio name, not on the feed; Facebook Reel with its own caption and the cover", async () => {
+  const files = [{ path: "content/k1/1-r.mp4", name: "r.mp4", type: "video/mp4" }];
+  const { db, bucket, pushes, C, when } = optsSetup(files);
+  bucket.files.set("content/k1/9-cover.jpg", { data: Buffer.from("jpegbytes"), contentType: "image/jpeg" });
+  let first = true;
+  const calls = metaMock([
+    [(c) => c.path === "1784/media" && c.method === "POST", (c) => { if (first && c.body.collaborators) { first = false; return { __err: "Invalid user id" }; } return { id: "r1" }; }],
+    [(c) => c.path === "r1", { status_code: "FINISHED" }],
+    [(c) => c.path === "1784/media_publish", { id: "ig6" }],
+    [(c) => c.path === "ig6", { permalink: "https://instagram.com/reel/6" }],
+    [(c) => c.path === "999/video_reels" && c.body.upload_phase === "start", { video_id: "fbr1", upload_url: "https://rupload.facebook.com/video-upload/v26.0/fbr1" }],
+    [(c) => c.host === "rupload.facebook.com", { success: true }],
+    [(c) => c.path === "999/video_reels" && c.body.upload_phase === "finish", { success: true }],
+    [(c) => c.path === "fbr1/thumbnails", { success: true }],
+    [(c) => c.path === "fbr1/comments", { id: "fc1" }],
+  ]);
+  await assert.rejects(C.adminContent({ action: "schedule", id: "k1", date: when.date, time: when.time, nets: { instagram: true }, cover: "content/zz9999/9-cover.jpg" }, THIAGO), /cover isn't from this post/);
+  await C.adminContent({ action: "schedule", id: "k1", date: when.date, time: when.time, nets: { instagram: true, facebook: true }, caption: "IG words #magnets",
+    cover: "content/k1/9-cover.jpg",
+    opts: { shareToFeed: false, trial: "SS_PERFORMANCE", audioName: "Saudade (original)", collaborators: ["nobody.here"], firstComment: "Link in bio!", fbCaption: "FB words", fbTitle: "Saudade" } }, KARINA);
+  assert.equal(db.get("content/k1").sched.format, "reel");
+  assert.deepEqual(await C.publishDue(Date.now() + 3 * 3600000), { done: 1, processing: 0, error: 0 });
+  const reel = calls.filter((c) => c.path === "1784/media").at(-1).body;
+  assert.equal(reel.media_type, "REELS"); assert.equal(reel.share_to_feed, "false"); assert.equal(reel.audio_name, "Saudade (original)");
+  assert.deepEqual(JSON.parse(reel.trial_params), { graduation_strategy: "SS_PERFORMANCE" });
+  assert.match(reel.cover_url, /9-cover\.jpg/); assert.equal(reel.thumb_offset, undefined); assert.equal(reel.collaborators, undefined);
+  assert.equal(reel.caption, "IG words #magnets");
+  const up = calls.find((c) => c.host === "rupload.facebook.com");
+  assert.match(up.headers.file_url, /1-r\.mp4/); assert.match(up.headers.Authorization, /^OAuth PAGE/);
+  const fin = calls.find((c) => c.body.upload_phase === "finish");
+  assert.equal(fin.body.description, "FB words"); assert.equal(fin.body.video_state, "PUBLISHED"); assert.equal(fin.body.title, "Saudade");
+  const th = calls.find((c) => c.path === "fbr1/thumbnails");
+  assert.equal(th.body.is_preferred, "true"); assert.equal(Buffer.from(await th.body.source.arrayBuffer()).toString(), "jpegbytes");
+  assert.equal(calls.find((c) => c.path === "fbr1/comments").body.message, "Link in bio!");
+  const it = db.get("content/k1");
+  assert.equal(it.status, "posted"); assert.equal(it.fbVideoId, "fbr1");
+  assert.match(pushes.at(-1).body, /Saiu no Instagram e Facebook ✓ Brasil \(atenção: o Instagram não aceitou os colaboradores/);
+});
+
+test("options: a moment of the video as the cover; Facebook Pages without Reels get a normal video", async () => {
+  const files = [{ path: "content/k1/1-r.mp4", name: "r.mp4", type: "video/mp4" }];
+  const { db, bucket, C, when } = optsSetup(files);
+  bucket.files.set("content/k1/9-frame.jpg", { data: Buffer.from("frame"), contentType: "image/jpeg" });
+  const calls = metaMock([
+    [(c) => c.path === "1784/media" && c.method === "POST", { id: "r2" }],
+    [(c) => c.path === "r2", { status_code: "FINISHED" }],
+    [(c) => c.path === "1784/media_publish", { id: "ig7" }],
+    [(c) => c.path === "ig7", { permalink: "x" }],
+    [(c) => c.path === "999/video_reels", { __err: "Reels not available" }],
+    [(c) => c.path === "999/videos", { id: "fbv9" }],
+    [(c) => c.path === "fbv9/thumbnails", { success: true }],
+  ]);
+  await C.adminContent({ action: "schedule", id: "k1", date: when.date, time: when.time, nets: { instagram: true, facebook: true }, cover: "content/k1/9-frame.jpg", offsetMs: 2350.4 }, THIAGO);
+  assert.deepEqual(await C.publishDue(Date.now() + 3 * 3600000), { done: 1, processing: 0, error: 0 });
+  const reel = calls.find((c) => c.path === "1784/media").body;
+  assert.equal(reel.thumb_offset, "2350"); assert.equal(reel.cover_url, undefined);     // Instagram picks the same moment itself
+  assert.equal(reel.share_to_feed, "true");
+  assert.equal(calls.find((c) => c.path === "999/videos").host, "graph-video.facebook.com");
+  assert.ok(calls.find((c) => c.path === "fbv9/thumbnails"));
+  assert.equal(db.get("content/k1").fbVideoId, "fbv9");
+});
+
+test("options: several photos on Facebook become one post; a Story goes to both; editing a schedule keeps the options", async () => {
+  const F2 = [{ path: "content/k1/1-a.jpg", name: "a.jpg", type: "image/jpeg" }, { path: "content/k1/2-b.jpg", name: "b.jpg", type: "image/jpeg" }];
+  const { db, bucket, pushes, C, when } = optsSetup(F2);
+  let ph = 0;
+  const calls = metaMock([
+    [(c) => c.path === "999/photos" && c.body.published === "false", () => ({ id: "ph" + (++ph) })],
+    [(c) => c.path === "999/feed", { id: "999_77" }],
+    [(c) => c.path === "999_77/comments", { id: "c" }],
+    [(c) => c.path === "1784/media" && c.body.media_type === "STORIES", { id: "st1" }],
+    [(c) => c.path === "st1", { status_code: "FINISHED" }],
+    [(c) => c.path === "1784/media_publish", { id: "ig8" }],
+    [(c) => c.path === "ig8", { permalink: "x" }],
+    [(c) => c.path === "999/photo_stories", { post_id: "999_88" }],
+  ]);
+  await C.adminContent({ action: "schedule", id: "k1", files: F2.map((f) => f.path), date: when.date, time: when.time, nets: { facebook: true },
+    alts: { "content/k1/2-b.jpg": "Pão de queijo magnet" }, opts: { firstComment: "Tem mais!", fbCaption: "Para o Facebook" } }, THIAGO);
+  // edited before it goes out: another time, same options; the other one is told it changed
+  const later = C._nyParts(Date.now() + 5 * 3600000);
+  await C.adminContent({ action: "schedule", id: "k1", files: F2.map((f) => f.path), date: later.date, time: later.time, nets: { facebook: true } }, KARINA);
+  let it = db.get("content/k1");
+  assert.equal(it.sched.opts.firstComment, "Tem mais!"); assert.equal(it.sched.opts.fbCaption, "Para o Facebook");
+  assert.match(pushes.at(-1).body, /Karina mudou o agendamento de Brasil/);
+  assert.deepEqual(await C.publishDue(Date.now() + 3 * 3600000), { done: 0, processing: 0, error: 0 });   // the new time
+  assert.deepEqual(await C.publishDue(Date.now() + 6 * 3600000), { done: 1, processing: 0, error: 0 });
+  const photos = calls.filter((c) => c.path === "999/photos");
+  assert.equal(photos.length, 2); assert.equal(photos[1].body.alt_text_custom, "Pão de queijo magnet");
+  const feed = calls.find((c) => c.path === "999/feed").body;
+  assert.equal(feed.message, "Para o Facebook");
+  assert.deepEqual(JSON.parse(feed.attached_media), [{ media_fbid: "ph1" }, { media_fbid: "ph2" }]);
+  assert.equal(db.get("content/k1").fbPostId, "999_77");
+  // a Story: one file only; goes to Instagram and Facebook stories
+  db.docs.set("content/k2", { title: "Story", kind: "photo", status: "ready", source: "app", caption: "", nets: {}, posted: {}, files: [F2[0]] });
+  db.docs.set("content/k3", { title: "Two", kind: "photo", status: "ready", source: "app", caption: "", nets: {}, posted: {}, files: F2 });
+  await assert.rejects(C.adminContent({ action: "schedule", id: "k3", format: "story", files: F2.map((f) => f.path), date: when.date, time: when.time, nets: { instagram: true } }, THIAGO), /one photo or one video/);
+  await assert.rejects(C.adminContent({ action: "schedule", id: "k1", date: later.date, time: later.time, nets: { facebook: true } }, THIAGO), /already going out/);
+  await C.adminContent({ action: "schedule", id: "k2", format: "story", date: when.date, time: when.time, nets: { instagram: true, facebook: true }, opts: { firstComment: "ignored on stories" } }, THIAGO);
+  assert.deepEqual(await C.publishDue(Date.now() + 3 * 3600000), { done: 1, processing: 0, error: 0 });
+  assert.match(calls.find((c) => c.body.media_type === "STORIES").body.image_url, /1-a\.jpg/);
+  assert.ok(calls.find((c) => c.path === "999/photo_stories"));
+  assert.ok(!calls.some((c) => c.path === "ig8/comments"));
+  assert.equal(db.get("content/k2").status, "posted");
+});
