@@ -167,7 +167,7 @@
       return '<span class="ct-net' + (done ? ' done' : '') + '">' + (done ? '✓ ' : '') + n[1] + '</span>';
     }).join('');
     var sc = it.sched && !out ? it.sched : null;
-    var pending = !out && !sc && it.source === 'meta-pending';
+    var pending = !out && !sc && (it.source === 'meta-pending' || it.source === 'bs-manual');
     var badge = out ? '<span class="sp-pill ct-st-posted">' + T('Went out ', 'Saiu ') + esc(fullWhen(it, false)) + '</span>'
       : pending ? '<span class="sp-pill ct-st-scheduled">' + (it.date ? T('Goes out ', 'Sai ') + esc(fullWhen(it, true)) : T('Scheduled in Business Suite', 'Agendado no Business Suite')) + '</span>'
       : sc && sc.state === 'processing' ? '<span class="sp-pill ct-st-scheduled">' + T('Publishing…', 'Publicando…') + '</span>'

@@ -39,13 +39,13 @@ const say = (s) => console.log(`::warning title=conteudo::${String(s).replace(/%
     const files = [];
     for (const f of m.files) {
       const dest = `content/${ref.id}/${base}-${f.file}`;
-      await bucket.upload(path.join(DIR, f.file), { destination: dest, resumable: true, metadata: { contentType: "video/mp4", metadata: { name: f.file, firebaseStorageDownloadTokens: require("crypto").randomUUID() } } });
-      files.push({ path: dest, name: f.file, type: "video/mp4", size: f.size, w: f.w, h: f.h, dur: f.dur, at, by: "Claude", byName: "Claude" });
+      await bucket.upload(path.join(DIR, f.file), { destination: dest, resumable: true, metadata: { contentType: f.type || "video/mp4", metadata: { name: f.file, firebaseStorageDownloadTokens: require("crypto").randomUUID() } } });
+      files.push({ path: dest, name: f.file, type: f.type || "video/mp4", size: f.size, w: f.w, h: f.h, dur: f.dur || 0, at, by: m.by || "Claude", byName: m.by || "Claude" });
     }
     await ref.set({
-      title: m.title, kind: "video", status: "ready", date: "", time: "", caption: m.caption || "", script: "", onScreen: "", tip: "",
-      notes: m.notes || "", planFile: "", nets: { instagram: true, facebook: true, tiktok: true }, files, posted: {},
-      source: "app", by: "Claude", byName: "Claude", at, updatedAt: at, lastFileAt: at,
+      title: m.title, kind: m.kind || "video", status: m.status || "ready", date: m.date || "", time: m.time || "", caption: m.caption || "", script: "", onScreen: "", tip: "",
+      notes: m.notes || "", planFile: "", nets: m.nets || { instagram: true, facebook: true, tiktok: true }, files, posted: {},
+      source: m.source || "app", by: m.by || "Claude", byName: m.by || "Claude", at, updatedAt: at, lastFileAt: at,
     });
     say(`${m.title}: ${files.length} arquivo(s), post ${ref.id}`);
   }

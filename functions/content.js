@@ -99,7 +99,7 @@ async function syncMeta({ force = false } = {}) {
   // the same Meta id; or the same start of caption within 2 days; or, when the caption was changed in Meta, the one post
   // the owners marked "scheduled in Meta" for that same day
   const match = (key, id, caption, date) => items.find((i) => i[key] === id)
-    || (same(caption, "") && items.find((i) => !i[key] && (i.source === "meta-pending" || (i.date && dayDiff(i.date, date) <= 2)) && same(i.caption, caption)))
+    || (same(caption, "") && items.find((i) => !i[key] && (i.source === "meta-pending" || i.source === "bs-manual" || (i.date && dayDiff(i.date, date) <= 2)) && same(i.caption, caption)))
     || (() => { const c = items.filter((i) => !i[key] && i.status === "scheduled" && i.date === date); return c.length === 1 ? c[0] : null; })();
   const add = (it) => { it.id = null; items.push(it); changed.set(it, it); return it; };
   const counts = { instagram: 0, facebook: 0, scheduled: 0 }, errors = {}, gone = [];
