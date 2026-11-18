@@ -228,11 +228,13 @@ jobs:
             seed-supplies) node tools/maint/seed-supplies.js ;;
             add-purchase) node tools/maint/add-purchase.js ;;
             supply-bought) node tools/maint/supply-bought.js ;;
+            content-key) node tools/maint/content-key.js ;;
             client-errors|fix-crops|autocrop-check|check-order|check-shippo|check-analytics) echo "(done in its own steps above)" ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
           esac
 
-  # Conteúdo: põe vídeos editados na aba Conteúdo (Compartilhados). VALUE = a tag do rascunho de release com os arquivos.
+  # Conteúdo: põe vídeos editados na aba Conteúdo (Compartilhados). VALUE = o galho temporário com os arquivos trancados
+  # (pasta import/, trancados com a chave de content-key). No fim apaga o galho.
   import-content:
     if: inputs.task == 'import-content'
     runs-on: ubuntu-latest
@@ -244,6 +246,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+      - name: "Conteúdo: pegar os arquivos trancados do galho"
+        run: |
+          git fetch --depth 1 origin "${{ inputs.value }}"
+          mkdir -p /tmp/import && git --work-tree=/tmp/import checkout FETCH_HEAD -- import && mv /tmp/import/import/* /tmp/import/
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -253,15 +259,13 @@ jobs:
           service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
           create_credentials_file: true
           export_environment_variables: true
-      - name: "Conteúdo: baixar os vídeos do rascunho"
-        run: gh release download "${{ inputs.value }}" -R "${{ github.repository }}" -D /tmp/import
-      - name: "Conteúdo: subir para o app"
+      - name: "Conteúdo: destrancar e subir para o app"
         working-directory: tools/maint
         env: { DIR: /tmp/import }
         run: |
           echo '{"private":true}' > package.json
           npm install --no-audit --no-fund @google-cloud/firestore@7 @google-cloud/storage@7 >/dev/null
           node import-content.js
-      - name: "Conteúdo: apagar o rascunho"
+      - name: "Conteúdo: apagar o galho temporário"
         if: always()
-        run: gh release delete "${{ inputs.value }}" -R "${{ github.repository }}" -y || true
+        run: git push origin --delete "${{ inputs.value }}" || true
