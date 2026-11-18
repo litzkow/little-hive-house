@@ -57,7 +57,7 @@ async function seed() {
   for (const p of plan) {
     if (p.date < t) continue;
     const item = cleanItem({
-      title: p.title, kind: p.kind === "video" ? "video" : "photo", status: p.kind === "video" ? "todo" : "ready", date: p.date, time: p.time,
+      title: p.title, kind: p.kind === "video" ? "video" : "photo", status: "todo", date: p.date, time: p.time,
       caption: p.caption, script: p.script, onScreen: p.onScreen, tip: p.tip, planFile: p.file || p.planB || "",
       nets: { instagram: true, facebook: true, tiktok: p.kind === "video" },
     });
@@ -96,8 +96,11 @@ async function syncMeta({ force = false } = {}) {
   const items = q.docs.map((d) => ({ id: d.id, ...d.data() }));
   const changed = new Map();
   const touch = (it, patch) => { Object.assign(it, patch); changed.set(it.id || it, it); };
+  // the same Meta id; or the same start of caption within 2 days; or, when the caption was changed in Meta, the one post
+  // the owners marked "scheduled in Meta" for that same day
   const match = (key, id, caption, date) => items.find((i) => i[key] === id)
-    || (same(caption, "") && items.find((i) => !i[key] && i.date && dayDiff(i.date, date) <= 2 && same(i.caption, caption)));
+    || (same(caption, "") && items.find((i) => !i[key] && i.date && dayDiff(i.date, date) <= 2 && same(i.caption, caption)))
+    || (() => { const c = items.filter((i) => !i[key] && i.status === "scheduled" && i.date === date); return c.length === 1 ? c[0] : null; })();
   const add = (it) => { it.id = null; items.push(it); changed.set(it, it); return it; };
   const counts = { instagram: 0, facebook: 0, scheduled: 0 }, errors = {};
 
@@ -114,7 +117,8 @@ async function syncMeta({ force = false } = {}) {
         let it = match("igId", String(m.id), m.caption, date);
         if (!it) it = add({ ...cleanItem({ title: firstLine(m.caption).slice(0, 80) || "Post do Instagram", kind, status: "posted", date, time, caption: m.caption || "", nets: { instagram: true } }),
           files: [], posted: {}, source: "instagram", by: "Instagram", at: nowIso() });
-        touch(it, { igId: String(m.id), igLink: m.permalink || "", preview: preview || it.preview || "", igStats: stats, posted: { ...(it.posted || {}), instagram: it.posted && it.posted.instagram || new Date(at).toISOString() },
+        // a video's own file on Instagram (its link expires in a few days; refreshed on every sync) to play it in the app
+        touch(it, { igId: String(m.id), igLink: m.permalink || "", preview: preview || it.preview || "", igStats: stats, mediaUrl: kind === "video" ? m.media_url || "" : "", posted: { ...(it.posted || {}), instagram: it.posted && it.posted.instagram || new Date(at).toISOString() },
           nets: { ...(it.nets || {}), instagram: true }, date: it.date || date, time: it.time || time });
         counts.instagram += 1;
       });
@@ -142,6 +146,7 @@ async function syncMeta({ force = false } = {}) {
         const j = await G(page, "GET", `${meta.pageId}/posts`, { fields: "id,message,created_time,permalink_url,full_picture", limit: 40 });
         ((j && j.data) || []).forEach((m) => {
           const at = Date.parse(m.created_time || 0); if (!at) return;
+          if (!String(m.message || "").trim()) return;   // a new cover or profile photo, not a post
           const { date, time } = nyParts(at);
           let it = match("fbPostId", String(m.id), m.message, date);
           if (!it) it = add({ ...cleanItem({ title: firstLine(m.message).slice(0, 80) || "Post do Facebook", kind: "photo", status: "posted", date, time, caption: m.message || "", nets: { facebook: true } }),
@@ -154,7 +159,8 @@ async function syncMeta({ force = false } = {}) {
     }
   }
   for (const it of changed.values()) {
-    if (done(it)) it.status = "posted";
+    // out on Instagram or Facebook = posted (TikTok, which Meta can't see, is ticked by hand on the card)
+    if (done(it) || (it.posted && (it.posted.instagram || it.posted.facebook))) it.status = "posted";
     const { id, ...data } = it;
     data.updatedAt = nowIso();
     if (id) await col().doc(id).set(data, { merge: true }); else await col().add(data);
@@ -164,8 +170,23 @@ async function syncMeta({ force = false } = {}) {
   return out;
 }
 
+/* Once: the calendar posts came in as "ready" with no file (only the plan existed), and the Page's cover/profile photo
+   changes came in as posts. Plan posts with no file go back to "to make"; posts with no text from Facebook go away. */
+async function fixOnce() {
+  const ref = db().collection("settings").doc("content");
+  if (((await ref.get()).data() || {}).fix1) return;
+  const q = await col().get();
+  for (const d of q.docs) {
+    const i = d.data();
+    if (i.source === "plan" && i.status === "ready" && !(i.files || []).length) await d.ref.set({ status: "todo", updatedAt: nowIso() }, { merge: true });
+    if (i.source === "facebook" && !String(i.caption || "").trim() && !i.igId) await d.ref.delete();
+  }
+  await ref.set({ fix1: nowIso() }, { merge: true });
+}
+
 async function list(opts) {
   await seed();
+  await fixOnce();
   let sync = null;
   try { sync = await syncMeta(opts || {}); } catch (e) { sync = { at: nowIso(), errors: { meta: e.message } }; }
   const q = await col().get();
@@ -252,9 +273,10 @@ async function adminContent(data, auth) {
         if (data.nets[n]) posted[n] = posted[n] || nowIso(); else delete posted[n];
       });
       const chosen = NETS.filter((n) => cur.nets && cur.nets[n]);
-      const done = chosen.length > 0 && chosen.every((n) => posted[n]);
-      const status = done ? "posted" : cur.status === "posted" ? "ready" : cur.status;
-      await ref.set({ posted, status, updatedAt: nowIso() }, { merge: true });
+      // out on any network = posted (the card still shows which networks are missing)
+      const done = chosen.some((n) => posted[n]) || Object.keys(posted).length > 0;
+      const status = done ? "posted" : cur.status === "posted" ? ((cur.files || []).length ? "ready" : "todo") : cur.status;
+      await ref.update({ posted, status, updatedAt: nowIso() });   // update: the whole map, so an unticked network goes away
       return list();
     }
     default:

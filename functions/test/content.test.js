@@ -26,6 +26,7 @@ test("the plan comes in once, from today on, with captions and scripts", async (
   const today = C._today();
   assert.ok(v.items.length > 0);
   assert.ok(v.items.every((i) => i.date >= today));
+  assert.ok(v.items.every((i) => i.status === "todo"));            // only a plan: nothing is ready until a file comes
   const vid = v.items.find((i) => i.kind === "video");
   assert.equal(vid.status, "todo");
   assert.equal(vid.nets.tiktok, true);
@@ -60,10 +61,13 @@ test("a new post, its original file, a push to the other owner only, posted netw
   assert.equal(pushes.length, 1);
   assert.equal(pushes[0].to, "https://push/karina");                 // only the other owner
   assert.match(pushes[0].body, /thiago mandou um vídeo: Packing an order/);
-  // posted on Instagram and Facebook: not done until TikTok too
+  // out on Instagram and Facebook: posted (TikTok still unticked); unticking everything takes it back
   v = await C.adminContent({ action: "posted", id, nets: { instagram: true, facebook: true } }, KARINA);
+  assert.equal(v.items.find((i) => i.id === id).status, "posted");
+  assert.ok(!v.items.find((i) => i.id === id).posted.tiktok);
+  v = await C.adminContent({ action: "posted", id, nets: { instagram: false, facebook: false, tiktok: false } }, KARINA);
   assert.equal(v.items.find((i) => i.id === id).status, "ready");
-  v = await C.adminContent({ action: "posted", id, nets: { tiktok: true } }, KARINA);
+  v = await C.adminContent({ action: "posted", id, nets: { instagram: true, facebook: true, tiktok: true } }, KARINA);
   it = v.items.find((i) => i.id === id);
   assert.equal(it.status, "posted");
   assert.ok(it.posted.instagram && it.posted.tiktok);
@@ -117,4 +121,39 @@ test("Meta: Instagram posts and Facebook scheduled/published posts come in and m
   await C.adminContent({ action: "sync" }, THIAGO);
   assert.ok(calls >= 4);
   assert.equal((await C.adminContent({ action: "list" }, THIAGO)).items.length, 3);    // nothing doubled
+});
+
+test("fixes once: plan posts with no file back to to-make; cover photos out; same-day scheduled post matched; video plays", async () => {
+  const { db, C } = setup();
+  require("../ads")._internal.setPause(1);
+  db.docs.set("settings/content", { seeded: "x", sync: { at: new Date().toISOString() } });
+  db.docs.set("content/a", { title: "Gift guide", kind: "photo", status: "ready", source: "plan", date: "2026-12-01", files: [], posted: {} });
+  db.docs.set("content/b", { title: "Mine", kind: "video", status: "ready", source: "plan", date: "2026-12-02", files: [{ path: "content/b/x.mov" }], posted: {} });
+  db.docs.set("content/c", { title: "Post do Facebook", kind: "photo", status: "posted", source: "facebook", caption: "", posted: { facebook: "x" } });
+  let v = await C.adminContent({ action: "list" }, THIAGO);
+  assert.equal(v.items.find((i) => i.id === "a").status, "todo");
+  assert.equal(v.items.find((i) => i.id === "b").status, "ready");
+  assert.equal(v.items.find((i) => i.id === "c"), undefined);
+  db.docs.set("content/a", { title: "Gift guide", kind: "photo", status: "todo", source: "plan", date: "2026-12-01", files: [], posted: {} });
+  await C.adminContent({ action: "list" }, THIAGO);
+  assert.equal(db.get("content/a").status, "todo");                    // only once
+  // marked "scheduled in Meta" for today; Meta posts it with another caption: the same post, now posted, video playable
+  const now = Date.now(), day = C._nyParts(now).date;
+  db.docs.set("content/s", { title: "Pack with me", kind: "video", status: "scheduled", source: "app", date: day, time: "19:00", caption: "Pack with me", nets: { instagram: true, facebook: true, tiktok: true }, posted: {}, files: [] });
+  db.docs.set("ads/auth", { meta: { token: "EAAB" + "x".repeat(60), adAccountId: "act_1", pageId: "999", igUserId: "1784" } });
+  globalThis.fetch = async (url) => {
+    const u = new URL(url), path = u.pathname.replace(/^\/v\d+\.\d+\//, "");
+    const ok = (j) => ({ ok: true, status: 200, json: async () => j });
+    if (path === "1784/media") return ok({ data: [{ id: "1901", caption: "A totally new caption", media_type: "VIDEO", media_product_type: "REELS", permalink: "https://instagram.com/reel/z", timestamp: new Date(now - 60000).toISOString(), thumbnail_url: "https://cdn/z.jpg", media_url: "https://cdn/z.mp4" }] });
+    if (path === "999") return ok({ access_token: "PAGE" + "y".repeat(40) });
+    if (path === "999/scheduled_posts") return ok({ data: [] });
+    if (path === "999/posts") return ok({ data: [{ id: "999_9", created_time: new Date(now - 86400000 * 3).toISOString(), full_picture: "https://cdn/cover.jpg" }] });
+    throw new Error("unexpected " + url);
+  };
+  v = await C.adminContent({ action: "sync" }, THIAGO);
+  const s = v.items.find((i) => i.id === "s");
+  assert.equal(s.igId, "1901");
+  assert.equal(s.status, "posted");
+  assert.equal(s.mediaUrl, "https://cdn/z.mp4");
+  assert.equal(v.items.filter((i) => i.source === "facebook").length, 0);   // the cover photo didn't come in
 });
