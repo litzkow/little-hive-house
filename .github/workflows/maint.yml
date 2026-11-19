@@ -259,6 +259,7 @@ jobs:
             content-set-when) node tools/maint/content-set-when.js ;;
             ads-state) node tools/maint/ads-state.js ;;
             ads-next-reel) node tools/maint/ads-next-reel.js ;;
+            ads-check-ad) node tools/maint/ads-check-ad.js ;;
             check-ads) echo "(feito nos passos acima)" ;;
             client-errors|fix-crops|autocrop-check|check-order|check-shippo|check-analytics) echo "(done in its own steps above)" ;;
             *) echo "::error::Unknown task ${{ inputs.task }}"; exit 1 ;;
