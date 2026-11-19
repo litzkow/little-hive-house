@@ -6,6 +6,8 @@ const say = (s) => console.log(`::warning title=anuncio::${String(s).replace(/\n
 (async () => {
   const meta = ((await db.collection("ads").doc("auth").get()).data() || {}).meta;
   const st = (await db.collection("ads").doc("state").get()).data() || {};
+  const cfg = (await db.collection("ads").doc("config").get()).data() || {};
+  say(`config: teto $${cfg.monthCap} · auto ${cfg.auto} · canais ${JSON.stringify(cfg.channels || {})} · regras ${JSON.stringify(cfg.rules || {})}`);
   const V = "v26.0";
   const get = async (id, fields) => { const r = await fetch(`https://graph.facebook.com/${V}/${id}?fields=${fields}&access_token=${encodeURIComponent(meta.token)}`); return r.json(); };
   say(`conjunto compartilhado: ${st.adsetId || "-"} · $${st.adsetDaily || 0} · ${st.adsetStatus || ""} · próximo Reel: ${JSON.stringify(st.nextReel || null)}`);
