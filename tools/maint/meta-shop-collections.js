@@ -15,8 +15,8 @@ const DESC = {
 };
 const PAGE = { "Photo Magnets": "photo-magnets.html" };
 /** What leads the shop now: the season's collections, by month. */
-function seasonFirst(month) {
-  if (month >= 11 || month === 0) return ["Christmas", "Holidays & Dates"];
+function seasonFirst(month) {          // getMonth(): 0 = January ... 10 = November, 11 = December
+  if (month >= 10) return ["Christmas", "Holidays & Dates"];
   if (month >= 8) return ["Fall", "Halloween"];
   if (month >= 5) return ["Summer"];
   return ["Holidays & Dates"];
@@ -56,12 +56,21 @@ function groups(xml) {
   }
   // the shop(s) to publish in: through the Page (a Page token is needed for the Page's commerce settings)
   let shops = [];
-  try {
-    const pt = (await call("GET", meta.pageId, { fields: "access_token" })).access_token;
-    const cms = (await call("GET", meta.pageId, { fields: "commerce_merchant_settings{id}" }, pt)).commerce_merchant_settings;
-    shops = ((await call("GET", `${cms.id}/shops`, { fields: "id,fb_sales_channel,ig_sales_channel" }, pt)).data || []).map((s) => ({ shop_id: s.id }));
-    say(`lojas: ${JSON.stringify(shops)}`);
-  } catch (e) { say(`não achei a loja para publicar (${e.message}); as categorias ficam prontas no catálogo`); }
+  // the shop id: VALUE (from the Commerce Manager address) or saved before, else looked up through the Page
+  const saved = ((await db.collection("shop").doc("metaCollections").get()).data() || {}).shops || [];
+  const given = String(process.env.VALUE || "").match(/\d{10,}/g) || [];
+  let pt = "";
+  try { pt = (await call("GET", meta.pageId, { fields: "access_token" })).access_token; } catch (e) { say(`token da página: ${e.message}`); }
+  const tries = [];
+  for (const id of given) {
+    tries.push(async () => [{ shop_id: (await call("GET", `${id}/shops`, { fields: "id" }, pt || meta.token)).data[0].id }]);
+    tries.push(async () => { const r = await call("GET", id, { fields: "id,commerce_merchant_settings" }, pt || meta.token); return [{ shop_id: r.id }]; });
+  }
+  tries.push(async () => saved.length ? saved : null);
+  tries.push(async () => { const r = await call("GET", meta.pageId, { fields: "commerce_merchant_settings" }, pt); return [{ shop_id: (await call("GET", `${r.commerce_merchant_settings.id}/shops`, {}, pt)).data[0].id }]; });
+  tries.push(async () => { const r = await call("GET", `${meta.pageId}/commerce_merchant_settings`, {}, pt); return [{ shop_id: (await call("GET", `${r.data[0].id}/shops`, {}, pt)).data[0].id }]; });
+  for (const t of tries) { try { const r = await t(); if (r && r.length && r[0].shop_id) { shops = r; break; } } catch (e) { say(`loja: ${e.message.slice(0, 200)}`); } }
+  say(shops.length ? `loja: ${JSON.stringify(shops)}` : "não achei a loja para publicar; as categorias ficam prontas no catálogo");
   const G = groups(fs.readFileSync("google-products.xml", "utf8"));
   const first = ["Photo Magnets", ...seasonFirst(new Date().getMonth())];
   const ordered = [...first.map((n) => G.find((g) => g.name === n)).filter(Boolean), ...G.filter((g) => !first.includes(g.name))];
