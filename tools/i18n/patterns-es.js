@@ -165,7 +165,7 @@ var PATTERNS = [
   [/^(.+) fridge magnet$/, "Imán para refri $1"],
   [/^(.+) magnet · Little Hive House$/, "Imán $1 · Little Hive House"],
   [/^(.+) magnets · Little Hive House$/, function (_, c) { return "Imanes " + col(c) + " · Little Hive House"; }],
-  [/^(.+) · Little Hive House$/, function (_, c) { return (COL[c] || (window.LHH_I18N && LHH_I18N.t(c)) || c) + " · Little Hive House"; }],
+  [/^(.+) · Little Hive House$/, function (_, c) { var x = COL[c] || (window.LHH_I18N && LHH_I18N.t(c)) || c; return x !== c || known(c) ? x + " · Little Hive House" : null; }],
   [/^All (.{1,40}) designs$/, function (_, c) { return known(c) ? "Todos los diseños de " + col(c) : null; }],
   [/^More from (.{1,40})$/, function (_, c) { return known(c) ? "Más de " + col(c) : null; }],
   [/^(.{1,40}) on the fridge$/, function (_, c) { return known(c) ? col(c) + " en el refri" : null; }],
