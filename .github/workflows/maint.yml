@@ -37,6 +37,11 @@ jobs:
           service_account: ${{ vars.DEPLOY_SA || 'github-deploy@little-hive-house.iam.gserviceaccount.com' }}
           create_credentials_file: true
           export_environment_variables: true
+      - name: "Armazenamento: o painel pode ler as fotos e logos dos clientes (CORS), para gerar o arquivo de impressão"
+        if: inputs.task == 'storage-cors'
+        run: |
+          gcloud storage buckets update gs://little-hive-house.firebasestorage.app --cors-file=tools/maint/storage-cors.json --project "$PROJECT"
+          gcloud storage buckets describe gs://little-hive-house.firebasestorage.app --format="value(cors_config)" --project "$PROJECT"
       - name: "Anúncios: o robô roda agora"
         if: inputs.task == 'check-ads'
         run: |
@@ -261,7 +266,7 @@ jobs:
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/check-content.js
       - name: Run
-        if: inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
+        if: inputs.task != 'storage-cors' && inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}

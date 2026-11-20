@@ -196,6 +196,7 @@
     return storageP;
   }
   function fileUrl(path) { return storage().then(function (s) { return s.ref(path).getDownloadURL(); }); }
+  var autoMade = {};
   function fillDesigns() {
     var D = window.LHHDesigner; if (!D) return;
     document.querySelectorAll('[data-dz-item]').forEach(function (box) {
@@ -208,7 +209,28 @@
       D.paint(box, d, ch);
       Promise.all(jobs).then(function () { if (jobs.length) D.paint(box, d, ch); });
       var li = box.closest('.dz-order');
+      var o = current, AD = window.LHHAdminDesign;
+      var i = Number((li.querySelector('[data-dz-make]') || {}).getAttribute ? li.querySelector('[data-dz-make]').getAttribute('data-dz-make') : -1);
+      var it = o && (o.items || [])[i];
+      var note = li.querySelector('[data-dz-face]');
+      var makeNow = function (btn) {
+        if (!AD || !o) return;
+        if (btn) h.busy(btn, true, T('Making…', 'Gerando…'));
+        if (note) note.textContent = T('Making the print file…', 'Gerando o arquivo de impressão…');
+        return AD.make(o, i, (current.items[i] || it).design, false).then(function () {
+          if (btn) h.busy(btn, false);
+          h.toast(T('Print file ready. It is on the print sheet now.', 'Arquivo de impressão pronto. Já está na folha de impressão.'));
+          rerender();
+        }, function (e) {
+          if (btn) h.busy(btn, false);
+          if (note) note.textContent = T('The print file could not be made here: ', 'Não deu para gerar o arquivo aqui: ') + (h.friendlyError ? h.friendlyError(e) : e.message);
+        });
+      };
+      /* made by itself the first time the order is opened (paid orders only) */
+      if (it && !it.printFace && o.status !== 'pending' && AD && !autoMade[o.id + ':' + i]) { autoMade[o.id + ':' + i] = 1; makeNow(null); }
       li.addEventListener('click', function (e) {
+        if (e.target.closest('[data-dz-edit]')) { e.preventDefault(); if (AD) AD.edit(current, i); return; }
+        if (e.target.closest('[data-dz-make]')) { e.preventDefault(); makeNow(e.target.closest('[data-dz-make]')); return; }
         var f = e.target.closest('[data-dz-file]');
         if (f) { e.preventDefault(); fileUrl(f.getAttribute('data-dz-file')).then(function (u) { window.open(u, '_blank'); }); return; }
         if (e.target.closest('[data-dz-big]')) {
@@ -505,7 +527,7 @@
   }
   function itemsCard(o) {
     var p = R.pricing(o), pr = o.pricing || {}, gi = 0, packs = photoItems(o), pi = -1;
-    var lis = (o.items || []).map(function (it) {
+    var lis = (o.items || []).map(function (it, idx) {
       var qty = it.qty == null ? 1 : R.num(it.qty);
       if (it.kind === 'design') {
         return '<li>' + thumb(it) + '<div><h3>' + esc(it.title || it.id) + '</h3><p class="d">' + esc(h.colName(R.collectionOf(it))) + ' · <span class="faint">' + esc(it.id || '') + '</span></p></div>' +
@@ -557,7 +579,10 @@
             (dg.logo ? '<br><a href="#" data-dz-file="' + esc(dg.logo) + '">' + T('Download their logo', 'Baixar o logo do cliente') + '</a>' : '') +
             (dg.photo ? '<br><a href="#" data-dz-file="' + esc(dg.photo) + '">' + T('Download their photo', 'Baixar a foto do cliente') + '</a>' : '') +
             (dg.stock ? '<br><a href="/assets/stock/' + esc(dg.stock) + '.webp" target="_blank" rel="noopener">' + T('Our stock photo', 'Foto do nosso banco') + ': ' + esc(dg.stock) + '</a>' : '') +
-            '<br><a href="#" data-dz-big>' + T('Open full size (600 px)', 'Abrir em tamanho real (600 px)') + '</a></div></div>';
+            '<br><a href="#" data-dz-big>' + T('Open full size (600 px)', 'Abrir em tamanho real (600 px)') + '</a>' +
+            '<p class="small" data-dz-face="' + idx + '" style="margin-top:8px">' + (it.printFace ? '✓ ' + T('Print file ready', 'Arquivo de impressão pronto') + (it.printFaceAt ? ' · ' + esc(h.fmtDate(it.printFaceAt)) : '') : T('Print file: not made yet', 'Arquivo de impressão: ainda não feito')) + '</p>' +
+            '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:6px"><button type="button" class="btn btn-honey btn-sm" data-dz-edit="' + idx + '">' + T('Edit design', 'Editar design') + '</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-dz-make="' + idx + '">' + (it.printFace ? T('Make the print file again', 'Gerar o arquivo de novo') : T('Make the print file', 'Gerar o arquivo de impressão')) + '</button></div></div></div>';
           pd = T('Design studio · ' + R.num(it.size) + ' magnets', 'Estúdio de designs · ' + R.num(it.size) + ' ímãs');
         }
         return '<li>' + (styleImg && it.style !== 'qr' ? '<span class="thumb"><img src="' + styleImg + '" alt="" width="56" height="56" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></span>' : thumb(it)) +

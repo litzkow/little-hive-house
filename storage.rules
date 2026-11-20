@@ -24,6 +24,15 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // Studio designs drawn for printing in Hive Admin, and logos / photos the owners put into one:
+    // prints/{orderId}/{file}. Only admins, pictures only, up to 25 MB.
+    match /prints/{orderId}/{fileName} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && orderId.matches('[A-Za-z0-9_-]{4,64}')
+        && fileName.matches('[A-Za-z0-9_-]{1,40}[.](png|jpg|jpeg|webp)')
+        && request.resource.size <= 25 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+    }
+
     // Print-ready PDFs made by the server for each paid order (orders/{orderId}/print-sheet.pdf): private.
     // Admins get a short-lived link from the adminPrintSheet callable; nobody reads or writes here from a browser.
     match /orders/{orderId}/{file=**} { allow read, write: if false; }

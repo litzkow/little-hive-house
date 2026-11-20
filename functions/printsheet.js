@@ -172,6 +172,12 @@ function planTiles(order, photoBorder = null) {
         tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle, ...(border ? { border } : {}),
           key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}${border ? `|${border}` : ""}` });
       });
+    } else if (it.kind === "package" && typeof it.printFace === "string" && /^prints\//.test(it.printFace)) {
+      // a design made in the studio: Hive Admin drew it into a 1200 px picture (assets/designer.js toPng)
+      const border = itemBorder(order, it, index);
+      const n = toInt(it.size) * qty;
+      const key = `face:${it.printFace}${border ? `|${border}` : ""}`;
+      for (let q = 0; q < n; q++) tiles.push({ kind: "face", item: index, path: it.printFace, title: it.title || it.id || "Design", key, ...(border ? { border } : {}) });
     } else if (it.kind === "package") {
       skipped.push({ kind: "package", title: it.title || it.id || "Package", qty, size: toInt(it.size) * qty });
     } else if (it.kind === "custom") {
@@ -431,6 +437,21 @@ async function renderDesign(tile, ctx) {
   }
   return toPrint(sharp, face, ctx.geo.artPx);
 }
+
+/** A studio design's print picture (orders' printFace, made in Hive Admin): stretched to the face like a shop design. */
+async function renderFace(tile, ctx) {
+  const sharp = loadSharp();
+  let face;
+  try {
+    const buf = await ctx.readPhoto(tile.path);
+    face = await sharp(buf, { failOn: "none" }).resize(FACE_PX, FACE_PX, { fit: "cover", kernel: "lanczos3" }).flatten({ background: "#FFFFFF" }).jpeg(JPEG).toBuffer();
+  } catch (err) {
+    ctx.warn(`The design picture of "${tile.title}" could not be read (${err.message}). Open the order and tap “Make the print file” again.`);
+    face = await sharp(Buffer.from(placeholderSvg(["Missing design", tile.title]))).jpeg(JPEG).toBuffer();
+  }
+  return toPrint(sharp, face, ctx.geo.artPx);
+}
+const renderTile = (t, ctx) => (t.kind === "design" ? renderDesign(t, ctx) : t.kind === "face" ? renderFace(t, ctx) : renderPhoto(t, ctx));
 
 async function renderPhoto(tile, ctx) {
   const sharp = loadSharp();
@@ -767,7 +788,7 @@ async function buildPrintSheetDetailed(orderId, order, opts = {}) {
   for (const t of plan.tiles) if (!uniq.has(t.key)) uniq.set(t.key, t);
   const images = new Map();
   await pool(Array.from(uniq.values()), CONCURRENCY, async (t) => {
-    images.set(t.key, await (t.kind === "design" ? renderDesign(t, ctx) : renderPhoto(t, ctx)));
+    images.set(t.key, await renderTile(t, ctx));
   });
   // "auto" borders: the colour of each picture's own edge
   let edges = null;
@@ -794,7 +815,7 @@ async function buildBatchDetailed(entries, opts = {}) {
   for (const t of plan.tiles) if (!uniq.has(t.key)) uniq.set(t.key, t);
   const images = new Map();
   await pool(Array.from(uniq.values()), CONCURRENCY, async (t) => {
-    images.set(t.key, await (t.kind === "design" ? renderDesign(t, ctx) : renderPhoto(t, ctx)));
+    images.set(t.key, await renderTile(t, ctx));
   });
   let edges = null;
   if (ctx.border === AUTO || plan.tiles.some((t) => t.border === AUTO)) {

@@ -642,6 +642,26 @@ async function adminPrintSheet(data, auth) {
     await ref.update({ printBorders: order.printBorders, updatedAt: nowIso() });
     rebuild = true;
   }
+  if (data && Array.isArray(data.faces) && data.faces.length) {
+    // studio designs: the print picture Hive Admin drew (prints/<order>/<item>-<stamp>.png) and the owners' edits
+    const { cleanDesign } = require("./pricing");
+    const items = (order.items || []).slice();
+    for (const f of data.faces.slice(0, 20)) {
+      const i = Number(f && f.item), it = items[i];
+      if (!Number.isInteger(i) || !it || it.kind !== "package") continue;
+      const path = String((f && f.path) || "");
+      if (!new RegExp(`^prints/${id.replace(/[^A-Za-z0-9_-]/g, "")}/[0-9]{1,3}-[a-z0-9]{4,20}\\.png$`).test(path)) fail("invalid-argument", "That print picture doesn't belong to this order.");
+      const upd = { ...it, printFace: path, printFaceAt: nowIso(), printFaceBy: U.who(auth) };
+      if (f.design && typeof f.design === "object") {
+        if (!it.designOriginal && it.design) upd.designOriginal = it.design;   // what the customer made, kept
+        upd.design = cleanDesign(f.design, { admin: true });
+      }
+      items[i] = upd;
+    }
+    order.items = items;
+    await ref.update({ items, updatedAt: nowIso() });
+    rebuild = true;
+  }
   const pathOf = (m) => (m ? (which === "slip" ? m.slipPath : m.path) : null);
   // PDFs made with an older layout (v under 3) are made again
   let meta = order.printSheet && order.printSheet.v === printsheet.SHEET_V && (order.printSheet.path || order.printSheet.slipPath) ? order.printSheet : null;

@@ -472,3 +472,19 @@ test("border per item: an order's colour for all, one per item, or the item's ow
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const o = (y * n + x) * 3, inner = x > 0 && x < 3 && y > 0 && y < 3; d[o] = inner ? 0 : 255; d[o + 2] = inner ? 255 : 0; }
   assert.equal(P.ringMean(d, n, 3, 1), "#FF0000");
 });
+
+test("a studio design with its print picture fills the pack's magnets; without one it stays on the slip only", () => {
+  const order = { items: [
+    { kind: "package", id: "business-50", title: "Business", size: 50, qty: 1, design: { slug: "pizza-night" }, printFace: "prints/ord1/0-abc123.png" },
+    { kind: "package", id: "weddings-25", title: "Weddings", size: 25, qty: 1, design: { slug: "wed-arch" } }] };
+  const plan = P.planTiles(order);
+  assert.equal(plan.tiles.length, 50);
+  assert.equal(plan.tiles[0].kind, "face");
+  assert.equal(plan.tiles[0].path, "prints/ord1/0-abc123.png");
+  assert.equal(new Set(plan.tiles.map((t) => t.key)).size, 1);
+  assert.equal(plan.skipped.length, 1);
+  assert.equal(plan.skipped[0].title, "Weddings");
+  // a border colour for the item reaches its pieces
+  const b = P.planTiles({ ...order, printBorders: { items: { 0: "#13294b" } } });
+  assert.equal(b.tiles[0].border, "#13294B");
+});

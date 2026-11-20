@@ -900,3 +900,18 @@ details.ct-sch-box[open] summary { margin-bottom: 4px; }
 .ct-sch-place i.on { background: var(--honey); color: #241a0e; }
 .ct-sch-foot { position: sticky; bottom: -18px; background: var(--surface); padding: 10px 0 4px; }
 .ct-opts { color: var(--muted); margin-top: -4px; } .ct-warn { color: #b7791f; }
+
+/* studio designs: edit before printing (admin-design.js) */
+.dz-edit .in { width: min(980px, 96vw); }
+.dz-ed { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.dz-ed-ctl { max-height: 62vh; overflow: auto; padding-right: 4px; }
+.dz-ed-ctl h3 { margin: 14px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; }
+.dz-ed-pals { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dzp { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(0,0,0,.2); padding: 0; cursor: pointer; }
+.dz-ed-words { display: grid; gap: 8px; }
+.dz-ed-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; max-height: 120px; overflow: auto; margin-top: 8px; }
+.dzi { height: 38px; border-radius: 8px; border: 1px solid rgba(0,0,0,.15); background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; }
+.dz-ed-stock { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 4px; max-height: 170px; overflow: auto; margin-top: 8px; }
+.dz-ed-stock button { padding: 0; border: 0; border-radius: 6px; overflow: hidden; cursor: pointer; }
+.dz-ed-stock img { width: 100%; height: auto; display: block; }
+@media (max-width: 760px) { .dz-ed { grid-template-columns: 1fr; } .dz-ed-ctl { max-height: none; } }

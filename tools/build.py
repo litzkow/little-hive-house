@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "55"
+VERSION = "56"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"

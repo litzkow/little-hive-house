@@ -178,7 +178,8 @@ function priceCart(cart, catalog = loadCatalog()) {
 const HEX = /^#[0-9a-f]{6}$/i;
 const QR_PALS = ["fern", "honey", "navy", "blush", "brick", "teal", "sky", "plum", "black", "red", "sun", "forest", "lilac", "orange"];   // the QR magnet maker's colors (site.css .qrm)
 const UPLOAD = /^uploads\/[A-Za-z0-9]{6,64}\/[A-Za-z0-9_-]{1,64}\/[0-9]{1,3}\.(png|jpg|jpeg|webp)$/;
-function cleanDesign(d) {
+const ADMIN_FILE = /^prints\/[A-Za-z0-9_-]{4,64}\/[A-Za-z0-9_-]{1,40}\.(png|jpg|jpeg|webp)$/;   // a logo or photo the owners put in (Hive Admin)
+function cleanDesign(d, { admin = false } = {}) {
   const slug = String(d.slug || "");
   if (!/^[a-z0-9-]{2,40}$/.test(slug)) throw bad("That design doesn't look right. Please pick it again.");
   const out = { slug };
@@ -198,7 +199,7 @@ function cleanDesign(d) {
     if (!/^https?:\/\/\S+\.\S+$/i.test(u)) throw bad("The QR link doesn't look like a web address.");
     out.url = u;
   }
-  for (const k of ["logo", "photo"]) if (UPLOAD.test(String(d[k] || ""))) out[k] = d[k];
+  for (const k of ["logo", "photo"]) if (UPLOAD.test(String(d[k] || "")) || (admin && ADMIN_FILE.test(String(d[k] || "")))) out[k] = d[k];
   if (!out.photo && /^[a-z][a-z-]{1,30}-\d{1,2}$/.test(String(d.stock || ""))) out.stock = d.stock;   // one of our stock photos (assets/stock)
   return out;
 }
@@ -234,4 +235,4 @@ function allocate(lines, totals) {
 }
 
 module.exports = {
-  photoPrice, priceCart, computeTotals, allocate, rulesOf, loadCatalog, cents, dollars, MAX_LINES };
+  photoPrice, priceCart, computeTotals, allocate, rulesOf, loadCatalog, cents, dollars, MAX_LINES, cleanDesign };

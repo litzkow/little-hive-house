@@ -143,7 +143,7 @@
     return '<div style="' + SQ + 'background:' + p.bg + ';color:' + p.ink + ';display:flex">' +
       '<div style="width:180px;flex:none;background:' + p.ac + ';display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:44px 0">' +
       (p.logo ? '<div style="background:#fff;border-radius:16px;padding:10px">' + ic(p.icon, 112, p.bg) + '</div>' : ic(p.icon, 104, p.bg)) +
-      '<div style="writing-mode:vertical-rl;transform:rotate(180deg);font:700 20px ' + JO + ';letter-spacing:7px;color:' + p.bg + ';white-space:nowrap;max-height:250px;overflow:hidden">' + T(p.since) + '</div></div>' +
+      '<div style="writing-mode:vertical-rl;transform:rotate(180deg);font:700 ' + Math.max(12, Math.min(20, Math.floor(330 / Math.max(1, String(p.since || '').length * 1.3)))) + 'px ' + JO + ';letter-spacing:6px;color:' + p.bg + ';white-space:nowrap;max-height:350px;overflow:hidden">' + T(p.since) + '</div></div>' +
       '<div style="flex:1;min-width:0;padding:42px 34px 0"><div style="font:400 50px/1.02 ' + DS + '">' + T(p.name) + '</div>' +
       one('font:700 17px ' + JO + ';letter-spacing:5px;margin-top:10px;color:' + p.ac, T(p.sub)) + '<div style="margin-top:12px">' + items + '</div>' +
       one('font:700 44px ' + JT + ';margin-top:24px;letter-spacing:.5px', T(p.phone)) + one('font:500 21px ' + JT + ';opacity:.75;margin-top:2px', T(p.web)) + '</div></div>';
@@ -397,7 +397,11 @@
       if (!el.getAttribute('data-fs')) el.setAttribute('data-fs', parseFloat(getComputedStyle(el).fontSize));
       var fs = parseFloat(el.getAttribute('data-fs')), n = 0;
       el.style.fontSize = fs + 'px';
-      while (el.scrollWidth > el.clientWidth + 1 && fs > 8 && n++ < 40) { fs *= .93; el.style.fontSize = fs + 'px'; }
+      /* the room it has: its own box, and never more than its parent's inside width (a centred line in a column grows
+         with its words, so its own box alone would always look wide enough) */
+      var par = el.parentElement, ps = par ? getComputedStyle(par) : null;
+      var room = function () { var w = el.clientWidth; if (ps) w = Math.min(w, par.clientWidth - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight)); return w; };
+      while (el.scrollWidth > room() + 1 && fs > 8 && n++ < 40) { fs *= .93; el.style.fontSize = fs + 'px'; }
     });
   }
 
@@ -420,8 +424,81 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fit(m); });
   }
 
+  /* ---------------------------------------------------------------- the print file
+     The magnet drawn into a PNG of `px` pixels (1200 = 2 in at 600 dpi), exactly as on screen: the html goes into an
+     SVG <foreignObject> with the fonts (assets/fonts) and every picture inlined, and the browser paints it on a canvas.
+     Used by Hive Admin for the print sheet (the server can't draw html). Resolves with a PNG Blob. */
+  var FONT_FILES = [["Anton", "normal", "400", "Anton.ttf"], ["Bebas Neue", "normal", "400", "BebasNeue.ttf"], ["Josefin Sans", "normal", "100 900", "JosefinSans.ttf"],
+    ["Jost", "normal", "100 900", "Jost.ttf"], ["Caveat", "normal", "100 900", "Caveat.ttf"], ["Playfair Display", "italic", "100 900", "PlayfairItalic.ttf"],
+    ["DM Serif Display", "normal", "400", "DMSerifDisplay.ttf"], ["Cinzel", "normal", "100 900", "Cinzel.ttf"], ["Cormorant Garamond", "normal", "100 900", "CormorantItalic.ttf"],
+    ["Cormorant Garamond", "italic", "100 900", "CormorantItalic.ttf"], ["Dancing Script", "normal", "100 900", "DancingScript.ttf"]];
+  var fontCssP = null;
+  function asDataUrl(blob) { return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej; r.readAsDataURL(blob); }); }
+  function fetchData(url) { return fetch(url, { mode: 'cors' }).then(function (r) { if (!r.ok) throw new Error(r.status + ' ' + url); return r.blob(); }).then(asDataUrl); }
+  function fontCss() {
+    if (fontCssP) return fontCssP;
+    var base = (window.LHHDesignBase || '') + 'assets/fonts/';
+    fontCssP = Promise.all(FONT_FILES.map(function (f) {
+      return fetchData(base + f[3]).then(function (u) { return "@font-face{font-family:'" + f[0] + "';font-style:" + f[1] + ';font-weight:' + f[2] + ";src:url(" + u + ") format('truetype')}"; });
+    })).then(function (a) { return a.join(''); }, function (e) { fontCssP = null; throw e; });
+    return fontCssP;
+  }
+  function inlinePictures(root) {
+    var jobs = [];
+    root.querySelectorAll('[style*="url("]').forEach(function (el) {
+      var st = el.getAttribute('style'), m = /url\((['"]?)([^'")]+)\1\)/.exec(st);
+      if (!m || /^data:/.test(m[2])) return;
+      jobs.push(fetchData(m[2]).then(function (u) { el.setAttribute('style', st.replace(m[0], "url('" + u + "')")); }));
+    });
+    root.querySelectorAll('img').forEach(function (im) {
+      var src = im.getAttribute('src');
+      if (src && !/^data:/.test(src)) jobs.push(fetchData(src).then(function (u) { im.setAttribute('src', u); }));
+    });
+    return Promise.all(jobs);
+  }
+  function toPng(d, ch, px) {
+    px = px || 1200;
+    var host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-20000px;top:0;width:600px;height:600px;overflow:hidden;pointer-events:none';
+    host.innerHTML = render(d, ch);
+    document.body.appendChild(host);
+    var css;
+    return fontCss().then(function (c) {
+      css = c;
+      /* the same fonts in the page too, so the words are fitted with exactly the letters that get printed */
+      if (!document.getElementById('lhh-print-fonts')) { var st = document.createElement('style'); st.id = 'lhh-print-fonts'; st.textContent = c; document.head.appendChild(st); }
+      return Promise.all(FONT_FILES.map(function (f) { return document.fonts && document.fonts.load ? document.fonts.load(f[1] + ' 400 20px "' + f[0] + '"').catch(function () {}) : null; }));
+    }).then(function () {
+      return document.fonts && document.fonts.ready ? document.fonts.ready : null;
+    }).then(function () {
+      fit(host);
+      return inlinePictures(host);
+    }).then(function () {
+      var xhtml = new XMLSerializer().serializeToString(host.firstElementChild);
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + px + '" height="' + px + '" viewBox="0 0 600 600"><foreignObject x="0" y="0" width="600" height="600">' +
+        '<div xmlns="http://www.w3.org/1999/xhtml" style="width:600px;height:600px;font-family:Jost,sans-serif"><style>' + css + '*{margin:0;padding:0;box-sizing:border-box}</style>' + xhtml + '</div></foreignObject></svg>';
+      return new Promise(function (res, rej) {
+        var img = new Image();
+        img.onload = function () {
+          var c = document.createElement('canvas'); c.width = px; c.height = px;
+          var x = c.getContext('2d');
+          x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, px, px);
+          x.drawImage(img, 0, 0, px, px);
+          /* Safari sometimes paints the fonts only on the second try */
+          setTimeout(function () {
+            x.fillRect(0, 0, px, px); x.drawImage(img, 0, 0, px, px);
+            try { c.toBlob(function (b) { b ? res(b) : rej(new Error('This browser could not make the picture. Try Chrome on a computer.')); }, 'image/png'); }
+            catch (e) { rej(new Error('This browser could not make the picture. Try Chrome on a computer.')); }
+          }, 250);
+        };
+        img.onerror = function () { rej(new Error('The design could not be drawn.')); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    }).then(function (b) { host.remove(); return b; }, function (e) { host.remove(); throw e; });
+  }
+
   var byslug = {};
   DATA.list.forEach(function (d) { byslug[d.slug] = d; });
 
-  window.LHHDesigner = { stock: DATA.stock || [], render: render, fit: fit, paint: paint, icons: ICONS, palettes: DATA.pal, designs: DATA.list, get: function (s) { return byslug[s]; }, esc: esc };
+  window.LHHDesigner = { stock: DATA.stock || [], toPng: toPng, render: render, fit: fit, paint: paint, icons: ICONS, palettes: DATA.pal, designs: DATA.list, get: function (s) { return byslug[s]; }, esc: esc };
 })();
