@@ -209,7 +209,7 @@ test("a morning run: saves the days, boosts the best eligible post with a tracke
   assert.equal(sets.length, 1);
   assert.equal(sets[0].params.daily_budget, "400");
   assert.equal(sets[0].params.optimization_goal, "LANDING_PAGE_VIEWS");
-  assert.deepEqual(JSON.parse(sets[0].params.targeting).geo_locations, { countries: ["US"] });
+  assert.deepEqual(JSON.parse(sets[0].params.targeting).geo_locations, { countries: ["US"], location_types: ["home"] });   // only people who live in the US
   assert.deepEqual(calls.filter((c) => c.path === "act_123/ads").map((c) => c.params.adset_id), ["as- · Hive Admin", "as- · Hive Admin"]);
   const cr = calls.filter((c) => c.path === "act_123/adcreatives");
   assert.deepEqual(cr.map((c) => c.params.source_instagram_media_id), ["18000000000000003", "18000000000000004"]);
@@ -236,7 +236,7 @@ test("the next run pauses (in the shared ad set) what spent past the limit with 
   const { db, pushes, A } = setup();
   db.docs.set("ads/auth", { meta: META });
   db.docs.set("ads/config", { ...A.DEFAULTS, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
-  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", boosts: {
+  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", targetV: 2, boosts: {
     "18000000000000003": { id: "18000000000000003", adsetId: "shared1", adId: "ad3", shared: true, status: "active", caption: "Packing", by: "robot" },
     "18000000000000004": { id: "18000000000000004", adsetId: "shared1", adId: "ad4", shared: true, status: "active", caption: "Fall", by: "robot" },
     "18000000000000005": { id: "18000000000000005", adsetId: "shared1", adId: "ad5", shared: true, status: "active", caption: "Mine", by: "Thiago" },
@@ -449,4 +449,30 @@ test("posts: among Reels, sends and saves count more than likes (Instagram's num
   assert.equal(p[0].shares, 6); assert.equal(p[0].watch, 7);
   const q = await A._internal.recentPosts(META, RULES, { insights: false });
   assert.deepEqual(q.map((x) => x.id), ["18000000000000001", "18000000000000002", "18000000000000003"]);
+});
+
+test("the audience: only people who live in the US, plus gift, home and photo interests (looked up once); an old ad set is updated once", async () => {
+  const { db, A } = setup();
+  const calls = net({ meta: {
+    "GET search": (p) => ({ data: p.q === "Etsy" ? [] : [{ id: `id-${p.q}`, name: p.q }, { id: "other", name: "Other" }] }),
+    "GET act_123/insights": { data: [] }, [`GET ${META.igUserId}/media`]: { data: [] },
+    "POST shared1": { success: true },
+  } });
+  const state = {};
+  const t = await A._internal.audience(META, state);
+  assert.deepEqual(t.geo_locations, { countries: ["US"], location_types: ["home"] });
+  assert.ok(t.flexible_spec[0].interests.some((i) => i.name === "Gifts"));
+  assert.ok(!t.flexible_spec[0].interests.some((i) => i.name === "Etsy"));
+  const n = calls.filter((c) => c.path === "search").length;
+  await A._internal.audience(META, state);
+  assert.equal(calls.filter((c) => c.path === "search").length, n);       // kept: not looked up again
+  // an ad set made before: the run updates its audience, once
+  db.docs.set("ads/auth", { meta: META });
+  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", boosts: {} });
+  await A.run();
+  const up = calls.filter((c) => c.path === "shared1" && c.params.targeting);
+  assert.equal(up.length, 1);
+  assert.deepEqual(JSON.parse(up[0].params.targeting).geo_locations.location_types, ["home"]);
+  await A.run();
+  assert.equal(calls.filter((c) => c.path === "shared1" && c.params.targeting).length, 1);
 });

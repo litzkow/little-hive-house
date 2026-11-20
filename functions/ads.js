@@ -218,12 +218,35 @@ function minFromError(e) {
 /** The one ad set every boosted Reel lives in (made the first time): one daily budget for all of them, and Meta gives
    it to the ad that works. US, 18–65, Meta's automatic audience; optimized for landing page views (people who wait for
    the shop to open), not for clicks, which find people who click and leave. */
-const TARGETING = { geo_locations: { countries: ["US"] }, age_min: 18, age_max: 65, targeting_automation: { advantage_audience: 1 } };
+/** Who sees the ads. The shop only ships inside the US, so only people who LIVE in the US (not visitors): that is a hard
+   limit Meta never goes past. The interests are people who buy gifts, decorate the home, travel and keep photos: Meta
+   starts with them and, with its automatic audience on, goes further only where it finds buyers. Looked up once by name
+   (Meta's ids) and kept in the state; TARGET_V changes when this changes, so the next run updates the ad set. */
+const TARGET_V = 2;
+const INTEREST_TERMS = ["Gifts", "Home decor", "Souvenir", "Handicraft", "Etsy", "Photography", "Travel", "Interior design", "Scrapbooking"];
+async function audience(meta, state) {
+  if (!Array.isArray(state.interests)) {
+    const found = [];
+    for (const q of INTEREST_TERMS) {
+      try {
+        const j = await graph(meta, "GET", "search", { type: "adinterest", q, limit: 3 });
+        const hit = ((j && j.data) || []).find((x) => String(x.name).toLowerCase() === q.toLowerCase()) || ((j && j.data) || [])[0];
+        if (hit && !found.some((f) => f.id === String(hit.id))) found.push({ id: String(hit.id), name: hit.name });
+      } catch (e) { /* that one stays out */ }
+    }
+    state.interests = found;
+  }
+  const t = { geo_locations: { countries: ["US"], location_types: ["home"] }, age_min: 18, age_max: 65, targeting_automation: { advantage_audience: 1 } };
+  if (state.interests.length) t.flexible_spec = [{ interests: state.interests }];
+  return t;
+}
 async function sharedAdset(meta, state, daily) {
   if (state.adsetId) return state.adsetId;
   const cid = await campaign(meta, state);
+  const T = await audience(meta, state);
+  state.targetV = TARGET_V;
   const body = (d) => ({ name: "Reels · Hive Admin", campaign_id: cid, daily_budget: cents(d), billing_event: "IMPRESSIONS",
-    optimization_goal: "LANDING_PAGE_VIEWS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE", targeting: TARGETING, status: "ACTIVE" });
+    optimization_goal: "LANDING_PAGE_VIEWS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE", targeting: T, status: "ACTIVE" });
   let a;
   try { a = await graph(meta, "POST", `${meta.adAccountId}/adsets`, body(daily)); } catch (e) {
     const min = minFromError(e);
@@ -612,6 +635,9 @@ async function run({ by = "robot", onlyNext = false } = {}) {
         if (b.status !== "active" || b.shared) continue;
         try { await setStatus(meta, b, "PAUSED"); b.status = "paused"; b.why = capReached ? "cap" : "season"; b.pausedAt = nowIso(); } catch (e) { errors.meta = e.message; }
       }
+      if (state.adsetId && state.targetV !== TARGET_V) {
+        try { await graph(meta, "POST", state.adsetId, { targeting: await audience(meta, state) }); state.targetV = TARGET_V; } catch (e) { errors.meta = errors.meta || e.message; }
+      }
       // one budget for all the boosted posts; nothing boosted (or the cap, or the calendar) = the ad set rests
       const anyActive = Object.values(state.boosts).some((b) => b.status === "active" && b.shared);
       const before = state.adsetStatus;
@@ -860,4 +886,4 @@ async function adminAds(data, auth) {
 }
 
 module.exports = { adminAds, run, plan, season, dailyAllowed, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
-  _internal: { graph, version: () => META_VERSION(), boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
+  _internal: { graph, version: () => META_VERSION(), audience, TARGET_V, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
