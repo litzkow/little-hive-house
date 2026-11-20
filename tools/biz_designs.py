@@ -459,7 +459,7 @@ RFONTS = "".join(f"@font-face{{font-family:{n};src:url('file://{F}/{f}'){x}}}" f
     ("'Dancing Script'", "DancingScript-SemiBold.ttf", ""), ("Anton", "Anton-Regular.ttf", ""), ("'DM Mono'", "DMMono-Medium.ttf", ";font-weight:500")])
 
 
-def render_batch(ds, cols=5, size=360):
+def render_batch(ds, cols=5, size=360, out=None, ext="webp"):
     """Many designs on one page, one screenshot, then cut: much faster than one browser per design."""
     from PIL import Image
     tmp = pathlib.Path(tempfile.mkdtemp())
@@ -476,7 +476,10 @@ document.fonts.ready.then(function(){{document.querySelectorAll('.c').forEach(fu
     im = Image.open(png).convert("RGB")
     for i, d in enumerate(ds):
         x, y = (i % cols) * 600, (i // cols) * 600
-        im.crop((x, y, x + 600, y + 600)).resize((size, size), Image.LANCZOS).save(OUT / f"{d['slug']}.webp", quality=80, method=5)
+        tile = im.crop((x, y, x + 600, y + 600))
+        if size != 600: tile = tile.resize((size, size), Image.LANCZOS)
+        if ext == "png": tile.save((out or OUT) / f"{d['slug']}.png")
+        else: tile.save((out or OUT) / f"{d['slug']}.webp", quality=80, method=5)
     return len(ds)
 
 

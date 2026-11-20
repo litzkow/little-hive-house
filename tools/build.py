@@ -1143,6 +1143,35 @@ def write_google_feed():
             rows.append(item(fid, ftitle, f"{desc} {n} glossy 2 x 2 inch magnets designed with you for free: you approve a proof before we print. "
                              "Pressed and packed by hand, ships 3 to 5 business days after the proof.",
                              f"{site}{page}#packs", f"{site}assets/feed/bulk/{pid}.jpg", price, f"Fridge magnets > {cat}", cat))
+    # the design studio's designs: one product per kind of business and per Personalize theme (their pictures:
+    # tools/feed_custom_images.py), so they show on Google and can be tagged in Instagram posts
+    fdir = ROOT / "assets" / "feed" / "custom"
+    btitle, _bk, _bd, btiers, _bp = next(p for p in PACKAGES if p[1] == "Business")
+    bn, bprice = btiers[0]
+    for k in KITS.K:
+        fid = f"biz-{k['key']}"
+        if not (fdir / f"{fid}.jpg").exists():
+            continue
+        ftitle = (f"Custom {k['name']} Magnets with Your Logo, Pack of {bn}, Handmade 2x2 in" if k["group"] != KITS.G_OTHER
+                  else f"Custom Business Magnets with Your Logo, {k['name']}, Pack of {bn}, Handmade 2x2 in")[:150]
+        ids[fid] = [f"business-{bn}", f"{btitle}, {bn} magnets", "For Business", ftitle, "package", bn, bprice]
+        rows.append(item(fid, ftitle, f"{BIZ_DESIGNS.SET_N.get(k['key'], 0)} ready-made designs for a {k['name'].lower()}: coupons, your number, QR codes, "
+                         f"photo designs and elegant logo designs. Pick one and make it yours: your colors, your words, your logo. {bn} glossy 2 x 2 inch "
+                         "magnets; you approve a proof before we print. Pressed and packed by hand.",
+                         f"{site}business.html#kind-{k['key']}", f"{site}assets/feed/custom/{fid}.jpg", bprice, f"Fridge magnets > For Business > {k['name']}", "For Business"))
+    ptitle, _pk, _pd, ptiers, _pp = PERSONAL
+    pn, pprice = ptiers[0]
+    for key, meta in BIZ_DESIGNS.SETS.items():
+        if meta["page"] != "personalize":
+            continue
+        fid = f"pz-{key[2:]}"
+        if not (fdir / f"{fid}.jpg").exists():
+            continue
+        ftitle = f"Personalized Magnet, {meta['name']}, Custom 2x2 in Fridge Magnet, Handmade"[:150]
+        ids[fid] = [f"personal-{pn}", f"{ptitle}, 1 magnet", "Personalized", ftitle, "package", pn, pprice]
+        rows.append(item(fid, ftitle, f"{BIZ_DESIGNS.SET_N.get(key, 0)} designs to make yours: {meta['name'].lower()}. Change the words and the colors, add your photo, "
+                         "and we send you a proof before we print. A glossy 2 x 2 inch magnet, pressed and packed by hand.",
+                         f"{site}personalize.html#kind-{key}", f"{site}assets/feed/custom/{fid}.jpg", pprice, f"Fridge magnets > Personalized > {meta['name']}", "Personalized"))
     import json as _json
     write("assets/feed-ids.json", _json.dumps(ids, separators=(",", ":"), ensure_ascii=False) + "\n")
     write("google-products.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n<channel>\n'

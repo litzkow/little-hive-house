@@ -8,11 +8,15 @@ const API = "https://api.etsy.com/v3/application";
 const K = process.env.ETSY_KEYSTRING, S = process.env.ETSY_SHARED_SECRET;
 const say = (s) => console.log(`::warning title=etsy::${String(s).replace(/%/g, "%25").replace(/\n/g, " | ").slice(0, 1800)}`);
 
-const TITLE = "Your photos or our designs, as 2x2 fridge magnets";
+const TITLE = "Photo, personalized and business 2x2 fridge magnets";
 const ANNOUNCEMENT = [
   "Welcome to Little Hive House!",
   "",
-  "Two ways to fill your fridge:",
+  "NEW: magnets made just for you. Pick a design, tell us your words, and we send you a proof before we print.",
+  "• Business Magnets: your logo, phone and offer on your customers' fridge. Designs for 60 kinds of business: restaurants, dentists, cleaning, realtors, salons, churches and more, from 50 magnets.",
+  "• Personalized Magnets: your family name, your pet, your baby, grandma's kitchen, your trip, or your photo with a few words. From 1 magnet.",
+  "",
+  "Also:",
   "• Your own photos: upload any picture (family, pets, trips, weddings) and we turn it into a 2 x 2 inch magnet, with a frame and caption if you like. See the Photo Magnets section.",
   "• Our designs: hundreds of original, hand-painted magnets, from travel posters and heritage collections to seasonal, sayings and storybook classics.",
   "",
