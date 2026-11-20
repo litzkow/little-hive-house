@@ -64,7 +64,7 @@ test("automatic answers: thanks, prices, photos, Portuguese; a real question wai
   assert.ok(!/—/.test(S.autoReply("How much is one?") + S.autoReply("Can I send my own photo?") + S.autoReply("Do you ship to Canada?")), "no em-dashes");
 });
 
-test("socialSync: tags what Meta approved and waits for the rest; comments and Direct saved, simple ones answered, phones told", async () => {
+test("socialSync: tags what Meta approved and waits for the rest; comments and Direct saved for the owners (nothing answered by itself), phones told", async () => {
   S._reset();
   process.env.ADMIN_EMAILS = "owner@lhh.com";
   const db = new FakeDB();
@@ -109,15 +109,14 @@ test("socialSync: tags what Meta approved and waits for the rest; comments and D
   assert.equal(t2.status, "none");
   const tagPost = calls.find((c) => c.method === "POST" && c.path === "m1/product_tags");
   assert.ok(JSON.parse(tagPost.params.updated_tags).every((g) => g.product_id.startsWith("P-christmas-") && g.x > 0));
-  // comments: thanks answered by itself, the broken order waits, our own and answered ones skipped
-  assert.equal(db.get("social/ig-c-c1").status, "auto");
+  // comments: all wait for the owners (the owners don't want answers sent by themselves); our own and answered ones skipped
+  assert.equal(db.get("social/ig-c-c1").status, "new");
   assert.equal(db.get("social/ig-c-c2").status, "new");
   assert.equal(db.get("social/ig-c-c3"), undefined);
   assert.equal(db.get("social/ig-c-c4").status, "answered");
-  assert.equal(db.get("social/fb-c-f1").status, "auto");
-  assert.match(calls.find((c) => c.path === "f1/comments").params.message, /cada/);
-  assert.equal(db.get("social/ig-dm-d1").status, "auto");
-  assert.equal(JSON.parse(calls.find((c) => c.path === "999/messages").params.recipient).id, "IGS1");
+  assert.equal(db.get("social/fb-c-f1").status, "new");
+  assert.equal(db.get("social/ig-dm-d1").status, "new");
+  assert.ok(!calls.some((c) => c.method === "POST" && /(replies|comments|messages)$/.test(c.path)), "nothing sent");
   assert.ok(pushes.some((p) => /joe/.test(p.body)), "the owners hear about the one that waits");
   assert.equal(r.comments.new, 5);
   // next run: Meta approved the photo packs -> tagged, done; nothing new arrives twice

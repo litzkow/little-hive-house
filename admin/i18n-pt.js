@@ -265,6 +265,8 @@ window.LHH_PT = {
 "Delivered already? You can mark it yourself: the customer gets a short note asking for a review.": "Já foi entregue? Você mesmo pode marcar: o cliente recebe uma mensagem curta pedindo uma avaliação.",
 "Delivery checks": "Verificação de entrega",
 "Instagram & Facebook": "Instagram e Facebook",
+"Nothing is answered by itself.": "Nada é respondido sozinho.",
+"New comments and Direct messages wait for you here.": "Os comentários novos e as mensagens do Direct esperam você aqui.",
 "Waiting for you": "Esperando você",
 "Answered automatically": "Respondido sozinho",
 "Answered": "Respondido",
