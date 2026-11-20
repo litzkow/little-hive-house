@@ -225,3 +225,13 @@ test("bulk packs keep the price on the page (no volume discount on top); the mai
   // a style that isn't a slug is dropped
   assert.equal(priceCart([{ kind: "package", id: "weddings-50", qty: 1, style: "<b>x</b>" }], catalog).items[0].style, undefined);
 });
+
+test("the QR magnet maker: the link, name and message go with the pack; a link that isn't a web address is refused", () => {
+  const qr = { url: "https://g.page/r/abc/review", name: "Little Fern Café", top: "Loved your visit?", cta: "SCAN & TELL US", stars: true, pal: "navy" };
+  const r = priceCart([{ kind: "package", id: "business-100", qty: 1, style: "qr", qr }], catalog);
+  assert.deepEqual(r.items[0].qr, qr);
+  assert.equal(r.items[0].style, "qr");
+  assert.equal(r.pricing.total, 160);
+  assert.equal(priceCart([{ kind: "package", id: "business-50", qty: 1, qr: { ...qr, pal: "<x>" } }], catalog).items[0].qr.pal, "fern");
+  assert.throws(() => priceCart([{ kind: "package", id: "business-50", qty: 1, qr: { ...qr, url: "javascript:alert(1)" } }], catalog), /web address/);
+});
