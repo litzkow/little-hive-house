@@ -9,7 +9,7 @@ const U = require("./util");
 const customer = require("./customer");
 
 /** The visitor's site language ("pt" or "en"), sent by assets/store.js with every call: their emails follow it. */
-function langOf(data) { return data && data.lang === "pt" ? "pt" : "en"; }
+function langOf(data) { return require("./emails/i18n").norm(data && data.lang); }
 
 async function subscribe(data, auth, rawRequest) {
   const email = U.cleanEmail(data && data.email);

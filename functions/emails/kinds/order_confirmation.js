@@ -3,6 +3,7 @@
 const F = require("../format");
 const Lay = require("../layout");
 const O = require("../order-parts");
+const { tx } = require("../i18n");
 
 module.exports = function orderConfirmation(data, { L }) {
   const order = data.order || {};
@@ -19,9 +20,9 @@ module.exports = function orderConfirmation(data, { L }) {
   const country = String((order.shipping && order.shipping.address && order.shipping.address.country) || "US").toUpperCase();
   const eta = O.items(order).some((i) => i.kind !== "package") ? F.arrival(order.paidAt || order.createdAt || new Date(), { country }) : "";
   const etaBox = eta || hasPackage ? Lay.box(
-    `${Lay.label("Estimated arrival")}${Lay.bodyText(eta ? `<strong style="font-weight:600">${F.esc(eta)}</strong>` : "About 1 to 2 weeks after you approve the proof", { size: 18, lh: 26 })}` +
+    `${Lay.label("Estimated arrival")}${Lay.bodyText(eta ? `<strong style="font-weight:600">${F.esc(tx(eta))}</strong>` : "About 1 to 2 weeks after you approve the proof", { size: 18, lh: 26 })}` +
     Lay.bodyText(F.esc(eta && hasPackage ? "Your big-order package ships 3 to 5 business days after you approve the proof." : country === "CA" ? "Canadian orders travel with USPS international and usually take 1 to 3 weeks." : "Made by hand in 1 to 2 business days, then 2 to 5 business days with USPS."), { size: 14, lh: 21, muted: true, margin: "6px 0 0" }),
-    `Estimated arrival: ${eta || "about 1 to 2 weeks after you approve the proof"}`, "honey", { pad: "18px 22px" }) : null;
+    tx(`Estimated arrival: ${eta || "about 1 to 2 weeks after you approve the proof"}`), "honey", { pad: "18px 22px" }) : null;
 
   const next = [
     hasPackage

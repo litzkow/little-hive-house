@@ -122,7 +122,7 @@ async function sendVerification(auth, { name, lang } = {}) {
     console.error("[sendVerification]", err && (err.code || err.message));
     fail("unavailable", "We couldn't make your confirmation link right now. Please try again in a few minutes.");
   }
-  const res = await mail.send({ to: email, kind: "verify_email", data: { link, email, name: name || auth.token.name || "", lang: lang === "pt" ? "pt" : "en" } });
+  const res = await mail.send({ to: email, kind: "verify_email", data: { link, email, name: name || auth.token.name || "", lang: require("./emails/i18n").norm(lang) } });
   if (!res.skipped) await deps.db().collection("users").doc(auth.uid).set({ verifySentAt: nowIso() }, { merge: true }).catch(() => {});
   return res;
 }

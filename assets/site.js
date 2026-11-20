@@ -1,4 +1,5 @@
 /* Little Hive House: cart, menu, quick view and shop filters, shared by every page. */
+window.LHH_LOCALE = { en: 'en-US', es: 'es-US', pt: 'pt-BR', zh: 'zh-CN', fil: 'fil-PH', vi: 'vi-VN', fr: 'fr-FR', ko: 'ko-KR', ru: 'ru-RU', ar: 'ar' }[window.LHH_LANG || 'en'] || 'en-US';
 (function () {
   var PRICE = 5, BUNDLE_N = 3, BUNDLE_PRICE = 12;
   var SHIPPING = 5.49, FREE_SHIP_AT = 35;
@@ -19,7 +20,7 @@
       logged++;
       info = info || {};
       var body = JSON.stringify({ kind: kind, msg: String(info.msg || '').slice(0, 500), code: String(info.code || '').slice(0, 80), src: info.src || '',
-        photos: info.photos, page: location.href, lang: window.LHH_LANG === 'pt' ? 'pt' : 'en', ua: navigator.userAgent });
+        photos: info.photos, page: location.href, lang: window.LHH_LANG || 'en', ua: navigator.userAgent });
       if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], { type: 'text/plain' }))) return;
       fetch(url, { method: 'POST', body: body, mode: 'no-cors', keepalive: true }).catch(function () {});
     } catch (e) { /* never let reporting break the page */ }
@@ -653,7 +654,18 @@
   try { if (document.querySelector('[data-cart-page]') && !/[?&]products=/.test(location.search)) openCart(); } catch (e) {}
 })();
 
-/* EN | PT at the top: keeps the choice and shows the page again in that language */
+/* the language buttons (the top one and the menu list): keep the choice and show the page again in that language.
+   The top button only shows to someone not in English (back to English), or in English on a phone set to another
+   language we have (back to that one). */
+(function () {
+  var ph = window.LHH_PHONE_LANG, names = window.LHH_LANGS || {};
+  document.querySelectorAll('[data-lang-phone]').forEach(function (a) {
+    if (!ph || ph === 'en' || !names[ph]) return;
+    a.setAttribute('data-set-lang', ph);
+    var n = a.querySelector('[data-lang-phone-name]'); if (n) n.textContent = names[ph];
+  });
+  document.querySelectorAll('.lang-list a').forEach(function (a) { if (a.getAttribute('data-set-lang') === (window.LHH_LANG || 'en')) a.classList.add('on'); });
+})();
 document.addEventListener("click", function (e) {
   var a = e.target.closest && e.target.closest("[data-set-lang]");
   if (!a) return;

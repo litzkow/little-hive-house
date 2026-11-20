@@ -4,7 +4,7 @@
 "use strict";
 
 const { esc, str, safeUrl, SUPPORT } = require("./format");
-const { tx, get: lang } = require("./i18n");
+const { tx, get: lang, htmlLang } = require("./i18n");
 
 const C = {
   honey: "#F2A81D", honeySoft: "#F9D88A", wash: "#FDF0D2", ink: "#2B2118", muted: "#6A5845", line: "#E8D6B3",
@@ -134,7 +134,7 @@ function label(textValue) {
 const UNESC = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
 function bodyText(html, opts = {}) {
   // plain text (no tags): in the email's language too
-  if (lang() === "pt" && typeof html === "string" && !/</.test(html)) html = esc(tx(html.replace(/&(amp|lt|gt|quot|#39);/g, (m) => UNESC[m])));
+  if (lang() !== "en" && typeof html === "string" && !/</.test(html)) html = esc(tx(html.replace(/&(amp|lt|gt|quot|#39);/g, (m) => UNESC[m])));
   return `<p class="${opts.muted ? "lh-m" : "lh-t"}" style="margin:${opts.margin || "0"};font-family:${opts.serif ? FS : FB};font-size:${opts.size || 16}px;line-height:${opts.lh || 25}px;color:${opts.muted ? C.muted : C.ink}${opts.italic ? ";font-style:italic" : ""}${opts.weight ? ";font-weight:" + opts.weight : ""}">${html}</p>`;
 }
 
@@ -194,7 +194,7 @@ function progress(at) {
 /** Five star links (rating 1..5). */
 function stars(hrefFor) {
   const cells = [1, 2, 3, 4, 5].map((n) =>
-    `<td align="center" style="padding:0 4px"><a href="${esc(hrefFor(n))}" target="_blank" title="${n} ${lang() === "pt" ? (n > 1 ? "estrelas" : "estrela") : n > 1 ? "stars" : "star"}" aria-label="${n} ${lang() === "pt" ? (n > 1 ? "estrelas" : "estrela") : n > 1 ? "stars" : "star"}" style="display:inline-block;width:48px;height:48px;line-height:48px;border-radius:14px;background:${C.honey};color:${C.ink};font-size:26px;text-decoration:none;text-align:center;font-family:Arial,sans-serif">&#9733;</a></td>`).join("");
+    `<td align="center" style="padding:0 4px"><a href="${esc(hrefFor(n))}" target="_blank" title="${n} ${tx(n > 1 ? "stars" : "star")}" aria-label="${n} ${tx(n > 1 ? "stars" : "star")}" style="display:inline-block;width:48px;height:48px;line-height:48px;border-radius:14px;background:${C.honey};color:${C.ink};font-size:26px;text-decoration:none;text-align:center;font-family:Arial,sans-serif">&#9733;</a></td>`).join("");
   return {
     html: row(`<table ${T} align="center"><tr>${cells}</tr></table>`, "4px 0 10px"),
     text: [5, 4, 3, 2, 1].map((n) => `${"*".repeat(n)}${" ".repeat(6 - n)}${hrefFor(n)}`).join("\n"),
@@ -293,11 +293,11 @@ function page(opts) {
       small(`${tx("Questions? Just reply, or write to")} ${a(`mailto:${SUPPORT}`, SUPPORT)}`) +
       small(a(L.site, L.host) + (L.shipping ? ` · ${a(L.shipping, tx("Shipping"))}` : "") + (L.returns ? ` · ${a(L.returns, tx("Returns"))}` : "")) +
       (opts.reason ? small(esc(tx(opts.reason))) : "") +
-      (unsub ? small(lang() === "pt" ? `${a(unsub, "Cancele")} estes e-mails quando quiser.` : `${a(unsub, "Unsubscribe")} from these emails at any time.`) : "") +
+      (unsub ? small(lang() === "pt" ? `${a(unsub, "Cancele")} estes e-mails quando quiser.` : lang() === "en" ? `${a(unsub, "Unsubscribe")} from these emails at any time.` : `${a(unsub, tx("Unsubscribe"))} ${tx("from these emails at any time.")}`) : "") +
       (postal ? small(esc(postal)) : "");
 
   const html = `<!doctype html>
-<html lang="${lang() === "pt" ? "pt-BR" : "en"}" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<html lang="${htmlLang()}"${lang() === "ar" ? ' dir="rtl"' : ""} xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -313,7 +313,7 @@ function page(opts) {
 <style>${STYLE}</style>
 </head>
 <body class="lh-bg" style="margin:0;padding:0;background:${C.cream};word-spacing:normal">
-<div role="article" aria-roledescription="email" aria-label="${esc(opts.title)}" lang="${lang() === "pt" ? "pt-BR" : "en"}" style="font-size:16px">
+<div role="article" aria-roledescription="email" aria-label="${esc(opts.title)}" lang="${htmlLang()}" style="font-size:16px">
 <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">${esc(pre)}${spacer}</div>
 <table ${T} width="100%" class="lh-bg" bgcolor="${C.cream}" style="background:${C.cream}">
 <tr><td align="center" style="padding:${admin ? "20px" : "28px"} 10px 40px">

@@ -6,6 +6,21 @@
 
 let LANG = "en";
 let DICT = null;
+/* The other languages: functions/emails/lang/<code>.js, each {look(key) -> text or null, date(s)} with its own
+   dictionary (functions/emails/<code>.json) and patterns. Portuguese stays in this file. */
+const fs = require("fs");
+const OTHER = {};
+try {
+  for (const f of fs.readdirSync(require("path").join(__dirname, "lang"))) {
+    const m = /^([a-z]{2,3})\.js$/.exec(f);
+    if (m) OTHER[m[1]] = require(`./lang/${f}`);
+  }
+} catch (e) { /* no other languages */ }
+const SUPPORTED = ["en", "pt", ...Object.keys(OTHER)];
+const LOCALES = { en: "en-US", pt: "pt-BR", es: "es-US", zh: "zh-CN", fil: "fil-PH", vi: "vi-VN", fr: "fr-FR", ko: "ko-KR", ru: "ru-RU", ar: "ar" };
+const HTML_LANG = { en: "en", pt: "pt-BR", zh: "zh-Hans" };
+/** A language we can write in, else English. */
+function norm(l) { return SUPPORTED.includes(l) ? l : "en"; }
 const missed = new Set();   // what tx() couldn't translate (for the checking tools)
 
 const MON = { Jan: "jan", Feb: "fev", Mar: "mar", Apr: "abr", May: "mai", Jun: "jun", Jul: "jul", Aug: "ago", Sep: "set", Oct: "out", Nov: "nov", Dec: "dez",
@@ -115,15 +130,18 @@ function dict() {
   if (!DICT) { try { DICT = require("./pt.json"); } catch (e) { DICT = {}; } }
   return DICT;
 }
-function set(lang) { LANG = lang === "pt" ? "pt" : "en"; }
+function set(lang) { LANG = norm(lang); }
 function get() { return LANG; }
+function locale() { return LOCALES[LANG] || "en-US"; }
+function htmlLang() { return HTML_LANG[LANG] || LANG; }
 /** The language to use for one email: the request's, else the order's, else English. */
 function pick(data) {
   const d = data || {};
   const l = d.lang || (d.order && d.order.lang) || (d.contact && d.contact.lang) || (d.quote && d.quote.lang);
-  return l === "pt" ? "pt" : "en";
+  return norm(l);
 }
 function look(k) {
+  if (LANG !== "pt" && OTHER[LANG]) return OTHER[LANG].look(k);
   const D = dict();
   if (Object.prototype.hasOwnProperty.call(D, k)) return D[k];
   if (Object.prototype.hasOwnProperty.call(COL, k)) return COL[k];
@@ -135,7 +153,7 @@ function look(k) {
 }
 /** Customer text in the email's language. Keeps the leading/trailing spaces the pieces are glued with. */
 function tx(s) {
-  if (LANG !== "pt" || s === null || s === undefined || typeof s === "object") return s;
+  if (LANG === "en" || s === null || s === undefined || typeof s === "object") return s;
   const v = String(s);
   if (!/[A-Za-z]{2}/.test(v)) return s;
   const lead = /^\s*/.exec(v)[0], trail = /\s*$/.exec(v)[0], k = v.replace(/\s+/g, " ").trim();
@@ -143,4 +161,6 @@ function tx(s) {
   if (r === null) { missed.add(k); return s; }
   return lead + r.trim() + trail;
 }
-module.exports = { set, get, pick, tx, date, missed };
+/** A date line in the email's language ("Nov 17–20" and the like). */
+function dateIn(s) { return LANG === "pt" ? date(s) : OTHER[LANG] && OTHER[LANG].date ? OTHER[LANG].date(s) : s; }
+module.exports = { set, get, pick, tx, date: dateIn, missed, norm, locale, htmlLang, SUPPORTED };

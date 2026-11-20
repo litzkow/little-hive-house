@@ -54,7 +54,7 @@ var PATTERNS = [
   [/^Hundreds of designs to make yours: change the words and colors, add a photo\. From \$(\d+)\.$/, "Centenas de designs para personalizar: mude os textos e as cores, ponha uma foto. A partir de $$$1."],
   [/^Every magnet is made just for you\. Want only the design\? \$([\d.]+) for the file, free with any magnet\.$/, "Cada ímã é feito só para você. Quer só o design? $$$1 pelo arquivo, grátis com qualquer ímã."],
   [/^Yes\. Tap the design, make it yours and choose “Only want the file”: \$([\d.]+), sent to your email right away, no magnet\. It is free with any magnet order\.$/, "Sim. Toque no design, personalize e escolha “Só quer o arquivo”: $$$1, vai na hora para o seu e-mail, sem ímã. É grátis em qualquer pedido de ímãs."],
-  [/^([^·<]{2,40}) · ([^·<]{2,40})$/, function (_, a, b) { var x = tr(a), y = tr(b); return x !== a && y !== b ? x + " · " + y : null; }],
+  [/^([^·<]{2,40}) · ([^·<]{2,40})$/, function (_, a, b) { var x = tr(a), y = tr(b); return x !== a || y !== b ? x + " · " + y : null; }],
   [/^1 magnet$/, "1 ímã"],
   [/^(\d+) photo designs with names, dates and captions$/, "$1 designs de foto com nomes, datas e frases"],
   [/^\$(\d+) · \$([\d.]+) each$/, "$$$1 · $$$2 cada"],

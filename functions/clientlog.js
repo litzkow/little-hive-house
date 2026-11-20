@@ -33,7 +33,7 @@ function clean(raw) {
   try { const u = new URL(page); page = u.pathname + (u.search ? u.search.replace(/([?&](order|session|email|token|key)=)[^&]*/gi, "$1…") : ""); } catch (e) { page = page.split("?")[0]; }
   return {
     kind: d.kind, msg: clip(d.msg, 500), code: clip(d.code, 80), page, src: clip(d.src, 200).split("?")[0],
-    lang: d.lang === "pt" ? "pt" : "en", ua: clip(d.ua, 220), photos: Number.isFinite(Number(d.photos)) ? Math.max(0, Math.min(500, Math.round(Number(d.photos)))) : null,
+    lang: require("./emails/i18n").norm(d.lang), ua: clip(d.ua, 220), photos: Number.isFinite(Number(d.photos)) ? Math.max(0, Math.min(500, Math.round(Number(d.photos)))) : null,
   };
 }
 

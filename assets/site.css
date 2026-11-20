@@ -1083,13 +1083,12 @@ html.studio-open { overflow: hidden; }
 
 /* EN | PT switch (top strip and mobile menu) */
 .lang-sw { display: inline-flex; gap: 2px; vertical-align: middle; white-space: nowrap; }
-.lang-sw a { color: inherit; text-decoration: none; font-weight: 600; letter-spacing: .06em; padding: 1px 6px; border-radius: 999px; opacity: .65; }
-.lang-sw a:hover { opacity: 1; }
-html[data-lang=en] .lang-sw a[data-set-lang=en], html[data-lang=pt] .lang-sw a[data-set-lang=pt] { opacity: 1; background: color-mix(in srgb, currentColor 18%, transparent); }
-.lang-row { display: flex; align-items: center; justify-content: space-between; }
-.lang-sw-menu a { padding: 4px 12px; font-size: 15px; }
-.strip .dot-lang { padding-inline: 10px; }
-@media (max-width: 640px) { .strip .dot-lang { display: none; } .strip .lang-sw { display: inline-flex; margin-left: 6px; } }
+.lang-sw a { display: none; color: inherit; text-decoration: none; font-weight: 600; letter-spacing: .02em; padding: 1px 10px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); margin-left: 8px; align-items: center; gap: 4px; }
+html:not([data-lang=en]) .lang-sw .lang-to-en { display: inline-flex; }
+html[data-lang=en]:not([data-phone-lang=en]) .lang-sw .lang-to-phone[data-set-lang]:not([data-set-lang=""]) { display: inline-flex; }
+.lang-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.lang-list a { color: inherit; text-decoration: none; font-weight: 500; padding: 4px 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); font-size: 15px; }
+.lang-list a.on { font-weight: 700; background: color-mix(in srgb, currentColor 14%, transparent); }
 
 /* ---- bulk-order pages: business, weddings, graduation, parties (build.py page_occasions) ---- */
 .occasions-links a { display: block; color: inherit; text-decoration: none; }

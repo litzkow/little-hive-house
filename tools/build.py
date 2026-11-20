@@ -157,11 +157,20 @@ IDEA_ART = (("places", "savannah"), ("furry-friends", "dog-mom"), ("kitchen-word
 
 
 
+# The site's languages: (code, name in that language, <html lang>). English is the page itself; every other one is a
+# dictionary, assets/i18n-<code>.js, built by tools/i18n_build.py from tools/i18n/<code>-*.json. A language goes live
+# (detected from the phone, listed in the menu) as soon as its dictionary file exists.
+LANGS_ALL = [("en", "English", "en"), ("es", "Español", "es"), ("pt", "Português", "pt-BR"), ("zh", "中文", "zh-Hans"),
+             ("fil", "Tagalog", "fil"), ("vi", "Tiếng Việt", "vi"), ("fr", "Français", "fr"), ("ko", "한국어", "ko"),
+             ("ru", "Русский", "ru"), ("ar", "العربية", "ar")]
+LANGS = [l for l in LANGS_ALL if l[0] == "en" or (ROOT / "assets" / f"i18n-{l[0]}.js").exists()]
+
+
 def i18n_version():
-    """Changes whenever the translator or the Portuguese dictionary changes, so phones fetch the new one."""
+    """Changes whenever the translator or a dictionary changes, so phones fetch the new one."""
     import hashlib
     h = hashlib.sha1()
-    for f in ("i18n.js", "i18n-pt.js"):
+    for f in ["i18n.js"] + [f"i18n-{c}.js" for c, _, _ in LANGS if c != "en"]:
         fp = ROOT / "assets" / f
         if fp.exists():
             h.update(fp.read_bytes())
@@ -169,21 +178,34 @@ def i18n_version():
 
 
 def lang_head(pg):
-    """The visitor's language: their EN/PT choice (localStorage "lhh-lang"), else their phone's language.
-    In Portuguese the page stays hidden until it's translated (at most 3 s), so English never flashes."""
+    """The visitor's language: the one they picked (localStorage "lhh-lang"), else their phone's (the browser's language
+    list, the same on iPhone and Android: the first one we have, or English when English comes first or we have none).
+    In another language the page stays hidden until it's translated (at most 3 s), so English never flashes."""
     v = i18n_version()
-    return ("<script>(function(){var l;try{l=localStorage.getItem('lhh-lang')}catch(e){}"
-            "if(l!=='en'&&l!=='pt'){var n=((navigator.languages||[])[0]||navigator.language||'');l=/^pt/i.test(n)?'pt':'en'}"
-            "window.LHH_LANG=l;var h=document.documentElement;h.setAttribute('data-lang',l);"
-            "if(l==='pt'){h.lang='pt-BR';setTimeout(function(){h.classList.add('i18n-ready')},3000);"
-            f"document.write('<script src=\"{pg.p}assets/i18n.js?v={v}\"><\\/script><script src=\"{pg.p}assets/i18n-pt.js?v={v}\"><\\/script>')}}}})();</script>\n"
-            "<style>html[data-lang=pt]:not(.i18n-ready) body{visibility:hidden}</style>")
+    have = json.dumps({c: h for c, _, h in LANGS}, separators=(",", ":"))
+    names = json.dumps({c: n for c, n, _ in LANGS}, separators=(",", ":"), ensure_ascii=False)
+    return ("<script>(function(){var L=" + have + ";window.LHH_LANGS=" + names + ";"
+            "var a=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'en'],ph='en';"
+            "for(var i=0;i<a.length;i++){var c=String(a[i]).toLowerCase().split('-')[0];if(c==='tl')c='fil';if(c==='en'||L[c]){ph=c;break}}"
+            "var l;try{l=localStorage.getItem('lhh-lang')}catch(e){}if(!L[l])l=ph;"
+            "window.LHH_LANG=l;window.LHH_PHONE_LANG=ph;var h=document.documentElement;h.setAttribute('data-lang',l);h.setAttribute('data-phone-lang',ph);"
+            "if(l!=='en'){h.lang=L[l];if(l==='ar')h.dir='rtl';setTimeout(function(){h.classList.add('i18n-ready')},3000);"
+            f"document.write('<script src=\"{pg.p}assets/i18n.js?v={v}\"><\\/script><script src=\"{pg.p}assets/i18n-'+l+'.js?v={v}\"><\\/script>')}}}})();</script>\n"
+            "<style>html:not([data-lang=en]):not(.i18n-ready) body{visibility:hidden}</style>")
 
 
 def lang_switch(cls="lang-sw"):
-    """EN | PT: the visitor's choice is kept (assets/site.js); the current one is marked by CSS."""
-    return (f'<span class="{cls}" translate="no" role="group" aria-label="Language / Idioma">'
-            '<a href="#" data-set-lang="en" lang="en" hreflang="en">EN</a><a href="#" data-set-lang="pt" lang="pt-BR" hreflang="pt-BR">PT</a></span>')
+    """At the top: nothing for English visitors. In another language, one button back to English; after choosing
+    English on a phone in another language, one button back to that language (assets/site.js fills its name)."""
+    return (f'<span class="{cls}" translate="no">'
+            '<a href="#" data-set-lang="en" class="lang-to-en" lang="en" hreflang="en"><span aria-hidden="true">🌐</span> English</a>'
+            '<a href="#" data-set-lang="" class="lang-to-phone" data-lang-phone><span aria-hidden="true">🌐</span> <span data-lang-phone-name></span></a></span>')
+
+
+def lang_menu():
+    """Inside the menu: every language we have, each in its own name."""
+    return ('<span class="lang-list" translate="no">' + "".join(
+        f'<a href="#" data-set-lang="{c}" lang="{h}" hreflang="{h}">{n}</a>' for c, n, h in LANGS) + "</span>")
 
 
 def head(pg, title, desc, path):
@@ -241,7 +263,7 @@ def header(pg, active):
         return line
     subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
-<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span><span class="dot d3" aria-hidden="true">·</span><a class="s3" href="{pg.p}business.html">Business &amp; bulk orders</a>{social_strip()}<span class="dot dot-lang" aria-hidden="true">·</span>{lang_switch()}</div>
+<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span><span class="dot d3" aria-hidden="true">·</span><a class="s3" href="{pg.p}business.html">Business &amp; bulk orders</a>{social_strip()}{lang_switch()}</div>
 
 <header class="site-header">
   <div class="wrap header-row">
@@ -276,7 +298,7 @@ def header(pg, active):
       <a class="acct-link" href="{pg.p}account.html" data-account-menu>Your account</a>
       <a class="acct-link" href="{pg.p}favorites.html">Favorites</a>
       <a class="acct-link" href="{pg.p}track.html">Track an order</a>
-      <div class="acct-link lang-row"><span>Language</span>{lang_switch("lang-sw lang-sw-menu")}</div>
+      <div class="acct-link lang-row"><span>Language</span>{lang_menu()}</div>
 {social_menu()}
 {subs}
     </nav>

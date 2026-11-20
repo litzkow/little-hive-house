@@ -165,7 +165,7 @@
   function title() { var r = look(document.title); if (r != null) document.title = r; }
 
   window.LHH_I18N = {
-    lang: "pt",
+    lang: window.LHH_LANG || "pt",
     t: t,
     load: function (dict, patterns) {
       for (var k in dict) D[norm(k)] = dict[k];

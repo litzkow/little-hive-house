@@ -40,34 +40,49 @@ function ptName(l) {
   I.set("pt");
   try { return I.tx(n); } finally { I.set("en"); }
 }
+/* Stripe's page in the other languages (not English or Portuguese): the English text through the email dictionary
+   of that language (functions/emails/lang/<code>.js), the line names too; design names stay as printed. */
+const STRIPE_LOCALE = { pt: "pt-BR", es: "es-419", zh: "zh", fil: "fil", vi: "vi", fr: "fr", ko: "ko", ru: "ru" };
+function inLang(lang, en) {
+  if (lang === "en" || lang === "pt") return en;
+  const I = require("./emails/i18n");
+  I.set(lang);
+  try { return I.tx(en); } finally { I.set("en"); }
+}
+function otherName(l, lang) {
+  if (l.kind === "design") return inLang(lang, `${String(l.name || "").replace(/ magnet$/, "")} magnet`);
+  if (l.kind === "photos") return inLang(lang, `${l.count} photo magnets`);
+  return inLang(lang, String(l.name || ""));
+}
 /** Stripe line items whose amounts add up to the discounted goods total. */
 function stripeLineItems(priced, base = siteUrl(), tax = false, lang = "en") {
-  const pt = lang === "pt";
+  const pt = lang === "pt", other = lang !== "en" && !pt;
+  const T = (en) => inLang(lang, en);
   const shares = allocate(priced.lines, priced.totals);
   return priced.lines.map((l, i) => {
     const { net, discount } = shares[i];
-    const product = { name: (pt ? ptName(l) : l.name).slice(0, 240) };
+    const product = { name: (pt ? ptName(l) : other ? otherName(l, lang) : l.name).slice(0, 240) };
     if (l.kind === "design") {
       const slug = String(l.id).split("/").pop();
       product.images = [`${base}/assets/email/thumbs/${l.collection}/${slug}.jpg`];
-      product.description = pt ? "Ímã de 2 × 2 pol. (5 cm)" : "2 × 2 in magnet";
+      product.description = pt ? "Ímã de 2 × 2 pol. (5 cm)" : T("2 × 2 in magnet");
     } else if (l.kind === "photos") {
-      product.description = pt ? `${l.count} ímãs com foto personalizados, 2 × 2 pol. (5 cm)` : `${l.count} custom photo magnets, 2 × 2 in`;
+      product.description = pt ? `${l.count} ímãs com foto personalizados, 2 × 2 pol. (5 cm)` : T(`${l.count} custom photo magnets, 2 × 2 in`);
     } else if (l.kind === "package" && l.digital) {
-      product.description = pt ? "Arquivo digital do seu design, em alta resolução, enviado por e-mail. Não vem ímã." : "Your design as a high-resolution digital file, sent by email. No magnet.";
+      product.description = pt ? "Arquivo digital do seu design, em alta resolução, enviado por e-mail. Não vem ímã." : T("Your design as a high-resolution digital file, sent by email. No magnet.");
     } else if (l.kind === "package") {
-      product.description = pt ? `${l.count} ímãs personalizados. Depois do pagamento, mandamos um e-mail sobre o seu modelo.` : `${l.count} custom magnets. We email you about your design after checkout.`;
+      product.description = pt ? `${l.count} ímãs personalizados. Depois do pagamento, mandamos um e-mail sobre o seu modelo.` : T(`${l.count} custom magnets. We email you about your design after checkout.`);
     }
     if (tax) product.tax_code = TAX_GOODS;
     if (discount > 0) {
       const sale = priced.totals && priced.totals.sale && priced.totals.promo > 0 ? priced.totals.sale.name : "";
-      const what = sale ? (pt ? `desconto de ${sale} incluído` : `${sale} discount included`) : pt ? "descontos do combo e de quantidade incluídos" : "bundle and big-order savings included";
+      const what = sale ? (pt ? `desconto de ${sale} incluído` : T(`${sale} discount included`)) : pt ? "descontos do combo e de quantidade incluídos" : T("bundle and big-order savings included");
       product.description = `${product.description ? product.description + " · " : ""}${what}`;
     }
     if (net % l.qty === 0) {
       return { price_data: { currency: "usd", unit_amount: net / l.qty, product_data: product, ...(tax ? { tax_behavior: "exclusive" } : {}) }, quantity: l.qty };
     }
-    product.name = `${pt ? ptName(l) : l.name} × ${l.qty}`.slice(0, 240);
+    product.name = `${pt ? ptName(l) : other ? otherName(l, lang) : l.name} × ${l.qty}`.slice(0, 240);
     return { price_data: { currency: "usd", unit_amount: net, product_data: product, ...(tax ? { tax_behavior: "exclusive" } : {}) }, quantity: 1 };
   });
 }
@@ -86,7 +101,7 @@ function sessionParams({ orderId, priced, email, tax = false, lang = "en" }) {
     shipping_options: [{
       shipping_rate_data: {
         type: "fixed_amount", fixed_amount: { amount: ship, currency: "usd" },
-        display_name: pt ? (ship ? "Frete padrão" : "Frete grátis") : ship ? "Standard shipping" : "Free shipping",
+        display_name: pt ? (ship ? "Frete padrão" : "Frete grátis") : inLang(lang, ship ? "Standard shipping" : "Free shipping"),
         delivery_estimate: { minimum: { unit: "business_day", value: Delivery.MAKE[0] + Delivery.SHIP[0] }, maximum: { unit: "business_day", value: Delivery.MAKE[1] + 1 + Delivery.SHIP[1] } },
         ...(tax ? { tax_behavior: "exclusive", tax_code: TAX_SHIPPING } : {}),
       },
@@ -95,8 +110,8 @@ function sessionParams({ orderId, priced, email, tax = false, lang = "en" }) {
     client_reference_id: orderId,
     metadata: { orderId },
     payment_intent_data: { metadata: { orderId }, description: "Little Hive House order", ...(hold ? { capture_method: "manual" } : {}) },
-    ...(hold ? { custom_text: { submit: { message: pt ? HOLD_TEXT_PT : HOLD_TEXT } } } : {}),
-    ...(pt ? { locale: "pt-BR" } : {}),
+    ...(hold ? { custom_text: { submit: { message: pt ? HOLD_TEXT_PT : inLang(lang, HOLD_TEXT) } } } : {}),
+    ...(STRIPE_LOCALE[lang] ? { locale: STRIPE_LOCALE[lang] } : {}),
     success_url: `${base}/thank-you.html?order=${orderId}&session={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/shop.html?checkout=canceled`,
   };
@@ -171,7 +186,7 @@ async function createCheckout(data, auth, rawRequest) {
     number: null, uid: auth && auth.uid && !anon ? auth.uid : null, guestUid: auth && anon ? auth.uid : null,
     email, name: "", status: "pending", items: priced.items, pricing: priced.pricing, shipping: null,
     giftMessage: U.text(data.giftMessage, 300), notes: U.text(data.notes, 1000), marketing: data.marketing === true,
-    lang: data.lang === "pt" ? "pt" : "en",   // the site's EN/PT choice: Stripe's page and every email of this order follow it
+    lang: require("./emails/i18n").norm(data.lang),   // the site's EN/PT choice: Stripe's page and every email of this order follow it
     stripe: { sessionId: null, paymentIntent: null, customer: null, fee: null },
     fulfillment: null, refunds: [], refundedTotal: 0, adminNotes: [],
     timeline: [{ at, status: "pending", text: O.TIMELINE_TEXT.pending }],
