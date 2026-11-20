@@ -445,7 +445,7 @@
   }
   var SOCIAL_STATUS = { 'new': ['Waiting for you', 'warn'], auto: ['Answered automatically', 'ok'], answered: ['Answered', 'ok'], hidden: ['Hidden', 'quiet'], done: ['Done', 'quiet'] };
   function socialHtml() {
-    var st = S.socialSettings || {}, auto = st.autoReply !== false, last = st.lastRun && st.lastRun.at;
+    var st = S.socialSettings || {}, auto = st.autoReply === true, last = st.lastRun && st.lastRun.at;
     var list = (S.social || []).slice().sort(function (x, y) { return (x.status === 'new' ? 0 : 1) - (y.status === 'new' ? 0 : 1) || R.toMs(y.at) - R.toMs(x.at); });
     var top = '<div class="card" style="margin-bottom:14px"><label class="toggle"><input type="checkbox" data-act="socialAuto"' + (auto ? ' checked' : '') + '> <span><b>Answer simple ones automatically</b><br><span class="small muted">Thanks, prices, how to order, photo magnets and shipping, in English or Portuguese like the customer wrote. Everything else waits for you here.</span></span></label>' +
       '<p class="small muted" style="margin:10px 0 0"><span>Checked every 10 minutes</span>' + (last ? ' · <span>' + esc(h.ago(last)) + '</span>' : '') + ' · <a href="#" data-act="socialRun">Check now</a></p></div>';

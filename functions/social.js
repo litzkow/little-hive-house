@@ -12,7 +12,7 @@
       - each new one is saved for the inbox in Hive Admin (Mensagens › Instagram & Facebook) and pushed to the phones;
       - simple ones get an automatic, friendly answer (thanks, prices, how to order, photo magnets, shipping), in English
         or Portuguese like the customer wrote; everything else waits for the owners, who answer from the app
-        (adminSocial reply). settings/social {autoReply:false} turns the automatic answers off.
+        (adminSocial reply). answering by itself happens only when settings/social {autoReply:true}; the owners asked it OFF (20 Nov 2026), so it stays off.
    Never throws out of socialSync: one failing part is logged and the rest goes on. */
 
 const { nowIso } = require("./config");
@@ -333,7 +333,7 @@ async function socialSync() {
   try { items = (await db().collection("content").get()).docs.map((d) => d.data()).filter((i) => i.igId); } catch (e) { items = []; }
   const s = await settings();
   try { out.tags = await syncTags(meta, media, items); } catch (e) { out.tagsError = e.message; console.warn("[social] tags", e.message); }
-  try { out.comments = await syncComments(meta, media, { auto: s.autoReply !== false }); } catch (e) { out.commentsError = e.message; console.warn("[social] comments", e.message); }
+  try { out.comments = await syncComments(meta, media, { auto: s.autoReply === true }); } catch (e) { out.commentsError = e.message; console.warn("[social] comments", e.message); }
   await db().collection("settings").doc("social").set({ lastRun: { at: nowIso(), ...out } }, { merge: true });
   console.log("[socialSync]", JSON.stringify(out));
   return out;

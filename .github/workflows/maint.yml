@@ -239,6 +239,11 @@ jobs:
         run: |
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/check-meta-perms.js
+      - name: "Instagram e Facebook: desligar e apagar as respostas automáticas"
+        if: inputs.task == 'social-fix'
+        run: |
+          (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
+          node tools/maint/social-fix.js
       - name: "Instagram e Facebook: rodar agora"
         if: inputs.task == 'social-run'
         run: |
@@ -281,7 +286,7 @@ jobs:
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/check-content.js
       - name: Run
-        if: inputs.task != 'storage-cors' && inputs.task != 'set-ads' && inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'ig-tags' && inputs.task != 'social-run' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
+        if: inputs.task != 'storage-cors' && inputs.task != 'set-ads' && inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'ig-tags' && inputs.task != 'social-run' && inputs.task != 'social-fix' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
