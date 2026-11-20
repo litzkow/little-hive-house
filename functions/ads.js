@@ -112,6 +112,8 @@ async function graph(meta, method, path, params = {}, host = "graph.facebook.com
     const code = j && j.error && j.error.code;
     // 4, 17, 80004: too many calls (the free API tier is slow on purpose); wait and try again a little
     if ((res.status === 429 || code === 4 || code === 17 || code === 80004) && attempt < 3) { await new Promise((r) => setTimeout(r, PAUSE_MS * attempt)); continue; }
+    // ad set changes: one every 30 seconds (#613); wait it out once
+    if (code === 613 && attempt < 2) { await new Promise((r) => setTimeout(r, PAUSE_MS * 8)); continue; }
     break;
   }
   if (!res.ok || (j && j.error)) {
