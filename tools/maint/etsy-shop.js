@@ -9,7 +9,15 @@ const K = process.env.ETSY_KEYSTRING, S = process.env.ETSY_SHARED_SECRET;
 const say = (s) => console.log(`::warning title=etsy::${String(s).replace(/%/g, "%25").replace(/\n/g, " | ").slice(0, 1800)}`);
 
 const TITLE = "Photo, personalized and business 2x2 fridge magnets";
-const ANNOUNCEMENT = [
+/* while the Black Friday sale runs on Etsy (our own sale 20-22 Nov, then Etsy's Cyber Specials event 23 Nov - 1 Dec,
+   25% off everything), the announcement opens with it; run this again after it ends and the lines go away by themselves */
+const SALE_END = Date.parse("2026-12-02T05:00:00Z");
+const SALE = Date.now() < SALE_END ? [
+  "BLACK FRIDAY: 25% off the whole shop, already in the price, through Cyber Monday (December 1).",
+  "Christmas gifts, personalized magnets, photo magnets and business magnets, all on sale.",
+  "",
+] : [];
+const ANNOUNCEMENT = [...SALE,
   "Welcome to Little Hive House!",
   "",
   "NEW: magnets made just for you. Pick a design, tell us your words, and we send you a proof before we print.",
