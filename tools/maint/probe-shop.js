@@ -17,7 +17,17 @@ const say = (s) => console.log(`::warning title=loja::${String(s).replace(/\n/g,
   say(`catálogos do ig: ${JSON.stringify(cats).slice(0, 600)}`);
   const bizs = await get("me/businesses", "fields=id,name,owned_product_catalogs{id,name,product_count,vertical}");
   say(`empresas: ${JSON.stringify(bizs).slice(0, 900)}`);
-  const cid = (((cats.data || [])[0]) || {}).catalog_id || process.env.VALUE;
+  const acc = await get(meta.adAccountId, "fields=business{id,name}");
+  say(`conta: ${JSON.stringify(acc)}`);
+  const bid = acc.business && acc.business.id;
+  let cid = (((cats.data || [])[0]) || {}).catalog_id || (process.env.VALUE || "").trim();
+  if (bid) {
+    const own = await get(`${bid}/owned_product_catalogs`, "fields=id,name,product_count,vertical");
+    say(`catálogos da empresa: ${JSON.stringify(own).slice(0, 600)}`);
+    cid = cid || (((own.data || [])[0]) || {}).id;
+    const shops = await get(`${bid}/commerce_merchant_settings`, "fields=id,display_name");
+    say(`lojas da empresa: ${JSON.stringify(shops).slice(0, 400)}`);
+  }
   if (cid) {
     say(`feeds: ${JSON.stringify(await get(`${cid}/product_feeds`, "fields=id,name,schedule,latest_upload{end_time,error_count,warning_count},product_count")).slice(0, 900)}`);
     say(`conjuntos: ${JSON.stringify(await get(`${cid}/product_sets`, "fields=id,name,product_count,filter&limit=50")).slice(0, 950)}`);
