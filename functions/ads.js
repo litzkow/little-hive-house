@@ -132,7 +132,9 @@ const cents = (dollars) => String(Math.round(num(dollars) * 100));
 async function connectMeta(data, auth) {
   const token = U.text(data.token, 1000, { required: true, field: "the Meta token" }).replace(/\s+/g, "");
   if (token.length < 30) fail("invalid-argument", "That doesn't look like a Meta token. Copy the whole token (it is long) and paste it again.");
-  const meta = { token, appSecret: U.text(data.appSecret, 100) || "" };
+  // a new token pasted without the app secret keeps the one already saved (the secret doesn't change with the token)
+  const before = ((await doc("auth").get()).data() || {}).meta || {};
+  const meta = { token, appSecret: U.text(data.appSecret, 100) || before.appSecret || "" };
   let me;
   try { me = await graph(meta, "GET", "me", { fields: "id,name" }); } catch (e) { fail("failed-precondition", `Meta didn't accept the token. ${e.message}`); }
   let accounts = [];
