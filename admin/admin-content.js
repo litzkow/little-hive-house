@@ -76,11 +76,36 @@
   window.addEventListener('hashchange', function () {
     Array.prototype.forEach.call(document.querySelectorAll('.ct video'), function (v) { if (!v.paused) v.pause(); });
   });
+  /* The iPhone only keeps a limited number of videos open in one page: past that, the next ones show a broken play
+     button. So a video gets its link only when it comes near the screen, and gives it back when it is far away
+     (unless it is playing). */
+  function attach(v) {
+    if (v.getAttribute('src')) return;
+    urlOf(v.getAttribute('data-ct-path')).then(function (u) {
+      if (v.isConnected && v.getAttribute('data-ct-near') !== '0' && !v.getAttribute('src')) { v.setAttribute('src', u + '#t=0.1'); v.classList.remove('ct-wait'); }
+    }).catch(function () {});
+  }
+  function detach(v) {
+    if (!v.getAttribute('src') || !v.paused) return;
+    v.removeAttribute('src'); try { v.load(); } catch (e) {}
+    v.classList.add('ct-wait');
+  }
+  var near = 'IntersectionObserver' in window ? new IntersectionObserver(function (list) {
+    list.forEach(function (e) {
+      var v = e.target;
+      if (!v.isConnected) { near.unobserve(v); return; }
+      v.setAttribute('data-ct-near', e.isIntersecting ? '1' : '0');
+      if (e.isIntersecting) attach(v); else detach(v);
+    });
+  }, { rootMargin: '900px 0px 900px 0px' }) : null;
   function hydrate() {
     watchVideos();
-    Array.prototype.forEach.call(document.querySelectorAll('[data-ct-path]:not([src])'), function (el) {
-      var p = el.getAttribute('data-ct-path');
-      urlOf(p).then(function (u) { el.setAttribute('src', el.tagName === 'VIDEO' ? u + '#t=0.1' : u); el.classList.remove('ct-wait'); }).catch(function () {});
+    Array.prototype.forEach.call(document.querySelectorAll('video[data-ct-path]:not([data-ct-lazy])'), function (v) {
+      v.setAttribute('data-ct-lazy', '');
+      if (near) near.observe(v); else attach(v);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-ct-path]:not([src])'), function (el) {
+      urlOf(el.getAttribute('data-ct-path')).then(function (u) { el.setAttribute('src', u); el.classList.remove('ct-wait'); }).catch(function () {});
     });
   }
 
@@ -137,7 +162,7 @@
   function fileMedia(it, f, big) {
     var isVid = /^video\//.test(f.type), url = st.urls[f.path];
     var media = isVid
-      ? '<video class="ct-media' + (url ? '' : ' ct-wait') + '" data-ct-path="' + esc(f.path) + '"' + (url ? ' src="' + esc(url) + '#t=0.1"' : '') + ' preload="metadata" playsinline controls></video>'
+      ? '<video class="ct-media ct-wait" data-ct-path="' + esc(f.path) + '" preload="metadata" playsinline controls></video>'   /* its link comes when it nears the screen (hydrate) */
       : '<img class="ct-media' + (url ? '' : ' ct-wait') + '" data-ct-path="' + esc(f.path) + '"' + (url ? ' src="' + esc(url) + '"' : '') + ' alt="" loading="lazy">';
     return '<figure class="ct-file' + (big ? ' big' : '') + '">' + media + '<figcaption>' +
       '<button class="btn btn-honey btn-sm" data-act="ctSave" data-id="' + esc(it.id) + '" data-path="' + esc(f.path) + '">' + h.icon('download') + T('Save to phone', 'Baixar no celular') + '</button>' +
