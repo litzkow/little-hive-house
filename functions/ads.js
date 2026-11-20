@@ -287,6 +287,32 @@ async function audience(meta, state, themes) {
   if (Object.keys(spec).length) t.flexible_spec = [spec];   // one group: any of these (OR)
   return t;
 }
+/** Meta keeps retired interests in its search; when it refuses one it names the replacement. This swaps them (or drops
+   one with no replacement), remembers it for next time, and returns the cleaned targeting, or null when it wasn't that. */
+function retireInterests(T, message, state) {
+  const pairs = [...String(message || "").matchAll(/\{[^{}]*"deprecated_interest_id":"(\d+)"[^{}]*\}/g)].map((m) => [m[0], m[1],
+    (m[0].match(/"alternative_interest_id":"(\d+)"/) || [])[1], (m[0].match(/"alternative_interest_name":"([^"]+)"/) || [])[1]]);
+  if (!pairs.length) return null;
+  const spec = (T.flexible_spec || [])[0] || {};
+  let list = spec.interests || [];
+  for (const [, dep, altId, altName] of pairs) {
+    const old = list.find((i) => i.id === dep);
+    list = list.filter((i) => i.id !== dep);
+    if (altId && !list.some((i) => i.id === altId)) list.push({ id: altId, name: altName });
+    state.audIds = state.audIds || {};
+    if (old) state.audIds[old.name] = altId ? { id: altId, kind: "interests" } : null;
+  }
+  spec.interests = list;
+  return T;
+}
+/** Sends a targeting (new ad set body or an update), swapping retired interests once if Meta refuses them. */
+async function withTargeting(state, T, send) {
+  try { return await send(T); } catch (e) {
+    const fixed = retireInterests(T, e.message, state);
+    if (!fixed) throw e;
+    return send(fixed);
+  }
+}
 /** The groups for the boosted posts together (they share one ad set). */
 const boostedThemes = (state) => [...new Set(Object.values(state.boosts || {}).filter((b) => b.status === "active" && b.shared).flatMap((b) => themesOf(b.caption)))].sort();
 async function sharedAdset(meta, state, daily, post) {
@@ -297,11 +323,12 @@ async function sharedAdset(meta, state, daily, post) {
   const body = (d) => ({ name: "Reels · Hive Admin", campaign_id: cid, daily_budget: cents(d), billing_event: "IMPRESSIONS",
     optimization_goal: "LANDING_PAGE_VIEWS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE", targeting: T, status: "ACTIVE" });
   let a;
-  try { a = await graph(meta, "POST", `${meta.adAccountId}/adsets`, body(daily)); } catch (e) {
+  const make = (d) => withTargeting(state, T, () => graph(meta, "POST", `${meta.adAccountId}/adsets`, body(d)));
+  try { a = await make(daily); } catch (e) {
     const min = minFromError(e);
     if (!min || min <= daily || min > daily * 3) throw e;
     daily = min;
-    a = await graph(meta, "POST", `${meta.adAccountId}/adsets`, body(daily));
+    a = await make(daily);
   }
   state.adsetId = String(a.id); state.adsetDaily = daily; state.adsetStatus = "ACTIVE";
   return state.adsetId;
@@ -691,7 +718,7 @@ async function run({ by = "robot", onlyNext = false } = {}) {
       if (state.adsetId && th.length && (state.targetV !== AUDIENCE_V || state.targetKey !== ["gift", ...th].filter((v, i, a) => a.indexOf(v) === i).join(","))) {
         try {
           const T = await audience(meta, state, th);
-          await graph(meta, "POST", state.adsetId, { targeting: T });
+          await withTargeting(state, T, (t) => graph(meta, "POST", state.adsetId, { targeting: t }));
           state.targetV = AUDIENCE_V; state.targetKey = state.audience.join(",");
         } catch (e) { errors.meta = errors.meta || e.message; }
       }
@@ -945,4 +972,4 @@ async function adminAds(data, auth) {
 }
 
 module.exports = { adminAds, run, plan, season, dailyAllowed, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
-  _internal: { graph, version: () => META_VERSION(), audience, themesOf, THEMES, AUDIENCE_V, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
+  _internal: { graph, version: () => META_VERSION(), audience, themesOf, THEMES, AUDIENCE_V, withTargeting, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };

@@ -13,7 +13,7 @@ const say = (s) => console.log(`::warning title=publico::${String(s).replace(/\n
   const t = await A.audience(meta, st, th);
   say(`grupos: ${st.audience.join(", ")} · ${JSON.stringify(t.flexible_spec || []).slice(0, 700)}`);
   if (st.adsetId) {
-    await A.graph(meta, "POST", st.adsetId, { targeting: t });
+    await A.withTargeting(st, t, (x) => A.graph(meta, "POST", st.adsetId, { targeting: x }));
     st.targetV = A.AUDIENCE_V; st.targetKey = st.audience.join(",");
     const now = await A.graph(meta, "GET", st.adsetId, { fields: "targeting,effective_status" });
     say(`no Meta agora: ${JSON.stringify(now).slice(0, 800)}`);

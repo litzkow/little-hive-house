@@ -502,3 +502,16 @@ test("the audience: only people who live in the US, 25 to 65, plus the groups of
   const v = await A.adminAds({ action: "view" }, ADMIN);
   assert.deepEqual(v.audience, ["Presentes e feito à mão", "Viagens e lugares"]);
 });
+
+test("a retired interest Meta refuses is swapped for the one Meta names (and remembered), once", async () => {
+  const { A } = setup();
+  const state = { audIds: { Handmade: { id: "6003429169740", kind: "interests" } } };
+  const T = { flexible_spec: [{ interests: [{ id: "1", name: "Gift" }, { id: "6003429169740", name: "Handmade" }, { id: "9", name: "Gone" }] }] };
+  const msg = 'Meta: Please update the targeting spec. Relevant alternative options: [{"deprecated_interest_id":"6003429169740","deprecated_interest_name":"Handmade","alternative_interest_id":"6003105618835","alternative_interest_name":"Crafts"},{"deprecated_interest_id":"9","deprecated_interest_name":"Gone"}]';
+  let tries = 0, sent = null;
+  await A._internal.withTargeting(state, T, async (t) => { tries += 1; if (tries === 1) throw new Error(msg); sent = t; return { success: true }; });
+  assert.equal(tries, 2);
+  assert.deepEqual(sent.flexible_spec[0].interests, [{ id: "1", name: "Gift" }, { id: "6003105618835", name: "Crafts" }]);
+  assert.deepEqual(state.audIds.Handmade, { id: "6003105618835", kind: "interests" });
+  await assert.rejects(A._internal.withTargeting(state, T, async () => { throw new Error("Meta: something else"); }), /something else/);
+});
