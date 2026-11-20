@@ -531,7 +531,7 @@
     var draw = function () {
       var what = s.day ? 'today only: ' + s.pct + '% off everything' + (s.freeShipping ? ' + free shipping' : '')
         : s.pct + '% off everything' + (steps ? ', or buy ' + steps[0] + ' designs, get ' + steps[1] + ' free' : '');
-      bar.innerHTML = '<strong>' + (s.last ? 'Cyber Monday' : s.name) + '</strong> <span>' + what + (s.day || s.last ? left() : ' · through Cyber Monday') + '</span> <a href="' + ROOT + 'shop.html">Shop the sale</a>';
+      bar.innerHTML = '<strong>' + (s.last ? 'Cyber Monday' : s.name) + '</strong> <span>' + what + (s.day || s.last ? left() : ' · through Cyber Monday') + '</span> <a href="' + ROOT + 'black-friday.html">Shop the sale</a>';
     };
     draw(); setInterval(draw, 60000);
     document.body.insertBefore(bar, document.body.firstChild);

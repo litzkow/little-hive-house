@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "61"
+VERSION = "62"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"
@@ -1862,6 +1862,39 @@ def page_occasions():
 
 
 
+def page_sale():
+    """black-friday.html: where the sale bar's link goes (assets/site.js saleBar). Every way to shop, like the home
+    page, with the deals on top. Once the sale is over the page says so and still shows everything."""
+    pg = Page("")
+    steps = sorted(SALE["free"], key=lambda f: f[0])
+    free = " · ".join(f"buy {b}, get {g} free" for b, g in steps)
+    day = (SALE.get("days") or [{}])[0]
+    body = f"""{header(pg, "sale")}
+<main id="main">
+  <section class="sale-hero">
+    <div class="wrap">
+      <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">{E(SALE["name"])}</li></ol>
+      <p class="eyebrow">Through Cyber Monday, November 30</p>
+      <h1>{E(SALE["name"])} <em>at Little Hive House</em></h1>
+      <p class="sale-ended" data-sale-ended hidden>The sale is over. Thank you! Everything below is still here at its regular price.</p>
+      <ul class="sale-deals" data-sale-deals>
+        <li><strong>{SALE["pct"]}% off</strong><span>everything in the shop, already in the price</span></li>
+        <li><strong>Or get them free</strong><span>on our ready-made designs: {free}</span></li>
+        <li class="sale-deals-day"><strong>{day.get("pct", SALE["pct"])}% off + free shipping</strong><span>Friday, November 27 only</span></li>
+      </ul>
+      <p class="sale-note-small" data-sale-deals>No code needed. The deals don’t add up together: your cart applies the better one for you.</p>
+    </div>
+  </section>
+
+{doors(pg)}
+</main>
+{footer(pg)}
+"""
+    ended = "<script>window.addEventListener('load', function () { if (window.LHH && LHH.sale && !LHH.sale()) { var e = document.querySelector('[data-sale-ended]'); if (e) e.hidden = false; document.querySelectorAll('[data-sale-deals]').forEach(function (d) { d.hidden = true; }); } });</script>"
+    write("black-friday.html", head(pg, f"{SALE['name']}: {SALE['pct']}% off everything", f"{SALE['name']} at Little Hive House: {SALE['pct']}% off everything, or buy 3 designs and get 1 free. Photo magnets, Personalize and business magnets too.", "black-friday.html")
+          + body + chrome_end(pg).replace("</body>", ended + "\n</body>"))
+
+
 def page_personalize():
     """personalize.html: the design studio for families. Their name, their pet, their baby, grandma's kitchen, a trip:
     one magnet or a few (PERSONAL), or just the design file."""
@@ -2055,6 +2088,7 @@ if __name__ == "__main__":
     page_big()
     page_occasions()        # business.html, weddings.html, graduation.html, parties.html
     page_personalize()      # personalize.html
+    page_sale()             # black-friday.html (the sale bar's link)
     page_404()
     page_cart()             # cart.html: checkout link for the Facebook/Instagram shop
     # store: customer pages (account, orders, tracking, policies...) live in tools/store_pages.py

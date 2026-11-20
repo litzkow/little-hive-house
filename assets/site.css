@@ -1344,3 +1344,13 @@ s.was { opacity: .55; font-weight: 400; margin-right: 2px; }
 .sale-price .now, .now { color: #B5761A; font-weight: 700; }
 .sale-row span { color: #B5761A; font-weight: 600; }
 .sale-note { color: #8A5A2B; font-weight: 500; }
+.sale-hero { padding: 26px 0 8px; }
+.sale-hero h1 { margin: 6px 0 14px; }
+.sale-hero h1 em { color: #B5761A; font-style: normal; }
+.sale-deals { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.sale-deals li { background: var(--surface, #FFFCF4); border: 1px solid var(--line, #E8D6B3); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.sale-deals li strong { font-family: 'Josefin Sans', Jost, sans-serif; font-size: 22px; color: var(--ink, #2B2118); }
+.sale-deals li.sale-deals-day { background: #F2A81D; border-color: #F2A81D; }
+.sale-deals li.sale-deals-day strong, .sale-deals li.sale-deals-day span { color: #2B2118; }
+.sale-note-small { font-size: 14px; opacity: .75; margin: 12px 0 0; }
+.sale-ended { font-weight: 600; }
