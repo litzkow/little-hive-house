@@ -12,8 +12,10 @@ const say = (s) => console.log(`::warning title=publico::${String(s).replace(/\n
   const th = [...new Set(Object.values(st.boosts || {}).filter((b) => b.status === "active" && b.shared).flatMap((b) => A.themesOf(b.caption)))].sort();
   const t = await A.audience(meta, st, th);
   say(`grupos: ${st.audience.join(", ")} · ${JSON.stringify(t.flexible_spec || []).slice(0, 700)}`);
+  // what was learned about retired names is kept even if the change fails
+  const keep = () => sref.set({ audIds: st.audIds || {} }, { merge: true });
   if (st.adsetId) {
-    await A.withTargeting(st, t, (x) => A.graph(meta, "POST", st.adsetId, { targeting: x }));
+    try { await A.withTargeting(st, t, (x) => A.graph(meta, "POST", st.adsetId, { targeting: x })); } catch (e) { await keep(); throw e; }
     st.targetV = A.AUDIENCE_V; st.targetKey = st.audience.join(",");
     const now = await A.graph(meta, "GET", st.adsetId, { fields: "targeting,effective_status" });
     say(`no Meta agora: ${JSON.stringify(now).slice(0, 800)}`);

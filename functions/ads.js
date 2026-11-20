@@ -309,10 +309,10 @@ function retireInterests(T, message, state) {
 }
 /** Sends a targeting (new ad set body or an update), swapping retired interests once if Meta refuses them. */
 async function withTargeting(state, T, send) {
-  try { return await send(T); } catch (e) {
-    const fixed = retireInterests(T, e.message, state);
-    if (!fixed) throw e;
-    return send(fixed);
+  for (let i = 0; ; i++) {                 // Meta names a few at a time: swap and try again, up to 6 rounds
+    try { return await send(T); } catch (e) {
+      if (i >= 5 || !retireInterests(T, e.message, state)) throw e;
+    }
   }
 }
 /** The groups for the boosted posts together (they share one ad set). */

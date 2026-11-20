@@ -514,4 +514,15 @@ test("a retired interest Meta refuses is swapped for the one Meta names (and rem
   assert.deepEqual(sent.flexible_spec[0].interests, [{ id: "1", name: "Gift" }, { id: "6003105618835", name: "Crafts" }]);
   assert.deepEqual(state.audIds.Handmade, { id: "6003105618835", kind: "interests" });
   await assert.rejects(A._internal.withTargeting(state, T, async () => { throw new Error("Meta: something else"); }), /something else/);
+  // Meta names them a few at a time: each round swaps what it named
+  const T2 = { flexible_spec: [{ interests: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }] }] };
+  let n2 = 0;
+  await A._internal.withTargeting(state, T2, async (t) => {
+    n2 += 1;
+    if (t.flexible_spec[0].interests.some((i) => i.id === "a")) throw new Error('[{"deprecated_interest_id":"a","deprecated_interest_name":"A"}]');
+    if (t.flexible_spec[0].interests.some((i) => i.id === "b")) throw new Error('[{"deprecated_interest_id":"b","deprecated_interest_name":"B","alternative_interest_id":"b2","alternative_interest_name":"B2"}]');
+    return { success: true };
+  });
+  assert.equal(n2, 3);
+  assert.deepEqual(T2.flexible_spec[0].interests.map((i) => i.id), ["c", "b2"]);
 });
