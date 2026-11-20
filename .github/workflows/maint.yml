@@ -239,6 +239,16 @@ jobs:
         run: |
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/check-meta-perms.js
+      - name: "Instagram: produtos marcados nos posts"
+        if: inputs.task == 'ig-tags'
+        env: { VALUE: "${{ inputs.value }}" }
+        run: |
+          (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
+          node tools/maint/ig-tags.js
+      - name: "Instagram: guardar as fotos dos posts"
+        if: inputs.task == 'ig-tags'
+        uses: actions/upload-artifact@v4
+        with: { name: ig-posts, path: ig-out, if-no-files-found: ignore, retention-days: 3 }
       - name: "Meta: onde estão os agendados"
         if: inputs.task == 'probe-meta'
         run: |
@@ -266,7 +276,7 @@ jobs:
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/check-content.js
       - name: Run
-        if: inputs.task != 'storage-cors' && inputs.task != 'set-ads' && inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
+        if: inputs.task != 'storage-cors' && inputs.task != 'set-ads' && inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'ig-tags' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
