@@ -50,6 +50,10 @@ function groups(xml) {
   const acc = await call("GET", meta.adAccountId, { fields: "business{id}" });
   const cat = ((await call("GET", `${acc.business.id}/owned_product_catalogs`, { fields: "id,name" })).data || [])[0];
   say(`catálogo ${cat.name} (${cat.id})`);
+  // the catalog reads the product file now, not only at 3 AM (new photos, new designs)
+  if (!dry) for (const f of (await call("GET", `${cat.id}/product_feeds`, { fields: "id,schedule" })).data || []) {
+    try { const u = f.schedule && f.schedule.url; if (u) { await call("POST", `${f.id}/uploads`, { url: u }); say(`catálogo relendo ${u}`); } } catch (e) { say(`releitura: ${e.message}`); }
+  }
   // the shop(s) to publish in: through the Page (a Page token is needed for the Page's commerce settings)
   let shops = [];
   try {

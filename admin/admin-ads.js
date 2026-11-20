@@ -251,7 +251,10 @@
       : d.season === 'peak' ? T('Black Friday week: ads cost the most now, so the budget stays the usual.', 'Semana da Black Friday: o anúncio está mais caro, então o orçamento fica o de sempre.') : '';
     var budget = '<p class="small">' + (active ? T('Today: ' + dollars(d.allowed) + ' for all ' + active + ' boosted posts together; Meta puts more into the one that works.',
         'Hoje: ' + dollars(d.allowed) + ' para os ' + active + ' posts impulsionados juntos; o Meta põe mais no que funciona.') : '') + (seasonNote ? ' ' + esc(seasonNote) : '') + '</p>';
-    return '<h2 class="sp-h2">' + T('Boosted posts', 'Posts impulsionados') + '</h2>' + next + budget +
+    var aud = '<p class="tiny muted">' + T('Who sees them: only people who live in the US, 25 to 65', 'Quem vê: só quem mora nos EUA, de 25 a 65 anos') +
+      (d.audience && d.audience.length ? ' · ' + esc(d.audience.join(', ')) : '') + '. ' +
+      T('The groups follow what is boosted; Meta goes further only where it finds buyers.', 'Os grupos seguem o que está impulsionado; o Meta só vai além onde acha compradores.') + '</p>';
+    return '<h2 class="sp-h2">' + T('Boosted posts', 'Posts impulsionados') + '</h2>' + next + budget + aud +
       (boosted ? '<div class="ads-posts">' + boosted + '</div>' : '<p class="small muted">' + T('None yet. The robot starts with the best posts at the next run.', 'Nenhum ainda. O robô começa pelos melhores posts na próxima rodada.') + '</p>') +
       '<h2 class="sp-h2">' + T('Recent posts (best first: Reels, then sends, saves and watch time)', 'Posts recentes (melhores primeiro: Reels, depois envios, salvos e tempo assistido)') + '</h2>' +
       (line ? '<div class="ads-posts">' + line + '</div>' : '<p class="small muted">' + T('The posts show up after the first run.', 'Os posts aparecem depois da primeira rodada.') + '</p>');

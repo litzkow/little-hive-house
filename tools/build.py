@@ -1073,11 +1073,13 @@ def write_google_feed():
         ptype = "Fridge magnets > " + (f'{grp["name"]} > ' if grp else "") + c["name"]
         rows.append(item(feed_id(c["slug"], x), ftitle, design_text(c, t),
                          f'{site}m/{c["slug"]}/{x}.html', site + img, PRICE, ptype, c["name"]))
+    from photo_pack_images import ensure as _packs
+    pack_img = _packs([n for n, _ in STORE_PHOTO_PACKS])   # a square picture per pack (the wide site banner got cut off)
     for n, price in STORE_PHOTO_PACKS:
         rows.append(item(f"photo-pack-{n}", f"Custom Photo Magnets, Pack of {n}, Personalized 2x2 in Fridge Magnets",
                          f"{n} glossy 2 x 2 inch fridge magnets made by hand from your own photos, with a frame and a caption if you like. "
                          "Printed, pressed and packed by hand, ships in 1 to 2 business days.",
-                         f"{site}photo-magnets.html", f"{site}assets/og-image.jpg", price, "Fridge magnets > Photo magnets", "Photo magnets"))
+                         f"{site}photo-magnets.html", site + pack_img[n], price, "Fridge magnets > Photo magnets", "Photo magnets"))
     import json as _json
     write("assets/feed-ids.json", _json.dumps(ids, separators=(",", ":"), ensure_ascii=False) + "\n")
     write("google-products.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n<channel>\n'

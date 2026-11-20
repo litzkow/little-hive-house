@@ -218,38 +218,82 @@ function minFromError(e) {
 /** The one ad set every boosted Reel lives in (made the first time): one daily budget for all of them, and Meta gives
    it to the ad that works. US, 18–65, Meta's automatic audience; optimized for landing page views (people who wait for
    the shop to open), not for clicks, which find people who click and leave. */
-/** Who sees the ads. The shop only ships inside the US, so only people who LIVE in the US (not visitors): that is a hard
-   limit Meta never goes past. The interests are people who buy gifts, decorate the home, travel and keep photos: Meta
-   starts with them and, with its automatic audience on, goes further only where it finds buyers. Looked up once by name
-   (Meta's ids) and kept in the state; TARGET_V changes when this changes, so the next run updates the ad set. */
-const TARGET_V = 2;
-// each line is one idea; the first name Meta has EXACTLY (no "close enough": its search returns films and brands)
-const INTEREST_TERMS = [["Gift", "Gifts", "Gift shop"], ["Home décor", "Home decor", "Interior design"], ["Handicraft", "Handicrafts", "Arts and crafts"],
-  ["Etsy"], ["Photography"], ["Travel"], ["Scrapbooking"], ["Souvenir"], ["Refrigerator magnet", "Fridge magnet"]];
-async function audience(meta, state) {
-  if (!Array.isArray(state.interests)) {
-    const found = [];
-    for (const names of INTEREST_TERMS) {
-      for (const q of names) {
-        let hit = null;
-        try {
-          const j = await graph(meta, "GET", "search", { type: "adinterest", q, limit: 10 });
-          hit = ((j && j.data) || []).find((x) => String(x.name).trim().toLowerCase() === q.toLowerCase());
-        } catch (e) { /* this name stays out */ }
-        if (hit) { if (!found.some((f) => f.id === String(hit.id))) found.push({ id: String(hit.id), name: hit.name }); break; }
+/** Who sees the ads (the owners' rule: only the US, and people likely to buy a fridge magnet).
+   Hard limits, that Meta never passes: people who LIVE in the US (visitors out, the shop only ships here), 25 to 65.
+   Then, by what the boosted posts show, the groups below: interests, shopping behaviour and life moments of people who
+   buy that kind of magnet. Meta's automatic audience starts with them and goes further only where it finds buyers.
+   "gift" goes with every post: people who buy gifts, handmade and on Etsy, and who click "Shop now" (Engaged Shoppers).
+   Each name is Meta's exact one (checked against Meta's search, 19 Nov 2026); a name Meta no longer has just stays out. */
+const AUDIENCE_V = 3;
+const THEMES = {
+  gift: { pt: "Presentes e feito à mão", interests: ["Gift", "Gift shop", "Etsy", "Handmade", "Handicraft"], behaviors: ["Engaged Shoppers"] },
+  photo: { pt: "Fotos, família e casamentos", words: /photo|picture|memor|family|baby|grand|wedding|bride|anniversar|graduat|custom|personali|your own|keepsake|packing|order/,
+    interests: ["Photography", "Family", "Parenting", "Motherhood", "Scrapbooking", "Shutterfly", "Weddings", "Bride", "Graduation"],
+    life_events: ["Newlywed (1 year)", "Newly engaged (1 year)", "Anniversary within 30 days", "Upcoming birthday"],
+    family_statuses: ["Parents (up to 12 months)", "Parents with toddlers (01-02 years)", "Parents with preschoolers (03-05 years)"] },
+  places: { pt: "Viagens e lugares", words: /travel|trip|vacation|city|cities|places|souvenir|new york|paris|london|tokyo|rome|beach|national park|road ?trip|usa|world/,
+    interests: ["Travel", "Tourism", "Vacations", "Road trip", "National park", "Lonely Planet", "TripAdvisor", "Airbnb", "Collecting"],
+    behaviors: ["Frequent Travelers", "Returned from travels 1 week ago", "Frequent international travelers"] },
+  season: { pt: "Datas e estações", words: /christmas|holiday|santa|xmas|fall|autumn|pumpkin|halloween|spooky|thanksgiving|sweater|cozy|summer|valentine|easter|mother'?s day|father'?s day/,
+    interests: ["Christmas Day", "Christmas tree", "Halloween", "Thanksgiving", "Summer", "Baking", "Interior design"] },
+  home: { pt: "Casa, cozinha e frases", words: /kitchen|home|cook|bak|bee|honey|quote|words|note|bumper|fridge|cozy/,
+    interests: ["Interior design", "Kitchen", "Cooking", "Baking", "Home improvement", "Beekeeping", "Honey", "Gardening", "Inspirational quotes"] },
+  pets: { pt: "Bichos de estimação", words: /\bdogs?\b|\bcats?\b|puppy|kitten|\bpets?\b|furry|paw/, interests: ["Pets", "Dogs", "Cats", "Pet adoption"] },
+  heritage: { pt: "Culturas (Brasil, México, Itália…)", words: /brasil|brazil|m[eé]xic|ireland|irish|italia|italy|puerto|pilipinas|philippin|filipin|india|korea|japan|greece|greek|france|french|heritage|americana/,
+    interests: ["Brazil", "Brazilian cuisine", "Mexican cuisine", "Mexico", "Ireland", "Italian cuisine", "Italy", "Puerto Rico", "Philippines", "Indian cuisine",
+      "Korean cuisine", "K-pop", "Korean drama", "Japanese cuisine", "Japan", "Greek cuisine", "Greece", "French cuisine", "Paris"] },
+  art: { pt: "Arte, livros e céu", words: /art|master|van gogh|monet|museum|story|book|fairy|myth|horror|night sky|stars|zodiac|moon|constellat|flower/,
+    interests: ["Fine art", "Vincent van Gogh", "Claude Monet", "Impressionism", "Books", "Reading", "Fairy tale", "Mythology", "Astronomy", "Astrology", "Gardening"] },
+};
+/** The groups a post belongs to, from its caption (and hashtags). With none, photo and home (the most bought). */
+function themesOf(text) {
+  const t = String(text || "").toLowerCase();
+  const out = Object.keys(THEMES).filter((k) => THEMES[k].words && THEMES[k].words.test(t));
+  return out.length ? out : ["photo", "home"];
+}
+/** Meta's ids for the names, looked up once and kept (state.audIds: name -> {id, kind} or null when Meta has no such name). */
+async function audienceIds(meta, state, names) {
+  state.audIds = state.audIds || {};
+  const want = names.filter((n) => !(n.name in state.audIds));
+  const lists = {};
+  for (const n of want) {
+    let hit = null;
+    try {
+      if (n.kind === "interests") {
+        const j = await graph(meta, "GET", "search", { type: "adinterest", q: n.name, limit: 10 });
+        hit = ((j && j.data) || []).find((x) => String(x.name).trim().toLowerCase() === n.name.toLowerCase());
+      } else {
+        if (!lists[n.kind]) lists[n.kind] = ((await graph(meta, "GET", "search", { type: "adTargetingCategory", class: n.kind, limit: 1000 })).data || []);
+        hit = lists[n.kind].find((x) => String(x.name).trim().toLowerCase() === n.name.toLowerCase());
       }
-    }
-    state.interests = found;
+    } catch (e) { continue; }   // a failure is not "Meta has no such name": tried again next time
+    state.audIds[n.name] = hit ? { id: String(hit.id), kind: n.kind } : null;
   }
-  const t = { geo_locations: { countries: ["US"], location_types: ["home"] }, age_min: 18, age_max: 65, targeting_automation: { advantage_audience: 1 } };
-  if (state.interests.length) t.flexible_spec = [{ interests: state.interests }];
+}
+async function audience(meta, state, themes) {
+  themes = [...new Set(["gift", ...(themes && themes.length ? themes : ["photo", "home"])])];
+  const names = [];
+  for (const k of themes) for (const kind of ["interests", "behaviors", "life_events", "family_statuses"]) for (const name of THEMES[k][kind] || []) names.push({ name, kind });
+  await audienceIds(meta, state, names);
+  const spec = {};
+  for (const n of names) {
+    const hit = state.audIds[n.name];
+    if (!hit) continue;
+    spec[hit.kind] = spec[hit.kind] || [];
+    if (!spec[hit.kind].some((x) => x.id === hit.id)) spec[hit.kind].push({ id: hit.id, name: n.name });
+  }
+  state.audience = themes;
+  const t = { geo_locations: { countries: ["US"], location_types: ["home"] }, age_min: 25, age_max: 65, targeting_automation: { advantage_audience: 1 } };
+  if (Object.keys(spec).length) t.flexible_spec = [spec];   // one group: any of these (OR)
   return t;
 }
-async function sharedAdset(meta, state, daily) {
+/** The groups for the boosted posts together (they share one ad set). */
+const boostedThemes = (state) => [...new Set(Object.values(state.boosts || {}).filter((b) => b.status === "active" && b.shared).flatMap((b) => themesOf(b.caption)))].sort();
+async function sharedAdset(meta, state, daily, post) {
   if (state.adsetId) return state.adsetId;
   const cid = await campaign(meta, state);
-  const T = await audience(meta, state);
-  state.targetV = TARGET_V;
+  const T = await audience(meta, state, state.planThemes || themesOf(post && post.caption));
+  state.targetV = AUDIENCE_V; state.targetKey = state.audience.join(",");
   const body = (d) => ({ name: "Reels · Hive Admin", campaign_id: cid, daily_budget: cents(d), billing_event: "IMPRESSIONS",
     optimization_goal: "LANDING_PAGE_VIEWS", bid_strategy: "LOWEST_COST_WITHOUT_CAP", destination_type: "WEBSITE", targeting: T, status: "ACTIVE" });
   let a;
@@ -264,7 +308,7 @@ async function sharedAdset(meta, state, daily) {
 }
 /** Boosts one Instagram post: one more ad in the shared ad set (the Pixel follows what it brings). */
 async function boost(meta, state, post, daily) {
-  const adsetId = await sharedAdset(meta, state, Math.max(1, num(daily) || 1));
+  const adsetId = await sharedAdset(meta, state, Math.max(1, num(daily) || 1), post);
   const creative = await graph(meta, "POST", `${meta.adAccountId}/adcreatives`, {
     name: `Instagram ${post.id}`, object_id: meta.pageId, instagram_user_id: meta.igUserId, source_instagram_media_id: post.id,
     call_to_action: { type: "SHOP_NOW", value: { link: landing(post.id) } },
@@ -620,6 +664,8 @@ async function run({ by = "robot", onlyNext = false } = {}) {
         await log("meta", "warn", pt, w.why === "no-sales" ? `Post ${short(b)} spent ${money(b.spend)} and nobody added to cart. Worth swapping.` : `Post ${short(b)} is getting tired. Worth swapping.`, { post: w.id });
         did.push(pt);
       }
+      // a new ad set starts with the groups of everything it gets today (no second change the same morning)
+      state.planThemes = [...new Set([...boostedThemes(state), ...P.start.flatMap((x) => themesOf(((x.next ? nr : candidates.find((p) => p.id === x.id)) || {}).caption))])].sort();
       for (const s of P.start) {
         const post = s.next ? nr : candidates.find((p) => p.id === s.id);
         try {
@@ -640,9 +686,16 @@ async function run({ by = "robot", onlyNext = false } = {}) {
         if (b.status !== "active" || b.shared) continue;
         try { await setStatus(meta, b, "PAUSED"); b.status = "paused"; b.why = capReached ? "cap" : "season"; b.pausedAt = nowIso(); } catch (e) { errors.meta = e.message; }
       }
-      if (state.adsetId && state.targetV !== TARGET_V) {
-        try { await graph(meta, "POST", state.adsetId, { targeting: await audience(meta, state) }); state.targetV = TARGET_V; } catch (e) { errors.meta = errors.meta || e.message; }
+      // the audience follows what is boosted: the groups of the boosted posts together
+      const th = boostedThemes(state);
+      if (state.adsetId && th.length && (state.targetV !== AUDIENCE_V || state.targetKey !== ["gift", ...th].filter((v, i, a) => a.indexOf(v) === i).join(","))) {
+        try {
+          const T = await audience(meta, state, th);
+          await graph(meta, "POST", state.adsetId, { targeting: T });
+          state.targetV = AUDIENCE_V; state.targetKey = state.audience.join(",");
+        } catch (e) { errors.meta = errors.meta || e.message; }
       }
+      delete state.planThemes;
       // one budget for all the boosted posts; nothing boosted (or the cap, or the calendar) = the ad set rests
       const anyActive = Object.values(state.boosts).some((b) => b.status === "active" && b.shared);
       const before = state.adsetStatus;
@@ -753,6 +806,7 @@ async function view() {
     totals, meta: metaPublic(auth.meta), etsy: { connected: etsyConnected, advice: state.etsyAdvice || etsyAdvice(cfg, totals) },
     boosts, posts: (state.posts || []).map((p) => ({ ...p, never: !!(state.never || {})[p.id], boosted: !!(state.boosts || {})[p.id] })),
     nextReel: state.nextReel || null, pixel: !!(auth.meta && auth.meta.pixelId),
+    audience: (state.audience || []).map((k) => THEMES[k] && THEMES[k].pt).filter(Boolean),
     season: cfg.rules.holiday === false ? "" : season(today).why, allowed: dailyAllowed(cfg, totals, today),
     shared: state.adsetId ? { daily: num(state.adsetDaily), status: state.adsetStatus || "" } : null,
     lastRun: state.lastRun || null, log: logs, proposals: props, manual: manual.slice(0, 30), last30, minDaily: MIN_DAILY, sales,
@@ -891,4 +945,4 @@ async function adminAds(data, auth) {
 }
 
 module.exports = { adminAds, run, plan, season, dailyAllowed, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
-  _internal: { graph, version: () => META_VERSION(), audience, TARGET_V, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
+  _internal: { graph, version: () => META_VERSION(), audience, themesOf, THEMES, AUDIENCE_V, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };

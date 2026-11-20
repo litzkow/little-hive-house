@@ -236,7 +236,7 @@ test("the next run pauses (in the shared ad set) what spent past the limit with 
   const { db, pushes, A } = setup();
   db.docs.set("ads/auth", { meta: META });
   db.docs.set("ads/config", { ...A.DEFAULTS, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
-  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", targetV: 2, boosts: {
+  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", targetV: 3, targetKey: "gift,home,photo,season", boosts: {
     "18000000000000003": { id: "18000000000000003", adsetId: "shared1", adId: "ad3", shared: true, status: "active", caption: "Packing", by: "robot" },
     "18000000000000004": { id: "18000000000000004", adsetId: "shared1", adId: "ad4", shared: true, status: "active", caption: "Fall", by: "robot" },
     "18000000000000005": { id: "18000000000000005", adsetId: "shared1", adId: "ad5", shared: true, status: "active", caption: "Mine", by: "Thiago" },
@@ -250,6 +250,8 @@ test("the next run pauses (in the shared ad set) what spent past the limit with 
       "GET ad5/insights": { data: [{ spend: "9.50", inline_link_clicks: "8" }] },
       [`GET ${META.igUserId}/media`]: { data: [] },
       "POST ad4": { success: true },
+      "POST shared1": { success: true },
+      "GET search": (p) => ({ data: p.type === "adTargetingCategory" ? [] : [{ id: `id-${p.q}`, name: p.q }] }),
     },
     ga: [[ymd, "instagram", "paid", "18000000000000003", 24, 1]],
   });
@@ -261,7 +263,9 @@ test("the next run pauses (in the shared ad set) what spent past the limit with 
   assert.equal(st.boosts["18000000000000005"].status, "active");     // theirs: only a warning
   assert.equal(st.boosts["18000000000000005"].warn, "no-sales");
   assert.equal(calls.find((c) => c.path === "ad4").params.status, "PAUSED");
-  assert.equal(calls.filter((c) => c.method === "POST" && c.path === "shared1").length, 0);   // same $4: nothing to change
+  assert.equal(calls.filter((c) => c.method === "POST" && c.path === "shared1" && c.params.daily_budget).length, 0);   // same $4: nothing to change
+  // the Fall post left: the audience follows what is still boosted (no more "season")
+  assert.equal(db.get("ads/state").targetKey, "gift,home,photo");
   const v = await A.adminAds({ action: "view" }, ADMIN);
   assert.ok(v.log.some((l) => l.kind === "pause" && /\$9\.10/.test(l.pt)));
   assert.ok(v.log.some((l) => l.kind === "warn" && /Mine/.test(l.pt)));
@@ -451,32 +455,50 @@ test("posts: among Reels, sends and saves count more than likes (Instagram's num
   assert.deepEqual(q.map((x) => x.id), ["18000000000000001", "18000000000000002", "18000000000000003"]);
 });
 
-test("the audience: only people who live in the US, plus gift, home and photo interests (looked up once); an old ad set is updated once", async () => {
+test("the audience: only people who live in the US, 25 to 65, plus the groups of what is boosted (Meta's exact names, looked up once)", async () => {
   const { db, A } = setup();
+  const lists = { behaviors: [{ id: "b1", name: "Engaged Shoppers" }, { id: "b2", name: "Frequent Travelers" }],
+    life_events: [{ id: "l1", name: "Newlywed (1 year)" }], family_statuses: [{ id: "f1", name: "Parents (up to 12 months)" }] };
   const calls = net({ meta: {
-    // Meta's search: close-but-wrong names first; "Gift" only as "Unique Gifts" (out), "Gifts" exact (in); Etsy not found
-    "GET search": (p) => ({ data: p.q === "Etsy" ? [{ id: "x", name: "Etsy Shop Owners Club" }] : p.q === "Gift" ? [{ id: "u", name: "Unique Gifts" }]
-      : p.q === "Souvenir" ? [{ id: "film", name: "Only Yesterday (1991 film)" }] : [{ id: "other", name: "Other" }, { id: `id-${p.q}`, name: p.q }] }),
+    // Meta's search: close-but-wrong names come first; "Christmas Day" only as a film (out)
+    "GET search": (p) => p.type === "adTargetingCategory" ? { data: lists[p.class] || [] }
+      : { data: p.q === "Christmas Day" ? [{ id: "film", name: "Christmas Day (film)" }] : [{ id: "other", name: "Other" }, { id: `id-${p.q}`, name: p.q }] },
     "GET act_123/insights": { data: [] }, [`GET ${META.igUserId}/media`]: { data: [] },
     "POST shared1": { success: true },
   } });
+  assert.deepEqual(A._internal.themesOf("Christmas magnets for your fridge 🎄 #giftideas"), ["season", "home"]);
+  assert.deepEqual(A._internal.themesOf("Packing this one with a whole lot of love"), ["photo"]);
+  assert.deepEqual(A._internal.themesOf("New York at night"), ["places"]);
+  assert.deepEqual(A._internal.themesOf("✨"), ["photo", "home"]);              // nothing said: the most bought
   const state = {};
-  const t = await A._internal.audience(META, state);
+  const t = await A._internal.audience(META, state, ["photo"]);
   assert.deepEqual(t.geo_locations, { countries: ["US"], location_types: ["home"] });
-  assert.ok(t.flexible_spec[0].interests.some((i) => i.name === "Gifts"));   // "Gift" missed, "Gifts" exact
-  const names = t.flexible_spec[0].interests.map((i) => i.name);
-  assert.ok(!names.includes("Etsy") && !names.includes("Unique Gifts") && !names.some((n) => /film/.test(n)));
-  assert.ok(names.includes("Home décor") && !names.includes("Home decor"));   // one per idea
+  assert.equal(t.age_min, 25);
+  const spec = t.flexible_spec[0];
+  assert.ok(spec.interests.some((i) => i.name === "Gift") && spec.interests.some((i) => i.name === "Weddings"));
+  assert.deepEqual(spec.behaviors, [{ id: "b1", name: "Engaged Shoppers" }]);
+  assert.deepEqual(spec.life_events, [{ id: "l1", name: "Newlywed (1 year)" }]);
+  assert.deepEqual(spec.family_statuses, [{ id: "f1", name: "Parents (up to 12 months)" }]);
+  assert.ok(!spec.interests.some((i) => i.name === "Travel"));                   // not this post's group
   const n = calls.filter((c) => c.path === "search").length;
-  await A._internal.audience(META, state);
-  assert.equal(calls.filter((c) => c.path === "search").length, n);       // kept: not looked up again
-  // an ad set made before: the run updates its audience, once
+  await A._internal.audience(META, state, ["photo"]);
+  assert.equal(calls.filter((c) => c.path === "search").length, n);              // kept: not looked up again
+  const s2 = await A._internal.audience(META, state, ["season"]);
+  assert.ok(!s2.flexible_spec[0].interests.some((i) => /film/.test(i.name)));
+  // the run: the ad set follows the boosted posts (once per change)
   db.docs.set("ads/auth", { meta: META });
-  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", boosts: {} });
+  db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE",
+    boosts: { "18000000000000003": { id: "18000000000000003", adsetId: "shared1", adId: "ad3", shared: true, status: "active", caption: "Our New York magnet", by: "robot" } } });
+  const c2 = net({ meta: { "GET search": (p) => p.type === "adTargetingCategory" ? { data: lists[p.class] || [] } : { data: [{ id: `id-${p.q}`, name: p.q }] },
+    "GET act_123/insights": { data: [] }, "GET ad3/insights": { data: [] }, [`GET ${META.igUserId}/media`]: { data: [] }, "POST shared1": { success: true } } });
   await A.run();
-  const up = calls.filter((c) => c.path === "shared1" && c.params.targeting);
+  const up = c2.filter((c) => c.path === "shared1" && c.params.targeting);
   assert.equal(up.length, 1);
-  assert.deepEqual(JSON.parse(up[0].params.targeting).geo_locations.location_types, ["home"]);
+  const sp = JSON.parse(up[0].params.targeting).flexible_spec[0];
+  assert.ok(sp.interests.some((i) => i.name === "Travel") && sp.behaviors.some((b) => b.name === "Frequent Travelers"));
+  assert.equal(db.get("ads/state").targetKey, "gift,places");
   await A.run();
-  assert.equal(calls.filter((c) => c.path === "shared1" && c.params.targeting).length, 1);
+  assert.equal(c2.filter((c) => c.path === "shared1" && c.params.targeting).length, 1);
+  const v = await A.adminAds({ action: "view" }, ADMIN);
+  assert.deepEqual(v.audience, ["Presentes e feito à mão", "Viagens e lugares"]);
 });
