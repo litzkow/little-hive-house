@@ -19,7 +19,7 @@ on:
 
 jobs:
   maint:
-    if: inputs.task != 'import-content'
+    if: inputs.task != 'import-content' && inputs.task != 'stock-photos'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -321,3 +321,23 @@ jobs:
       - name: "Conteúdo: apagar o galho temporário"
         if: always()
         run: git push origin --delete "${{ inputs.value }}" || true
+
+  # Fotos de banco gratuito (Unsplash / CC0) para os exemplos do site. VALUE = JSON {"pasta": "busca"}. Salva no galho stock-photos.
+  stock-photos:
+    if: inputs.task == 'stock-photos'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: "Fotos: buscar e baixar"
+        env: { QUERIES: "${{ inputs.value }}", PER: "${{ inputs.cut || '12' }}", OUT: /tmp/stock }
+        run: node tools/maint/stock-photos.js
+      - name: "Fotos: guardar no galho stock-photos"
+        run: |
+          cd /tmp/stock && git init -q && git checkout -q -b stock-photos
+          git add -A && git -c user.name=robo -c user.email=robo@users.noreply.github.com commit -qm "Fotos de banco gratuito"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" stock-photos

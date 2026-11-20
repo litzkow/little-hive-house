@@ -1,0 +1,51 @@
+/* Fotos de banco gratuito para os exemplos do site (licença Unsplash ou CC0, uso comercial livre).
+   QUERIES (JSON: {"pasta": "busca", ...}) e PER (quantas por busca). Salva em OUT/<pasta>/<id>.jpg e OUT/credits.json.
+   Só fotos grátis: pula Unsplash+ (premium/plus). Se o Unsplash recusar, usa o Openverse (só CC0 e domínio público). */
+"use strict";
+const fs = require("fs"), path = require("path");
+const OUT = process.env.OUT || "/tmp/stock";
+const PER = +(process.env.PER || 12);
+const Q = JSON.parse(process.env.QUERIES);
+const UA = { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36", Accept: "application/json" };
+const credits = [];
+async function json(u) { const r = await fetch(u, { headers: UA }); if (!r.ok) throw new Error(r.status + " " + u); return r.json(); }
+async function save(file, url) {
+  const r = await fetch(url, { headers: { "User-Agent": UA["User-Agent"] } });
+  if (!r.ok) throw new Error(r.status);
+  fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()));
+}
+(async () => {
+  for (const [dir, q] of Object.entries(Q)) {
+    fs.mkdirSync(path.join(OUT, dir), { recursive: true });
+    let got = 0, src = "unsplash";
+    try {
+      for (let page = 1; page <= 3 && got < PER; page++) {
+        const j = await json(`https://unsplash.com/napi/search/photos?query=${encodeURIComponent(q)}&per_page=30&page=${page}`);
+        for (const p of j.results || []) {
+          if (got >= PER) break;
+          if (p.premium || p.plus || (p.sponsorship) ) continue;
+          const id = "u-" + p.id, file = path.join(OUT, dir, id + ".jpg");
+          try { await save(file, p.urls.raw + "&w=1400&q=82&fm=jpg&fit=max"); } catch (e) { continue; }
+          credits.push({ dir, file: id + ".jpg", source: "Unsplash", license: "Unsplash License", by: p.user && p.user.name, link: p.links && p.links.html, alt: p.alt_description });
+          got++;
+        }
+      }
+    } catch (e) { console.log(`::warning::Unsplash ${q}: ${e.message}`); }
+    if (got < PER) {
+      src = "openverse";
+      try {
+        const j = await json(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&license=cc0,pdm&page_size=40&mature=false`);
+        for (const p of j.results || []) {
+          if (got >= PER) break;
+          if ((p.width || 0) < 900) continue;
+          const id = "o-" + p.id.slice(0, 8), file = path.join(OUT, dir, id + ".jpg");
+          try { await save(file, p.url); } catch (e) { continue; }
+          credits.push({ dir, file: id + ".jpg", source: p.source, license: p.license, by: p.creator, link: p.foreign_landing_url, alt: p.title });
+          got++;
+        }
+      } catch (e) { console.log(`::warning::Openverse ${q}: ${e.message}`); }
+    }
+    console.log(`::notice::${dir}: ${got} fotos (${src})`);
+  }
+  fs.writeFileSync(path.join(OUT, "credits.json"), JSON.stringify(credits, null, 1));
+})();
