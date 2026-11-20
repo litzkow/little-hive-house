@@ -75,7 +75,7 @@ const P = [
   [/^Back to your original payment method( for order (.+))?$/, (_, x, n) => `Về phương thức thanh toán ban đầu${n ? ` cho đơn ${n}` : ""}`],
   [/^Refunded on this order so far: (\$[\d.,]+) of (\$[\d.,]+)\.$/, "Đã hoàn cho đơn này đến nay: $1 trên $2."],
   [/^Welcome to the hive, (.+)!$/, "Chào mừng $1 đến tổ ong!"],
-  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order( until (.+))?\.?$/, (_, o, x, d) => `${off(o)} cho đơn đầu tiên${d ? ` đến ${date(d)}` : ""}.`],
+  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order(,? until (.+?))?\.?$/, (_, o, x, d) => `${off(o)} cho đơn đầu tiên${d ? ` đến ${date(d)}` : ""}.`],
   [/^Your account is ready, and (.+) your first order is waiting\.$/, (_, o) => `Tài khoản đã sẵn sàng, và ưu đãi ${off(o)} cho đơn đầu tiên đang chờ bạn.`],
   [/^Thanks for joining! Here's (.+) your first order\.$/, (_, o) => `Cảm ơn bạn đã tham gia! Tặng bạn ưu đãi ${off(o)} cho đơn đầu tiên.`],
   [/^One quick tap, (.+)!$/, "Chỉ một chạm thôi, $1!"],

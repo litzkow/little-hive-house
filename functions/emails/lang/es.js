@@ -75,7 +75,7 @@ const P = [
   [/^Back to your original payment method( for order (.+))?$/, (_, x, n) => `De vuelta a tu método de pago original${n ? ` del pedido ${n}` : ""}`],
   [/^Refunded on this order so far: (\$[\d.,]+) of (\$[\d.,]+)\.$/, "Reembolsado en este pedido hasta ahora: $1 de $2."],
   [/^Welcome to the hive, (.+)!$/, "¡Bienvenido a la colmena, $1!"],
-  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order( until (.+))?\.?$/, (_, o, x, d) => `${off(o)} en tu primer pedido${d ? ` hasta el ${date(d)}` : ""}.`],
+  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order(,? until (.+?))?\.?$/, (_, o, x, d) => `${off(o)} en tu primer pedido${d ? ` hasta el ${date(d)}` : ""}.`],
   [/^Your account is ready, and (.+) your first order is waiting\.$/, (_, o) => `Tu cuenta está lista, y te espera ${off(o)} en tu primer pedido.`],
   [/^Thanks for joining! Here's (.+) your first order\.$/, (_, o) => `¡Gracias por unirte! Aquí tienes ${off(o)} en tu primer pedido.`],
   [/^One quick tap, (.+)!$/, "¡Solo un toque, $1!"],

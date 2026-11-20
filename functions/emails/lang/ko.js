@@ -79,7 +79,7 @@ const P = [
   [/^Back to your original payment method( for order (.+))?$/, (_, x, n) => `${n ? `주문 ${n}, ` : ""}원래 결제 수단으로 환불`],
   [/^Refunded on this order so far: (\$[\d.,]+) of (\$[\d.,]+)\.$/, "이 주문의 지금까지 환불 금액: $2 중 $1."],
   [/^Welcome to the hive, (.+)!$/, "$1님, 벌집에 오신 걸 환영해요!"],
-  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order( until (.+))?\.?$/, (_, o, x, d) => `첫 주문 ${off(o)}${d ? `, ${date(d)}까지` : ""}.`],
+  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order(,? until (.+?))?\.?$/, (_, o, x, d) => `첫 주문 ${off(o)}${d ? `, ${date(d)}까지` : ""}.`],
   [/^Your account is ready, and (.+) your first order is waiting\.$/, (_, o) => `계정이 준비됐고, 첫 주문 ${off(o)} 혜택이 기다리고 있어요.`],
   [/^Thanks for joining! Here's (.+) your first order\.$/, (_, o) => `가입해 주셔서 감사해요! 첫 주문 ${off(o)} 혜택을 드려요.`],
   [/^One quick tap, (.+)!$/, "$1님, 한 번만 눌러 주세요!"],

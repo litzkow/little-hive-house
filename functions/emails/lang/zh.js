@@ -81,7 +81,7 @@ const P = [
   [/^Back to your original payment method( for order (.+))?$/, (_, x, n) => `${n ? `订单 ${n} ` : ""}退回原付款方式`],
   [/^Refunded on this order so far: (\$[\d.,]+) of (\$[\d.,]+)\.$/, "这个订单目前已退款：$1 / $2。"],
   [/^Welcome to the hive, (.+)!$/, "欢迎来到蜂巢，$1！"],
-  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order( until (.+))?\.?$/, (_, o, x, d) => `首单享${off(o)}${d ? `，有效期至 ${date(d)}` : ""}。`],
+  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order(,? until (.+?))?\.?$/, (_, o, x, d) => `首单享${off(o)}${d ? `，有效期至 ${date(d)}` : ""}。`],
   [/^Your account is ready, and (.+) your first order is waiting\.$/, (_, o) => `你的账户已就绪，首单${off(o)}在等你。`],
   [/^Thanks for joining! Here's (.+) your first order\.$/, (_, o) => `谢谢加入！送你首单${off(o)}。`],
   [/^One quick tap, (.+)!$/, "$1，只要点一下！"],

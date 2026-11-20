@@ -67,7 +67,7 @@ const P = [
   [/^Back to your original payment method( for order (.+))?$/, (_, x, n) => `Ibinalik sa orihinal mong paraan ng pagbayad${n ? ` para sa order ${n}` : ""}`],
   [/^Refunded on this order so far: (\$[\d.,]+) of (\$[\d.,]+)\.$/, "Na-refund sa order na ito sa ngayon: $1 sa $2."],
   [/^Welcome to the hive, (.+)!$/, "Maligayang pagdating sa bahay-pukyutan, $1!"],
-  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order( until (.+))?\.?$/, (_, o, x, d) => `${off(o)} sa unang order mo${d ? ` hanggang ${date(d)}` : ""}.`],
+  [/^(\d+% off|\$[\d.,]+ off|a little something off) your first order(,? until (.+?))?\.?$/, (_, o, x, d) => `${off(o)} sa unang order mo${d ? ` hanggang ${date(d)}` : ""}.`],
   [/^Your account is ready, and (.+) your first order is waiting\.$/, (_, o) => `Handa na ang account mo, at naghihintay ang ${off(o)} sa unang order mo.`],
   [/^Thanks for joining! Here's (.+) your first order\.$/, (_, o) => `Salamat sa pagsali! Narito ang ${off(o)} sa unang order mo.`],
   [/^One quick tap, (.+)!$/, "Isang mabilis na tap, $1!"],
