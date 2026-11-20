@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "52"
+VERSION = "53"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -113,7 +113,7 @@ def seal(idp):
 
 
 NAV = [("shop.html", "Shop all", "shop"), ("collections/index.html", "Collections", "collections"),
-       ("photo-magnets.html", "Photo magnets", "photo"), ("big-orders.html", "Big orders", "big"),
+       ("photo-magnets.html", "Photo magnets", "photo"), ("business.html", "For business", "business"), ("big-orders.html", "Bulk orders", "big"),
        ("shipping.html", "Shipping", "shipping"), ("suggestions.html", "Share an idea", "ideas")]
 
 
@@ -197,8 +197,8 @@ def head(pg, title, desc, path):
 
 def header(pg, active):
     links = "\n".join(
-        f'      <a href="{pg.p}{href}"{CUR if key == active else ""}>{label}</a>'
-        for href, label, key in NAV)
+        f'      <a href="{pg.p}{href}"{" class=" + chr(34) + "minor" + chr(34) if key in ("shipping", "ideas") else ""}{CUR if key == active else ""}>{label}</a>'
+        for href, label, key in NAV)   # "minor": only on wide screens (the strip, the menu and the footer have them too)
     mobile = "\n".join(f'      <a href="{pg.p}{href}">{label}</a>' for href, label, _ in NAV)
     def _sub(c):
         line = f'      <a class="sub"{season_attr(c)} href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a>'
@@ -794,16 +794,16 @@ def page_home():
     <div class="wrap">
       <div class="band dark">
         <div>
-          <p class="eyebrow">Big orders</p>
-          <h2>Weddings, businesses and parties</h2>
-          <p>Favors with your names and date, magnets with your logo, a photo for every guest. We design it, you approve it, we press every piece by hand.</p>
-          <div class="actions"><a class="btn" href="big-orders.html">See packages</a></div>
+          <p class="eyebrow">Bulk orders</p>
+          <h2>For businesses, weddings and parties</h2>
+          <p>Magnets with your logo, favors with your names and date, a photo for every guest. We design it with you, you approve it, we press every piece by hand.</p>
+          <div class="actions"><a class="btn" href="business.html">For business</a><a class="btn btn-ghost" style="color:inherit;border-color:currentColor" href="big-orders.html">All bulk orders</a></div>
         </div>
-        <ul class="occasions">
-          <li><strong>Weddings</strong><span>From 25 magnets</span></li>
-          <li><strong>Business</strong><span>From 50 magnets</span></li>
-          <li><strong>Parties</strong><span>From 20 magnets</span></li>
-          <li><strong>Teams</strong><span>From 12 magnets</span></li>
+        <ul class="occasions occasions-links">
+          <li><a href="business.html"><strong>Business</strong><span>Your logo on their fridge, all year</span></a></li>
+          <li><a href="weddings.html"><strong>Weddings</strong><span>Save the dates and favors</span></a></li>
+          <li><a href="graduation.html"><strong>Graduation &amp; college</strong><span>Favors, welcome week, clubs</span></a></li>
+          <li><a href="parties.html"><strong>Parties &amp; events</strong><span>Holiday parties, showers, reunions</span></a></li>
         </ul>
       </div>
     </div>
@@ -1080,6 +1080,24 @@ def write_google_feed():
                          f"{n} glossy 2 x 2 inch fridge magnets made by hand from your own photos, with a frame and a caption if you like. "
                          "Printed, pressed and packed by hand, ships in 1 to 2 business days.",
                          f"{site}photo-magnets.html", site + pack_img[n], price, "Fridge magnets > Photo magnets", "Photo magnets"))
+    # the bulk-order packages, so they can be tagged in posts and bought from the Instagram/Facebook shop
+    BULK = {"business": ("Custom Logo Magnets for Business", "For Business", "business.html"),
+            "weddings": ("Custom Wedding Magnets, Save the Dates or Favors", "Weddings", "weddings.html"),
+            "graduation": ("Custom Graduation & College Magnets", "Graduation & College", "graduation.html"),
+            "parties": ("Custom Party & Event Favor Magnets", "Parties & Events", "parties.html"),
+            "teams": ("Custom Team & School Magnets", "Teams & Schools", "big-orders.html")}
+    for title, key, desc, tiers, _ in PACKAGES:
+        pid = PACKAGE_IDS[key]
+        if pid not in BULK:
+            continue
+        name, cat, page = BULK[pid]
+        for n, price in tiers:
+            fid = f"pkg-{pid}-{n}"
+            ftitle = f"{name}, Pack of {n}, Handmade 2x2 in"
+            ids[fid] = [f"{pid}-{n}", f"{title}, {n} magnets", cat, ftitle, "package", n, price]
+            rows.append(item(fid, ftitle, f"{desc} {n} glossy 2 x 2 inch magnets designed with you for free: you approve a proof before we print. "
+                             "Pressed and packed by hand, ships 3 to 5 business days after the proof.",
+                             f"{site}{page}#packs", f"{site}assets/feed/bulk/{pid}.jpg", price, f"Fridge magnets > {cat}", cat))
     import json as _json
     write("assets/feed-ids.json", _json.dumps(ids, separators=(",", ":"), ensure_ascii=False) + "\n")
     write("google-products.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n<channel>\n'
@@ -1380,51 +1398,73 @@ PACKAGES = [
      [(25, 55), (50, 95), (100, 175), (150, 250)], 100),
     ("Business & real estate", "Business", "Your logo or listing on the fridge all year. A favorite closing gift for realtors and a cheap, lasting ad for small businesses.",
      [(50, 90), (100, 160), (250, 350), (500, 650)], 100),
-    ("Parties & events", "Party or event", "Birthdays, baby showers, graduations, reunions and memorials. A keepsake every guest takes home.",
-     [(20, 45), (40, 80), (75, 140)], 40),
+    ("Parties & events", "Party or event", "Holiday office parties, baby showers, quinceañeras, birthdays, reunions and memorials. A keepsake every guest takes home.",
+     [(20, 45), (40, 80), (75, 140), (150, 260)], 40),
+    ("Graduation & college", "Graduation", "Grad party favors, welcome-week giveaways, club and sorority keepsakes and class reunions.",
+     [(25, 55), (50, 95), (100, 170), (250, 375)], 50),
     ("Teams & schools", "Team or school", "A magnet for every player, student or teacher, with their photo, name and number.",
      [(12, 30), (20, 48), (30, 69)], 20),
 ]
 
 
 # store: package ids used by the cart, catalog.json and createCheckout ("weddings-50")
-PACKAGE_IDS = {"Weddings": "weddings", "Business": "business", "Party or event": "parties", "Team or school": "teams"}
+PACKAGE_IDS = {"Weddings": "weddings", "Business": "business", "Party or event": "parties", "Team or school": "teams", "Graduation": "graduation",
+               "Mailing": "mailing"}
+from occasions import MAILING, OCCASIONS as BULK_PAGES   # noqa: E402  the bulk-order pages (tools/occasions.py)
 
 
-def page_big():
-    pg = Page("")
-    cards = []
-    for title, key, desc, tiers, pick in PACKAGES:
-        # store: every tier is buyable (cart line kind "package", id like "weddings-50"); the quote button stays
-        pid = PACKAGE_IDS[key]
-        chosen = min(tiers, key=lambda t: abs(t[0] - pick))[0]
-        rows = "".join(
-            f'<label class="tier"><input type="radio" name="pkg-{pid}" value="{pid}-{n}" data-size="{n}" data-price="{p}" data-title="{E(title)}"'
-            f'{" checked" if n == chosen else ""}><span class="t-n">{n} magnets</span><span class="t-p">${p}</span><span class="t-e">${p / n:.2f} each</span></label>'
-            for n, p in tiers)
-        price = dict(tiers)[chosen]
-        cards.append(f"""<li class="pkg" data-package="{pid}">
+def pkg_card(title, key, desc, tiers, pick, unit="magnets", styles=None):
+    """A buyable package: the tiers (cart line kind "package", id like "business-100"), Buy now and Ask for a quote.
+    unit "addresses": the mailing service (no magnets). styles: [(slug, name)] the example designs to start from."""
+    pid = PACKAGE_IDS[key]
+    chosen = min(tiers, key=lambda t: abs(t[0] - pick))[0]
+    size = (lambda n: 0) if unit == "addresses" else (lambda n: n)
+    rows = "".join(
+        f'<label class="tier"><input type="radio" name="pkg-{pid}" value="{pid}-{n}" data-size="{size(n)}" data-price="{p}" data-title="{E(title)}"'
+        f'{f" data-addresses={chr(34)}{n}{chr(34)}" if unit == "addresses" else ""}'
+        f'{" checked" if n == chosen else ""}><span class="t-n">{n} {unit}</span><span class="t-p">${p}</span><span class="t-e">${p / n:.2f} each</span></label>'
+        for n, p in tiers)
+    price = dict(tiers)[chosen]
+    pick_style = ""
+    if styles:
+        opts = "".join(f'<option value="{E(sl)}">{E(nm)}</option>' for sl, nm in styles)
+        pick_style = (f'<div class="field pkg-style"><label for="st-{pid}">Start from a style</label>'
+                      f'<select id="st-{pid}" data-pkg-style><option value="">We design it with you</option>{opts}'
+                      f'<option value="own">My own logo or design (send it after checkout)</option></select></div>')
+    quote = "" if unit == "addresses" else f'<button type="button" class="btn btn-ghost btn-small" data-pkg="{E(key)}" data-qty="{chosen}">Ask for a quote</button>'
+    note = ("Add it next to a magnet package of the same size. After checkout we ask for your list and mail each one for you."
+            if unit == "addresses" else "After checkout we email you within one business day to plan the design. You approve a proof before we print.")
+    return f"""<li class="pkg" data-package="{pid}">
           <h3>{E(title)}</h3>
           <p>{E(desc)}</p>
           <fieldset class="tier-pick">
             <legend class="visually-hidden">Pack size for {E(title)}</legend>
-            <div class="tier-head" aria-hidden="true"><span>Pack</span><span>Price</span><span>Per magnet</span></div>
+            <div class="tier-head" aria-hidden="true"><span>Pack</span><span>Price</span><span>Per {"address" if unit == "addresses" else "magnet"}</span></div>
             {rows}
           </fieldset>
+          {pick_style}
           <div class="pkg-actions">
             <button type="button" class="btn btn-honey btn-small" data-buy-package>Buy now · ${price}</button>
-            <button type="button" class="btn btn-ghost btn-small" data-pkg="{E(key)}" data-qty="{chosen}">Ask for a quote</button>
+            {quote}
           </div>
-          <p class="pkg-note">After checkout we email you within one business day to plan the design. You approve a proof before we print.</p>
-        </li>""")
+          <p class="pkg-note">{note}</p>
+        </li>"""
+
+
+def page_big():
+    pg = Page("")
+    cards = [pkg_card(title, key, desc, tiers, pick) for title, key, desc, tiers, pick in PACKAGES]
+    who = "".join(f'<li><a href="{o["slug"]}.html"><img src="assets/occasions/{o["ideas"][0][0]}.webp" alt="" width="600" height="600" loading="lazy">'
+                  f'<strong>{E(o["name"])}</strong><span>{E(o["eyebrow"])}</span></a></li>' for o in BULK_PAGES)
     options = "<option>Mix &amp; match</option>" + "".join(f"<option>{E(k)}</option>" for _, k, _, _, _ in PACKAGES) + "<option>Something else</option>"
-    vol_rows = "".join(f"<li><strong>{n}+ magnets</strong><span>{pct}% off the whole order</span></li>" for n, pct in reversed(VOLUME))
+    vol_rows = "".join(f"<li><strong>{n}+ magnets</strong><span>{pct}% off designs and photo magnets</span></li>" for n, pct in reversed(VOLUME))
     body = f"""{header(pg, "big")}
 <main id="main">
   <div class="wrap page-head">
-    <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Big orders</li></ol>
-    <h1>Big orders, made by hand</h1>
+    <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Bulk orders</li></ol>
+    <h1>Bulk orders, made by hand</h1>
     <p class="lede">Wedding favors, save the dates, logo magnets and party keepsakes. Every package includes a custom design with your names, date, logo or photos, and a proof to approve before we print. Buy a package now and we plan the design together after checkout, or ask us for a quote first.</p>
+    <ul class="occ-who">{who}</ul>
   </div>
   <section class="tight">
     <div class="wrap">
@@ -1491,6 +1531,154 @@ def page_big():
     write("big-orders.html", head(pg, "Big orders", "Custom magnet packages for weddings, businesses, parties, teams and schools. Custom design and proof included.", "big-orders.html") + body + chrome_end(pg, ("quote.js",)))
 
 
+def occ_img(pg, slug, cls="", lazy=True, size=600):
+    """An example magnet: ours in assets/occasions/, or "sc:<name>" for a photo-magnet sample in assets/showcase/."""
+    src = f"assets/showcase/{slug[3:]}.webp" if slug.startswith("sc:") else f"assets/occasions/{slug}.webp"
+    return f'<img src="{pg.p}{src}" alt="" width="{size}" height="{size}"{" loading=" + chr(34) + "lazy" + chr(34) if lazy else ""} decoding="async"{(" class=" + chr(34) + cls + chr(34)) if cls else ""}>'
+
+
+def page_occasions():
+    """business.html, weddings.html, graduation.html, parties.html (tools/occasions.py): for people who buy many."""
+    by_key = {key: (title, key, desc, tiers, pick) for title, key, desc, tiers, pick in PACKAGES}
+    for o in BULK_PAGES:
+        pg = Page("")
+        styles = [(sl, nm) for sl, nm, _ in o["ideas"]]
+        cards = [pkg_card(*by_key[o["package"]], styles=styles)]
+        cards += [pkg_card(*by_key[k]) for k in o.get("extra", [])]
+        if o.get("mailing"):
+            cards.append(pkg_card(*MAILING, unit="addresses"))
+        ideas = "".join(f"""<li class="occ-idea">{occ_img(pg, sl)}<div><strong>{E(nm)}</strong><span>{E(tx)}</span>
+            <button type="button" class="btn btn-ghost btn-small" data-use-style="{E(sl)}">Use this style</button></div></li>""" for sl, nm, tx in o["ideas"])
+        now = "".join(f'<div class="occ-now-item" data-from="{a}" data-to="{b}" hidden><p class="eyebrow">Right now</p><h2>{E(t)}</h2><p>{E(x)}</p>'
+                      f'<a class="btn btn-honey btn-small" href="#packs">Order now</a></div>' for a, b, t, x in o["now"])
+        year = "".join(f"<li><strong>{E(m)}</strong><span>{E(t)}</span></li>" for m, t in o["year"])
+        faq = "".join(f"<details><summary>{E(q)}</summary><p>{E(a)}</p></details>" for q, a in o["faq"])
+        points = "".join(f"<li>{E(x)}</li>" for x in o["points"])
+        qr = ""
+        if o.get("qr"):
+            Q = o["qr"]
+            _t, _k, _d, tiers, pick = by_key[o["package"]]
+            pid = PACKAGE_IDS[_k]
+            chosen = min(tiers, key=lambda t: abs(t[0] - pick))[0]
+            lines = "".join(f'<option data-top="{E(t)}" data-cta="{E(c)}"{" data-stars" if st else ""}>{E(t)} · {E(c.capitalize())}</option>' for t, c, st in Q["lines"])
+            packs = "".join(f'<option value="{pid}-{n}" data-size="{n}" data-price="{pr}" data-title="{E(_t)}"{" selected" if n == chosen else ""}>{n} magnets · ${pr} (${pr / n:.2f} each)</option>' for n, pr in tiers)
+            pals = "".join(f'<button type="button" class="qr-pal" data-pal="{k}" aria-label="{E(lab)}"{" aria-pressed=" + chr(34) + "true" + chr(34) if i == 0 else ""}></button>'
+                           for i, (k, lab) in enumerate([("fern", "Sage"), ("honey", "Honey"), ("navy", "Navy"), ("blush", "Blush"), ("brick", "Brick")]))
+            qr = f"""
+  <section class="tight" id="qr">
+    <div class="wrap">
+      <div class="qr-maker" data-qr-maker>
+        <div class="qr-form">
+          <p class="eyebrow">QR magnets</p>
+          <h2>{E(Q["title"])}</h2>
+          <p class="qr-intro">{E(Q["intro"])}</p>
+          <div class="field"><label for="qr-url">Your link</label><input id="qr-url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-site.com" maxlength="200"></div>
+          <div class="field"><label for="qr-name">Name on the magnet</label><input id="qr-name" maxlength="40" placeholder="{E(Q["name"])}"></div>
+          <div class="field"><label for="qr-line">Message</label><select id="qr-line">{lines}</select></div>
+          <div class="field"><span class="qr-label">Colors</span><div class="qr-pals">{pals}</div></div>
+          <div class="field"><label for="qr-pack">How many</label><select id="qr-pack">{packs}</select></div>
+          <div class="qr-actions"><button type="button" class="btn btn-honey" data-qr-buy>Buy now</button></div>
+          <p class="hint" data-qr-msg>You approve a proof before we print. Any link works: Google reviews, menu, booking, Instagram.</p>
+        </div>
+        <div class="qr-preview">
+          <div class="qrm" data-pal="fern" data-qr-preview translate="no">
+            <div class="qrm-name">{E(Q["name"])}</div><div class="qrm-top"></div><div class="qrm-cta"></div>
+            <div class="qrm-code" data-default="{E(Q["url"])}"></div><div class="qrm-stars">★★★★★</div>
+          </div>
+          <p class="hint">Point your phone camera at it: it already works.</p>
+        </div>
+      </div>
+    </div>
+  </section>"""
+        options = "".join(f"<option{' selected' if k == o['quote'] else ''}>{E(k)}</option>"
+                          for k in [o["quote"]] + [k for _, k, _, _, _ in PACKAGES if k not in (o["quote"], o["package"])] + ["Something else"])
+        others = "".join(f'<a href="{x["slug"]}.html">{E(x["name"])}</a>' for x in BULK_PAGES if x is not o)
+        body = f"""{header(pg, "business" if o["slug"] == "business" else "big")}
+<main id="main" class="occ" data-occasion="{o["slug"]}">
+  <div class="wrap page-head">
+    <ol class="crumbs"><li><a href="index.html">Home</a></li><li><a href="big-orders.html">Bulk orders</a></li><li aria-current="page">{E(o["name"])}</li></ol>
+    <div class="occ-hero">
+      <div>
+        <p class="eyebrow">{E(o["eyebrow"])}</p>
+        <h1>{E(o["h1"])}</h1>
+        <p class="lede">{E(o["lede"])}</p>
+        <div class="actions"><a class="btn btn-honey" href="#packs">See prices</a><a class="btn btn-ghost" href="#request">Get a free mockup</a></div>
+        <ul class="occ-points">{points}</ul>
+      </div>
+      <img class="occ-hero-img" src="assets/occasions/{o["hero"]}.webp" alt="Example magnets on a fridge" width="1400" height="963" fetchpriority="high">
+    </div>
+  </div>
+
+  <section class="tight occ-now" aria-label="The moment to order">
+    <div class="wrap"><div class="band honey">{now}</div></div>
+  </section>{qr}
+
+  <section class="tight" id="ideas">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Ideas</p><h2>Pick a style to start from</h2></div><p>Every example is made with your own names, logo, photos and colors. These are just to get you started.</p></div>
+      <ul class="occ-ideas">{ideas}</ul>
+    </div>
+  </section>
+
+  <section class="tight" id="packs">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Prices</p><h2>Buy now, design together</h2></div><p>Pay for the pack now and we email you within one business day to plan the design. Nothing is printed until you approve the proof.</p></div>
+      <ul class="pkg-grid">{"".join(cards)}</ul>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">How it works</p><h2>Four easy steps</h2></div></div>
+      <ol class="included occ-steps">
+        <li><strong>1. Choose a pack</strong><span>And a style to start from, if you like one.</span></li>
+        <li><strong>2. Send your details</strong><span>Logo, names, dates or photos, by email after checkout.</span></li>
+        <li><strong>3. Approve the proof</strong><span>Within one business day. Change anything you want.</span></li>
+        <li><strong>4. We press &amp; ship</strong><span>By hand, in 3 to 5 business days{", or mailed to your list" if o.get("mailing") else ""}.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">All year</p><h2>{E(o["year_title"])}</h2></div></div>
+      <ul class="occ-year">{year}</ul>
+    </div>
+  </section>
+
+  <section class="tight" id="request">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Free mockup</p><h2>Tell us what you need</h2></div><p>We reply within one business day with a mockup idea, a price and a timeline.</p></div>
+      <form class="quote" id="quote">
+        <div class="field"><label for="q-name">Your name</label><input id="q-name" name="name" required autocomplete="name"></div>
+        <div class="field"><label for="q-email">Email</label><input id="q-email" name="email" type="email" required autocomplete="email"></div>
+        <div class="field"><label for="q-occasion">Occasion</label><select id="q-occasion" name="occasion">{options}</select></div>
+        <div class="field"><label for="q-qty">How many magnets</label><input id="q-qty" name="quantity" type="number" min="10" step="1" value="100" required inputmode="numeric"></div>
+        <div class="field"><label for="q-date">Date you need them</label><input id="q-date" name="date" type="date"></div>
+        <div class="field full"><label for="q-msg">Your idea</label><textarea id="q-msg" name="message" placeholder="Your business or names, the style you liked, colors, logo…"></textarea></div>
+        <div class="full" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+          <button type="submit" class="btn btn-honey">Send request</button>
+          <span class="hint">This opens your email app with your request filled in.</span>
+        </div>
+        <p class="full note" id="quote-done" hidden>Your email app should open now. If it doesn't, write to us at <a href="mailto:support@littlehivehouse.com">support@littlehivehouse.com</a>.</p>
+      </form>
+    </div>
+  </section>
+
+  <section class="tight" id="faq">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Questions</p><h2>Good to know</h2></div></div>
+      <div class="faq">{faq}</div>
+      <p class="occ-others">Also: {others} · <a href="big-orders.html">All bulk orders</a></p>
+    </div>
+  </section>
+</main>
+{footer(pg)}
+<script>(function(){{var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),done=false;document.querySelectorAll('[data-from]').forEach(function(e){{if(done)return;var a=+e.getAttribute('data-from'),b=+e.getAttribute('data-to');if(a<=b?(k>=a&&k<=b):(k>=a||k<=b)){{e.hidden=false;done=true;}}}});if(!done){{var s=document.querySelector('.occ-now');if(s)s.hidden=true;}}}})();</script>"""
+        write(f'{o["slug"]}.html', head(pg, o["name"], o["lede"][:155], f'{o["slug"]}.html') + body + chrome_end(pg, ("quote.js", "qr.js", "qrmagnet.js") if o.get("qr") else ("quote.js",)))
+
+
+
 def page_404():
     pg = Page("/")
     body = f"""{header(pg, None)}
@@ -1551,7 +1739,9 @@ def export_store_catalog():
         "photoPricing": {"extra": {str(k): v for k, v in STORE_PHOTO_EXTRA.items()}, "max": STORE_PHOTO_MAX},
         "packages": {f'{ids.get(key) or title.split()[0].lower()}-{n}': {"title": f"{title}, {n} magnets", "group": ids.get(key) or title.split()[0].lower(),
                                                                          "size": n, "price": p}
-                     for title, key, _, tiers, _ in PACKAGES for n, p in tiers},
+                     for title, key, _, tiers, _ in PACKAGES for n, p in tiers}
+                    | {f"mailing-{n}": {"title": f"Mailed to your list, {n} addresses", "group": "mailing", "size": 0, "addresses": n, "price": p}
+                       for n, p in MAILING[3]},
         "rules": {"designPrice": PRICE, "bundle": {"size": BUNDLE[0], "price": BUNDLE[1]},
                   "volume": [{"min": n, "pct": pct} for n, pct in VOLUME], "shipping": STORE_SHIPPING,
                   "freeShippingAt": STORE_FREE_SHIP_AT, "currency": "usd"},
@@ -1574,7 +1764,7 @@ def write_sitemap():
         return (f"\n    <image:image><image:loc>{site}assets/art/{col_slug}/{slug}.webp</image:loc>"
                 f"<image:title>{E(title)} magnet</image:title></image:image>")
     entries = [("", "1.0", ""), ("shop.html", "0.9", ""), ("collections/", "0.9", ""),
-               ("photo-magnets.html", "0.8", ""), ("big-orders.html", "0.8", "")]
+               ("photo-magnets.html", "0.8", ""), ("big-orders.html", "0.8", "")] + [(f'{o["slug"]}.html', "0.8", "") for o in BULK_PAGES]
     for g in GROUPS:
         entries.append((f"collections/{g['slug']}.html", "0.8", ""))
     for c in COLLECTIONS + MORE_COLLECTIONS:
@@ -1616,6 +1806,7 @@ if __name__ == "__main__":
         page_group(g)
     page_photo()
     page_big()
+    page_occasions()        # business.html, weddings.html, graduation.html, parties.html
     page_404()
     page_cart()             # cart.html: checkout link for the Facebook/Instagram shop
     # store: customer pages (account, orders, tracking, policies...) live in tools/store_pages.py

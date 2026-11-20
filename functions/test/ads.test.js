@@ -526,3 +526,16 @@ test("a retired interest Meta refuses is swapped for the one Meta names (and rem
   assert.equal(n2, 3);
   assert.deepEqual(T2.flexible_spec[0].interests.map((i) => i.id), ["33", "222"]);
 });
+
+test("posts for buyers of many get their own groups and send the ad to their page", () => {
+  const { A } = setup();
+  assert.ok(A._internal.themesOf("Your logo on 100 fridges: magnets for your business").includes("business"));
+  assert.ok(A._internal.themesOf("Save the dates your guests keep 💍").includes("wedding"));
+  assert.ok(A._internal.themesOf("Class of 2027 grad party favors").includes("graduation"));
+  assert.ok(A._internal.themesOf("Holiday office party favors for your team").includes("party"));
+  assert.equal(A._internal.pageFor("Your logo on 100 fridges"), "business.html");
+  assert.equal(A._internal.pageFor("Save the dates your guests keep"), "weddings.html");
+  assert.equal(A._internal.pageFor("Pumpkin spice or sweater weather?"), "");
+  assert.match(A._internal.landing("123", "business.html"), /\/business\.html\?utm_source=instagram&utm_medium=paid/);
+  assert.ok(A._internal.THEMES.business.behaviors.includes("Small business owners"));
+});

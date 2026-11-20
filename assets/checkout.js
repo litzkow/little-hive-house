@@ -147,7 +147,12 @@
   function payloadCart() {
     return L.cart().map(function (l) {
       if (l.kind === 'design') return { kind: 'design', id: l.id, qty: l.qty };
-      if (l.kind === 'package') return { kind: 'package', id: l.id, qty: l.qty };
+      if (l.kind === 'package') {
+        var pk = { kind: 'package', id: l.id, qty: l.qty };
+        if (l.style) pk.style = l.style;
+        if (l.qr) pk.qr = l.qr;   /* the QR magnet maker: link, name and message for the proof */
+        return pk;
+      }
       if (l.kind === 'custom') {
         return { kind: 'photos', packSize: l.count, qty: l.qty, notes: l.notes || '',
                  photos: l.photos.map(function (p) { return { path: p.path, frame: p.frame || 'none', caption: p.caption || '', crop: p.crop || null, w: p.w || 0, h: p.h || 0, capStyle: p.capStyle || null }; }) };

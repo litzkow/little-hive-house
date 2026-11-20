@@ -35,16 +35,19 @@ function rulesOf(catalog) {
 
 /** The same steps as site.js totals(), in cents. lines: [{kind, unit (cents), qty, count}] */
 function computeTotals(lines, rules) {
-  let sub = 0, designs = 0, magnets = 0;
+  // packages already have their quantity price (and a service, like mailing to a list, is no magnet: count 0), so the
+  // volume discount is only on designs and photo packs; their magnets still count toward its tier
+  let sub = 0, designs = 0, magnets = 0, pkg = 0;
   for (const l of lines) {
     sub += l.unit * l.qty;
     if (l.kind === "design") designs += l.qty;
-    magnets += l.qty * (l.count || 1);
+    if (l.kind === "package") pkg += l.unit * l.qty;
+    magnets += l.qty * (l.count == null ? 1 : l.count);
   }
   const bundle = Math.floor(designs / rules.bundleSize) * (rules.bundleSize * rules.designPrice - rules.bundlePrice);
   const tier = rules.volume.find((v) => magnets >= v[0]);
   const pct = tier ? tier[1] : 0;
-  const vol = Math.round(((sub - bundle) * pct) / 100);
+  const vol = Math.round(((sub - bundle - pkg) * pct) / 100);
   const goods = sub - bundle - vol;
   const ship = goods >= rules.freeShippingAt ? 0 : rules.shipping;
   return { sub, bundle, pct, vol, goods, ship, total: goods + ship, magnets, designs };
@@ -147,7 +150,17 @@ function priceCart(cart, catalog = loadCatalog()) {
       if (!p) throw bad(`We couldn't find the package "${id || "?"}".`);
       const qty = intQty(raw.qty, 20, p.title);
       const unit = cents(p.price);
-      items.push({ kind: "package", id, title: p.title, size: p.size, price: dollars(unit), qty });
+      const item = { kind: "package", id, title: p.title, size: p.size, price: dollars(unit), qty };
+      if (p.addresses) item.addresses = p.addresses;          // the mailing service: no magnets, a list of addresses
+      const style = /^(sc:)?[a-z0-9-]{2,40}$/.test(String(raw.style || "")) ? String(raw.style) : "";
+      if (style) item.style = style;                           // the example they want to start from (bulk-order pages)
+      if (raw.qr && typeof raw.qr === "object") {             // the QR magnet maker: what to put on the magnet
+        const link = str(raw.qr.url, 200);
+        if (!/^https?:\/\/\S+\.\S+$/i.test(link)) throw bad("The QR link doesn't look like a web address.");
+        item.qr = { url: link, name: str(raw.qr.name, 40), top: str(raw.qr.top, 60), cta: str(raw.qr.cta, 40), stars: !!raw.qr.stars,
+          pal: ["fern", "honey", "navy", "blush", "brick"].includes(raw.qr.pal) ? raw.qr.pal : "fern" };
+      }
+      items.push(item);
       lines.push({ kind: "package", unit, qty, count: p.size, name: p.title });
     } else {
       throw bad(`Cart line ${i + 1} has an unknown kind "${String(raw.kind)}".`);

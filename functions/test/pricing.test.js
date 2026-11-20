@@ -174,9 +174,10 @@ test("catalog.json matches the prices printed on the built pages", () => {
   assert.deepEqual(rules.extra, catalog.photoPricing.extra);
   assert.equal(rules.max, catalog.photoPricing.max);
   assert.deepEqual(rules.packs, Object.values(catalog.packs).map((p) => [p.size, p.price]));
-  const big = fs.readFileSync(path.join(root, "big-orders.html"), "utf8");
+  // the packs are sold on big-orders.html and on the bulk pages (business, weddings, graduation, parties: the mailing service too)
+  const big = ["big-orders.html", "business.html", "weddings.html", "graduation.html", "parties.html"].map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
   const tiers = [...big.matchAll(/value="([a-z]+-\d+)" data-size="(\d+)" data-price="(\d+(?:\.\d+)?)"/g)];
-  assert.ok(tiers.length >= Object.keys(catalog.packages).length, "package tiers found");
+  assert.deepEqual([...new Set(tiers.map((t) => t[1]))].sort(), Object.keys(catalog.packages).sort(), "every package is on a page");
   for (const [, id, size, price] of tiers) {
     assert.ok(catalog.packages[id], `package ${id} in catalog.json`);
     assert.equal(catalog.packages[id].size, Number(size), id);
@@ -206,4 +207,21 @@ test("priceCart: any number of photos from 1 to 100, priced on the server", () =
   assert.throws(() => P.priceCart([{ kind: "photos", packSize: 18, qty: 1, photos: photos(10) }], catalog), /any number from 1 to 100/, "18 magnets from 10 photos is not a thing");
   assert.throws(() => P.priceCart([{ kind: "photos", packSize: 101, qty: 1, photos: photos(101) }], catalog), /1 to 100/);
   assert.throws(() => P.priceCart([{ kind: "photos", packSize: 2.5, qty: 1, photos: photos(2) }], catalog), /1 to 100/);
+});
+
+test("bulk packs keep the price on the page (no volume discount on top); the mailing service counts no magnets", () => {
+  const r = priceCart([{ kind: "package", id: "business-100", qty: 1, style: "pizza" }, { kind: "package", id: "mailing-100", qty: 1 }], catalog);
+  assert.equal(r.pricing.subtotal, 400);
+  assert.equal(r.pricing.volumeDiscount, 0);
+  assert.equal(r.pricing.total, 400);
+  assert.equal(r.pricing.magnets, 100);
+  assert.equal(r.items[0].style, "pizza");
+  assert.equal(r.items[1].addresses, 100);
+  // designs next to a pack still get their volume discount (the pack's magnets count toward the tier)
+  const d = Object.keys(catalog.designs)[0];
+  const m = priceCart([{ kind: "package", id: "business-100", qty: 1 }, { kind: "design", id: d, qty: 1 }], catalog);
+  assert.equal(m.pricing.volumePct, 25);
+  assert.equal(m.pricing.volumeDiscount, 1.25);
+  // a style that isn't a slug is dropped
+  assert.equal(priceCart([{ kind: "package", id: "weddings-50", qty: 1, style: "<b>x</b>" }], catalog).items[0].style, undefined);
 });

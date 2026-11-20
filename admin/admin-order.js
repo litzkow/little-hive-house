@@ -10,6 +10,7 @@
     return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + base; }) : base + html;
   }
   var esc = h.esc, money = h.money, icon = h.icon;
+  function T(en, pt) { return h.LANG && h.LANG() === 'pt' ? pt : en; }
   var current = null;   /* the order on screen */
 
   function rerender() { var y = window.scrollY; h.route(); window.scrollTo(0, y); }
@@ -318,7 +319,7 @@
           return '<li>' + esc(f.name) + (c ? ' · “' + esc(c) + '”' : '') + (rep > 1 ? ' <b>×' + rep + '</b>' : '') + '</li>';
         }).join('') + '</ol>'];
       }
-      if (it.kind === 'package') return [R.num(it.qty || 1), esc(it.title || it.id), R.num(it.size) + ' custom magnets'];
+      if (it.kind === 'package') return [R.num(it.qty || 1), esc(it.title || it.id), it.addresses ? R.num(it.addresses) + ' addresses to mail' : R.num(it.size) + ' custom magnets' + (it.style ? ' · style ' + esc(it.style) : '')];
       return [1, esc(it.title || 'Custom order'), 'Made to order'];
     });
     var sh = addressLines(o.shipping);
@@ -490,7 +491,21 @@
           '<div class="photos">' + grid + '</div></div></li>';
       }
       if (it.kind === 'package') {
-        return '<li>' + thumb(it) + '<div><h3>' + esc(it.title || it.id) + '</h3><p class="d">Big-order package · ' + R.num(it.size) + ' magnets · artwork by email</p></div>' +
+        var styleImg = it.style && it.style !== 'own' && it.style !== 'qr' ? (/^sc:/.test(it.style) ? '/assets/showcase/' + it.style.slice(3) + '.webp' : '/assets/occasions/' + it.style + '.webp') : '';
+        var pd = it.addresses ? T('Mailing service · ' + R.num(it.addresses) + ' addresses · ask the customer for the list', 'Serviço de envio · ' + R.num(it.addresses) + ' endereços · pedir a lista ao cliente')
+          : T('Big-order package · ' + R.num(it.size) + ' magnets · artwork by email', 'Pacote grande · ' + R.num(it.size) + ' ímãs · arte por e-mail') + (it.style ? ' · ' + (it.style === 'own' ? T('their own logo or design (by email)', 'logo ou arte do cliente (por e-mail)') : T('style', 'estilo') + ': ' + esc(it.style.replace(/^sc:/, ''))) : '');
+        var qrBox = '';
+        if (it.qr && it.qr.url) {   /* from the QR magnet maker: what the customer typed, and the code ready to download */
+          var svg = window.LHHQR ? window.LHHQR.svg(it.qr.url, 120, '#000', '#fff') : '';
+          qrBox = '<div class="qr-order" style="display:flex;gap:14px;align-items:center;margin-top:10px">' + svg +
+            '<div class="small"><b>' + esc(it.qr.name || '') + '</b><br>' + esc(it.qr.top || '') + ' · ' + esc(it.qr.cta || '') + (it.qr.stars ? ' ★★★★★' : '') +
+            '<br><a href="' + esc(it.qr.url) + '" target="_blank" rel="noopener">' + esc(it.qr.url) + '</a><br>' + T('Colors', 'Cores') + ': ' + esc(it.qr.pal || '') +
+            (svg ? '<br><a download="qr-' + esc(String(it.qr.name || 'magnet').replace(/[^\w-]+/g, '-')) + '.svg" href="data:image/svg+xml;charset=utf-8,' + encodeURIComponent(window.LHHQR.svg(it.qr.url, 1200, '#000', '#fff')) + '">' + T('Download the QR', 'Baixar o QR') + '</a>' : '') +
+            '</div></div>';
+          pd = T('QR magnets · ' + R.num(it.size) + ' magnets', 'Ímãs com QR · ' + R.num(it.size) + ' ímãs');
+        }
+        return '<li>' + (styleImg && it.style !== 'qr' ? '<span class="thumb"><img src="' + styleImg + '" alt="" width="56" height="56" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></span>' : thumb(it)) +
+          '<div><h3>' + esc(it.title || it.id) + '</h3><p class="d">' + pd + '</p>' + qrBox + '</div>' +
           '<div class="p"><b>' + qty + ' × ' + money(it.price) + '</b><span>' + money(R.itemPrice(it)) + '</span></div></li>';
       }
       return '<li>' + thumb(it) + '<div><h3>' + esc(it.title || 'Custom order') + '</h3><p class="d">Custom quote</p></div><div class="p"><b>' + money(R.itemPrice(it)) + '</b></div></li>';

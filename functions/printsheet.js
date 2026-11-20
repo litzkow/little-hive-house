@@ -261,7 +261,7 @@ function slipRows(order, frames = {}) {
       });
       return { qty, title: `Photo magnets, ${toInt(it.packSize) || photos.length}-pack`, sub: `${size} magnets${photos.length && size > photos.length ? ` from ${photos.length} photos (they repeat in order)` : ""}`, lines };
     }
-    if (it.kind === "package") return { qty, title: it.title || it.id || "Package", sub: `${toInt(it.size)} custom magnets · artwork by email`, lines: [] };
+    if (it.kind === "package") return { qty, title: it.title || it.id || "Package", sub: it.addresses ? `mail to ${toInt(it.addresses)} addresses from the customer's list` : `${toInt(it.size)} custom magnets · artwork by email${it.style ? ` · style ${String(it.style).replace(/^sc:/, "")}` : ""}`, lines: [] };
     return { qty: 1, title: it.title || "Custom order", sub: "Made to order", lines: [] };
   });
 }

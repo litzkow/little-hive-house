@@ -6610,6 +6610,36 @@
    "size": 75,
    "price": 140
   },
+  "parties-150": {
+   "title": "Parties & events, 150 magnets",
+   "group": "parties",
+   "size": 150,
+   "price": 260
+  },
+  "graduation-25": {
+   "title": "Graduation & college, 25 magnets",
+   "group": "graduation",
+   "size": 25,
+   "price": 55
+  },
+  "graduation-50": {
+   "title": "Graduation & college, 50 magnets",
+   "group": "graduation",
+   "size": 50,
+   "price": 95
+  },
+  "graduation-100": {
+   "title": "Graduation & college, 100 magnets",
+   "group": "graduation",
+   "size": 100,
+   "price": 170
+  },
+  "graduation-250": {
+   "title": "Graduation & college, 250 magnets",
+   "group": "graduation",
+   "size": 250,
+   "price": 375
+  },
   "teams-12": {
    "title": "Teams & schools, 12 magnets",
    "group": "teams",
@@ -6627,6 +6657,34 @@
    "group": "teams",
    "size": 30,
    "price": 69
+  },
+  "mailing-25": {
+   "title": "Mailed to your list, 25 addresses",
+   "group": "mailing",
+   "size": 0,
+   "addresses": 25,
+   "price": 65
+  },
+  "mailing-50": {
+   "title": "Mailed to your list, 50 addresses",
+   "group": "mailing",
+   "size": 0,
+   "addresses": 50,
+   "price": 125
+  },
+  "mailing-100": {
+   "title": "Mailed to your list, 100 addresses",
+   "group": "mailing",
+   "size": 0,
+   "addresses": 100,
+   "price": 240
+  },
+  "mailing-250": {
+   "title": "Mailed to your list, 250 addresses",
+   "group": "mailing",
+   "size": 0,
+   "addresses": 250,
+   "price": 575
   }
  },
  "rules": {

@@ -139,13 +139,14 @@
   }
 
   function totals() {
-    var sub = 0, designs = 0;
-    cart.forEach(function (l) { sub += l.price * l.qty; if (l.kind === 'design') designs += l.qty; });
+    var sub = 0, designs = 0, pkg = 0;
+    cart.forEach(function (l) { sub += l.price * l.qty; if (l.kind === 'design') designs += l.qty; if (l.kind === 'package') pkg += l.price * l.qty; });
     var disc = Math.floor(designs / BUNDLE_N) * (BUNDLE_N * PRICE - BUNDLE_PRICE);
-    var magnets = cart.reduce(function (a, l) { return a + l.qty * (l.count || 1); }, 0);
+    /* packages already have their quantity price (a service like mailing is count 0): the volume discount is on the rest */
+    var magnets = cart.reduce(function (a, l) { return a + l.qty * (l.count == null ? 1 : l.count); }, 0);
     var tier = VOLUME.find(function (v) { return magnets >= v[0]; });
     var pct = tier ? tier[1] : 0;
-    var vol = Math.round((sub - disc) * pct) / 100;
+    var vol = Math.round((sub - disc - pkg) * pct) / 100;
     var goods = sub - disc - vol;
     var ship = goods >= FREE_SHIP_AT ? 0 : SHIPPING;
     var next = VOLUME.slice().reverse().find(function (v) { return magnets < v[0]; });
@@ -213,7 +214,7 @@
     $('t-vol-label').textContent = 'Big order, ' + t.magnets + ' magnets (' + t.pct + '% off)';
     $('t-vol').textContent = '−' + money(t.vol);
     var vn = $('vol-note');
-    if (t.next && t.magnets >= 5) { vn.textContent = 'Add ' + (t.next[0] - t.magnets) + ' more magnets for ' + t.next[1] + '% off your whole order.'; vn.hidden = false; }
+    if (t.next && t.magnets >= 5 && cart.some(function (l) { return l.kind !== 'package'; })) {   /* packages have their own price */ vn.textContent = 'Add ' + (t.next[0] - t.magnets) + ' more magnets for ' + t.next[1] + '% off your whole order.'; vn.hidden = false; }
     else vn.hidden = true;
     $('t-ship').textContent = t.ship ? money(t.ship) : 'Free';
     $('t-total').textContent = money(t.total);
@@ -428,11 +429,28 @@
     var q = card.querySelector('[data-pkg]'); if (q) q.setAttribute('data-qty', r.getAttribute('data-size'));
   });
   document.addEventListener('click', function (e) {
+    /* bulk-order pages: "Use this style" picks it in the pack card and goes to the prices */
+    var u = e.target.closest('[data-use-style]');
+    if (u) {
+      var sel = document.querySelector('[data-pkg-style]');
+      if (sel) { sel.value = u.getAttribute('data-use-style'); }
+      document.querySelectorAll('.occ-idea.picked').forEach(function (x) { x.classList.remove('picked'); });
+      var li = u.closest('.occ-idea'); if (li) li.classList.add('picked');
+      var packs = document.getElementById('packs'); if (packs) packs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     var b = e.target.closest('[data-buy-package]'); if (!b) return;
-    var r = pkgPicked(b.closest('[data-package]')); if (!r) return;
+    var card = b.closest('[data-package]');
+    var r = pkgPicked(card); if (!r) return;
     var size = Number(r.getAttribute('data-size'));
-    addLine({ id: r.value, kind: 'package', name: r.getAttribute('data-title'), count: size, price: Number(r.getAttribute('data-price')),
-              detail: size + ' magnets · we plan the design with you by email after checkout' }, true);
+    var addr = Number(r.getAttribute('data-addresses')) || 0;
+    var st = card.querySelector('[data-pkg-style]');
+    var style = st && st.value ? st.value : '';
+    var styleName = style ? st.options[st.selectedIndex].text : '';
+    var line = { id: r.value, kind: 'package', name: r.getAttribute('data-title'), count: size, price: Number(r.getAttribute('data-price')),
+                 detail: addr ? addr + ' addresses · we ask for your list after checkout' : size + ' magnets · ' + (styleName ? 'style: ' + styleName + ' · ' : '') + 'we plan the design with you by email after checkout' };
+    if (style) line.style = style;
+    addLine(line, true);
     openCart();
   });
   function addLine(line, quiet) {   /* quiet: the cart drawer opens right after, so no toast over it */
@@ -444,6 +462,8 @@
   /* ---- /store ---- */
 
   window.LHH = {
+    /* a bulk-order pack built on the page (the QR magnet maker): one cart line, then the cart */
+    addPackage: function (line) { line.kind = 'package'; addLine(line, true); openCart(); },
     addCustom: function (item) {
       item.kind = 'custom'; item.qty = 1; cart.push(item);
       render(); toast('Photo magnets added to cart'); openCart();
@@ -525,6 +545,11 @@
       if (want.some(function (w) { return map[w[0]]; })) { cart.length = 0; save(); }
       want.forEach(function (w) {
         var d = map[w[0]]; if (!d) return;
+        if (d[4] === 'package') {   /* a bulk-order pack: [cart id, name, category, catalog title, "package", magnets, price] */
+          addLine({ id: d[0], kind: 'package', name: d[3], count: d[5], price: d[6], qty: w[1], detail: d[5] + ' magnets · we plan the design with you by email after checkout' }, true);
+          added += w[1] * d[5];
+          return;
+        }
         addLine({ id: d[0], kind: 'design', name: d[3] || d[1] + ' magnet', detail: '2 × 2 in · ' + d[2], price: PRICE, qty: w[1] }, true);   /* the catalog title: Meta checks the cart shows the same name */
         added += w[1];
       });

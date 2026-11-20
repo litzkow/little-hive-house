@@ -12,8 +12,14 @@ const V = "v26.0", SITE = "https://littlehivehouse.com";
 const DESC = {
   "Photo Magnets": "Your own photos as 2x2 in fridge magnets, in packs of 4 to 50.",
   "Heritage": "Culture and home, from Brasil and México to Ireland, Italia, Japan and more.",
+  "For Business": "Your logo, number or menu on your clients’ fridges, all year. Free design and proof.",
+  "Weddings": "Save the dates and favors with your names and date. Free design and proof.",
+  "Graduation & College": "Grad party favors, welcome week, clubs and reunions. Free design and proof.",
+  "Parties & Events": "Holiday office parties, showers, quinceañeras and reunions. Free design and proof.",
+  "Teams & Schools": "Season schedules and player photos for every family.",
 };
-const PAGE = { "Photo Magnets": "photo-magnets.html" };
+const PAGE = { "Photo Magnets": "photo-magnets.html", "For Business": "business.html", "Weddings": "weddings.html",
+  "Graduation & College": "graduation.html", "Parties & Events": "parties.html", "Teams & Schools": "big-orders.html" };
 /** What leads the shop now: the season's collections, by month. */
 function seasonFirst(month) {          // getMonth(): 0 = January ... 10 = November, 11 = December
   if (month >= 10) return ["Christmas", "Holidays & Dates"];
@@ -72,7 +78,8 @@ function groups(xml) {
   for (const t of tries) { try { const r = await t(); if (r && r.length && r[0].shop_id) { shops = r; break; } } catch (e) { say(`loja: ${e.message.slice(0, 200)}`); } }
   say(shops.length ? `loja: ${JSON.stringify(shops)}` : "não achei a loja para publicar; as categorias ficam prontas no catálogo");
   const G = groups(fs.readFileSync("google-products.xml", "utf8"));
-  const first = ["Photo Magnets", ...seasonFirst(new Date().getMonth())];
+  // photo magnets and the season lead; then the bulk orders, easy to find for businesses and events
+  const first = ["Photo Magnets", ...seasonFirst(new Date().getMonth()), "For Business", "Weddings", "Graduation & College", "Parties & Events", "Teams & Schools"];
   const ordered = [...first.map((n) => G.find((g) => g.name === n)).filter(Boolean), ...G.filter((g) => !first.includes(g.name))];
   const existing = (await call("GET", `${cat.id}/product_sets`, { fields: "id,name", limit: "200" })).data || [];
   const done = [];

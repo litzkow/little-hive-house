@@ -198,10 +198,13 @@ async function recentPosts(meta, rules, { insights = true } = {}) {
 }
 const MIN_AGE = DAY;          // a post is boosted after a day out: by then its likes show whether people like it
 
-function landing(mediaId) {
+function landing(mediaId, page = "") {
   const q = new URLSearchParams({ utm_source: "instagram", utm_medium: "paid", utm_campaign: "hive-boost", utm_content: String(mediaId) });
-  return `${siteUrl()}/?${q.toString()}`;
+  return `${siteUrl()}/${page}?${q.toString()}`;
 }
+/** A post for buyers of many (businesses, weddings, graduations, parties) sends the ad to that page, not the home page. */
+const BULK_PAGE = { business: "business.html", wedding: "weddings.html", graduation: "graduation.html", party: "parties.html" };
+const pageFor = (caption) => { const t = themesOf(caption); const k = ["business", "wedding", "graduation", "party"].find((x) => t.includes(x)); return k ? BULK_PAGE[k] : ""; };
 /** The one campaign every boosted post lives in (made the first time). */
 async function campaign(meta, state) {
   if (state.metaCampaignId) return state.metaCampaignId;
@@ -244,6 +247,17 @@ const THEMES = {
   heritage: { pt: "Culturas (Brasil, México, Itália…)", words: /brasil|brazil|m[eé]xic|ireland|irish|italia|italy|puerto|pilipinas|philippin|filipin|india|korea|japan|greece|greek|france|french|heritage|americana/,
     interests: ["Brazil", "Brazilian cuisine", "Mexican cuisine", "Mexico", "Ireland", "Italian cuisine", "Italy", "Puerto Rico", "Philippines", "Indian cuisine",
       "Korean cuisine", "K-pop", "Korean drama", "Japanese cuisine", "Japan", "Greek cuisine", "Greece", "French cuisine", "Paris"] },
+  // buyers of many: the posts made for them (business.html, weddings.html, graduation.html, parties.html)
+  business: { pt: "Empresas e pequenos negócios", words: /\blogo\b|business|company|clients?\b|realtor|real estate|restaurant|caf[eé]\b|salon|dentist|brand|corporate|bulk|promo|small shop/,
+    interests: ["Small business", "Entrepreneurship", "Real estate", "Restaurant", "Marketing", "Local business"], behaviors: ["Small business owners"] },
+  wedding: { pt: "Noivos e casamentos", words: /wedding|save the date|bride|groom|engag|newlywed|bridal/,
+    interests: ["Weddings", "Bride", "Wedding planning", "Wedding dress", "Engagement"],
+    life_events: ["Newly engaged (3 months)", "Newly engaged (6 months)", "Newly engaged (1 year)", "Newlywed (3 months)"] },
+  graduation: { pt: "Formaturas e faculdade", words: /graduat|class of|college|campus|sorority|fraternit|alumni|welcome week|dorm|grad party|senior/,
+    interests: ["Graduation", "College", "University", "Sorority", "Fraternity", "Student"],
+    family_statuses: ["Parents with teenagers (13-17 years)", "Parents with adult children (18-26 years)"] },
+  party: { pt: "Festas e eventos", words: /party|parties|shower|quincea|quince|sweet 16|birthday|reunion|celebrat|event/,
+    interests: ["Party", "Event planning", "Baby shower", "Birthday", "Quinceañera", "Family reunion"] },
   art: { pt: "Arte, livros e céu", words: /art|master|van gogh|monet|museum|story|book|fairy|myth|horror|night sky|stars|zodiac|moon|constellat|flower/,
     interests: ["Fine art", "Vincent van Gogh", "Claude Monet", "Impressionism", "Books", "Reading", "Fairy tale", "Mythology", "Astronomy", "Astrology", "Gardening"] },
 };
@@ -340,7 +354,7 @@ async function boost(meta, state, post, daily) {
   const adsetId = await sharedAdset(meta, state, Math.max(1, num(daily) || 1), post);
   const creative = await graph(meta, "POST", `${meta.adAccountId}/adcreatives`, {
     name: `Instagram ${post.id}`, object_id: meta.pageId, instagram_user_id: meta.igUserId, source_instagram_media_id: post.id,
-    call_to_action: { type: "SHOP_NOW", value: { link: landing(post.id) } },
+    call_to_action: { type: "SHOP_NOW", value: { link: landing(post.id, pageFor(post.caption)) } },
   });
   const ad = await graph(meta, "POST", `${meta.adAccountId}/ads`, { name: `Post ${post.id} · ${String(post.caption || "").slice(0, 40) || "Instagram"}`, adset_id: adsetId,
     creative: { creative_id: creative.id }, status: "ACTIVE",
@@ -974,4 +988,4 @@ async function adminAds(data, auth) {
 }
 
 module.exports = { adminAds, run, plan, season, dailyAllowed, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
-  _internal: { graph, version: () => META_VERSION(), audience, themesOf, THEMES, AUDIENCE_V, withTargeting, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
+  _internal: { graph, version: () => META_VERSION(), audience, themesOf, THEMES, AUDIENCE_V, withTargeting, pageFor, landing, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
