@@ -1,5 +1,7 @@
 "use strict";
 /* End-to-end through the handlers with in-memory Firestore/Auth/Storage and a fake Stripe + Resend. */
+/* these tests price carts as on a normal day: the store-wide sale (catalog.json rules.sale) has its own tests */
+require("../catalog.json").rules.sale = null;
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { FakeDB, FakeAuth, FakeBucket, fakeNet } = require("./fakes");

@@ -3,6 +3,7 @@
   var PRICE = 5, BUNDLE_N = 3, BUNDLE_PRICE = 12;
   var SHIPPING = 5.49, FREE_SHIP_AT = 35;
   var VOLUME = [[100, 25], [50, 20], [20, 10]];
+  var SALE = {"name":"Black Friday","start":"2026-11-20T05:00:00Z","end":"2026-12-01T05:00:00Z","pct":20,"free":[[10,6],[6,3],[3,1]],"days":[{"name":"Black Friday","start":"2026-11-27T05:00:00Z","end":"2026-11-28T05:00:00Z","pct":30,"freeShipping":true}]};   /* the store-wide sale (tools/catalog.py SALE = catalog.json rules.sale): the server prices it the same way */
   /* when an order placed today arrives (assets/delivery.js), shown in the quick view, the cart and the shipping page */
   var ETA = '';
   try { if (window.LHHDelivery) ETA = LHHDelivery.arrival(); } catch (e) { ETA = ''; }
@@ -138,19 +139,41 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, Math.max(2200, Math.min(7000, String(msg).length * 55)));   /* long messages stay long enough to read */
   }
 
-  function totals() {
+  function totals(now) {
     var sub = 0, designs = 0, pkg = 0;
     cart.forEach(function (l) { sub += l.price * l.qty; if (l.kind === 'design') designs += l.qty; if (l.kind === 'package') pkg += l.price * l.qty; });
-    var disc = Math.floor(designs / BUNDLE_N) * (BUNDLE_N * PRICE - BUNDLE_PRICE);
+    var bundleOf = function (n) { return Math.floor(n / BUNDLE_N) * (BUNDLE_N * PRICE - BUNDLE_PRICE); };
+    var disc = bundleOf(designs);
     /* packages already have their quantity price (a service like mailing is count 0): the volume discount is on the rest */
     var magnets = cart.reduce(function (a, l) { return a + l.qty * (l.count == null ? 1 : l.count); }, 0);
     var tier = VOLUME.find(function (v) { return magnets >= v[0]; });
     var pct = tier ? tier[1] : 0;
     var vol = Math.round((sub - disc - pkg) * pct) / 100;
     var goods = sub - disc - vol;
-    var ship = cart.length && cart.every(function (l) { return l.digital; }) ? 0 : goods >= FREE_SHIP_AT ? 0 : SHIPPING;   /* design files only: nothing to ship */
+    /* the sale (same as functions/pricing.js): % off what they pay, or some designs free; the better one, never both */
+    var t = now == null ? Date.now() : now, sale = null;
+    if (SALE && t >= Date.parse(SALE.start) && t < Date.parse(SALE.end)) {
+      var day = (SALE.days || []).find(function (d) { return t >= Date.parse(d.start) && t < Date.parse(d.end); });
+      sale = { name: (day && day.name) || SALE.name, pct: (day && day.pct) || SALE.pct || 0, freeShipping: !!(day && day.freeShipping) };
+    }
+    var promoC = 0, kind = '', free = 0, goodsC = Math.round(goods * 100);
+    if (sale) {
+      var byPct = Math.round(goodsC * sale.pct / 100), byFree = 0, left = designs, f = 0;
+      (SALE.free || []).slice().sort(function (a, b) { return (b[0] + b[1]) - (a[0] + a[1]); }).forEach(function (tr) {
+        var g = tr[0] + tr[1]; while (g > 0 && left >= g) { f += tr[1]; left -= g; }
+      });
+      if (f > 0) {
+        var subF = sub - f * PRICE, bundleF = bundleOf(designs - f), volF = Math.round((subF - bundleF - pkg) * pct) / 100;
+        byFree = goodsC - Math.round((subF - bundleF - volF) * 100);
+      }
+      if (byFree > byPct) { promoC = byFree; kind = 'free'; free = f; } else if (byPct > 0) { promoC = byPct; kind = 'pct'; }
+    }
+    var promo = promoC / 100;
+    var ship = cart.length && cart.every(function (l) { return l.digital; }) ? 0 : sale && sale.freeShipping ? 0 : goods >= FREE_SHIP_AT ? 0 : SHIPPING;   /* design files only: nothing to ship */
     var next = VOLUME.slice().reverse().find(function (v) { return magnets < v[0]; });
-    return { sub: sub, disc: disc, vol: vol, pct: pct, magnets: magnets, next: next, goods: goods, ship: ship, total: goods + ship, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
+    var paid = (goodsC - promoC) / 100;
+    return { sub: sub, disc: disc, vol: vol, pct: pct, magnets: magnets, next: next, goods: paid, before: goods, ship: ship, total: (goodsC - promoC + Math.round(ship * 100)) / 100,
+      promo: promo, sale: sale, saleKind: kind, free: free, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
   }
 
   /* small picture of each cart line: the design itself, the frame of the first photo, or the honeycomb for packages */
@@ -217,10 +240,30 @@
     var vn = $('vol-note');
     if (t.next && t.magnets >= 5 && cart.some(function (l) { return l.kind !== 'package'; })) {   /* packages have their own price */ vn.textContent = 'Add ' + (t.next[0] - t.magnets) + ' more magnets for ' + t.next[1] + '% off your whole order.'; vn.hidden = false; }
     else vn.hidden = true;
+    var sr = $('t-sale-row');
+    if (sr) {
+      sr.hidden = !t.promo;
+      if (t.promo) {
+        $('t-sale-label').textContent = t.sale.name + ', ' + (t.saleKind === 'free' ? (t.free === 1 ? '1 design free' : t.free + ' designs free') : t.sale.pct + '% off');
+        $('t-sale').textContent = '−' + money(t.promo);
+      }
+    }
+    var dn = $('sale-note');
+    if (dn) {
+      /* the next "buy N, get M free" step, when it would beat what they have now */
+      var nd = cart.reduce(function (a, l) { return a + (l.kind === 'design' ? l.qty : 0); }, 0), tip = '';
+      if (t.sale && nd > 0) {
+        var steps = (SALE.free || []).map(function (f) { return [f[0] + f[1], f[1]]; }).sort(function (x, y) { return x[0] - y[0]; });
+        var nx = steps.find(function (f) { return nd < f[0]; });
+        if (nx) tip = t.sale.name + ': add ' + (nx[0] - nd) + (nx[0] - nd === 1 ? ' more design' : ' more designs') + ' and ' + nx[1] + (nx[1] === 1 ? ' of them is free.' : ' of them are free.');
+      }
+      dn.textContent = tip; dn.hidden = !tip;
+    }
     $('t-ship').textContent = t.ship ? money(t.ship) : 'Free';
     $('t-total').textContent = money(t.total);
     var sn = $('ship-note');
-    if (t.ship) { sn.textContent = 'Add ' + money(FREE_SHIP_AT - t.goods) + ' more for free US shipping.'; sn.classList.remove('free'); }
+    if (t.ship) { sn.textContent = 'Add ' + money(FREE_SHIP_AT - t.before) + ' more for free US shipping.'; sn.classList.remove('free'); }
+    else if (t.sale && t.sale.freeShipping) { sn.textContent = t.sale.name + ': free shipping on every order today.'; sn.classList.add('free'); }
     else { sn.textContent = 'Your order ships free.'; sn.classList.add('free'); }
     etaNote();
   }
@@ -426,7 +469,7 @@
   document.addEventListener('change', function (e) {
     var r = e.target.closest && e.target.closest('.tier input'); if (!r) return;
     var card = r.closest('[data-package]');
-    var buy = card.querySelector('[data-buy-package]'); if (buy) buy.textContent = 'Buy now · ' + money(Number(r.getAttribute('data-price')));
+    var buy = card.querySelector('[data-buy-package]'); if (buy) buy.innerHTML = 'Buy now · ' + priceHtml(Number(r.getAttribute('data-price')));
     var q = card.querySelector('[data-pkg]'); if (q) q.setAttribute('data-qty', r.getAttribute('data-size'));
   });
   document.addEventListener('click', function (e) {
@@ -463,7 +506,51 @@
   }
   /* ---- /store ---- */
 
+  /* the sale running now (same rules as totals()): {name, pct, freeShipping, end, last}, or null */
+  function saleInfo(now) {
+    var t = now == null ? Date.now() : now;
+    if (!SALE || !(t >= Date.parse(SALE.start) && t < Date.parse(SALE.end))) return null;
+    var day = (SALE.days || []).find(function (d) { return t >= Date.parse(d.start) && t < Date.parse(d.end); });
+    var end = day ? Date.parse(day.end) : Date.parse(SALE.end);
+    return { name: (day && day.name) || SALE.name, pct: (day && day.pct) || SALE.pct || 0, freeShipping: !!(day && day.freeShipping), day: !!day, end: end, last: Date.parse(SALE.end) - t < 864e5 };
+  }
+  /* a price as it is now: crossed out with the sale price next to it (designs, packs, buttons) */
+  function priceHtml(p) {
+    var s = saleInfo(), n = Number(p);
+    if (!s || !s.pct || !(n > 0)) return money(n);
+    return '<s class="was">' + money(n) + '</s> <span class="now">' + money(Math.round(n * (100 - s.pct)) / 100) + '</span>';
+  }
+  (function saleBar() {
+    var s = saleInfo(); if (!s) return;
+    var bar = document.createElement('div'); bar.className = 'sale-bar' + (s.day ? ' sale-day' : ''); bar.setAttribute('role', 'note');
+    var steps = (SALE.free || []).slice().sort(function (a, b) { return a[0] - b[0]; })[0];
+    var left = function () {
+      var m = Math.max(0, Math.round((s.end - Date.now()) / 60000)), h = Math.floor(m / 60);
+      return h >= 24 ? '' : ' · ends in ' + (h ? h + 'h ' : '') + (m % 60) + 'm';
+    };
+    var draw = function () {
+      var what = s.day ? 'today only: ' + s.pct + '% off everything' + (s.freeShipping ? ' + free shipping' : '')
+        : s.pct + '% off everything' + (steps ? ', or buy ' + steps[0] + ' designs, get ' + steps[1] + ' free' : '');
+      bar.innerHTML = '<strong>' + (s.last ? 'Cyber Monday' : s.name) + '</strong> <span>' + what + (s.day || s.last ? left() : ' · through Cyber Monday') + '</span> <a href="' + ROOT + 'shop.html">Shop the sale</a>';
+    };
+    draw(); setInterval(draw, 60000);
+    document.body.insertBefore(bar, document.body.firstChild);
+    document.documentElement.classList.add('on-sale');
+    /* the design price on shop and design pages, and the photo pack prices: crossed out with the sale price */
+    if (!s.pct) return;
+    document.querySelectorAll('.price, .pack label span').forEach(function (el) {
+      var tn = Array.prototype.find.call(el.childNodes, function (c) { return c.nodeType === 3 && /^\s*\$\d+(\.\d+)?/.test(c.nodeValue); });
+      if (!tn) return;
+      var m = tn.nodeValue.match(/^(\s*)\$(\d+(?:\.\d+)?)(.*)$/);
+      var span = document.createElement('span'); span.className = 'sale-price';
+      span.innerHTML = m[1] + priceHtml(m[2]);
+      el.replaceChild(span, tn);
+      if (m[3]) span.parentNode.insertBefore(document.createTextNode(m[3]), span.nextSibling);
+    });
+  })();
+
   window.LHH = {
+    sale: saleInfo, priceHtml: priceHtml,
     /* a bulk-order pack built on the page (the QR magnet maker): one cart line, then the cart */
     addPackage: function (line) { line.kind = 'package'; addLine(line, true); openCart(); },
     addCustom: function (item) {

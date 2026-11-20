@@ -137,6 +137,11 @@ function itemList(order, L, opts = {}) {
 }
 
 /** Totals table from order.pricing (+ refunds when `withRefunds`). */
+/** "Black Friday, 20% off" or "Black Friday, 3 designs free" (pricing.sale, functions/pricing.js) */
+function saleLabel(s) {
+  const name = F.line(s.name || "Sale", 40);
+  return s.kind === "free" ? `${name}, ${num(s.free)} ${num(s.free) === 1 ? "design" : "designs"} free` : `${name}, ${num(s.pct)}% off`;
+}
 function totals(order, opts = {}) {
   const pr = (order && order.pricing) || {};
   const cur = pr.currency;
@@ -145,6 +150,7 @@ function totals(order, opts = {}) {
   rows.push(["Subtotal", money(subtotal, cur)]);
   if (num(pr.bundleDiscount) > 0) rows.push(["Bundle savings (3 for $12)", "−" + money(pr.bundleDiscount, cur), "save"]);
   if (num(pr.volumeDiscount) > 0) rows.push([`Volume discount${num(pr.volumePct) ? ` (${num(pr.volumePct)}% off)` : ""}`, "−" + money(pr.volumeDiscount, cur), "save"]);
+  if (pr.sale && num(pr.sale.amount) > 0) rows.push([saleLabel(pr.sale), "−" + money(pr.sale.amount, cur), "save"]);
   if (pr.promo && num(pr.promo.amount) > 0) rows.push([`Promo code${pr.promo.code ? " " + F.line(pr.promo.code, 30) : ""}`, "−" + money(pr.promo.amount, cur), "save"]);
   if (pr.shipping !== undefined && pr.shipping !== null) rows.push(["Shipping", num(pr.shipping) > 0 ? money(pr.shipping, cur) : "Free", num(pr.shipping) > 0 ? "" : "save"]);
   if (num(pr.tax) > 0) rows.push(["Sales tax", money(pr.tax, cur)]);

@@ -191,5 +191,18 @@ var PATTERNS = [
   [/^Magnet (\d+)$/, "Ímã $1"],
   [/^Photo (\d+)$/, "Foto $1"],
   [/^Step (\d+) of (\d+)$/, "Passo $1 de $2"],
+  [/^(\d+)% off everything, or buy (\d+) designs, get (\d+) free(.*)$/, function (_, p, b, g, rest) { return p + "% de desconto em tudo, ou compre " + b + " modelos e ganhe " + g + saleEnd(rest); }],
+  [/^today only: (\d+)% off everything( \+ free shipping)?(.*)$/, function (_, p, f, rest) { return "só hoje: " + p + "% de desconto em tudo" + (f ? " + frete grátis" : "") + saleEnd(rest); }],
+  [/^(Black Friday|Cyber Monday), (\d+)% off$/, "$1, $2% de desconto"],
+  [/^(Black Friday|Cyber Monday), (\d+) designs? free$/, function (_, n, k) { return n + ", " + k + (k === "1" ? " modelo grátis" : " modelos grátis"); }],
+  [/^(Black Friday|Cyber Monday): add (\d+) more designs? and (\d+) of them (?:is|are) free\.$/, function (_, n, a, f) { return n + ": adicione mais " + a + (a === "1" ? " modelo" : " modelos") + " e " + f + (f === "1" ? " sai de graça." : " saem de graça."); }],
+  [/^(Black Friday|Cyber Monday): free shipping on every order today\.$/, "$1: frete grátis em todos os pedidos hoje."],
   [/^(\d+) of (\d+)$/, "$1 de $2"]
 ];
+/* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
+function saleEnd(rest) {
+  if (!rest) return "";
+  if (/through Cyber Monday/.test(rest)) return " · até a Cyber Monday";
+  var m = /ends in (.*)$/.exec(rest);
+  return m ? " · acaba em " + m[1] : rest;
+}

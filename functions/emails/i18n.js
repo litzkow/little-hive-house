@@ -105,6 +105,8 @@ const P = [
   [/^(\d+) magnets( × (\d+))?$/, (_, n, x, q) => `${n} ímãs${q ? ` × ${q}` : ""}`],
   [/^Volume discount \((\d+)% off\)$/, "Desconto por quantidade ($1% off)"],
   [/^Promo code (.+)$/, "Cupom $1"],
+  [/^(.+), (\d+)% off$/, "$1, $2% de desconto"],
+  [/^(.+), (\d+) designs? free$/, (_, n, k) => `${n}, ${k} ${k === "1" ? "modelo grátis" : "modelos grátis"}`],
   [/^Captions: (.+)$/, "Legendas: $1"],
   [/^Note: (.+)$/, "Recado: $1"],
 ];

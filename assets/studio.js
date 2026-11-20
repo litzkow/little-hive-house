@@ -233,7 +233,8 @@
 
   function price() {
     var o = $('[data-dz-pack]').selectedOptions[0];
-    $('[data-dz-buy]').textContent = 'Buy now · $' + Number(o.getAttribute('data-price'));
+    var pr = Number(o.getAttribute('data-price'));
+    $('[data-dz-buy]').innerHTML = 'Buy now · ' + (window.LHH && LHH.priceHtml ? LHH.priceHtml(pr) : '$' + pr);
   }
 
   /* the logo: PNG with its transparency, at most 1200 px (an SVG is drawn into a PNG too) */

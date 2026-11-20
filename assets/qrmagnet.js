@@ -26,7 +26,8 @@
     var c = getComputedStyle(prev).getPropertyValue('--qr-ink').trim() || '#2B2118';
     code.innerHTML = window.LHHQR.svg(u, 240, c, '#fff');
     var p = pack.options[pack.selectedIndex];
-    buy.textContent = 'Buy now · $' + Number(p.getAttribute('data-price'));
+    var pr = Number(p.getAttribute('data-price'));
+    buy.innerHTML = 'Buy now · ' + (window.LHH && LHH.priceHtml ? LHH.priceHtml(pr) : '$' + pr);
   }
   box.addEventListener('input', draw);
   box.addEventListener('change', draw);

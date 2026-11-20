@@ -197,6 +197,7 @@
     var rows = [['Subtotal', money(p.subtotal)]];
     if (p.bundleDiscount) rows.push(['3 designs for $12', money(-p.bundleDiscount), 'disc']);
     if (p.volumeDiscount) rows.push(['Big order' + (p.volumePct ? ', ' + p.volumePct + '% off' : ''), money(-p.volumeDiscount), 'disc']);
+    if (p.sale && p.sale.amount) rows.push([(p.sale.name || 'Sale') + ', ' + (p.sale.kind === 'free' ? (p.sale.free === 1 ? '1 design free' : p.sale.free + ' designs free') : p.sale.pct + '% off'), money(-p.sale.amount), 'disc']);
     if (p.promo && p.promo.amount) rows.push(['Code ' + (p.promo.code || ''), money(-p.promo.amount), 'disc']);
     rows.push(['Shipping', p.shipping ? money(p.shipping) : 'Free']);
     if (p.tax) rows.push(['Sales tax', money(p.tax)]);

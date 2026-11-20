@@ -10,7 +10,7 @@ import re
 
 import datetime
 
-from catalog import ALL_COLLECTIONS, BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, HERITAGE_ALL, MORE_COLLECTIONS, PRICE, SEASONAL, SEASONS, VOLUME, title_for
+from catalog import ALL_COLLECTIONS, BUNDLE, COLLECTIONS, FEATURED, GIFTS, GROUPS, HERITAGE_ALL, MORE_COLLECTIONS, PRICE, SALE, SEASONAL, SEASONS, VOLUME, title_for
 BY_SLUG = {c["slug"]: c for c in COLLECTIONS}
 PARENT = {ch: g for g in GROUPS for ch in g["children"]}
 
@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "60"
+VERSION = "61"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"
@@ -542,12 +542,14 @@ def chrome_end(pg, extra_js=()):
     <div><span>Subtotal</span><span id="t-sub">$0</span></div>
     <div class="discount" id="t-disc-row" hidden><span>Any {BUNDLE[0]} designs for ${BUNDLE[1]}</span><span id="t-disc">−$0</span></div>
     <div class="discount" id="t-vol-row" hidden><span id="t-vol-label">Big order discount</span><span id="t-vol">−$0</span></div>
+    <div class="discount sale-row" id="t-sale-row" hidden><span id="t-sale-label">Sale</span><span id="t-sale">−$0</span></div>
     <div><span>Shipping</span><span id="t-ship">$5.49</span></div>
     <div class="tax-row"><span>Sales tax</span><span>Added at checkout</span></div>
     <div class="grand"><span>Total before tax</span><span id="t-total">$0</span></div>
     <p class="ship-note" id="ship-note"></p>
     <p class="ship-note eta-note" id="eta-note"></p>
     <p class="ship-note" id="vol-note" hidden></p>
+    <p class="ship-note sale-note" id="sale-note" hidden></p>
     <!-- store: checkout extras (assets/checkout.js shows them once the store is connected) -->
     <div class="co" id="co" hidden>
       <details class="co-extras">
@@ -1093,6 +1095,16 @@ def feed_jpg(img):
     return rel
 
 
+def _sale_tags(price):
+    """Google/Meta feed: the store-wide sale price (catalog.py SALE, the % of the week) with its dates, so the feed
+    and the crossed-out price on the page agree. Nothing once the sale is over."""
+    import datetime as _dt
+    if not SALE or _dt.datetime.now(_dt.timezone.utc) >= _dt.datetime.fromisoformat(SALE["end"].replace("Z", "+00:00")):
+        return ""
+    sp = round(price * (100 - SALE["pct"]) / 100, 2)
+    return f"    <g:sale_price>{sp:.2f} USD</g:sale_price>\n    <g:sale_price_effective_date>{SALE['start'].replace('Z', '+00:00')}/{SALE['end'].replace('Z', '+00:00')}</g:sale_price_effective_date>\n"
+
+
 def write_google_feed():
     """google-products.xml: every design (and the photo packs) for Google Merchant Center, read by Google every day."""
     site = "https://littlehivehouse.com/"
@@ -1100,7 +1112,7 @@ def write_google_feed():
         return ("  <item>\n"
                 f"    <g:id>{E(pid)}</g:id>\n    <g:title>{E(title)}</g:title>\n    <g:description>{E(desc)}</g:description>\n"
                 f"    <g:link>{E(link)}</g:link>\n    <g:image_link>{E(image)}</g:image_link>\n"
-                f"    <g:availability>in_stock</g:availability>\n    <g:price>{price:.2f} USD</g:price>\n"
+                f"    <g:availability>in_stock</g:availability>\n    <g:price>{price:.2f} USD</g:price>\n" + _sale_tags(price) +
                 "    <g:condition>new</g:condition>\n    <g:brand>Little Hive House</g:brand>\n    <g:identifier_exists>no</g:identifier_exists>\n"
                 "    <g:google_product_category>696</g:google_product_category>\n"
                 f"    <g:product_type>{E(ptype)}</g:product_type>\n    <g:custom_label_0>{E(label)}</g:custom_label_0>\n"
@@ -1979,7 +1991,7 @@ def export_store_catalog():
                     | {"digital-file": {"title": DIGITAL_TITLE, "group": "digital", "size": 0, "price": DIGITAL_PRICE, "digital": True}},
         "rules": {"designPrice": PRICE, "bundle": {"size": BUNDLE[0], "price": BUNDLE[1]},
                   "volume": [{"min": n, "pct": pct} for n, pct in VOLUME], "shipping": STORE_SHIPPING,
-                  "freeShippingAt": STORE_FREE_SHIP_AT, "currency": "usd"},
+                  "freeShippingAt": STORE_FREE_SHIP_AT, "currency": "usd", "sale": SALE},
         # the calendar of the home page spotlight, for the automatic emails to subscribers (functions/newsletter.js)
         "seasons": [{"start": a, "end": b, "title": t, "label": lab, "blurb": bl, "collection": col,
                      "picks": [f"{c}/{sl}" for c, sl in picks if any(x["slug"] == c and sl in x["order"] for x in COLLECTIONS)]}

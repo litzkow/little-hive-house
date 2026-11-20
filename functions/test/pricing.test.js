@@ -6,7 +6,9 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const P = require("../pricing");
-const { priceCart, allocate, computeTotals, rulesOf } = P;
+const { allocate, computeTotals, rulesOf } = P;
+/* the tests before the sale ones price at a fixed day outside any sale, so they never change with the calendar */
+const priceCart = (cart, cat, now = Date.parse("2026-10-15T15:00:00Z")) => P.priceCart(cart, cat, now);
 const catalog = require("../catalog.json");
 
 const SITE_JS = path.join(__dirname, "..", "..", "assets", "site.js");
@@ -14,19 +16,20 @@ const SITE_JS = path.join(__dirname, "..", "..", "assets", "site.js");
 /** Pulls PRICE/BUNDLE/SHIPPING/VOLUME constants and totals() out of site.js and returns totals(cart). */
 function loadSiteTotals() {
   const src = fs.readFileSync(SITE_JS, "utf8");
-  const names = ["PRICE", "BUNDLE_N", "BUNDLE_PRICE", "SHIPPING", "FREE_SHIP_AT", "VOLUME"];
+  const names = ["PRICE", "BUNDLE_N", "BUNDLE_PRICE", "SHIPPING", "FREE_SHIP_AT", "VOLUME", "SALE"];
   const decls = src.split("\n").filter((l) => /^\s*var\s/.test(l) && names.some((n) => new RegExp(`\\b${n}\\s*=`).test(l)));
   for (const n of names) assert.ok(decls.some((l) => new RegExp(`\\b${n}\\s*=`).test(l)), `site.js: constant ${n} not found`);
-  const start = src.indexOf("function totals()");
+  const start = src.indexOf("function totals(");
   assert.ok(start >= 0, "site.js: function totals() not found");
   let depth = 0, end = -1;
   for (let i = src.indexOf("{", start); i < src.length; i++) {
     if (src[i] === "{") depth++;
     else if (src[i] === "}") { depth--; if (depth === 0) { end = i + 1; break; } }
   }
-  const code = `${decls.join("\n")}\nvar cart = [];\n${src.slice(start, end)}\nthis.run = function (c) { cart = c; return totals(); };`;
+  const code = `${decls.join("\n")}\nvar cart = [];\n${src.slice(start, end)}\nthis.run = function (c, now) { cart = c; return totals(now); };\nthis.SALE = SALE;`;
   const ctx = {};
   vm.runInNewContext(code, ctx);
+  ctx.run.SALE = ctx.SALE;
   return ctx.run;
 }
 
@@ -71,6 +74,8 @@ function randomCart(rnd) {
 }
 
 const c = (x) => Math.round(x * 100);
+const NO_SALE = Date.parse("2026-10-15T15:00:00Z"), WEEK = Date.parse("2026-11-24T15:00:00Z"), BF_DAY = Date.parse("2026-11-27T15:00:00Z"),
+  LAST_MIN = Date.parse("2026-12-01T04:59:00Z"), AFTER = Date.parse("2026-12-01T05:00:00Z");
 
 test("site.js totals() and pricing.js agree on 5000 random carts", () => {
   const siteTotals = loadSiteTotals();
@@ -79,8 +84,8 @@ test("site.js totals() and pricing.js agree on 5000 random carts", () => {
   for (let k = 0; k < 5000; k++) {
     const { site, payload } = randomCart(rnd);
     if (!site.length) continue;
-    const a = siteTotals(site);
-    const b = priceCart(payload, catalog);
+    const a = siteTotals(site, NO_SALE);
+    const b = priceCart(payload, catalog, NO_SALE);
     const t = b.totals;
     const ctx = JSON.stringify(site);
     assert.equal(t.sub, c(a.sub), `subtotal ${ctx}`);
@@ -110,7 +115,7 @@ test("edge carts: thresholds for bundle, volume tiers and free shipping", () => 
     const payload = site.map((l) => (l.kind === "design" ? { kind: "design", id: l.id, qty: l.qty }
       : l.kind === "package" ? { kind: "package", id: l.id, qty: l.qty }
         : { kind: "photos", packSize: l.count, qty: l.qty, photos: [{ frame: "none" }] }));
-    const a = siteTotals(site), t = priceCart(payload, catalog).totals;
+    const a = siteTotals(site, NO_SALE), t = priceCart(payload, catalog, NO_SALE).totals;
     assert.equal(t.total, c(a.total), JSON.stringify(site));
     assert.equal(t.ship, c(a.ship), JSON.stringify(site));
   }
@@ -153,11 +158,13 @@ test("allocate() spreads discounts so Stripe lines add up to the goods total exa
   for (let k = 0; k < 3000; k++) {
     const { payload } = randomCart(rnd);
     if (!payload.length) continue;
-    const p = priceCart(payload, catalog);
-    const shares = allocate(p.lines, p.totals);
-    assert.equal(shares.reduce((a, s) => a + s.net, 0), p.totals.goods);
-    shares.forEach((s, i) => assert.ok(s.net > 0 && s.net <= p.lines[i].unit * p.lines[i].qty));
-    assert.deepEqual(computeTotals(p.lines, rules), p.totals);
+    for (const now of [NO_SALE, WEEK, BF_DAY]) {
+      const p = priceCart(payload, catalog, now);
+      const shares = allocate(p.lines, p.totals);
+      assert.equal(shares.reduce((a, s) => a + s.net, 0), p.totals.goods);
+      shares.forEach((s, i) => assert.ok(s.net > 0 && s.net <= p.lines[i].unit * p.lines[i].qty));
+      assert.deepEqual(computeTotals(p.lines, rules, now), p.totals);
+    }
   }
 });
 
@@ -269,4 +276,67 @@ test("a design file only: no magnet, no shipping, needs the design and its uploa
   assert.equal(both.items[0].digital, undefined);
   // a file path that isn't an upload is dropped
   assert.equal(priceCart([{ kind: "package", id: "business-50", qty: 1, design, file: "../x.png" }], catalog).items[0].file, undefined);
+});
+
+
+/* ---------- the store-wide sale (tools/catalog.py SALE) ---------- */
+test("site.js SALE is the same as catalog.json rules.sale", () => {
+  const siteTotals = loadSiteTotals();
+  assert.deepEqual(JSON.parse(JSON.stringify(siteTotals.SALE)), catalog.rules.sale);
+});
+
+test("site.js totals() and pricing.js agree during the sale and on the big day, to the cent", () => {
+  const siteTotals = loadSiteTotals();
+  const rnd = seeded(20261127);
+  const seen = { pct: 0, free: 0, freeShipDay: 0 };
+  for (const now of [WEEK, BF_DAY, LAST_MIN, AFTER]) {
+    for (let k = 0; k < 2500; k++) {
+      const { site, payload } = randomCart(rnd);
+      if (!site.length) continue;
+      const a = siteTotals(site, now), b = priceCart(payload, catalog, now), t = b.totals;
+      const ctx = `${new Date(now).toISOString()} ${JSON.stringify(site)}`;
+      assert.equal(t.promo || 0, c(a.promo), `sale discount ${ctx}`);
+      assert.equal(t.goods, c(a.goods), `goods ${ctx}`);
+      assert.equal(t.ship, c(a.ship), `shipping ${ctx}`);
+      assert.equal(t.total, c(a.total), `total ${ctx}`);
+      assert.equal(t.sale ? t.sale.kind : "", a.saleKind || (a.sale && a.sale.freeShipping && !a.promo ? "" : a.saleKind), `kind ${ctx}`);
+      if (now === AFTER) assert.equal(t.sale, null, "no sale after Cyber Monday");
+      if (t.sale && t.sale.kind === "pct") seen.pct++;
+      if (t.sale && t.sale.kind === "free") seen.free++;
+      if (now === BF_DAY && t.ship === 0) seen.freeShipDay++;
+    }
+  }
+  assert.ok(seen.pct > 1000 && seen.free > 50 && seen.freeShipDay > 1500, JSON.stringify(seen));
+});
+
+test("sale: 20% off all week, 30% and free shipping on Black Friday, the better deal and never both", () => {
+  const d = (qty) => [{ kind: "design", id: designIds[0], qty }];
+  // 1 design in the week: $5 -> 20% off = $4, shipping $5.49
+  let t = priceCart(d(1), catalog, WEEK).totals;
+  assert.equal(t.promo, 100); assert.equal(t.goods, 400); assert.equal(t.ship, 549); assert.equal(t.sale.kind, "pct");
+  // 4 designs: buy 3, get 1 free (3 for $12 = $12) beats 20% off $17 ($13.60)
+  t = priceCart(d(4), catalog, WEEK).totals;
+  assert.equal(t.sale.kind, "free"); assert.equal(t.sale.free, 1); assert.equal(t.goods, 1200); assert.equal(t.promo, 500);
+  // 16 designs: buy 10, get 6 free
+  t = priceCart(d(16), catalog, WEEK).totals;
+  assert.equal(t.sale.kind, "free"); assert.equal(t.sale.free, 6);
+  // Black Friday: 30% off and free shipping on a $5 order
+  t = priceCart(d(1), catalog, BF_DAY).totals;
+  assert.equal(t.promo, 150); assert.equal(t.goods, 350); assert.equal(t.ship, 0); assert.equal(t.sale.name, "Black Friday"); assert.equal(t.sale.pct, 30);
+  // business packs get the % off too
+  const biz = Object.keys(catalog.packages).find((id) => /^business-/.test(id));
+  t = priceCart([{ kind: "package", id: biz, qty: 1 }], catalog, WEEK).totals;
+  assert.equal(t.promo, Math.round(t.sub * 20 / 100)); assert.equal(t.sale.kind, "pct");
+  // free shipping still goes by the order before the sale discount ($40 of designs -> $32 after 20%, ships free)
+  t = priceCart([{ kind: "photos", packSize: 16, photos: [{ frame: "none" }] }], catalog, WEEK).totals;
+  assert.equal(t.ship, 0);
+  // nothing before or after
+  assert.equal(priceCart(d(4), catalog, NO_SALE).totals.promo, 0);
+  assert.equal(priceCart(d(4), catalog, AFTER).totals.sale, null);
+});
+
+test("buy N, get M free: the biggest deal first", () => {
+  const { freeOf } = P;
+  const tiers = catalog.rules.sale.free;
+  assert.deepEqual([3, 4, 8, 9, 12, 13, 16, 25, 32].map((n) => freeOf(n, tiers)), [0, 1, 2, 3, 3, 4, 6, 9, 12]);
 });

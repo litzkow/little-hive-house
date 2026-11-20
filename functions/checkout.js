@@ -59,7 +59,11 @@ function stripeLineItems(priced, base = siteUrl(), tax = false, lang = "en") {
       product.description = pt ? `${l.count} ímãs personalizados. Depois do pagamento, mandamos um e-mail sobre o seu modelo.` : `${l.count} custom magnets. We email you about your design after checkout.`;
     }
     if (tax) product.tax_code = TAX_GOODS;
-    if (discount > 0) product.description = `${product.description ? product.description + " · " : ""}${pt ? "descontos do combo e de quantidade incluídos" : "bundle and big-order savings included"}`;
+    if (discount > 0) {
+      const sale = priced.totals && priced.totals.sale && priced.totals.promo > 0 ? priced.totals.sale.name : "";
+      const what = sale ? (pt ? `desconto de ${sale} incluído` : `${sale} discount included`) : pt ? "descontos do combo e de quantidade incluídos" : "bundle and big-order savings included";
+      product.description = `${product.description ? product.description + " · " : ""}${what}`;
+    }
     if (net % l.qty === 0) {
       return { price_data: { currency: "usd", unit_amount: net / l.qty, product_data: product, ...(tax ? { tax_behavior: "exclusive" } : {}) }, quantity: l.qty };
     }
@@ -87,7 +91,7 @@ function sessionParams({ orderId, priced, email, tax = false, lang = "en" }) {
         ...(tax ? { tax_behavior: "exclusive", tax_code: TAX_SHIPPING } : {}),
       },
     }],
-    allow_promotion_codes: true,
+    allow_promotion_codes: !(priced.totals && priced.totals.promo > 0),   // codes never add up with the store-wide sale
     client_reference_id: orderId,
     metadata: { orderId },
     payment_intent_data: { metadata: { orderId }, description: "Little Hive House order", ...(hold ? { capture_method: "manual" } : {}) },

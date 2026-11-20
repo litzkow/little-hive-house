@@ -596,6 +596,7 @@
     var rows = [['Subtotal', money(p.subtotal)]];
     if (R.num(pr.bundleDiscount)) rows.push(['Bundle discount (3 for $12)', '−' + money(pr.bundleDiscount)]);
     if (R.num(pr.volumeDiscount)) rows.push(['Volume discount' + (pr.volumePct ? ' (' + pr.volumePct + '%)' : ''), '−' + money(pr.volumeDiscount)]);
+    if (pr.sale && R.num(pr.sale.amount)) rows.push([esc(pr.sale.name || 'Sale') + ' (' + (pr.sale.kind === 'free' ? pr.sale.free + ' free' : pr.sale.pct + '%') + ')', '−' + money(pr.sale.amount)]);
     if (pr.promo && R.num(pr.promo.amount)) rows.push(['Code ' + (pr.promo.code || ''), '−' + money(pr.promo.amount)]);
     rows.push(['Shipping', p.shipping ? money(p.shipping) : 'Free']);
     if (p.tax) rows.push(['Sales tax' + (p.taxState ? ' (' + esc(p.taxState) + ')' : '') + ' <span class="muted small">· owed to the state</span>', money(p.tax)]);

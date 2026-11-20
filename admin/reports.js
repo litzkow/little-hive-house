@@ -132,7 +132,7 @@
     var p = o.pricing || {};
     var subtotal = p.subtotal != null ? num(p.subtotal) : (o.items || []).reduce(function (a, it) { return a + itemPrice(it); }, 0);
     var promo = p.promo && p.promo.amount ? num(p.promo.amount) : 0;
-    var discounts = num(p.bundleDiscount) + num(p.volumeDiscount) + promo;
+    var discounts = num(p.bundleDiscount) + num(p.volumeDiscount) + promo + (p.sale ? num(p.sale.amount) : 0);
     var shipping = num(p.shipping);
     var tax = num(p.tax);   /* sales tax the customer paid on top: owed to the state, never part of sales or profit */
     var total = p.total != null ? num(p.total) : round2(subtotal - discounts + shipping + tax);

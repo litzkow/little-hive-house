@@ -201,6 +201,7 @@ function publicOrderView(id, o, { owner = false } = {}) {
     pricing: {
       subtotal: p.subtotal || 0, bundleDiscount: p.bundleDiscount || 0, volumePct: p.volumePct || 0,
       volumeDiscount: p.volumeDiscount || 0, promo: p.promo ? { code: p.promo.code || "", amount: p.promo.amount || 0 } : null,
+      sale: p.sale && p.sale.amount ? { name: p.sale.name || "Sale", kind: p.sale.kind || "", pct: p.sale.pct || 0, free: p.sale.free || 0, amount: p.sale.amount } : null,
       shipping: p.shipping || 0, tax: p.tax || 0, total: p.total || 0, currency: p.currency || "usd",
     },
     shipTo: a.city || a.state ? { city: a.city || "", state: a.state || "", country: a.country || "" } : null,

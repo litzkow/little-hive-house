@@ -3,6 +3,12 @@
 PRICE = 5          # every ready-made design
 BUNDLE = (3, 12)   # any 3 designs for $12
 VOLUME = [(100, 25), (50, 20), (20, 10)]   # magnets in the cart -> % off, designs and photos mixed
+# A store-wide sale, applied by itself in the price (functions/pricing.js and assets/site.js SALE, same numbers).
+# Two deals that never add up: % off the order, or free ready-made designs (buy N, get M free); the customer gets the
+# better one. A "day" inside the sale can have a bigger % and free shipping. Times are UTC (05:00Z = midnight in Georgia).
+SALE = {"name": "Black Friday", "start": "2026-11-20T05:00:00Z", "end": "2026-12-01T05:00:00Z", "pct": 20,
+        "free": [[10, 6], [6, 3], [3, 1]],
+        "days": [{"name": "Black Friday", "start": "2026-11-27T05:00:00Z", "end": "2026-11-28T05:00:00Z", "pct": 30, "freeShipping": True}]}
 
 COLLECTIONS = [
     {

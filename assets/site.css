@@ -1332,3 +1332,15 @@ dialog.dz::backdrop { background: rgba(20,14,8,.6); }
 .dz-digital { text-align: center; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 2px; }
 .dz-digital .linkish { font-weight: 600; font-size: 15px; }
 .dz-digital .hint { margin: 4px 0 0; font-size: 13px; }
+
+/* the store-wide sale (assets/site.js saleBar): a bar above the header, crossed-out prices, the cart line */
+.sale-bar { background: #2B2118; color: #FFF6E5; text-align: center; font: 500 14px/1.45 Jost, system-ui, sans-serif; padding: 9px 16px; padding-top: calc(9px + env(safe-area-inset-top, 0px)); }
+.sale-bar strong { color: #F2A81D; font: 700 13px 'Josefin Sans', Jost, sans-serif; letter-spacing: .14em; text-transform: uppercase; margin-right: 4px; }
+.sale-bar a { color: #F9D88A; font-weight: 600; margin-left: 8px; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.sale-bar.sale-day { background: #F2A81D; color: #2B2118; }
+.sale-bar.sale-day strong { color: #2B2118; }
+.sale-bar.sale-day a { color: #2B2118; }
+s.was { opacity: .55; font-weight: 400; margin-right: 2px; }
+.sale-price .now, .now { color: #B5761A; font-weight: 700; }
+.sale-row span { color: #B5761A; font-weight: 600; }
+.sale-note { color: #8A5A2B; font-weight: 500; }

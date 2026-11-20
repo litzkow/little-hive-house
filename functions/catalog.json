@@ -6740,7 +6740,36 @@
   ],
   "shipping": 5.49,
   "freeShippingAt": 35,
-  "currency": "usd"
+  "currency": "usd",
+  "sale": {
+   "name": "Black Friday",
+   "start": "2026-11-20T05:00:00Z",
+   "end": "2026-12-01T05:00:00Z",
+   "pct": 20,
+   "free": [
+    [
+     10,
+     6
+    ],
+    [
+     6,
+     3
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "days": [
+    {
+     "name": "Black Friday",
+     "start": "2026-11-27T05:00:00Z",
+     "end": "2026-11-28T05:00:00Z",
+     "pct": 30,
+     "freeShipping": true
+    }
+   ]
+  }
  },
  "seasons": [
   {

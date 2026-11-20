@@ -30,11 +30,30 @@ function rulesOf(catalog) {
     shipping: cents(r.shipping),
     freeShippingAt: cents(r.freeShippingAt),
     currency: r.currency || "usd",
+    sale: r.sale || null,
   };
 }
 
+/* The store-wide sale running at `now` (catalog.json rules.sale), or null: {name, pct, free: [[buy, get]], freeShipping}.
+   A "day" inside it (Black Friday itself) takes its own name, % and free shipping. Same as site.js saleNow(). */
+function saleNow(sale, now) {
+  if (!sale) return null;
+  const t = Number(now);
+  if (!(t >= Date.parse(sale.start) && t < Date.parse(sale.end))) return null;
+  const day = (sale.days || []).find((d) => t >= Date.parse(d.start) && t < Date.parse(d.end));
+  return { name: (day && day.name) || sale.name, pct: (day && day.pct) || sale.pct || 0, free: sale.free || [], freeShipping: !!(day && day.freeShipping) };
+}
+
+/* "Buy N, get M free": how many of `n` ready-made designs are free (the biggest deal first). Same as site.js freeOf(). */
+function freeOf(n, tiers) {
+  const t = (tiers || []).slice().sort((a, b) => (b[0] + b[1]) - (a[0] + a[1]));
+  let left = n, free = 0;
+  for (const [buy, get] of t) { const g = buy + get; while (g > 0 && left >= g) { free += get; left -= g; } }
+  return free;
+}
+
 /** The same steps as site.js totals(), in cents. lines: [{kind, unit (cents), qty, count}] */
-function computeTotals(lines, rules) {
+function computeTotals(lines, rules, now = Date.now()) {
   // packages already have their quantity price (and a service, like mailing to a list, is no magnet: count 0), so the
   // volume discount is only on designs and photo packs; their magnets still count toward its tier
   let sub = 0, designs = 0, magnets = 0, pkg = 0;
@@ -44,14 +63,32 @@ function computeTotals(lines, rules) {
     if (l.kind === "package") pkg += l.unit * l.qty;
     magnets += l.qty * (l.count == null ? 1 : l.count);
   }
-  const bundle = Math.floor(designs / rules.bundleSize) * (rules.bundleSize * rules.designPrice - rules.bundlePrice);
+  const bundleOf = (n) => Math.floor(n / rules.bundleSize) * (rules.bundleSize * rules.designPrice - rules.bundlePrice);
+  const bundle = bundleOf(designs);
   const tier = rules.volume.find((v) => magnets >= v[0]);
   const pct = tier ? tier[1] : 0;
   const vol = Math.round(((sub - bundle - pkg) * pct) / 100);
   const goods = sub - bundle - vol;
-  // a cart of design files only ships nothing
-  const ship = lines.length && lines.every((l) => l.digital) ? 0 : goods >= rules.freeShippingAt ? 0 : rules.shipping;
-  return { sub, bundle, pct, vol, goods, ship, total: goods + ship, magnets, designs };
+  // the sale: % off what they pay, or some designs free (the rest keep the 3-for-$12 and big-order prices); never both
+  const sale = saleNow(rules.sale, now);
+  let promo = 0, promoKind = "", free = 0;
+  if (sale) {
+    const byPct = Math.round((goods * sale.pct) / 100);
+    const f = freeOf(designs, sale.free);
+    let byFree = 0;
+    if (f > 0) {
+      const subF = sub - f * rules.designPrice, bundleF = bundleOf(designs - f);
+      const volF = Math.round(((subF - bundleF - pkg) * pct) / 100);
+      byFree = goods - (subF - bundleF - volF);
+    }
+    if (byFree > byPct) { promo = byFree; promoKind = "free"; free = f; } else if (byPct > 0) { promo = byPct; promoKind = "pct"; }
+  }
+  // a cart of design files only ships nothing; free shipping goes by the order before the sale discount
+  const ship = lines.length && lines.every((l) => l.digital) ? 0 : sale && sale.freeShipping ? 0 : goods >= rules.freeShippingAt ? 0 : rules.shipping;
+  return {
+    sub, bundle, pct, vol, goods: goods - promo, ship, total: goods - promo + ship, magnets, designs, promo,
+    sale: sale && promo ? { name: sale.name, kind: promoKind, pct: promoKind === "pct" ? sale.pct : 0, free, freeShipping: sale.freeShipping } : sale && sale.freeShipping ? { name: sale.name, kind: "", pct: 0, free: 0, freeShipping: true } : null,
+  };
 }
 
 const bad = (msg) => new AppError("invalid-argument", msg);
@@ -88,7 +125,7 @@ function photoPrice(n, catalog = loadCatalog()) {
  *   {kind:"package", id:"weddings-50", qty}
  * Returns {items (order items, dollars), lines (cents, for Stripe), totals (cents), pricing (dollars)}.
  */
-function priceCart(cart, catalog = loadCatalog()) {
+function priceCart(cart, catalog = loadCatalog(), now = Date.now()) {
   if (!Array.isArray(cart) || cart.length === 0) throw bad("Your cart is empty.");
   if (cart.length > MAX_LINES) throw bad(`A cart can hold up to ${MAX_LINES} different items.`);
   const rules = rulesOf(catalog);
@@ -177,7 +214,7 @@ function priceCart(cart, catalog = loadCatalog()) {
     }
   });
 
-  const totals = computeTotals(lines, rules);
+  const totals = computeTotals(lines, rules, now);
   if (totals.magnets > MAX_MAGNETS) throw bad(`That is more than ${MAX_MAGNETS} magnets. Please ask us for a quote instead.`);
   return { items, lines, totals, pricing: pricingDollars(totals, rules.currency) };
 }
@@ -217,6 +254,7 @@ function pricingDollars(t, currency = "usd") {
   return {
     subtotal: dollars(t.sub), bundleDiscount: dollars(t.bundle), volumePct: t.pct, volumeDiscount: dollars(t.vol),
     promo: null, shipping: dollars(t.ship), total: dollars(t.total), currency, magnets: t.magnets,
+    sale: t.sale ? { ...t.sale, amount: dollars(t.promo || 0) } : null,
   };
 }
 
@@ -240,8 +278,12 @@ function allocate(lines, totals) {
   const b = share(lines.map((l, i) => (l.kind === "design" ? gross[i] : 0)), totals.bundle);
   const afterBundle = gross.map((g, i) => g - b[i]);
   const v = share(afterBundle, totals.vol);
-  return afterBundle.map((a, i) => ({ net: a - v[i], discount: b[i] + v[i] }));
+  const afterVol = afterBundle.map((a, i) => a - v[i]);
+  // the sale: free designs come off the design lines, a % off comes off everything
+  const free = totals.sale && totals.sale.kind === "free";
+  const s = share(afterVol.map((a, i) => (!free || lines[i].kind === "design" ? a : 0)), totals.promo || 0);
+  return afterVol.map((a, i) => ({ net: a - s[i], discount: b[i] + v[i] + s[i] }));
 }
 
 module.exports = {
-  photoPrice, priceCart, computeTotals, allocate, rulesOf, loadCatalog, cents, dollars, MAX_LINES, cleanDesign };
+  photoPrice, priceCart, computeTotals, allocate, rulesOf, loadCatalog, cents, dollars, MAX_LINES, cleanDesign, saleNow, freeOf };
