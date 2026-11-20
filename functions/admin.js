@@ -164,12 +164,21 @@ async function adminShip(data, auth) {
     if (o.status !== "shipped") upd.timeline = (o.timeline || []).concat([{ at, status: "shipped", text: O.TIMELINE_TEXT.shipped }]);
     return upd;
   });
+  // an Etsy order: the tracking number goes to Etsy, which marks it shipped and tells the buyer
+  let etsySent = null;
+  if (after.source === "etsy" && tracking) {
+    try { etsySent = (await require("./etsy-orders").shipToEtsy(after, carrier, tracking)).sent; }
+    catch (e) {
+      etsySent = false;
+      await ref.update({ adminNotes: (after.adminNotes || []).concat([{ at: nowIso(), by: "system", text: `The tracking number didn't go to Etsy (${String(e.message).slice(0, 160)}). Add it in the Etsy order, or tap "Connect Etsy" again in Hive Admin.` }]) }).catch(() => {});
+    }
+  }
   const autoUpdates = !!trackerFor(carrier);
   const order = O.emailOrder(id, after);
   order.fulfillment.autoUpdates = autoUpdates;
   const sent = await mail.send({ to: after.email, kind: "shipped", data: { order } });
   if (!sent.skipped) await ref.update({ "emails.shipped": nowIso() }).catch(() => {});
-  return { ok: true, emailed: !sent.skipped, url, autoTracking: autoUpdates, charged: charged.charged, chargedAmount: charged.amount || 0 };
+  return { ok: true, emailed: !sent.skipped, url, autoTracking: autoUpdates, charged: charged.charged, chargedAmount: charged.amount || 0, ...(etsySent !== null ? { etsy: etsySent } : {}) };
 }
 
 /* ---------- charge on ship: "Charge now" ---------- */

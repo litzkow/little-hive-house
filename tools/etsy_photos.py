@@ -544,6 +544,7 @@ def build(listing, keep_last):
         photos += design_charts(listing["name"], designs, arts)
         photos.append(size_photo(imgs[0]))                # every listing has the real-size photo
         listing["variations"][0]["options"] = [option_name(i + 1, n) for i, (_, n) in enumerate(designs)]
+        listing["designs"] = [f"{lid}/{s}" for s, _ in designs]   # option n = designs[n-1] (functions/etsy-orders.js)
     else:
         a, b = PHOTO_SETS[lid]
         sh = lambda k: Image.open(ROOT / "assets" / "showcase" / f"{k}.webp")

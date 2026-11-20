@@ -177,6 +177,11 @@ exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09
 });
 
 /* ---------- every morning: the ads robot reads what each channel spent and sold, and acts inside the teto (ads.js) ---------- */
+/* ---------- every 15 minutes: the paid Etsy orders come into Hive Admin (etsy-orders.js) ---------- */
+exports.etsyOrders = onSchedule({ region: REGION, schedule: "every 15 minutes", timeZone: "America/New_York", timeoutSeconds: 300, memory: "256MiB" }, async () => {
+  try { await require("./etsy-orders").importOrders(); } catch (e) { console.warn("[etsyOrders]", e.message); }
+});
+
 /* ---------- every 10 minutes: Instagram & Facebook looked after (social.js): products tagged on the posts, comments and Direct ---------- */
 exports.socialSync = onSchedule({ region: REGION, schedule: "every 10 minutes", timeZone: "America/New_York", timeoutSeconds: 300, memory: "512MiB" }, async () => {
   await social().socialSync();

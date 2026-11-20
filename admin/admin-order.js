@@ -749,6 +749,12 @@
       (window.LHHAdsOrigin && o.source !== 'etsy' && o.status !== 'pending' ? '<div class="sect"><h3>Where they came from</h3><p translate="no"><a href="#ads">' + esc(window.LHHAdsOrigin(o.ref)) + '</a></p></div>' : '') + '</section>';
   }
   function paymentCard(o) {
+    if (o.source === 'etsy') {   /* paid on Etsy (functions/etsy-orders.js): Etsy keeps the money and talks to the buyer */
+      var pe = R.pricing(o);
+      return '<section class="card"><div class="card-head"><h2>Payment</h2>' + (o.etsy && o.etsy.url ? '<a class="btn btn-ghost btn-sm" href="' + esc(o.etsy.url) + '" target="_blank" rel="noopener">Etsy ' + icon('external') + '</a>' : '') + '</div>' +
+        '<dl class="kv"><dt>Paid on Etsy</dt><dd>' + money(pe.total) + '</dd><dt>Etsy order</dt><dd translate="no">' + esc((o.etsy && o.etsy.receiptId) || '') + '</dd></dl>' +
+        '<p class="small muted">Refunds, messages and reviews for this order are done in Etsy. When you ship it here, the tracking number goes to Etsy.</p></section>';
+    }
     var p = R.pricing(o), fee = R.stripeFee(o, S.settings), refunded = R.refundedTotal(o), left = R.refundable(o);
     var st = o.stripe || {};
     var link = st.paymentIntent ? 'https://dashboard.stripe.com/payments/' + encodeURIComponent(st.paymentIntent) : '';
@@ -814,6 +820,7 @@
     return R.toMs(v) ? 'Sent ' + h.fmtDT(v) : 'Sent';
   }
   function emailsCard(o) {
+    if (o.source === 'etsy') return '';   /* Etsy emails its buyers itself */
     var e = o.emails || {}, st = R.stage(o);
     var allowed = { confirmation: R.isSale(o), shipped: R.wasShipped(o), outForDelivery: !!e.outForDelivery, delivered: st === 'delivered', refund: R.refundedTotal(o) > 0 };
     if (o.status === 'pending') {

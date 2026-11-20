@@ -16,7 +16,7 @@ const U = require("./util");
 const API = "https://api.etsy.com/v3/application";
 const TOKEN_URL = "https://api.etsy.com/v3/public/oauth/token";
 const CONNECT_URL = "https://www.etsy.com/oauth/connect";
-const SCOPES = "listings_r listings_w shops_r shops_w transactions_r";
+const SCOPES = "listings_r listings_w shops_r shops_w transactions_r transactions_w";   // transactions_w: the tracking number of Etsy orders shipped from Hive Admin
 const CUSTOM_PROPERTY = 513;   // Etsy's first custom variation ("Design", "Pack size")
 const QUANTITY = 99;           // made to order: it never runs out
 const SHIPPING = { title: "USPS Ground Advantage", cost: 5.49, minDays: 2, maxDays: 5 };
@@ -373,6 +373,7 @@ async function adminEtsy(data, auth) {
         throw err;
       }
     }
+    case "orders": return require("./etsy-orders").importOrders({ days: Math.min(90, Number(data.days) || 30) });
     case "arrange": {
       const a = await readDoc("auth");
       if (!a || !a.shopId) fail("failed-precondition", "Etsy isn't connected yet. Tap “Connect Etsy” first.");

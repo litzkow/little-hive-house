@@ -422,6 +422,9 @@ def js():
     """assets/designs.js (build.py writes it): palettes, stock photos, the sets and where each design lives. The designs
     themselves are in assets/designs/<set>.json (write_sets)."""
     by = write_sets()
+    # which words each business / Personalize design has, for the Etsy orders (functions/etsy-orders.js fills them in)
+    keys = {d["slug"]: ",".join(export(d)["text"].keys()) for d in DESIGNS if d["page"] in ("business", "personalize")}
+    (ROOT / "functions" / "design-keys.json").write_text(json.dumps(keys, separators=(",", ":")) + "\n", encoding="utf-8")
     stock = [c["name"] for c in json.loads((ROOT / "assets" / "stock" / "credits.json").read_text())]
     sets = {}
     for k, meta in SETS.items():

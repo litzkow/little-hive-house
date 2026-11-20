@@ -15,7 +15,7 @@ const CALLABLES = [
   "adminPrintSheet", "adminPrintBatch", "adminEtsy", "adminLabelQuote", "adminBuyLabel", "adminLabelPdf", "adminPreviewEmail", "adminAnalytics", "adminAnalyticsLive", "returnLookup", "returnQuote", "returnStart", "adminReturnDecide", "adminReturnPhotos", "adminSupplies", "adminAds", "adminContent", "adminSocial",
 ];
 const HTTP = ["clientLog", "stripeWebhook"];
-const SCHEDULED = ["deliveredFollowUp", "trackShipments", "salesTaxReminder", "autoNewsletter", "analyticsWarm", "adsDaily", "contentPublish", "socialSync"];
+const SCHEDULED = ["deliveredFollowUp", "trackShipments", "salesTaxReminder", "autoNewsletter", "analyticsWarm", "adsDaily", "contentPublish", "socialSync", "etsyOrders"];
 
 class HttpsError extends Error { constructor(code, message, details) { super(message); this.code = code; this.details = details; } }
 const stubs = {
