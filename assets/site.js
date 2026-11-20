@@ -674,3 +674,32 @@ document.addEventListener("click", function (e) {
   try { localStorage.setItem("lhh-lang", l); } catch (err) {}
   if (l !== (window.LHH_LANG || "en")) location.reload();
 });
+
+/* The header links must fit on one line in every language: measure after the page is translated and, if they
+   overflow, tighten them (nav-tight) or switch to the Menu button (nav-squeeze). */
+(function () {
+  var h = document.documentElement;
+  function over() {
+    var r = document.querySelector('.header-row');
+    if (!r) return false;
+    var right = h.clientWidth - 12, out = false;   // the links may spill past the page column, but not off the screen
+    r.querySelectorAll('a, button').forEach(function (e) {
+      if (e.offsetParent && e.getBoundingClientRect().right > right + 1) out = true;
+    });
+    return out;
+  }
+  function fit() {
+    h.classList.remove('nav-tight', 'nav-squeeze');
+    if (h.getAttribute('data-lang') === 'en' || !over()) return;
+    h.classList.add('nav-tight');
+    if (over()) { h.classList.remove('nav-tight'); h.classList.add('nav-squeeze'); }
+  }
+  var t;
+  window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(fit, 120); });
+  function whenReady() {
+    if (h.getAttribute('data-lang') === 'en' || h.classList.contains('i18n-ready')) { fit(); return; }
+    setTimeout(whenReady, 100);
+  }
+  whenReady();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();

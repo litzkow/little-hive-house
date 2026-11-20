@@ -1353,3 +1353,12 @@ s.was { opacity: .55; font-weight: 400; margin-right: 2px; }
 .sale-deals li.sale-deals-day strong, .sale-deals li.sale-deals-day span { color: #2B2118; }
 .sale-note-small { font-size: 14px; opacity: .75; margin: 12px 0 0; }
 .sale-ended { font-weight: 600; }
+
+/* Longer languages (Spanish, Portuguese…) on a computer: if the header links don't fit, first tighten them,
+   then fall back to the Menu button like a narrower screen (set by site.js after the page is translated) */
+html.nav-tight .nav { gap: 14px; }
+html.nav-tight .nav a { font-size: 15px; }
+html.nav-squeeze .nav a { display: none; }
+html.nav-squeeze .nav a.acct-btn, html.nav-squeeze .nav a.ig-btn { display: inline-grid; }
+html.nav-squeeze .nav a.ig-btn ~ a.ig-btn { display: none; }
+html.nav-squeeze .menu-btn { display: inline-flex; }
