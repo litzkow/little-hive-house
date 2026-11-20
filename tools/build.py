@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "53"
+VERSION = "54"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
@@ -117,6 +117,33 @@ NAV = [("shop.html", "Shop all", "shop"), ("collections/index.html", "Collection
        ("shipping.html", "Shipping", "shipping"), ("suggestions.html", "Share an idea", "ideas")]
 
 
+BIZ_LINKS = (("business.html", "Business gifts", "office"), ("weddings.html", "Weddings", "savedate"),
+             ("graduation.html", "Graduation", "classof"), ("parties.html", "Parties & events", "reunion"))
+BRIEFCASE = ('<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">'
+             '<rect x="2.5" y="6" width="15" height="10.5" rx="2"/><path d="M7 6V4.6c0-.6.4-1 1-1h4c.6 0 1 .4 1 1V6M2.5 10.5h15"/></svg>')
+
+
+def biz_menu(pg):
+    """The box for companies and events inside the mobile menu."""
+    links = "".join(f'<a href="{pg.p}{h}">{E(n)}</a>' for h, n, _ in BIZ_LINKS)
+    return f"""      <div class="menu-biz">
+        <a class="menu-biz-main" href="{pg.p}business.html">{BRIEFCASE}<span><strong>For business &amp; events</strong><small>Bulk pricing, your logo, from 25 magnets</small></span></a>
+        <div class="menu-biz-links">{links}<a href="{pg.p}big-orders.html">All bulk orders</a></div>
+      </div>"""
+
+
+def biz_row(pg):
+    """A slim row under the two doors on the home page: the four bulk pages."""
+    cards = "".join(f'<li><a href="{pg.p}{h}">{occ_img(pg, im, size=600, lazy=False)}<span>{E(n)}</span></a></li>' for h, n, im in BIZ_LINKS)
+    return f"""      <div class="biz-row">
+        <div class="biz-row-head">
+          <p class="eyebrow">{BRIEFCASE} For business &amp; events</p>
+          <p>Your logo or names on every magnet, bulk prices from 25 pieces. <a href="{pg.p}big-orders.html">All bulk orders →</a></p>
+        </div>
+        <ul>{cards}</ul>
+      </div>"""
+
+
 def idea_strip(pg, lead="Don’t see your favorite?", text="Tell us the place, the pet or the saying and we might draw it next."):
     """A dashed call-out that sends people to the ideas box (suggestions.html)."""
     return f"""      <div class="idea-strip">
@@ -197,9 +224,16 @@ def head(pg, title, desc, path):
 
 def header(pg, active):
     links = "\n".join(
-        f'      <a href="{pg.p}{href}"{" class=" + chr(34) + "minor" + chr(34) if key in ("shipping", "ideas") else ""}{CUR if key == active else ""}>{label}</a>'
-        for href, label, key in NAV)   # "minor": only on wide screens (the strip, the menu and the footer have them too)
-    mobile = "\n".join(f'      <a href="{pg.p}{href}">{label}</a>' for href, label, _ in NAV)
+        f'      <a href="{pg.p}{href}"{" class=" + chr(34) + ("minor" if key in ("shipping", "ideas") else "biz") + chr(34) if key in ("shipping", "ideas", "business") else ""}{CUR if key == active else ""}>{label}</a>'
+        for href, label, key in NAV)   # "biz": a pill, still shown on tablets   # "minor": only on wide screens (the strip, the menu and the footer have them too)
+    mobile = []
+    for href, label, key in NAV:
+        if key in ("business", "big"):
+            continue
+        mobile.append(f'      <a href="{pg.p}{href}">{label}</a>')
+        if key == "photo":
+            mobile.append(biz_menu(pg))
+    mobile = "\n".join(mobile)
     def _sub(c):
         line = f'      <a class="sub"{season_attr(c)} href="{pg.p}collections/{c["slug"]}.html">{E(c["name"])}</a>'
         if "children" in c:
@@ -207,7 +241,7 @@ def header(pg, active):
         return line
     subs = "\n".join(_sub(c) for c in top_level())
     return f"""<a class="visually-hidden" href="#main">Skip to content</a>
-<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span>{social_strip()}<span class="dot dot-lang" aria-hidden="true">·</span>{lang_switch()}</div>
+<div class="strip"><a class="s1" href="{pg.p}shipping.html">Free US shipping on orders over $35</a><span class="dot d1" aria-hidden="true">·</span><span class="s2">Handmade<span class="long"> in small batches</span></span><span class="dot d3" aria-hidden="true">·</span><a class="s3" href="{pg.p}business.html">Business &amp; bulk orders</a>{social_strip()}<span class="dot dot-lang" aria-hidden="true">·</span>{lang_switch()}</div>
 
 <header class="site-header">
   <div class="wrap header-row">
@@ -680,6 +714,7 @@ def doors(pg):
           </div>
         </a></li>
       </ul>
+{biz_row(pg)}
     </div>
   </section>"""
 
@@ -701,6 +736,7 @@ def page_home():
           <a class="btn" href="shop.html">Shop our designs</a>
           <a class="btn" href="photo-magnets.html">Make photo magnets</a>
         </div>
+        <a class="biz-hook" href="business.html">{BRIEFCASE}<span><strong>Ordering for a business or an event?</strong> <span class="bh-more">Bulk prices and your own logo</span></span><span class="bh-arrow" aria-hidden="true">→</span></a>
       </div>
       <div class="seal">
         {seal("hero")}
