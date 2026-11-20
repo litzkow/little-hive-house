@@ -17,7 +17,7 @@ const U = require("./util");
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
   admin_new_order: "orders", admin_contact: "messages", admin_suggestion: "messages", admin_quote: "quotes", admin_dispute: "disputes",
-  admin_delivery_check: "delivery", admin_delivered: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", admin_ads: "orders", admin_content: "messages", push_test: null,
+  admin_delivery_check: "delivery", admin_delivered: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", admin_ads: "orders", admin_social: "messages", admin_content: "messages", push_test: null,
 };
 const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
 const COLL = "adminPush";
@@ -117,6 +117,8 @@ function message(kind, data) {
       return { title: "⚠️ Contestação de pagamento", body: `${num || "Um pedido"} · ${money(dp.amount)}${due ? ` · responda no Stripe até ${due}` : " · responda no Stripe"}`,
         url: orderUrl(id), tag: `dispute-${dp.id || num}`, urgency: "high" };
     }
+    case "admin_social":
+      return { title: clip(d.title || "📣 Instagram & Facebook", 60), body: clip(d.body, 160), url: "/admin/#messages?tab=social", tag: d.tag || `social-${Date.now()}`, urgency: "normal" };
     case "admin_delivered": {
       const m = magnetsOf(o.items);
       return { title: `✅ Entregue ${num}`.trim(), body: [clip(o.name, 40), m ? `${m} ${m === 1 ? "ímã" : "ímãs"}` : "", "o cliente recebeu o e-mail pedindo avaliação"].filter(Boolean).join(" · "),

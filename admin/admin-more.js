@@ -404,19 +404,21 @@
 
   /* ====================================================================== MESSAGES (contact form, ideas box, quote requests) */
   var QUOTE_SKIP = { id: 1, name: 1, email: 1, createdAt: 1, at: 1, message: 1, details: 1, status: 1, uid: 1, idea: 1, kind: 1, kindLabel: 1 };
-  var MSG_TABS = [['messages', 'Contact form'], ['suggestions', 'Ideas'], ['quotes', 'Quote requests']];
+  var MSG_TABS = [['social', 'Instagram & Facebook'], ['messages', 'Contact form'], ['suggestions', 'Ideas'], ['quotes', 'Quote requests']];
   function prettyKey(k) { return k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ').replace(/^\w/, function (c) { return c.toUpperCase(); }); }
   V.messages = function (r) {
     var want = r && r.q && r.q.get('tab');
     if (want && MSG_TABS.some(function (t) { return t[0] === want; })) S.ui.messages = want;
-    var a = need('messages'), b = need('quotes'), c = need('suggestions');
-    if (!a || !b || !c) return { title: 'Messages', html: head('Inbox', 'Messages') + loading('Loading messages…') };
-    var tab = S.ui.messages;
+    var a = need('messages'), b = need('quotes'), c = need('suggestions'), d = need('social');
+    if (!a || !b || !c || !d) return { title: 'Messages', html: head('Inbox', 'Messages') + loading('Loading messages…') };
+    if (!S.socialSettings && !needSocialSettings.p) needSocialSettings();
+    var tab = S.ui.messages || 'social';
     var list = S[tab] || [];
     var html = head('Inbox', 'Messages', 'From the contact form, the ideas box and the big-order quote form. Reply by email.') + errBox('messages') + errBox('suggestions') + errBox('quotes') +
       '<nav class="tabs">' + MSG_TABS.map(function (t) {
-        return '<button type="button" data-act="msgTab" data-tab="' + t[0] + '"' + (tab === t[0] ? ' aria-current="true"' : '') + '>' + t[1] + '<span class="n">' + (S[t[0]] || []).length + '</span></button>';
-      }).join('') + '</nav>' +
+        var n = t[0] === 'social' ? (S.social || []).filter(function (x) { return x.status === 'new'; }).length : (S[t[0]] || []).length;
+        return '<button type="button" data-act="msgTab" data-tab="' + t[0] + '"' + (tab === t[0] ? ' aria-current="true"' : '') + '>' + t[1] + '<span class="n">' + n + '</span></button>';
+      }).join('') + '</nav>' + (tab === 'social' ? socialHtml() :
       (list.length ? '<div class="feed">' + list.map(function (m) {
         var when = m.createdAt || m.at;
         var subj = tab === 'quotes' ? 'Your Little Hive House quote' : tab === 'suggestions' ? 'Your idea for Little Hive House' : 'Re: your message to Little Hive House';
@@ -432,8 +434,62 @@
           '<div class="acts">' + (m.email ? '<a class="btn btn-ghost btn-sm" href="mailto:' + esc(m.email) + '?subject=' + encodeURIComponent(subj) + '">' + icon('mail') + 'Reply</a>' : '') +
           (tab === 'quotes' ? '<a class="btn btn-ghost btn-sm" href="#links' + linkQ + '">' + icon('links') + 'Send payment link</a>' : '') + '</div></article>';
       }).join('') + '</div>' : '<div class="card"><div class="empty">' + icon('messages') + '<b>Inbox zero</b>' +
-        (tab === 'quotes' ? 'Quote requests from the Big orders page land here.' : tab === 'suggestions' ? 'Ideas from the “Share an idea” page land here.' : 'Messages from the contact form land here.') + '</div></div>');
+        (tab === 'quotes' ? 'Quote requests from the Big orders page land here.' : tab === 'suggestions' ? 'Ideas from the “Share an idea” page land here.' : 'Messages from the contact form land here.') + '</div></div>'));
     return { title: 'Messages', html: html };
+  };
+
+  /* ---------- Instagram & Facebook: comments and Direct (functions/social.js reads them every 10 minutes) ---------- */
+  function needSocialSettings() {
+    needSocialSettings.p = S.db.collection('settings').doc('social').get().then(function (d) { S.socialSettings = d.exists ? d.data() : {}; needSocialSettings.p = null; h.route(); })
+      .catch(function () { S.socialSettings = {}; needSocialSettings.p = null; });
+  }
+  var SOCIAL_STATUS = { 'new': ['Waiting for you', 'warn'], auto: ['Answered automatically', 'ok'], answered: ['Answered', 'ok'], hidden: ['Hidden', 'quiet'], done: ['Done', 'quiet'] };
+  function socialHtml() {
+    var st = S.socialSettings || {}, auto = st.autoReply !== false, last = st.lastRun && st.lastRun.at;
+    var list = (S.social || []).slice().sort(function (x, y) { return (x.status === 'new' ? 0 : 1) - (y.status === 'new' ? 0 : 1) || R.toMs(y.at) - R.toMs(x.at); });
+    var top = '<div class="card" style="margin-bottom:14px"><label class="toggle"><input type="checkbox" data-act="socialAuto"' + (auto ? ' checked' : '') + '> <span><b>Answer simple ones automatically</b><br><span class="small muted">Thanks, prices, how to order, photo magnets and shipping, in English or Portuguese like the customer wrote. Everything else waits for you here.</span></span></label>' +
+      '<p class="small muted" style="margin:10px 0 0"><span>Checked every 10 minutes</span>' + (last ? ' · <span>' + esc(h.ago(last)) + '</span>' : '') + ' · <a href="#" data-act="socialRun">Check now</a></p></div>';
+    if (!list.length) return top + '<div class="card"><div class="empty">' + icon('messages') + '<b>Nothing yet</b>New comments on Instagram and Facebook and your Instagram Direct messages land here.</div></div>';
+    return top + '<div class="feed">' + list.map(function (m) {
+      var s = SOCIAL_STATUS[m.status] || ['', 'quiet'];
+      var where = m.net === 'facebook' ? 'Facebook comment' : m.kind === 'dm' ? 'Instagram Direct' : 'Instagram comment';
+      return '<article class="msg" data-social="' + esc(m.id) + '"><header><b>' + esc(m.user ? (m.net === 'instagram' ? '@' : '') + m.user : 'Someone') + '</b><time title="' + esc(h.fmtDT(m.at)) + '">' + esc(h.ago(m.at)) + '</time></header>' +
+        '<p class="meta"><span class="badge quiet">' + where + '</span><span class="badge ' + s[1] + '">' + s[0] + '</span>' + (m.link ? ' <a href="' + esc(m.link) + '" target="_blank" rel="noopener">See the post</a>' : '') + '</p>' +
+        '<p class="body" translate="no">' + esc(m.text) + '</p>' +
+        (m.reply ? '<p class="small"><b>' + (m.reply.by === 'auto' ? 'Automatic answer' : 'Your answer') + ':</b> <span translate="no">' + esc(m.reply.text) + '</span></p>' : '') +
+        (m.status === 'new' ? '<div class="field"><textarea class="input" rows="2" maxlength="1000" data-social-text placeholder="Write your answer…"></textarea></div>' +
+          '<div class="acts"><button class="btn btn-honey btn-sm" data-act="socialSend">' + icon('mail') + (m.kind === 'dm' ? 'Send message' : 'Reply') + '</button>' +
+          (m.kind !== 'dm' ? '<button class="btn btn-ghost btn-sm" data-act="socialHide">Hide comment</button>' : '') +
+          '<button class="btn btn-ghost btn-sm" data-act="socialDone">No answer needed</button></div>' : '') + '</article>';
+    }).join('') + '</div>';
+  }
+  function socialAct(el, action, extra) {
+    var box = el.closest('[data-social]'), id = box && box.getAttribute('data-social');
+    var key = (S.social || []).find(function (x) { return x.id === id; });
+    if (!key) return;
+    var data = Object.assign({ action: action, id: key._key || key.docId || key.id }, extra || {});
+    h.busy(el, true);
+    return h.call('adminSocial', data).then(function () {
+      key.status = action === 'reply' ? 'answered' : action === 'hide' ? 'hidden' : 'done';
+      if (action === 'reply') key.reply = { text: extra.text, by: 'you' };
+      h.busy(el, false); h.updateBadges(); h.toast(action === 'reply' ? 'Sent' : action === 'hide' ? 'Comment hidden' : 'Marked as done'); h.route();
+    }).catch(function (e) { h.busy(el, false); h.toast(h.friendlyError(e), true); });
+  }
+  ACT.socialSend = function (el) {
+    var t = el.closest('[data-social]').querySelector('[data-social-text]'), text = (t.value || '').trim();
+    if (!text) { h.toast('Write the answer first', true); t.focus(); return; }
+    socialAct(el, 'reply', { text: text });
+  };
+  ACT.socialHide = function (el) { socialAct(el, 'hide'); };
+  ACT.socialDone = function (el) { socialAct(el, 'done'); };
+  ACT.socialAuto = function (el) {
+    var on = el.checked;
+    h.call('adminSocial', { action: 'auto', on: on }).then(function () { S.socialSettings = Object.assign(S.socialSettings || {}, { autoReply: on }); h.toast(on ? 'Automatic answers on' : 'Automatic answers off'); })
+      .catch(function (e) { el.checked = !on; h.toast(h.friendlyError(e), true); });
+  };
+  ACT.socialRun = function (el) {
+    h.toast('Checking Instagram and Facebook…');
+    h.call('adminSocial', { action: 'run' }).then(function () { S.social = null; S.socialSettings = null; h.route(); }).catch(function (e) { h.toast(h.friendlyError(e), true); });
   };
   ACT.msgTab = function (el) { S.ui.messages = el.getAttribute('data-tab'); location.hash = '#messages?tab=' + S.ui.messages; };
 

@@ -49,6 +49,23 @@ const V = "v26.0";
     return;
   }
 
+  if (mode === "seed") {
+    // the posts we already decided by hand: what to tag (waits for Meta's approval) and the ones with no product
+    const plan = JSON.parse(fs.readFileSync(path.join(__dirname, "ig-tags.json"), "utf8"));
+    const by = {};
+    plan.forEach((it) => { (by[it.media] = by[it.media] || []).push({ target: it.child || it.media, tags: it.tags.map((t) => ({ rid: t.retailer_id, ...(t.x !== undefined ? { x: t.x, y: t.y } : {}) })) }); });
+    const doneNow = { "18166026109433699": ["christmas-merry-christmas", "christmas-merry-and-bright-classic", "christmas-naughty-or-nice-classic", "christmas-ho-ho-ho", "christmas-home-for-christmas"].map((r) => `18166026109433699:${r}`) };
+    for (const [m, steps] of Object.entries(by)) {
+      await db.collection("socialTags").doc(m).set({ mediaId: m, source: "planner", plan: steps, done: doneNow[m] || [], status: "pending", createdAt: new Date().toISOString(), postedAt: new Date().toISOString() });
+      say(`${m}: esperando a Meta aprovar (${steps.map((x) => x.tags.length).reduce((a, b) => a + b, 0)} produtos)`);
+    }
+    for (const m of ["18443748463197338"]) {
+      await db.collection("socialTags").doc(m).set({ mediaId: m, source: "planner", plan: [], done: [], status: "none", createdAt: new Date().toISOString() });
+      say(`${m}: sem produto (de propósito)`);
+    }
+    return;
+  }
+
   if (mode === "apply") {
     const plan = JSON.parse(fs.readFileSync(path.join(__dirname, "ig-tags.json"), "utf8"));
     const ids = {};

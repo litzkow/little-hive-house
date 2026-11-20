@@ -29,6 +29,7 @@ const returns = lazy("./returns");
 const supplies = lazy("./supplies");
 const ads = lazy("./ads");
 const content = lazy("./content");
+const social = lazy("./social");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -112,6 +113,8 @@ exports.adminReturnPhotos = callable("adminReturnPhotos", returns);
 // Materiais (supplies.js): what the shop has, what orders used, purchases
 exports.adminSupplies = callable("adminSupplies", supplies, null, { timeoutSeconds: 60 });
 exports.adminContent = callable("adminContent", content, null, { timeoutSeconds: 120 });
+// Instagram & Facebook: comments, Direct, product tags (social.js)
+exports.adminSocial = callable("adminSocial", social, null, { timeoutSeconds: 300, memory: "512MiB" });
 exports.adminAds = callable("adminAds", ads, null, { timeoutSeconds: 300, memory: "512MiB" });
 exports.adminAnalytics = callable("adminAnalytics", analytics, null, { timeoutSeconds: 60 });
 exports.adminAnalyticsLive = callable("adminAnalyticsLive", analytics, null, { timeoutSeconds: 30 });
@@ -174,6 +177,11 @@ exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09
 });
 
 /* ---------- every morning: the ads robot reads what each channel spent and sold, and acts inside the teto (ads.js) ---------- */
+/* ---------- every 10 minutes: Instagram & Facebook looked after (social.js): products tagged on the posts, comments and Direct ---------- */
+exports.socialSync = onSchedule({ region: REGION, schedule: "every 10 minutes", timeZone: "America/New_York", timeoutSeconds: 300, memory: "512MiB" }, async () => {
+  await social().socialSync();
+});
+
 /* ---------- every 5 minutes: what was scheduled in the app goes out on Instagram / Facebook (content.js) ---------- */
 exports.contentPublish = onSchedule({ region: REGION, schedule: "every 5 minutes", timeZone: "America/New_York", timeoutSeconds: 300, memory: "512MiB" }, async () => {
   const r = await content().publishDue();
