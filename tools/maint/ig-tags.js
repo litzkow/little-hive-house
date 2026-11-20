@@ -59,12 +59,16 @@ const V = "v26.0";
       if (!p) throw new Error(`produto ${rid} não está no catálogo`);
       return (ids[rid] = p.id);
     };
+    for (const rid of ["photo-pack-4", "christmas-merry-christmas"]) {   // como a Meta vê um produto que falha e um que funciona
+      const r = await call("GET", `${catalog}/products`, { filter: { retailer_id: { eq: rid } }, fields: "id,retailer_id,review_status,review_rejection_reasons,visibility,availability,errors,capability_to_review_status,product_type" });
+      say(`produto ${rid}: ${JSON.stringify(r.data || r.error).slice(0, 700)}`);
+    }
     for (const it of plan) {
       try {
         const tags = [];
         for (const t of it.tags) tags.push({ product_id: await productId(t.retailer_id), ...(t.x !== undefined ? { x: t.x, y: t.y } : {}) });
         const r = await call("POST", `${it.child || it.media}/product_tags`, { updated_tags: tags });
-        say(`${it.media}${it.child ? " › " + it.child : ""}: ${r.error ? "ERRO " + r.error.message : "marcado ✓ " + it.tags.map((t) => t.retailer_id).join(", ")}`);
+        say(`${it.media}${it.child ? " › " + it.child : ""}: ${r.error ? "ERRO " + JSON.stringify(r.error).slice(0, 600) : "marcado ✓ " + it.tags.map((t) => t.retailer_id).join(", ")}`);
       } catch (e) { say(`${it.media}: ERRO ${e.message}`); }
     }
   }

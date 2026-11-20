@@ -1,24 +1,30 @@
 [
- {"media": "17913388521309037", "child": "18153139336482572", "tags": [
-   {"retailer_id": "christmas-merry-and-bright-classic", "x": 0.39, "y": 0.24},
-   {"retailer_id": "christmas-naughty-or-nice-classic", "x": 0.66, "y": 0.24},
-   {"retailer_id": "christmas-merry-christmas", "x": 0.34, "y": 0.45},
-   {"retailer_id": "christmas-home-for-christmas", "x": 0.61, "y": 0.46}]},
- {"media": "17913388521309037", "child": "18155286082545649", "tags": [
-   {"retailer_id": "christmas-hung-with-care", "x": 0.5, "y": 0.52},
-   {"retailer_id": "christmas-cookies-for-santa", "x": 0.8, "y": 0.52},
-   {"retailer_id": "christmas-ho-ho-ho", "x": 0.2, "y": 0.72},
-   {"retailer_id": "christmas-seasons-greetings", "x": 0.5, "y": 0.72},
-   {"retailer_id": "christmas-north-pole-post-office", "x": 0.8, "y": 0.72}]},
- {"media": "18170996290488085", "child": "18034392818858242", "tags": [
-   {"retailer_id": "photo-pack-4", "x": 0.25, "y": 0.2},
-   {"retailer_id": "photo-pack-9", "x": 0.43, "y": 0.42},
-   {"retailer_id": "photo-pack-16", "x": 0.62, "y": 0.67}]},
- {"media": "18166026109433699", "tags": [
-   {"retailer_id": "christmas-merry-christmas"}, {"retailer_id": "christmas-merry-and-bright-classic"},
-   {"retailer_id": "christmas-naughty-or-nice-classic"}, {"retailer_id": "christmas-ho-ho-ho"}, {"retailer_id": "photo-pack-4"}]},
- {"media": "18136398904673587", "tags": [
-   {"retailer_id": "bee-kind-bee-happy-classic"}, {"retailer_id": "bee-kind-bee-kind-classic"},
-   {"retailer_id": "bee-kind-queen-bee-classic"}, {"retailer_id": "bee-kind-hive-sweet-hive-classic"}]},
- {"media": "18118096172601130", "tags": [{"retailer_id": "photo-pack-4"}, {"retailer_id": "photo-pack-9"}]}
+ {
+  "media": "18166026109433699",
+  "tags": [
+   {
+    "retailer_id": "christmas-merry-christmas"
+   },
+   {
+    "retailer_id": "christmas-merry-and-bright-classic"
+   },
+   {
+    "retailer_id": "christmas-naughty-or-nice-classic"
+   },
+   {
+    "retailer_id": "christmas-ho-ho-ho"
+   },
+   {
+    "retailer_id": "christmas-home-for-christmas"
+   }
+  ]
+ },
+ {
+  "media": "18118096172601130",
+  "tags": [
+   {
+    "retailer_id": "photo-pack-4"
+   }
+  ]
+ }
 ]
