@@ -18,7 +18,12 @@ const KEEP = { "18153139336482572": ["christmas-merry-and-bright-classic", "chri
       if (!keep.includes(p.retailer_id)) extra.push({ product_id: t.product_id, ...(t.x !== undefined ? { x: t.x, y: t.y } : {}) });
     }
     if (extra.length) {
-      await G(meta, "DELETE", `${child}/product_tags`, { deleted_tags: extra });
+      const idx = Object.keys(KEEP).indexOf(child);
+      try { await G(meta, "DELETE", `${child}/product_tags`, { deleted_tags: extra }); }
+      catch (e) {
+        try { await G(meta, "DELETE", "17913388521309037/product_tags", { deleted_tags: extra, child_index: idx }); }
+        catch (e2) { await G(meta, "DELETE", "17913388521309037/product_tags", { deleted_tags: extra.map((t) => ({ product_id: t.product_id })), child_index: idx }); }
+      }
       say(`${child}: ${extra.length} marcação(ões) a mais removida(s)`);
     }
     const after = ((await G(meta, "GET", `${child}/product_tags`)).data) || [];
