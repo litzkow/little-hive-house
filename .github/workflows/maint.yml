@@ -334,7 +334,7 @@ jobs:
         with:
           node-version: 22
       - name: "Fotos: buscar e baixar"
-        env: { QUERIES: "${{ inputs.value }}", PER: "${{ inputs.cut || '12' }}", OUT: /tmp/stock, PEXELS_API_KEY: "${{ secrets.PEXELS_API_KEY }}" }
+        env: { QUERIES: "${{ inputs.value }}", PER: "${{ inputs.cut || '12' }}", OUT: /tmp/stock, PEXELS_API_KEY: "${{ secrets.PEXELS_API_KEY }}", PIXABAY_API_KEY: "${{ secrets.PIXABAY_API_KEY }}" }
         run: node tools/maint/stock-photos.js
       - name: "Fotos: guardar no galho stock-photos"
         run: |

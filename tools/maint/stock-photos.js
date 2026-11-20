@@ -7,6 +7,7 @@ const OUT = process.env.OUT || "/tmp/stock";
 const PER = +(process.env.PER || 12);
 const Q = JSON.parse(process.env.QUERIES);
 const KEY = process.env.PEXELS_API_KEY || "";
+const PIX = process.env.PIXABAY_API_KEY || "";
 const UA = { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36", Accept: "application/json" };
 const credits = [];
 async function json(u) { const r = await fetch(u, { headers: UA }); if (!r.ok) throw new Error(r.status + " " + u); return r.json(); }
@@ -27,6 +28,21 @@ async function save(file, url) {
       }
       console.log(`::notice::${dir}: ${got} fotos (pexels ids)`);
       continue;
+    }
+    /* a search on Pixabay (secret PIXABAY_API_KEY; Pixabay Content License, free for commercial use) */
+    if (PIX) {
+      try {
+        const j = await json(`https://pixabay.com/api/?key=${PIX}&q=${encodeURIComponent(q)}&image_type=photo&safesearch=true&per_page=${Math.min(200, Math.max(PER * 2, 20))}&order=popular`);
+        for (const p of j.hits || []) {
+          if (got >= PER) break;
+          if ((p.imageWidth || 0) < 1200) continue;
+          const id = "x-" + p.id, file = path.join(OUT, dir, id + ".jpg");
+          try { await save(file, p.largeImageURL); } catch (e) { continue; }
+          credits.push({ dir, file: id + ".jpg", source: "Pixabay", license: "Pixabay Content License", by: p.user, link: p.pageURL, alt: p.tags });
+          got++;
+        }
+      } catch (e) { console.log(`::warning::Pixabay ${q}: ${e.message}`); }
+      if (got >= PER) { console.log(`::notice::${dir}: ${got} fotos (pixabay)`); continue; }
     }
     /* a search, with the Pexels key (secret PEXELS_API_KEY) */
     if (KEY) {
