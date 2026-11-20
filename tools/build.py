@@ -753,15 +753,47 @@ def doors(pg):
 
 
 # ---------------------------------------------------------------- pages
+def sale_home_switch():
+    """During the store-wide sale (catalog.py SALE) the home page opens on the sale: this sets html.sale-live (and
+    html.sale-today on a special day such as Black Friday) before the hero is drawn, so nothing jumps. After the
+    sale ends the usual hero is back on its own."""
+    if not SALE:
+        return ""
+    days = ",".join(f'[{json.dumps(d["start"])},{json.dumps(d["end"])}]' for d in SALE.get("days", []))
+    return (f'<script>(function(){{var n=Date.now(),h=document.documentElement;'
+            f'if(n>=Date.parse({json.dumps(SALE["start"])})&&n<Date.parse({json.dumps(SALE["end"])}))h.classList.add("sale-live");'
+            f'[{days}].forEach(function(d){{if(n>=Date.parse(d[0])&&n<Date.parse(d[1]))h.classList.add("sale-today")}})}})()</script>\n  ')
+
+
+def sale_home():
+    """The sale's hero (same words as black-friday.html, so every language already has them)."""
+    if not SALE:
+        return ""
+    return """<div class="hero-sale">
+        <p class="eyebrow">Through Cyber Monday, November 30</p>
+        <h1>Black Friday <em>at Little Hive House</em></h1>
+        <ul class="sale-deals">
+          <li><strong>20% off</strong><span>everything in the shop, already in the price</span></li>
+          <li><strong>Or get them free</strong><span>on our ready-made designs: buy 3, get 1 free · buy 6, get 3 free · buy 10, get 6 free</span></li>
+          <li class="sale-deals-day"><strong>30% off + free shipping</strong><span>Friday, November 27 only</span></li>
+        </ul>
+        <p class="sale-note-small">No code needed. The deals don’t add up together: your cart applies the better one for you.</p>
+        <div class="hero-actions">
+          <a class="btn" href="shop.html">Shop the sale</a>
+          <a class="btn" href="photo-magnets.html">Make photo magnets</a>
+        </div>
+      </div>"""
+
+
 def page_home():
     pg = Page("")
     cards = "\n".join(col_card(pg, c) for c in top_level())
     feat = "\n".join(product(pg, BY_SLUG[c], s) for c, s in FEATURED)
     body = f"""{header(pg, "home")}
 <main id="main">
-  <section class="hero">
+  {sale_home_switch()}<section class="hero">
     <div class="wrap hero-grid">
-      <div>
+      <div>{sale_home()}<div class="hero-main">
         <p class="eyebrow">Handmade magnets &amp; photo gifts</p>
         <h1>Our designs or your photos, <em>made by hand.</em></h1>
         <p class="lede">{TOTAL_TEXT} original magnet designs, and custom magnets made from your own pictures: weddings, grandkids, pets, trips. Each one is printed, pressed and packed in our little house.</p>
@@ -770,7 +802,7 @@ def page_home():
           <a class="btn" href="photo-magnets.html">Make photo magnets</a>
         </div>
         <a class="biz-hook" href="business.html">{BRIEFCASE}<span><strong>Ordering for a business or an event?</strong> <span class="bh-more">Bulk prices and your own logo</span></span><span class="bh-arrow" aria-hidden="true">→</span></a>
-      </div>
+      </div></div>
       <div class="seal">
         {seal("hero")}
         <div class="season-scene" aria-hidden="true"></div>
