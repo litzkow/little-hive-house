@@ -98,7 +98,7 @@
   var d = null, ch = null, logoBlob = null, photoBlob = null, did = '';
 
   function rid() { return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-  function draw() { if (d) D.paint($('[data-dz-prev]'), d, ch); }
+  function draw() { if (d) D.paint($('[data-dz-prev]'), d, ch, { mark: true }); }
   /* the preview follows its box (the dialog opening, a phone turning) */
   if (window.ResizeObserver) {
     var lastW = 0;
@@ -236,6 +236,9 @@
       return S.upload(path, blob, { contentType: ext === 'png' ? 'image/png' : 'image/jpeg', customMetadata: { design: d.slug } }, function () {}).then(function () { return path; });
     });
   }
+
+  /* no "save image" on the preview (right click, long press, dragging it out) */
+  ['contextmenu', 'dragstart'].forEach(function (ev) { $('[data-dz-prev]').addEventListener(ev, function (e) { e.preventDefault(); }); });
 
   var busy = false;
   function buy() {

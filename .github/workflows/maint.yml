@@ -356,7 +356,7 @@ jobs:
           node-version: 22
       - name: "Exemplos: instalar"
         working-directory: functions
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
       - name: "Exemplos: desenhar"
         env: { NODE_PATH: "${{ github.workspace }}/functions/node_modules" }
         run: node tools/showcase/render.js assets/stock

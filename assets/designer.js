@@ -402,12 +402,20 @@
   }
 
   /* draws a design into a box of any width: the magnet is laid out at 600 px and scaled */
-  function paint(box, d, ch) {
+  /* a faint "preview" mark over the studio's picture: a screenshot of it is no good for printing (assets/studio.js) */
+  var MARK = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><text x="150" y="110" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="3" fill="#808080" fill-opacity=".34" text-anchor="middle" transform="rotate(-30 150 100)">LITTLE HIVE HOUSE · PREVIEW</text></svg>') + '")';
+  function paint(box, d, ch, opts) {
     var w = box.getBoundingClientRect().width || box.clientWidth || 300;
     box.setAttribute('translate', 'no');   /* the customer's own words are never translated */
     box.innerHTML = '<div class="dz-mag" style="width:600px;height:600px;transform:scale(' + (w / 600) + ');transform-origin:0 0">' + render(d, ch) + '</div>';
     box.style.height = w + 'px';
     var m = box.firstChild;
+    if (opts && opts.mark) {
+      var wm = document.createElement('div');
+      wm.setAttribute('aria-hidden', 'true');
+      wm.style.cssText = 'position:absolute;inset:0;z-index:5;pointer-events:none;background:' + MARK + ' center/' + Math.round(w * .5) + 'px auto repeat';
+      box.style.position = 'relative'; box.appendChild(wm);
+    }
     fit(m);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fit(m); });
   }
