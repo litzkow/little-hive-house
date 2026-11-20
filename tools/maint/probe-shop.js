@@ -20,7 +20,7 @@ const say = (s) => console.log(`::warning title=loja::${String(s).replace(/\n/g,
   const acc = await get(meta.adAccountId, "fields=business{id,name}");
   say(`conta: ${JSON.stringify(acc)}`);
   const bid = acc.business && acc.business.id;
-  let cid = (((cats.data || [])[0]) || {}).catalog_id || (process.env.VALUE || "").trim();
+  let cid = (((cats.data || [])[0]) || {}).catalog_id || (/^\d{10,}$/.test(process.env.VALUE || "") ? process.env.VALUE : "");
   if (bid) {
     const own = await get(`${bid}/owned_product_catalogs`, "fields=id,name,product_count,vertical");
     say(`catálogos da empresa: ${JSON.stringify(own).slice(0, 600)}`);
