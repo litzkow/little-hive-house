@@ -1,5 +1,37 @@
 [
  {
+  "media": "18170996290488085",
+  "child": "18034392818858242",
+  "tags": [
+   {
+    "retailer_id": "photo-pack-4",
+    "x": 0.25,
+    "y": 0.2
+   },
+   {
+    "retailer_id": "photo-pack-9",
+    "x": 0.43,
+    "y": 0.42
+   },
+   {
+    "retailer_id": "photo-pack-16",
+    "x": 0.62,
+    "y": 0.67
+   }
+  ]
+ },
+ {
+  "media": "18118096172601130",
+  "tags": [
+   {
+    "retailer_id": "photo-pack-4"
+   },
+   {
+    "retailer_id": "photo-pack-9"
+   }
+  ]
+ },
+ {
   "media": "18166026109433699",
   "tags": [
    {
@@ -16,12 +48,7 @@
    },
    {
     "retailer_id": "christmas-home-for-christmas"
-   }
-  ]
- },
- {
-  "media": "18118096172601130",
-  "tags": [
+   },
    {
     "retailer_id": "photo-pack-4"
    }
