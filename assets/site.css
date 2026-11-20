@@ -1296,3 +1296,6 @@ dialog.dz::backdrop { background: rgba(20,14,8,.6); }
 .dz-st { padding: 0; border: 0; border-radius: 8px; overflow: hidden; cursor: pointer; aspect-ratio: 1; background: var(--line); }
 .dz-st img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dz-st[aria-pressed="true"] { outline: 3px solid var(--honey); outline-offset: 1px; }
+.dz-digital { text-align: center; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 2px; }
+.dz-digital .linkish { font-weight: 600; font-size: 15px; }
+.dz-digital .hint { margin: 4px 0 0; font-size: 13px; }

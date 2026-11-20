@@ -32,7 +32,7 @@ function loadSiteTotals() {
 
 const designIds = Object.keys(catalog.designs);
 const packSizes = Object.keys(catalog.packs).map(Number);
-const packageIds = Object.keys(catalog.packages);
+const packageIds = Object.keys(catalog.packages).filter((id) => !catalog.packages[id].digital);   // the design file needs a design (own test)
 
 function seeded(seed) {
   let s = seed >>> 0;
@@ -177,7 +177,9 @@ test("catalog.json matches the prices printed on the built pages", () => {
   // the packs are sold on big-orders.html and on the bulk pages (business, weddings, graduation, parties: the mailing service too)
   const big = ["big-orders.html", "business.html", "weddings.html", "graduation.html", "parties.html"].map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
   const tiers = [...big.matchAll(/value="([a-z]+-\d+)" data-size="(\d+)" data-price="(\d+(?:\.\d+)?)"/g)];
-  assert.deepEqual([...new Set(tiers.map((t) => t[1]))].sort(), Object.keys(catalog.packages).sort(), "every package is on a page");
+  assert.deepEqual([...new Set(tiers.map((t) => t[1]))].sort(), Object.keys(catalog.packages).filter((id) => !catalog.packages[id].digital).sort(), "every package is on a page");
+  // the design file: its price on the studio's button
+  assert.ok(big.includes(`data-dz-digital data-price="${catalog.packages["digital-file"].price}"`), "design file price on the studio");
   for (const [, id, size, price] of tiers) {
     assert.ok(catalog.packages[id], `package ${id} in catalog.json`);
     assert.equal(catalog.packages[id].size, Number(size), id);
@@ -248,4 +250,23 @@ test("the design studio: colors, changed words, drawing, QR link and uploaded fi
   assert.equal(bad.items[0].design.icon, undefined);
   assert.throws(() => priceCart([{ kind: "package", id: "business-50", qty: 1, design: { slug: "<b>" } }], catalog), /design/);
   assert.throws(() => priceCart([{ kind: "package", id: "business-50", qty: 1, design: { slug: "x-y", url: "javascript:alert(1)" } }], catalog), /web address/);
+});
+
+test("a design file only: no magnet, no shipping, needs the design and its uploaded PNG; magnet packs may carry the file free", () => {
+  const design = { slug: "pizza-night", text: {} };
+  const file = "uploads/AbC123xyz/d1abc/3.png";
+  const r = priceCart([{ kind: "package", id: "digital-file", qty: 1, style: "pizza-night", design, file }], catalog);
+  assert.equal(r.items[0].digital, true);
+  assert.equal(r.items[0].file, file);
+  assert.equal(r.totals.ship, 0);
+  assert.equal(r.pricing.total, 4.99);
+  assert.equal(r.totals.magnets, 0);
+  assert.throws(() => priceCart([{ kind: "package", id: "digital-file", qty: 1, design }], catalog), /didn't upload/);
+  assert.throws(() => priceCart([{ kind: "package", id: "digital-file", qty: 1, file }], catalog), /Pick a design/);
+  // with a magnet pack: the file rides along, and shipping is the pack's
+  const both = priceCart([{ kind: "package", id: "business-50", qty: 1, design, file }, { kind: "package", id: "digital-file", qty: 1, design, file }], catalog);
+  assert.equal(both.items[0].file, file);
+  assert.equal(both.items[0].digital, undefined);
+  // a file path that isn't an upload is dropped
+  assert.equal(priceCart([{ kind: "package", id: "business-50", qty: 1, design, file: "../x.png" }], catalog).items[0].file, undefined);
 });

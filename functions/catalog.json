@@ -6685,6 +6685,13 @@
    "size": 0,
    "addresses": 250,
    "price": 575
+  },
+  "digital-file": {
+   "title": "Design file (digital, no magnet)",
+   "group": "digital",
+   "size": 0,
+   "price": 4.99,
+   "digital": true
   }
  },
  "rules": {

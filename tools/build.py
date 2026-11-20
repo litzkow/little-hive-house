@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "56"
+VERSION = "57"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"
@@ -1579,6 +1579,8 @@ def occ_img(pg, slug, cls="", lazy=True, size=600):
     return f'<img src="{pg.p}{src}" alt="" width="{size}" height="{size}"{" loading=" + chr(34) + "lazy" + chr(34) if lazy else ""} decoding="async"{(" class=" + chr(34) + cls + chr(34)) if cls else ""}>'
 
 
+# the studio design as a file only (no magnet), emailed after payment (studio.js, pricing.js)
+DIGITAL_TITLE, DIGITAL_PRICE = "Design file (digital, no magnet)", 4.99
 DESIGN_GALLERY = BIZ_DESIGNS.GALLERY   # (slug, page, group, title): tools/biz_designs.py
 
 
@@ -1643,6 +1645,8 @@ def studio_html(pg, o, mine, by_key):
           <p class="hint">Or pick one of ours:</p><div class="dz-stock" data-dz-stock></div></div>
         <div class="dz-sec dz-buyrow"><div class="field"><label for="dz-pack">How many</label><select id="dz-pack" data-dz-pack>{packs}</select></div>
           <button type="button" class="btn btn-honey" data-dz-buy>Buy now</button>
+          <div class="dz-digital"><button type="button" class="linkish" data-dz-digital data-price="{DIGITAL_PRICE}" data-title="{E(DIGITAL_TITLE)}">Only want the file to use online? ${DIGITAL_PRICE}</button>
+          <p class="hint">A digital file of your design, high resolution, no watermark, sent to your email right after you pay. No magnet. Free with any magnet pack.</p></div>
           <p class="hint" data-dz-msg data-default="Free design check: we email you a proof within one business day. Nothing is printed until you approve it.">Free design check: we email you a proof within one business day. Nothing is printed until you approve it.</p></div>
       </div>
     </div>
@@ -1850,7 +1854,8 @@ def export_store_catalog():
                                                                          "size": n, "price": p}
                      for title, key, _, tiers, _ in PACKAGES for n, p in tiers}
                     | {f"mailing-{n}": {"title": f"Mailed to your list, {n} addresses", "group": "mailing", "size": 0, "addresses": n, "price": p}
-                       for n, p in MAILING[3]},
+                       for n, p in MAILING[3]}
+                    | {"digital-file": {"title": DIGITAL_TITLE, "group": "digital", "size": 0, "price": DIGITAL_PRICE, "digital": True}},
         "rules": {"designPrice": PRICE, "bundle": {"size": BUNDLE[0], "price": BUNDLE[1]},
                   "volume": [{"min": n, "pct": pct} for n, pct in VOLUME], "shipping": STORE_SHIPPING,
                   "freeShippingAt": STORE_FREE_SHIP_AT, "currency": "usd"},

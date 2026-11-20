@@ -136,6 +136,7 @@ var PATTERNS = [
   [/^Ships in 1–2 business days\. Order today and it arrives <strong>about (.+)<\/strong> in the US\.$/, function (_, d) { return "Enviamos em 1 a 2 dias úteis. Pedindo hoje, chega <strong>por volta de " + date(d) + "</strong> nos EUA."; }],
   [/^\$([\d.,]+) each$/, "$$$1 cada"],
   [/^Buy now · \$([\d.,]+)$/, "Comprar agora · $$$1"],
+  [/^Digital file · (.+) · sent to your email · no magnet$/, function (_, t) { return "Arquivo digital · " + tr(t) + " · vai para o seu e-mail · sem ímã"; }],
   [/^Service (\d)$/, "Serviço $1"],
   [/^Line (\d+)$/, "Linha $1"],
   [/^Line (\d+), right side$/, "Linha $1, lado direito"],

@@ -227,7 +227,7 @@
         });
       };
       /* made by itself the first time the order is opened (paid orders only) */
-      if (it && !it.printFace && o.status !== 'pending' && AD && !autoMade[o.id + ':' + i]) { autoMade[o.id + ':' + i] = 1; makeNow(null); }
+      if (it && !it.printFace && !it.digital && o.status !== 'pending' && AD && !autoMade[o.id + ':' + i]) { autoMade[o.id + ':' + i] = 1; makeNow(null); }
       li.addEventListener('click', function (e) {
         if (e.target.closest('[data-dz-edit]')) { e.preventDefault(); if (AD) AD.edit(current, i); return; }
         if (e.target.closest('[data-dz-make]')) { e.preventDefault(); makeNow(e.target.closest('[data-dz-make]')); return; }
@@ -578,12 +578,14 @@
             (dg.url ? '<br>QR: <a href="' + esc(dg.url) + '" target="_blank" rel="noopener">' + esc(dg.url) + '</a>' : '') +
             (dg.logo ? '<br><a href="#" data-dz-file="' + esc(dg.logo) + '">' + T('Download their logo', 'Baixar o logo do cliente') + '</a>' : '') +
             (dg.photo ? '<br><a href="#" data-dz-file="' + esc(dg.photo) + '">' + T('Download their photo', 'Baixar a foto do cliente') + '</a>' : '') +
+            (it.file ? '<br><a href="#" data-dz-file="' + esc(it.file) + '">' + T('The file the customer got', 'O arquivo que o cliente recebeu') + '</a>' : '') +
             (dg.stock ? '<br><a href="/assets/stock/' + esc(dg.stock) + '.webp" target="_blank" rel="noopener">' + T('Our stock photo', 'Foto do nosso banco') + ': ' + esc(dg.stock) + '</a>' : '') +
             '<br><a href="#" data-dz-big>' + T('Open full size (600 px)', 'Abrir em tamanho real (600 px)') + '</a>' +
-            '<p class="small" data-dz-face="' + idx + '" style="margin-top:8px">' + (it.printFace ? '✓ ' + T('Print file ready', 'Arquivo de impressão pronto') + (it.printFaceAt ? ' · ' + esc(h.fmtDate(it.printFaceAt)) : '') : T('Print file: not made yet', 'Arquivo de impressão: ainda não feito')) + '</p>' +
+            (it.digital ? '' : '<p class="small" data-dz-face="' + idx + '" style="margin-top:8px">' + (it.printFace ? '✓ ' + T('Print file ready', 'Arquivo de impressão pronto') + (it.printFaceAt ? ' · ' + esc(h.fmtDate(it.printFaceAt)) : '') : T('Print file: not made yet', 'Arquivo de impressão: ainda não feito')) + '</p>' +
             '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:6px"><button type="button" class="btn btn-honey btn-sm" data-dz-edit="' + idx + '">' + T('Edit design', 'Editar design') + '</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-dz-make="' + idx + '">' + (it.printFace ? T('Make the print file again', 'Gerar o arquivo de novo') : T('Make the print file', 'Gerar o arquivo de impressão')) + '</button></div></div></div>';
-          pd = T('Design studio · ' + R.num(it.size) + ' magnets', 'Estúdio de designs · ' + R.num(it.size) + ' ímãs');
+            '<button type="button" class="btn btn-ghost btn-sm" data-dz-make="' + idx + '">' + (it.printFace ? T('Make the print file again', 'Gerar o arquivo de novo') : T('Make the print file', 'Gerar o arquivo de impressão')) + '</button></div>') + '</div></div>';
+          pd = it.digital ? T('Design file only (digital, no magnet) · already emailed to the customer', 'Só o arquivo do design (digital, sem ímã) · já foi por e-mail para o cliente')
+            : T('Design studio · ' + R.num(it.size) + ' magnets', 'Estúdio de designs · ' + R.num(it.size) + ' ímãs') + (it.file ? T(' · the digital file went free by email', ' · o arquivo digital foi de brinde por e-mail') : '');
         }
         return '<li>' + (styleImg && it.style !== 'qr' ? '<span class="thumb"><img src="' + styleImg + '" alt="" width="56" height="56" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></span>' : thumb(it)) +
           '<div><h3>' + esc(it.title || it.id) + '</h3><p class="d">' + pd + '</p>' + qrBox + dzBox + '</div>' +

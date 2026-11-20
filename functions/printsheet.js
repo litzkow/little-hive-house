@@ -172,6 +172,8 @@ function planTiles(order, photoBorder = null) {
         tiles.push({ kind: "photo", pack, item: index, n: j + 1, path: p.path, frame, caption, crop, capStyle, ...(border ? { border } : {}),
           key: `photo:${p.path}|${frame}|${caption}${capStyle ? `|${capStyle}` : ""}${crop ? `|${crop.x},${crop.y},${crop.z}` : ""}${border ? `|${border}` : ""}` });
       });
+    } else if (it.kind === "package" && it.digital) {
+      // a design file only: nothing to print
     } else if (it.kind === "package" && typeof it.printFace === "string" && /^prints\//.test(it.printFace)) {
       // a design made in the studio: Hive Admin drew it into a 1200 px picture (assets/designer.js toPng)
       const border = itemBorder(order, it, index);

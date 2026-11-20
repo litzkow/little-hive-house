@@ -53,6 +53,8 @@ function stripeLineItems(priced, base = siteUrl(), tax = false, lang = "en") {
       product.description = pt ? "Ímã de 2 × 2 pol. (5 cm)" : "2 × 2 in magnet";
     } else if (l.kind === "photos") {
       product.description = pt ? `${l.count} ímãs com foto personalizados, 2 × 2 pol. (5 cm)` : `${l.count} custom photo magnets, 2 × 2 in`;
+    } else if (l.kind === "package" && l.digital) {
+      product.description = pt ? "Arquivo digital do seu design, em alta resolução, enviado por e-mail. Não vem ímã." : "Your design as a high-resolution digital file, sent by email. No magnet.";
     } else if (l.kind === "package") {
       product.description = pt ? `${l.count} ímãs personalizados. Depois do pagamento, mandamos um e-mail sobre o seu modelo.` : `${l.count} custom magnets. We email you about your design after checkout.`;
     }
@@ -70,6 +72,9 @@ function sessionParams({ orderId, priced, email, tax = false, lang = "en" }) {
   const pt = lang === "pt";
   const base = siteUrl();
   const ship = priced.totals.ship;
+  // design files only: nothing to ship (no address, no shipping line) and nothing to wait for (charged now)
+  const digital = (priced.items || []).length > 0 && priced.items.every((it) => it.digital);
+  const hold = chargeOnShip() && !digital;
   const p = {
     mode: "payment",
     line_items: stripeLineItems(priced, base, tax, lang),
@@ -85,18 +90,28 @@ function sessionParams({ orderId, priced, email, tax = false, lang = "en" }) {
     allow_promotion_codes: true,
     client_reference_id: orderId,
     metadata: { orderId },
-    payment_intent_data: { metadata: { orderId }, description: "Little Hive House order", ...(chargeOnShip() ? { capture_method: "manual" } : {}) },
-    ...(chargeOnShip() ? { custom_text: { submit: { message: pt ? HOLD_TEXT_PT : HOLD_TEXT } } } : {}),
+    payment_intent_data: { metadata: { orderId }, description: "Little Hive House order", ...(hold ? { capture_method: "manual" } : {}) },
+    ...(hold ? { custom_text: { submit: { message: pt ? HOLD_TEXT_PT : HOLD_TEXT } } } : {}),
     ...(pt ? { locale: "pt-BR" } : {}),
     success_url: `${base}/thank-you.html?order=${orderId}&session={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/shop.html?checkout=canceled`,
   };
   if (tax) p.automatic_tax = { enabled: true };
   if (email) p.customer_email = email;
+  if (digital) { delete p.shipping_address_collection; delete p.shipping_options; }
   return p;
 }
 
 async function checkPhotos(items, auth) {
+  // a design file is the customer's own upload too (studio.js): theirs, or it is dropped (a digital-only one can't be)
+  for (const it of items) {
+    if (!it.file) continue;
+    const m = PHOTO_PATH.exec(it.file);
+    if (!m || !auth || m[1] !== auth.uid) {
+      if (it.digital) fail("invalid-argument", "Your design file didn't upload correctly. Please make it again.");
+      delete it.file;
+    }
+  }
   const photos = [];
   items.filter((it) => it.kind === "photos").forEach((it) => it.photos.forEach((ph, n) => photos.push({ ph, n })));
   if (!photos.length) return;
@@ -265,6 +280,7 @@ async function completeCheckout(session) {
     return { orderId, status: "pending", newlyPaid: false };
   }
   const promo = await promoFromSession(session);
+  const digitalOnly = (o0) => Array.isArray(o0.items) && o0.items.length > 0 && o0.items.every((it) => it && it.digital);
   const fee = authorized ? null : feeFromSession(session);
   const ship = addressFromSession(session);
   const holdUntil = authorized ? captureBefore(piObj) : null;
@@ -307,6 +323,12 @@ async function completeCheckout(session) {
       stripe: { ...(o.stripe || {}), sessionId: session.id, paymentIntent: piId, customer: session.customer || null, fee },
       timeline: (o.timeline || []).concat([{ at, status: "paid", text: authorized ? O.TIMELINE_TEXT.authorized : O.TIMELINE_TEXT.paid }]),
     };
+    if (digitalOnly(o)) {
+      // design files only: they go out by email right now, so the order is done (nothing to make or ship)
+      update.status = "delivered";
+      update.fulfillment = { ...(o.fulfillment || {}), digital: true, deliveredAt: at };
+      update.timeline = update.timeline.concat([{ at, status: "delivered", text: "Design file sent by email." }]);
+    }
     tx.set(cRef, { orderNumber: n }, { merge: true });
     tx.update(ref, update);
     after = { ...o, ...update };
@@ -317,6 +339,17 @@ async function completeCheckout(session) {
     // photos the customer didn't place themselves: slid so no face is cut (autocrop.js), before the print sheet is made
     if ((after.items || []).some((it) => it.kind === "photos")) after = await require("./autocrop").tryOrder(ref, after);
     const data = { order: O.emailOrder(orderId, after) };
+    // the design files (studio): a download link for each, in the confirmation email
+    const designFiles = [];
+    for (const it of after.items || []) {
+      if (!it || !it.file) continue;
+      try {
+        const bucket = deps.bucket();
+        designFiles.push({ title: (it.design && it.design.slug ? it.title : "") || "Your design", url: await printsheet().tokenUrl(bucket, bucket.file(it.file), it.file), digital: !!it.digital });
+      } catch (err) { console.warn("[checkout] design file link", orderId, err && err.message); }
+    }
+    if (designFiles.length) data.order.files = designFiles;
+    data.order.digitalOnly = digitalOnly(after);
     const sent = await mail.send({ to: after.email, kind: "order_confirmation", data });
     if (!sent.skipped) await ref.update({ "emails.confirmation": nowIso() }).catch(() => {});
     // the print-ready PDF for the owners: saved on the order and attached to the new-order alert (never blocks the order)

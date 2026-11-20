@@ -73,6 +73,9 @@ function describe(it, opts = {}) {
       alt: "Photo magnet frame preview",
     };
   }
+  if (it.kind === "package" && it.digital) {
+    return { title: str(it.title) || "Design file", details: ["Digital file, sent by email", "No magnet"], badge: "PNG", badgeSub: "file" };
+  }
   if (it.kind === "package") {
     return {
       title: str(it.title) || "Big order package",

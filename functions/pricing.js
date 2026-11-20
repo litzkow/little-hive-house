@@ -49,7 +49,8 @@ function computeTotals(lines, rules) {
   const pct = tier ? tier[1] : 0;
   const vol = Math.round(((sub - bundle - pkg) * pct) / 100);
   const goods = sub - bundle - vol;
-  const ship = goods >= rules.freeShippingAt ? 0 : rules.shipping;
+  // a cart of design files only ships nothing
+  const ship = lines.length && lines.every((l) => l.digital) ? 0 : goods >= rules.freeShippingAt ? 0 : rules.shipping;
   return { sub, bundle, pct, vol, goods, ship, total: goods + ship, magnets, designs };
 }
 
@@ -161,8 +162,16 @@ function priceCart(cart, catalog = loadCatalog()) {
           pal: QR_PALS.includes(raw.qr.pal) ? raw.qr.pal : "fern" };
       }
       if (raw.design && typeof raw.design === "object") item.design = cleanDesign(raw.design);   // made in the design studio
+      // the design drawn into a 1200 px PNG by the customer's browser (assets/designer.js): the file they get by email
+      const file = String(raw.file || "");
+      if (UPLOAD.test(file) && /\.png$/i.test(file) && item.design) item.file = file;
+      if (p.digital) {   // the design as a file only, no magnet
+        if (!item.design) throw bad("Pick a design first.");
+        if (!item.file) throw bad("Your design file didn't upload. Please try again.");
+        item.digital = true;
+      }
       items.push(item);
-      lines.push({ kind: "package", unit, qty, count: p.size, name: p.title });
+      lines.push({ kind: "package", unit, qty, count: p.size, name: p.title, ...(p.digital ? { digital: true } : {}) });
     } else {
       throw bad(`Cart line ${i + 1} has an unknown kind "${String(raw.kind)}".`);
     }

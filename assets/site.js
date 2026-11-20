@@ -148,7 +148,7 @@
     var pct = tier ? tier[1] : 0;
     var vol = Math.round((sub - disc - pkg) * pct) / 100;
     var goods = sub - disc - vol;
-    var ship = goods >= FREE_SHIP_AT ? 0 : SHIPPING;
+    var ship = cart.length && cart.every(function (l) { return l.digital; }) ? 0 : goods >= FREE_SHIP_AT ? 0 : SHIPPING;   /* design files only: nothing to ship */
     var next = VOLUME.slice().reverse().find(function (v) { return magnets < v[0]; });
     return { sub: sub, disc: disc, vol: vol, pct: pct, magnets: magnets, next: next, goods: goods, ship: ship, total: goods + ship, count: cart.reduce(function (a, l) { return a + l.qty; }, 0) };
   }

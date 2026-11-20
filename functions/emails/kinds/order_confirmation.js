@@ -31,6 +31,30 @@ module.exports = function orderConfirmation(data, { L }) {
     { title: "Fridge time", body: "Unwrap, stick, smile. Tag us on Instagram if you share a photo, we love seeing them." },
   ];
 
+  const files = Array.isArray(order.files) ? order.files.filter((f) => f && /^https:\/\//.test(String(f.url || ""))) : [];
+  const digital = !!order.digitalOnly;
+  const filesBox = files.length ? Lay.box(
+    `${Lay.label(files.length > 1 ? "Your design files" : "Your design file")}` +
+    Lay.bodyText(F.esc(digital ? "Here it is, in high resolution, ready to use. Save it to your phone or computer." : "A gift with your magnets: your design in high resolution, to use online too."), { size: 15, lh: 22 }) +
+    Lay.buttons(files.slice(0, 5).map((f) => ({ href: f.url, label: files.length > 1 ? `Download: ${F.line(f.title, 40)}` : "Download your design", variant: "honey" }))),
+    `Your design file: ${files.map((f) => f.url).join(" ")}`, "honey", { pad: "18px 22px" }) : null;
+  if (digital) {
+    return {
+      subject: num ? `Your design file is ready · Order ${num}` : "Your design file is ready",
+      preheader: "Your design in high resolution, ready to download.",
+      blocks: [
+        Lay.hero({ eyebrow: num ? `Order ${num}` : "Order confirmed", title: first ? `Thank you, ${first}!` : "Thank you for your order!", lead: ["Your design file is ready. Download it below."] }),
+        filesBox,
+        Lay.h2("Your order"),
+        O.itemList(order, L),
+        O.totals(order),
+        Lay.p(["Want it on the fridge too? Order magnets with the same design anytime on ", { a: "our site", href: L.shop || "https://littlehivehouse.com/business.html" }, "."], { muted: true, small: true }),
+        Lay.p(["Any trouble with the file? Just reply to this email."], { muted: true, small: true }),
+      ],
+      reason: "You're getting this email because you placed an order at littlehivehouse.com.",
+    };
+  }
+
   const cols = [O.addressColumn(order)];
   const contact = [F.line(order.email, 120), F.line(order.shipping && order.shipping.phone, 30)].filter(Boolean);
   if (contact.length) cols.push({ label: "Contact", html: Lay.bodyText(contact.map(F.esc).join("<br>"), { size: 15, lh: 23 }), text: contact.join("\n") });
@@ -46,6 +70,7 @@ module.exports = function orderConfirmation(data, { L }) {
       }),
       Lay.progress(0),
       etaBox,
+      filesBox,
       Lay.h2("Your order"),
       O.itemList(order, L),
       O.totals(order),

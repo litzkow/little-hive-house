@@ -221,7 +221,8 @@
     var i = t.closest('.dz-ic');
     if (i) { ch.icon = i.getAttribute('data-icon'); dlg.querySelectorAll('.dz-ic').forEach(function (b) { b.setAttribute('aria-pressed', b === i ? 'true' : 'false'); }); draw(); return; }
     if (t.closest('[data-dz-nologo]')) { if (ch.logo) URL.revokeObjectURL(ch.logo); ch.logo = ''; logoBlob = null; $('[data-dz-nologo]').hidden = true; $('[data-dz-logo-name]').textContent = ''; draw(); return; }
-    if (t.closest('[data-dz-buy]')) buy();
+    if (t.closest('[data-dz-buy]')) buy(false);
+    if (t.closest('[data-dz-digital]')) buy(true);
   });
 
   function changed() {
@@ -241,14 +242,23 @@
   ['contextmenu', 'dragstart'].forEach(function (ev) { $('[data-dz-prev]').addEventListener(ev, function (e) { e.preventDefault(); }); });
 
   var busy = false;
-  function buy() {
+  /* the design in high resolution, without the preview mark (assets/designer.js toPng), uploaded as 3.png: the file the
+     customer gets by email (a design file order, or free with a magnet pack) */
+  function drawFile() {
+    if (!D.toPng) return Promise.resolve(null);
+    var c = { colors: ch.colors, text: ch.text, icon: ch.icon, url: ch.url, logo: ch.logo, photo: ch.photo };
+    return D.toPng(d, c, 1200).then(function (b) { return upload(b, 3, 'png'); });
+  }
+
+  function buy(digital) {
     if (busy) return;
-    var msg = $('[data-dz-msg]'), btn = $('[data-dz-buy]');
+    var msg = $('[data-dz-msg]'), btn = digital ? $('[data-dz-digital]') : $('[data-dz-buy]');
     if (/^(qr|eqr)$/.test(d.layout) && ch.url && !/^https?:\/\/[^\s/$.?#]+\.[^\s]{2,}$/i.test(ch.url)) {
       msg.textContent = 'The QR link doesn’t look like a web address.'; msg.classList.add('err'); $('[data-dz-url]').focus(); return;
     }
-    busy = true; btn.disabled = true; btn.textContent = 'One moment…';
+    busy = true; btn.disabled = true; if (!digital) btn.textContent = 'One moment…';
     var o = $('[data-dz-pack]').selectedOptions[0], n = Number(o.getAttribute('data-size'));
+    if (digital) o = { value: 'digital-file', getAttribute: function (k) { return { 'data-size': '0', 'data-price': btn.getAttribute('data-price'), 'data-title': btn.getAttribute('data-title') }[k]; } }, n = 0;
     var design = { slug: d.slug, text: changed() };
     if (ch.colors) design.colors = ch.colors;
     if (ch.icon && ch.icon !== d.opt.icon) design.icon = ch.icon;
@@ -258,16 +268,27 @@
     if (logoBlob) jobs.push(upload(logoBlob, 1, 'png').then(function (p) { design.logo = p; }));
     if (photoBlob) jobs.push(upload(photoBlob, 2, 'jpg').then(function (p) { design.photo = p; }));
     if (jobs.length) { msg.classList.remove('err'); msg.textContent = 'Sending your ' + (logoBlob ? 'logo' : 'photo') + '…'; }
+    var file = null;
     Promise.all(jobs).then(function () {
+      msg.classList.remove('err'); msg.textContent = digital ? 'Making your file…' : 'One moment…';
+      /* the file: a must for a design file order; for a magnet pack a gift, so a browser that can't draw it just skips it */
+      return drawFile().then(function (p) { file = p; }, function (e) { if (digital) throw e; });
+    }).then(function () {
       var nm = (design.text.name || d.text.name || d.text.head || d.text.a || '').replace(/\n/g, ' ');
-      window.LHH.addPackage({
+      var line = {
         id: o.value, name: o.getAttribute('data-title'), count: n, price: Number(o.getAttribute('data-price')), qty: 1, style: d.slug, design: design,
-        detail: n + ' magnets · ' + d.title + (nm ? ' · ' + nm : '') + (design.logo ? ' · with your logo' : '') + ' · proof before we print'
-      });
+        detail: digital ? 'Digital file · ' + d.title + (nm ? ' · ' + nm : '') + ' · sent to your email · no magnet'
+          : n + ' magnets · ' + d.title + (nm ? ' · ' + nm : '') + (design.logo ? ' · with your logo' : '') + ' · proof before we print' + (file ? ' · the digital file free' : '')
+      };
+      if (file) line.file = file;
+      if (digital) line.digital = true;
+      window.LHH.addPackage(line);
       if (window.lhhTrack) window.lhhTrack('add_to_cart', { currency: 'USD', value: Number(o.getAttribute('data-price')), items: [{ item_id: o.value, item_name: d.title, price: Number(o.getAttribute('data-price')), quantity: 1 }] });
       close();
     }, function () {
-      msg.textContent = 'We couldn’t send your file. Check the connection and try again, or buy without it and email it to us after checkout.'; msg.classList.add('err');
+      msg.textContent = digital ? 'We couldn’t make your file in this browser. Try again, or try Chrome or Safari up to date.'
+        : 'We couldn’t send your file. Check the connection and try again, or buy without it and email it to us after checkout.';
+      msg.classList.add('err');
     }).then(function () { busy = false; btn.disabled = false; price(); });
   }
 
