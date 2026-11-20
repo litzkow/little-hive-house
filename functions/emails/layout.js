@@ -5,6 +5,9 @@
 
 const { esc, str, safeUrl, SUPPORT } = require("./format");
 const { tx, get: lang, htmlLang } = require("./i18n");
+/** right to left (Arabic): the layout mirrors, so a gap on the right moves to the left */
+const rtl = () => lang() === "ar";
+const side = (t, r, b, l) => (rtl() ? [t, l, b, r] : [t, r, b, l]).map((x) => (x === 0 ? "0" : x)).join(" ");
 
 const C = {
   honey: "#F2A81D", honeySoft: "#F9D88A", wash: "#FDF0D2", ink: "#2B2118", muted: "#6A5845", line: "#E8D6B3",
@@ -102,14 +105,14 @@ function buttonCell(href, label, variant = "honey", full = false) {
 function buttons(items, opts = {}) {
   const list = items.filter((b) => b && safeUrl(b.href));
   if (!list.length) return { html: "", text: "" };
-  const align = opts.center ? "center" : "left";
+  const align = opts.center ? "center" : rtl() ? "right" : "left";
   let cells;
   if (list.length === 1 || opts.stack) {
     cells = list.map((b, i) => `<tr><td align="${align}" style="padding:${i ? "12px" : "0"} 0 0">${buttonCell(b.href, b.label, b.variant, opts.full)}</td></tr>`).join("");
     cells = `<table ${T} width="100%">${cells}</table>`;
   } else {
     cells = `<table ${T} class="btn-row"${opts.center ? ' align="center"' : ""}><tr>` + list.map((b, i) =>
-      `<td class="stack${i ? " stack-top" : ""}" valign="top" style="padding:0 ${i < list.length - 1 ? "12px" : "0"} 0 0">${buttonCell(b.href, b.label, b.variant)}</td>`).join("") + "</tr></table>";
+      `<td class="stack${i ? " stack-top" : ""}" valign="top" style="padding:${side(0, i < list.length - 1 ? "12px" : "0", 0, 0)}">${buttonCell(b.href, b.label, b.variant)}</td>`).join("") + "</tr></table>";
   }
   return {
     html: row(cells, opts.pad || "6px 0 28px"),
@@ -153,7 +156,7 @@ function columns(cols) {
   if (!list.length) return { html: "", text: "" };
   const w = list.length > 1 ? "50%" : "100%";
   const html = row(`<table ${T} width="100%"><tr>` + list.map((c, i) =>
-    `<td class="stack${i ? " stack-top" : ""}" width="${w}" valign="top" style="padding:0 ${i < list.length - 1 ? "16px" : "0"} 0 0">${label(c.label)}${c.html}</td>`).join("") + "</tr></table>", "0 0 26px");
+    `<td class="stack${i ? " stack-top" : ""}" width="${w}" valign="top" style="padding:${side(0, i < list.length - 1 ? "16px" : "0", 0, 0)}">${label(c.label)}${c.html}</td>`).join("") + "</tr></table>", "0 0 26px");
   return { html, text: list.map((c) => `${str(tx(c.label)).toUpperCase()}\n${c.text}`).join("\n\n") };
 }
 
@@ -162,7 +165,7 @@ function facts(rows) {
   const list = rows.filter((r) => r && r[1] !== undefined && r[1] !== null && r[1] !== "");
   const html = row(`<table ${T} width="100%">` + list.map(([k, v], i) => {
     const r = rich(v);
-    return `<tr><td class="lh-m lh-line" valign="top" width="34%" style="padding:9px 12px 9px 0;border-top:${i ? `1px solid ${C.line}` : "0"};font-family:${FB};font-size:14px;line-height:20px;color:${C.muted}">${esc(tx(k))}</td>` +
+    return `<tr><td class="lh-m lh-line" valign="top" width="34%" style="padding:${side("9px", "12px", "9px", 0)};border-top:${i ? `1px solid ${C.line}` : "0"};font-family:${FB};font-size:14px;line-height:20px;color:${C.muted}">${esc(tx(k))}</td>` +
       `<td class="lh-t lh-line" valign="top" style="padding:9px 0;border-top:${i ? `1px solid ${C.line}` : "0"};font-family:${FB};font-size:15px;line-height:21px;color:${C.ink}">${r.html}</td></tr>`;
   }).join("") + "</table>", "0 0 22px");
   return { html, text: list.map(([k, v]) => `${tx(k)}: ${rich(v).text}`).join("\n") };
@@ -172,7 +175,7 @@ function facts(rows) {
 function steps(list) {
   list = list.map((s) => ({ ...s, title: tx(s.title) }));
   const html = row(`<table ${T} width="100%">` + list.map((s, i) =>
-    `<tr><td valign="top" width="44" style="padding:0 14px ${i < list.length - 1 ? "16px" : "0"} 0">` +
+    `<tr><td valign="top" width="44" style="padding:${side(0, "14px", i < list.length - 1 ? "16px" : "0", 0)}">` +
     `<table ${T}><tr><td align="center" valign="middle" width="32" height="32" bgcolor="${C.honey}" style="width:32px;height:32px;border-radius:10px;background:${C.honey};font-family:${FD};font-weight:700;font-size:15px;line-height:32px;color:${C.ink};text-align:center">${i + 1}</td></tr></table></td>` +
     `<td valign="top" style="padding:3px 0 ${i < list.length - 1 ? "16px" : "0"}">${bodyText(`<strong style="font-weight:600">${esc(s.title)}</strong>`, { size: 16, lh: 22 })}${bodyText(rich(s.body).html, { muted: true, size: 15, lh: 22, margin: "3px 0 0" })}</td></tr>`).join("") + "</table>", "0 0 28px");
   return { html, text: list.map((s, i) => `${i + 1}. ${s.title}: ${rich(s.body).text}`).join("\n") };
@@ -313,7 +316,7 @@ function page(opts) {
 <style>${STYLE}</style>
 </head>
 <body class="lh-bg" style="margin:0;padding:0;background:${C.cream};word-spacing:normal">
-<div role="article" aria-roledescription="email" aria-label="${esc(opts.title)}" lang="${htmlLang()}" style="font-size:16px">
+<div role="article" aria-roledescription="email" aria-label="${esc(opts.title)}" lang="${htmlLang()}"${rtl() ? ' dir="rtl"' : ""} style="font-size:16px${rtl() ? ";direction:rtl;text-align:right" : ""}">
 <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">${esc(pre)}${spacer}</div>
 <table ${T} width="100%" class="lh-bg" bgcolor="${C.cream}" style="background:${C.cream}">
 <tr><td align="center" style="padding:${admin ? "20px" : "28px"} 10px 40px">
@@ -343,4 +346,4 @@ ${blocks.map((b) => b.html).join("\n")}
   return { html, text: text.replace(/\n{3,}/g, "\n\n") };
 }
 
-module.exports = { C, FD, FB, FS, T, rich, row, hero, p, h2, buttons, buttonCell, box, label, bodyText, code, columns, facts, steps, progress, stars, gallery, divider, raw, page };
+module.exports = { rtl, side, C, FD, FB, FS, T, rich, row, hero, p, h2, buttons, buttonCell, box, label, bodyText, code, columns, facts, steps, progress, stars, gallery, divider, raw, page };

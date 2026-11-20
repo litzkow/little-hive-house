@@ -684,7 +684,8 @@ document.addEventListener("click", function (e) {
     if (!r) return false;
     var right = h.clientWidth - 12, out = false;   // the links may spill past the page column, but not off the screen
     r.querySelectorAll('a, button').forEach(function (e) {
-      if (e.offsetParent && e.getBoundingClientRect().right > right + 1) out = true;
+      var b = e.offsetParent && e.getBoundingClientRect();
+      if (b && (b.right > right + 1 || b.left < 11)) out = true;   /* right to left (Arabic) overflows on the left */
     });
     return out;
   }

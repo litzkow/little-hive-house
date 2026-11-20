@@ -94,7 +94,10 @@
   function arrows() {
     gal.querySelectorAll('.dz-track').forEach(function (t) {
       var s = t.querySelector('.dz-strip'), l = t.querySelector('.dz-prevb'), r = t.querySelector('.dz-nextb');
-      var upd = function () { l.hidden = s.scrollLeft < 8; r.hidden = s.scrollLeft + s.clientWidth > s.scrollWidth - 8; };
+      var upd = function () {  /* right to left (Arabic): the row starts at the right and scrollLeft runs negative */
+        var x = Math.abs(s.scrollLeft), atStart = x < 8, atEnd = x + s.clientWidth > s.scrollWidth - 8, rtl = getComputedStyle(s).direction === 'rtl';
+        l.hidden = rtl ? atEnd : atStart; r.hidden = rtl ? atStart : atEnd;
+      };
       if (!s.dataset.on) { s.dataset.on = 1; s.addEventListener('scroll', upd, { passive: true }); }
       upd();
     });
