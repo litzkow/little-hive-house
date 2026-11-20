@@ -37,6 +37,16 @@ const isMe = (by, name) => /claude/i.test(`${by || ""} ${name || ""}`);
   } else if (v.startsWith("notes:")) {
     const map = JSON.parse(Buffer.from(v.slice(6), "base64").toString("utf8"));
     for (const d of all.filter((x) => map[x.id])) { await d.ref.set({ notes: map[d.id] }, { merge: true }); say(`${d.data().title}: ${map[d.id]}`); }
+  } else if (v.startsWith("order:")) {
+    /* posting order: [{id, notes}], the first one goes on top of Compartilhados (the list is sorted by when it was sent) */
+    const list = JSON.parse(Buffer.from(v.slice(6), "base64").toString("utf8")); const base = Date.now();
+    for (const [i, o] of list.entries()) {
+      const d = all.find((x) => x.id === o.id); if (!d) { say(`${o.id}: não achei`); continue; }
+      const it = d.data(); const at = new Date(base - i * 60000).toISOString();
+      const files = (it.files || []).map((f, j, arr) => (j === arr.length - 1 ? { ...f, at } : f));
+      await d.ref.set({ at, lastFileAt: at, files, ...(o.notes ? { notes: o.notes } : {}) }, { merge: true });
+      say(`${i + 1}. ${it.title}${o.notes ? " · " + o.notes : ""}`);
+    }
   } else if (v.startsWith("delete:")) {
     const ids = v.slice(7).split(",");
     for (const d of all.filter((x) => ids.includes(x.id))) {
