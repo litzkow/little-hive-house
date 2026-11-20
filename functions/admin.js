@@ -203,6 +203,10 @@ async function deliverOrder(ref, id, { at, by, onlyOnceEmail = false, strict = f
     return upd;
   });
   if (!changed) return { delivered: false, emailed: false };
+  /* the owners hear about it on their phones when the carrier confirms it (when they mark it themselves they already know) */
+  if (by && by !== "admin" && deps.available()) {
+    await require("./push").notifyAdmins("admin_delivered", { order: { id, number: after.number, name: after.name, items: after.items } }).catch(() => {});
+  }
   if (onlyOnceEmail && after.emails && after.emails.delivered) return { delivered: true, emailed: false };
   const sent = await mail.send({ to: after.email, kind: "delivered_review", data: { order: O.emailOrder(id, after), ...(await reviewExtras()) } });
   if (!sent.skipped) await ref.update({ "emails.delivered": nowIso() }).catch(() => {});

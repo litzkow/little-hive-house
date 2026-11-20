@@ -256,6 +256,9 @@ function world() {
 
 test("trackShipments: out for delivery -> one email; delivered -> delivered + one review email; token reused", async () => {
   const { db, net, answers, seed, tokens } = world();
+  const pushes = [];
+  require("../push").setSender(async (sub, payload) => { pushes.push(JSON.parse(payload)); return { statusCode: 201 }; });
+  db._set("adminPush/s1", { subscription: { endpoint: "https://push/1", keys: { p256dh: "x", auth: "y" } }, prefs: { delivery: true }, uid: "admin1" });
   seed("o1");
   seed("o2", { carrier: "other", tracking: "LM1CA" });                  // manual carrier: never checked
   seed("o3", { tracking: "9400NOTYET" });                               // not in USPS yet (404): nothing changes
@@ -295,6 +298,12 @@ test("trackShipments: out for delivery -> one email; delivered -> delivered + on
   assert.match(o.adminNotes.at(-1).text, /automatically \(usps tracking\)/);
   assert.equal(net.emails.length, 2);
   assert.match(net.emails[1].subject, /how do they look on your fridge/i);
+  // the owners get one phone notification that it was delivered
+  const dv = pushes.filter((x) => /Entregue/.test(x.title));
+  assert.equal(dv.length, 1);
+  assert.match(dv[0].body, /Karina Vargas · 1 ímã/);
+  assert.match(dv[0].url, /#order\/o1$/);
+  require("../push").setSender(null);
   // delivered orders are no longer polled
   const before = net.calls.length;
   await T.trackShipments({ now: NOW + 6 * 3600000 });

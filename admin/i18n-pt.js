@@ -264,6 +264,8 @@ window.LHH_PT = {
 "Delivered + review request": "Entregue + pedido de avaliação",
 "Delivered already? You can mark it yourself: the customer gets a short note asking for a review.": "Já foi entregue? Você mesmo pode marcar: o cliente recebe uma mensagem curta pedindo uma avaliação.",
 "Delivery checks": "Verificação de entrega",
+"Deliveries": "Entregas",
+"A parcel was delivered, or looks stuck or late.": "Um pacote foi entregue, ou parece parado ou atrasado.",
 "Design the custom artwork.": "Faça a arte personalizada.",
 "Designs": "Designs",
 "Discount": "Desconto",
