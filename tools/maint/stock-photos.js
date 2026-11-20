@@ -6,6 +6,7 @@ const fs = require("fs"), path = require("path");
 const OUT = process.env.OUT || "/tmp/stock";
 const PER = +(process.env.PER || 12);
 const Q = JSON.parse(process.env.QUERIES);
+const KEY = process.env.PEXELS_API_KEY || "";
 const UA = { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36", Accept: "application/json" };
 const credits = [];
 async function json(u) { const r = await fetch(u, { headers: UA }); if (!r.ok) throw new Error(r.status + " " + u); return r.json(); }
@@ -17,7 +18,32 @@ async function save(file, url) {
 (async () => {
   for (const [dir, q] of Object.entries(Q)) {
     fs.mkdirSync(path.join(OUT, dir), { recursive: true });
-    let got = 0, src = "unsplash";
+    let got = 0, src = "pexels";
+    /* a list of Pexels photo ids: straight from the Pexels image server (Pexels License, free for commercial use) */
+    if (Array.isArray(q)) {
+      for (const id of q) {
+        try { await save(path.join(OUT, dir, "p-" + id + ".jpg"), `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1400`); got++;
+          credits.push({ dir, file: "p-" + id + ".jpg", source: "Pexels", license: "Pexels License", link: `https://www.pexels.com/photo/${id}/` }); } catch (e) { console.log(`::warning::${id}: ${e.message}`); }
+      }
+      console.log(`::notice::${dir}: ${got} fotos (pexels ids)`);
+      continue;
+    }
+    /* a search, with the Pexels key (secret PEXELS_API_KEY) */
+    if (KEY) {
+      try {
+        const r = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=${Math.min(80, PER * 2)}`, { headers: { Authorization: KEY } });
+        const j = await r.json();
+        for (const p of j.photos || []) {
+          if (got >= PER) break;
+          const id = "p-" + p.id, file = path.join(OUT, dir, id + ".jpg");
+          try { await save(file, p.src.large2x || p.src.original); } catch (e) { continue; }
+          credits.push({ dir, file: id + ".jpg", source: "Pexels", license: "Pexels License", by: p.photographer, link: p.url, alt: p.alt });
+          got++;
+        }
+      } catch (e) { console.log(`::warning::Pexels ${q}: ${e.message}`); }
+      if (got >= PER) { console.log(`::notice::${dir}: ${got} fotos (pexels)`); continue; }
+    }
+    src = "unsplash";
     try {
       for (let page = 1; page <= 3 && got < PER; page++) {
         const j = await json(`https://unsplash.com/napi/search/photos?query=${encodeURIComponent(q)}&per_page=30&page=${page}`);
