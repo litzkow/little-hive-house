@@ -381,3 +381,19 @@ jobs:
           cd /tmp/out && git init -q && git checkout -q -b showcase-out && git add -A
           git -c user.name=robo -c user.email=robo@users.noreply.github.com commit -qm "Exemplos de ímãs de foto"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" showcase-out
+
+  # ig-tags: the photos of the Instagram posts go to the ig-out branch, so whoever picks the products can look at them
+  ig-photos:
+    needs: maint
+    if: inputs.task == 'ig-tags' && (inputs.value == '' || inputs.value == 'list')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: ig-posts, path: ig-out }
+      - name: "Instagram: fotos dos posts no ramo ig-out"
+        run: |
+          cd ig-out && git init -q && git checkout -q -b ig-out && git add -A
+          git -c user.name=hive-robo -c user.email=noreply@littlehivehouse.com commit -q -m "Fotos dos posts do Instagram"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ig-out
