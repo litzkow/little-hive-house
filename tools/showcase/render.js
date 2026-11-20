@@ -29,9 +29,10 @@ const fetchImpl = async (url) => {
     for (const [i, m] of occ.magnets.entries()) {
       const tile = await P._internal.renderPhoto({ kind: "photo", n: 1, pack: 1, path: m.file, frame: m.frame, caption: m.caption || "", crop: m.crop || null }, ctx);
       const meta = await sharp(tile).metadata();
-      const e = Math.round((meta.width - 600) / 2);
+      // the tile is the printed picture (2.02 in at 600 dpi): keep the visible front, what the photo builder shows
+      const F = Math.min((ctx.geo && ctx.geo.visPx) || P.FACE_PX, meta.width, meta.height), e = Math.round((meta.width - F) / 2);
       const out = path.join(OUT, `${occ.id}-${i + 1}.webp`);
-      const face = await sharp(tile).extract({ left: e, top: e, width: 600, height: 600 }).toBuffer();
+      const face = await sharp(tile).extract({ left: e, top: Math.round((meta.height - F) / 2), width: F, height: F }).toBuffer();
       await sharp(face).resize(480, 480, { kernel: "lanczos3" }).webp({ quality: 82 }).toFile(out);
       // a JPG for emails (newsletter "Photo magnet examples"): assets/email/thumbs/showcase/<occasion>-<n>.jpg
       await sharp(face).resize(320, 320, { kernel: "lanczos3" }).jpeg({ quality: 84, mozjpeg: true }).toFile(path.join(MAIL, `${occ.id}-${i + 1}.jpg`));
