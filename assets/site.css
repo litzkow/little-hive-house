@@ -1362,3 +1362,6 @@ html.nav-squeeze .nav a { display: none; }
 html.nav-squeeze .nav a.acct-btn, html.nav-squeeze .nav a.ig-btn { display: inline-grid; }
 html.nav-squeeze .nav a.ig-btn ~ a.ig-btn { display: none; }
 html.nav-squeeze .menu-btn { display: inline-flex; }
+
+/* Korean: wrap between words, not inside them */
+html[lang=ko] body { word-break: keep-all; overflow-wrap: break-word; }
