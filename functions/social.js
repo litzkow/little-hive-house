@@ -113,7 +113,11 @@ async function syncTags(meta, media, items) {
     const ref = col.doc(String(m.id));
     if ((await ref.get()).exists) continue;
     let existing = [];
-    try { existing = ((await G(meta, "GET", `${m.id}/product_tags`)).data) || []; } catch (e) { existing = []; }
+    // an album keeps its tags on its photos: look at each of them too
+    const targets = [m.id, ...(((m.children && m.children.data) || []).map((c) => c.id))];
+    for (const id of targets) {
+      try { existing = existing.concat(((await G(meta, "GET", `${id}/product_tags`)).data) || []); } catch (e) { /* none */ }
+    }
     const item = items.find((i) => i.igId === String(m.id));
     const chosen = item && Array.isArray(item.products) ? item.products.filter((p) => p && /^[a-z0-9-]{3,80}$/.test(String(p.rid || ""))) : null;
     const rids = chosen && chosen.length ? [] : productsFromCaption(m.caption);
