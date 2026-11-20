@@ -901,8 +901,18 @@
       '<span><b>' + h.plural(R.magnetsOf(o), 'magnet') + '</b></span>' + (o.uid ? '' : '<span>Guest</span>') + '</div>' +
       '<div class="cols"><div>' + fulfilCard(o) + itemsCard(o) + (R.isSale(o) && R.stage(o) !== 'refunded' && R.stage(o) !== 'canceled' ? printCard(o) : '') + timelineCard(o) + '</div>' +
       '<div>' + customerCard(o) + paymentCard(o) + emailsCard(o) + notesCard(o) + statusCard(o) + deleteCard(o) + '</div></div>';
-    return { title: h.orderNo(o), html: html, after: function () { bindOrder(o); fillPhotos(); fillDesigns(); } };
+    return { title: h.orderNo(o), html: html, after: function () { bindOrder(o); fillPhotos(); fillDesigns(); needDesigns(o); } };
   };
+
+  /* the designs live in sets loaded when needed (assets/designs/<set>.json): load the ones this order uses, then draw again */
+  function needDesigns(o) {
+    var D = window.LHHDesigner; if (!D || !D.need) return;
+    var miss = (o.items || []).filter(function (it) { return it.design && it.design.slug && !D.get(it.design.slug); });
+    if (!miss.length) return;
+    Promise.all(miss.map(function (it) { return D.need(it.design.slug).catch(function () { return null; }); })).then(function (r) {
+      if (r.some(Boolean) && current === o) h.route();
+    });
+  }
 
   function bindOrder(o) {
     var sf = document.getElementById('ship-form');

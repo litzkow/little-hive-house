@@ -75,7 +75,7 @@
     }).join('');
     var pals = Object.keys(D.palettes).map(function (k) { var p = D.palettes[k]; return '<button type="button" class="dzp" data-pal="' + k + '" title="' + k + '" style="background:conic-gradient(' + p.ac + ' 0 33%,' + p.bg + ' 0 66%,' + p.ink + ' 0)"></button>'; }).join('');
     var icons = Object.keys(D.icons).map(function (k) { return '<button type="button" class="dzi" data-icon="' + k + '" title="' + k + '"><svg viewBox="0 0 64 64" width="26" height="26">' + D.icons[k].split('{c}').join('currentColor') + '</svg></button>'; }).join('');
-    var photoLayout = /^(photo|wphoto|polaroid)$/.test(d.layout);
+    var photoLayout = D.hasPhoto(d);
     var c0 = work.colors || d.colors;
     dlg.innerHTML = '<form method="dialog" class="in" style="max-width:980px">' +
       '<h2>' + T('Edit before printing', 'Editar antes de imprimir') + ' · ' + esc(d.title) + '</h2>' +
@@ -85,7 +85,7 @@
       '<h3>' + T('Colors', 'Cores') + '</h3><div class="dz-ed-pals"><button type="button" class="btn btn-ghost btn-sm" data-orig>' + T('Original', 'Original') + '</button>' + pals + '</div>' +
       '<div class="row" style="gap:12px;flex-wrap:wrap;margin:8px 0"><label class="small">' + T('Background', 'Fundo') + ' <input type="color" data-c="bg" value="' + esc(c0.bg) + '"></label><label class="small">' + T('Text', 'Texto') + ' <input type="color" data-c="ink" value="' + esc(c0.ink) + '"></label><label class="small">' + T('Accent', 'Destaque') + ' <input type="color" data-c="ac" value="' + esc(c0.ac) + '"></label></div>' +
       '<h3>' + T('Words', 'Textos') + '</h3><div class="dz-ed-words">' + words +
-      (/^(qr|eqr)$/.test(d.layout) ? '<label class="field"><span>' + T('QR link', 'Link do QR') + '</span><input class="input" data-url value="' + esc(work.url || '') + '" placeholder="https://"></label>' : '') + '</div>' +
+      (D.hasQR(d) ? '<label class="field"><span>' + T('QR link', 'Link do QR') + '</span><input class="input" data-url value="' + esc(work.url || '') + '" placeholder="https://"></label>' : '') + '</div>' +
       '<h3>' + T('Logo', 'Logo') + '</h3><div class="row" style="gap:10px;flex-wrap:wrap"><label class="btn btn-ghost btn-sm">' + T('New logo', 'Trocar logo') + '<input type="file" accept="image/*" data-file="logo" hidden></label>' +
       '<button type="button" class="btn btn-ghost btn-sm" data-nologo>' + T('No logo (use a drawing)', 'Sem logo (usar desenho)') + '</button></div>' +
       '<div class="dz-ed-icons">' + icons + '</div>' +

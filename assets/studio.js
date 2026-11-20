@@ -10,55 +10,126 @@
   if (!D || !gal || !dlg) return;
   var $ = function (s, r) { return (r || dlg).querySelector(s); };
 
-  /* ---------------------------------------------------------------- the gallery: filter chips and "show more" */
-  var STEP = 12, shown = STEP, group = 'all', words = '';
-  /* plain letters to compare (accents and case don't matter): what the card shows, in English or Portuguese */
-  function plain(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
-  function filter() {
-    var n = 0, total = 0, q = plain(words).trim().split(/\s+/).filter(Boolean);
-    gal.querySelectorAll('.dz-card').forEach(function (li) {
-      var g = li.getAttribute('data-group'), chip = gal.querySelector('.dz-chip[data-dz-group="' + g.replace(/"/g, '') + '"]');
-      var text = plain(li.textContent + ' ' + g + ' ' + (chip ? chip.textContent : '') + ' ' + (li.getAttribute('data-words') || ''));
-      var ok = (group === 'all' || g === group) && q.every(function (w) { return text.indexOf(w) >= 0; });
-      if (ok) total++;
-      li.hidden = !ok || ++n > shown;
-    });
-    var more = gal.querySelector('[data-dz-more]');
-    if (more) more.hidden = total <= shown;
-    var none = gal.querySelector('[data-dz-none]');
-    if (none) none.hidden = total > 0;
+  /* ---------------------------------------------------------------- the gallery, like a streaming app
+     home: the groups (Restaurants & food, Health…) or, on Personalize, the themes; a group opens its kinds of business;
+     a kind opens rows of designs by what the magnet is for (Bring customers back, Scan me…), each row scrolls sideways
+     and "See all" opens it as a grid. The search box finds a kind from any word (English or Portuguese). The phone's
+     back button walks back up (#kind-pizza in the address). */
+  var DATA = D.data || {}, SETS = DATA.sets || {}, ROWN = DATA.rowNames || {}, page = gal.getAttribute('data-page');
+  var only = gal.getAttribute('data-dz-only');
+  var home = gal.querySelector('[data-dz-home]'), view = gal.querySelector('[data-dz-view]'), rowsBox = gal.querySelector('[data-dz-rows]');
+  var grps = gal.querySelector('[data-dz-grps]'), kbox = gal.querySelector('[data-dz-kinds-box]'), feat = gal.querySelector('[data-dz-feat]');
+  var search = gal.querySelector('[data-dz-search]'), none = gal.querySelector('[data-dz-none]');
+  var assetBase = (document.querySelector('script[src*="studio.js"]').src || '').replace(/assets\/studio\.js.*$/, '');
+  /* plain letters to compare (accents and case don't matter) */
+  function plain(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function art(el) {
+    var il = el.getAttribute('data-il'), k = el.getAttribute('data-icon');
+    if (il && D.illus[il]) el.innerHTML = '<svg viewBox="0 0 100 100" width="100%" height="100%">' + D.illus[il] + '</svg>';
+    else if (D.icons[k]) el.innerHTML = '<svg viewBox="0 0 64 64" width="100%" height="100%">' + D.icons[k].split('{c}').join('currentColor') + '</svg>';
   }
-  /* each kind of business with its little drawing */
-  gal.querySelectorAll('.dz-chip[data-icon]').forEach(function (c) {
-    var k = c.getAttribute('data-icon'), box = c.querySelector('.dz-ci');
-    if (box && D.icons[k]) box.innerHTML = '<svg viewBox="0 0 64 64" width="26" height="26">' + D.icons[k].split('{c}').join('currentColor') + '</svg>';
+  gal.querySelectorAll('.dz-ki,.dz-gi').forEach(art);
+
+  function card(slug) {
+    return '<li class="dz-card"><button type="button" data-design="' + slug + '" aria-label="Open this design"><img src="' + assetBase + 'assets/occasions/' + slug + '.webp" alt="" width="360" height="360" loading="lazy" decoding="async"><span class="dz-go">Make it yours →</span></button></li>';
+  }
+  function row(title, slugs, key) {
+    if (!slugs.length) return '';
+    return '<div class="dz-row" data-row="' + (key || '') + '"><div class="dz-rh"><h4>' + D.esc(title) + ' <small>' + slugs.length + '</small></h4>' +
+      (slugs.length > 4 ? '<button type="button" class="linkish" data-dz-all>See all</button>' : '') + '</div>' +
+      '<div class="dz-track"><button type="button" class="dz-arrow dz-prevb" data-dz-scroll="-1" aria-label="Scroll left" tabindex="-1">‹</button><ul class="dz-strip">' + slugs.map(card).join('') + '</ul>' +
+      '<button type="button" class="dz-arrow dz-nextb" data-dz-scroll="1" aria-label="Scroll right" tabindex="-1">›</button></div></div>';
+  }
+
+  /* featured rows on the first screen (the most loved designs), so there is something to tap right away */
+  if (feat && DATA.featured && DATA.featured[page]) feat.innerHTML = DATA.featured[page].map(function (r) { return row(r[0], r[1]); }).join('');
+
+  var level = 'home', curGroup = '', curSet = '';
+  function showKinds(g, words) {
+    var q = plain(words || '').trim().split(/\s+/).filter(Boolean), n = 0;
+    gal.querySelectorAll('.dz-kind').forEach(function (b) {
+      var ok = q.length ? q.every(function (w) { return plain(b.textContent + ' ' + b.getAttribute('data-words') + ' ' + b.getAttribute('data-group')).indexOf(w) >= 0; })
+        : (!g || b.getAttribute('data-group') === g);
+      b.hidden = !ok; if (ok) n++;
+    });
+    if (kbox) kbox.hidden = !(g || q.length || !grps);
+    if (grps) grps.hidden = !!(g || q.length);
+    var t = gal.querySelector('[data-dz-ktitle]');
+    if (t) t.textContent = q.length ? (n ? 'Results' : '') : g;
+    var back = gal.querySelector('[data-dz-back]');
+    if (back) back.hidden = !(g || q.length);
+    if (none) none.hidden = !(q.length && !n);
+    if (feat) feat.hidden = !!(g || q.length);
+  }
+  function openSet(k, push) {
+    var meta = SETS[k]; if (!meta) return;
+    curSet = k; level = 'set';
+    if (home) home.hidden = true;
+    if (feat) feat.hidden = true;
+    view.hidden = false;
+    var vt = gal.querySelector('[data-dz-vtitle]');
+    if (vt) vt.textContent = meta.name;
+    rowsBox.innerHTML = '<p class="hint">Loading the designs…</p>';
+    D.load(k).then(function (list) {
+      if (curSet !== k) return;
+      var mine = list.filter(function (d) { return d.set === k; });
+      var rows = (meta.rows || []).map(function (r) { return row(ROWN[r] || r, mine.filter(function (d) { return d.row === r; }).map(function (d) { return d.slug; }), r); }).join('');
+      rowsBox.innerHTML = rows || '<p class="hint">No designs here yet.</p>';
+      arrows();
+    }, function () { rowsBox.innerHTML = '<p class="hint">We couldn’t load the designs. Check the connection and try again.</p>'; });
+    if (push !== false && !only) history.pushState({ dz: k }, '', '#kind-' + k);
+    if (!only) { var top = gal.getBoundingClientRect().top + window.scrollY - 70; if (Math.abs(window.scrollY - top) > 80) window.scrollTo({ top: top, behavior: 'smooth' }); }
+    if (window.lhhTrack) window.lhhTrack('view_item_list', { item_list_id: k, item_list_name: meta.name });
+  }
+  function goHome(g) {
+    level = g ? 'group' : 'home'; curGroup = g || ''; curSet = '';
+    if (home) home.hidden = false;
+    view.hidden = true;
+    if (search && !g) search.value = '';
+    showKinds(curGroup, search ? search.value : '');
+  }
+  /* the arrows only where a row can scroll (a mouse; on a phone the finger does it) */
+  function arrows() {
+    gal.querySelectorAll('.dz-track').forEach(function (t) {
+      var s = t.querySelector('.dz-strip'), l = t.querySelector('.dz-prevb'), r = t.querySelector('.dz-nextb');
+      var upd = function () { l.hidden = s.scrollLeft < 8; r.hidden = s.scrollLeft + s.clientWidth > s.scrollWidth - 8; };
+      if (!s.dataset.on) { s.dataset.on = 1; s.addEventListener('scroll', upd, { passive: true }); }
+      upd();
+    });
+  }
+  window.addEventListener('resize', arrows);
+  window.addEventListener('popstate', function () {
+    var m = /^#kind-([a-z0-9-]+)$/.exec(location.hash);
+    if (m && SETS[m[1]]) openSet(m[1], false); else if (!only) goHome(curGroup && level === 'set' ? curGroup : '');
   });
-  var search = gal.querySelector('[data-dz-search]');
+
   if (search) search.addEventListener('input', function () {
-    words = search.value; shown = STEP;
-    if (words.trim() && group !== 'all') { group = 'all'; gal.querySelectorAll('[data-dz-group]').forEach(function (c) { c.setAttribute('aria-pressed', c.getAttribute('data-dz-group') === 'all' ? 'true' : 'false'); }); }
-    filter();
+    if (level === 'set') goHome('');
+    curGroup = ''; showKinds('', search.value);
   });
   gal.addEventListener('click', function (e) {
-    var chip = e.target.closest('[data-dz-group]');
-    if (chip) {
-      group = chip.getAttribute('data-dz-group'); shown = STEP;
-      if (search && search.value) { search.value = ''; words = ''; }
-      gal.querySelectorAll('[data-dz-group]').forEach(function (c) { c.setAttribute('aria-pressed', c === chip ? 'true' : 'false'); });
-      filter();
-      var grid = gal.querySelector('.dz-grid');
-      if (group !== 'all' && grid && grid.getBoundingClientRect().top > window.innerHeight * .6) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    if (e.target.closest('[data-dz-more]')) { shown += STEP * 2; filter(); return; }
-    var card = e.target.closest('[data-design]');
-    if (card) open(card.getAttribute('data-design'));
+    var t = e.target, el;
+    if ((el = t.closest('[data-dz-grp]'))) { curGroup = el.getAttribute('data-dz-grp'); level = 'group'; showKinds(curGroup, ''); history.pushState({ dzg: curGroup }, '', '#designs'); kbox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
+    if ((el = t.closest('.dz-kind'))) { openSet(el.getAttribute('data-set')); return; }
+    if (t.closest('[data-dz-back]')) { if (search) search.value = ''; goHome(''); return; }
+    if (t.closest('[data-dz-up]')) { if (history.state && history.state.dz) history.back(); else goHome(SETS[curSet] && grps ? SETS[curSet].group : ''); return; }
+    if ((el = t.closest('[data-dz-scroll]'))) { var st = el.parentNode.querySelector('.dz-strip'); st.scrollBy({ left: Number(el.getAttribute('data-dz-scroll')) * st.clientWidth * .85, behavior: 'smooth' }); return; }
+    if ((el = t.closest('[data-dz-all]'))) { var sec = el.closest('.dz-row'), open_ = sec.classList.toggle('dz-open'); el.textContent = open_ ? 'Show less' : 'See all'; if (!open_) sec.scrollIntoView({ block: 'nearest' }); arrows(); return; }
+    var cd = t.closest('[data-design]');
+    if (cd) open(cd.getAttribute('data-design'));
   });
-  filter();
+  if (only) openSet(only, false);
+  else {
+    var km = /^#kind-([a-z0-9-]+)$/.exec(location.hash);
+    if (km && SETS[km[1]]) { history.replaceState({ dz: km[1] }, '', location.hash); openSet(km[1], false); } else showKinds('', '');
+  }
+  arrows();
 
   /* the drawings to pick from (the same ones the designs use) */
   var box = dlg.querySelector('[data-dz-icons]');
-  if (box) box.innerHTML = Object.keys(D.icons).map(function (k) {
+  if (box) box.innerHTML = Object.keys(D.illus).map(function (k) {
+    return '<button type="button" class="dz-ic dz-il" data-icon="il:' + k + '" aria-label="' + k + '"><svg viewBox="0 0 100 100" width="34" height="34">' + D.illus[k] + '</svg></button>';
+  }).join('') + Object.keys(D.icons).map(function (k) {
     return '<button type="button" class="dz-ic" data-icon="' + k + '" aria-label="' + k + '"><svg viewBox="0 0 64 64" width="30" height="30">' + D.icons[k].split('{c}').join('currentColor') + '</svg></button>';
   }).join('');
 
@@ -81,7 +152,7 @@
   };
   function sortStock() {
     if (!stockBox) return;
-    var own = d.slug.split('-')[0], list = PRI[d.page] || [];
+    var pu = /stock\/([a-z-]+?)-\d+\.webp/.exec(d.opt.photoUrl || ''), own = pu ? pu[1] : d.slug.split('-')[0], list = PRI[d.page] || PRI.parties;
     var rank = function (n) { var k = n.replace(/-\d+$/, ''); if (k === own || k.indexOf(own) === 0) return 0; var i = list.indexOf(k); return i < 0 ? 100 : i + 1; };
     Array.prototype.slice.call(stockBox.children).sort(function (a, b) { return rank(a.getAttribute('data-stock')) - rank(b.getAttribute('data-stock')); })
       .forEach(function (el) { stockBox.appendChild(el); });
@@ -131,12 +202,13 @@
   }
 
   function open(slug) {
+    if (!D.get(slug)) { D.need(slug).then(function (x) { if (x) open(slug); }); return; }
     d = D.get(slug); if (!d) return;
     ch = { text: {} }; logoBlob = photoBlob = null; did = rid();
     $('[data-dz-title]').textContent = d.title;
     $('[data-dz-fields]').innerHTML = Object.keys(d.text).map(function (k) { return field(k, d.text[k]); }).join('') +
-      (/^(qr|eqr)$/.test(d.layout) ? '<div class="field dz-f"><label for="dz-url">Link for the QR code</label><input id="dz-url" type="url" inputmode="url" maxlength="200" placeholder="https://your-site.com" data-dz-url></div>' : '');
-    $('[data-dz-photo-box]').hidden = !/^(photo|wphoto|polaroid)$/.test(d.layout);
+      (D.hasQR(d) ? '<div class="field dz-f"><label for="dz-url">Link for the QR code</label><input id="dz-url" type="url" inputmode="url" maxlength="200" placeholder="https://your-site.com" data-dz-url></div>' : '');
+    $('[data-dz-photo-box]').hidden = !D.hasPhoto(d);
     if (!$('[data-dz-photo-box]').hidden) { fillStock(); sortStock(); }
     dlg.querySelectorAll('.dz-st').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
     $('[data-dz-logo-name]').textContent = '';
@@ -253,7 +325,7 @@
   function buy(digital) {
     if (busy) return;
     var msg = $('[data-dz-msg]'), btn = digital ? $('[data-dz-digital]') : $('[data-dz-buy]');
-    if (/^(qr|eqr)$/.test(d.layout) && ch.url && !/^https?:\/\/[^\s/$.?#]+\.[^\s]{2,}$/i.test(ch.url)) {
+    if (D.hasQR(d) && ch.url && !/^https?:\/\/[^\s/$.?#]+\.[^\s]{2,}$/i.test(ch.url)) {
       msg.textContent = 'The QR link doesn’t look like a web address.'; msg.classList.add('err'); $('[data-dz-url]').focus(); return;
     }
     busy = true; btn.disabled = true; if (!digital) btn.textContent = 'One moment…';
@@ -294,6 +366,6 @@
 
   /* "Use this style" anywhere on the page, or a link to #design-<slug>, opens the studio */
   var m = /^#design-([a-z0-9-]+)$/.exec(location.hash);
-  if (m && D.get(m[1])) setTimeout(function () { open(m[1]); }, 300);
+  if (m) setTimeout(function () { open(m[1]); }, 300);
   window.LHHStudio = { open: open };
 })();

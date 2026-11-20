@@ -32,6 +32,9 @@ def hero(name, mags):
 
 if __name__ == "__main__":
     # three rows on a fridge door, slightly overlapping, a little tilt each: big ones in front
+    hero("hero-personalize", [("p-pets-1", 34, 40, 200, -4), ("p-family-2", 248, 22, 180, 3), ("p-baby-2", 440, 36, 196, -2), ("p-kitchen-1", 612, 60, 150, 5),
+                              ("p-grandparents-1", 70, 270, 196, 3), ("p-love-4", 282, 232, 178, -3, 2), ("p-home-1", 470, 262, 186, 2), ("p-travel-3", 640, 236, 130, -5),
+                              ("p-faith-1", 640, 380, 140, 4)])
     hero("hero-business", [("pizza-night", 34, 40, 200, -4), ("dental-coupon", 248, 22, 180, 3), ("realtor-photo", 440, 36, 196, -2), ("cafe-punch", 610, 64, 150, 5),
                            ("clean-word", 70, 270, 196, 3), ("hvac-bar", 282, 230, 178, -3, 2), ("realtor-qr", 470, 262, 186, 2), ("barber-badge", 640, 236, 130, -5),
                            ("insurance-useful", 640, 380, 140, 4)])

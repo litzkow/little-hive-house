@@ -174,8 +174,8 @@ test("catalog.json matches the prices printed on the built pages", () => {
   assert.deepEqual(rules.extra, catalog.photoPricing.extra);
   assert.equal(rules.max, catalog.photoPricing.max);
   assert.deepEqual(rules.packs, Object.values(catalog.packs).map((p) => [p.size, p.price]));
-  // the packs are sold on big-orders.html and on the bulk pages (business, weddings, graduation, parties: the mailing service too)
-  const big = ["big-orders.html", "business.html", "weddings.html", "graduation.html", "parties.html"].map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
+  // the packs are sold on big-orders.html, on the bulk pages (business, weddings, graduation, parties: the mailing service too) and on personalize.html
+  const big = ["big-orders.html", "business.html", "weddings.html", "graduation.html", "parties.html", "personalize.html"].map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
   const tiers = [...big.matchAll(/value="([a-z]+-\d+)" data-size="(\d+)" data-price="(\d+(?:\.\d+)?)"/g)];
   assert.deepEqual([...new Set(tiers.map((t) => t[1]))].sort(), Object.keys(catalog.packages).filter((id) => !catalog.packages[id].digital).sort(), "every package is on a page");
   // the design file: its price on the studio's button

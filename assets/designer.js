@@ -83,10 +83,13 @@
     wave: st('M4 26c7-7 14-7 21 0s14 7 21 0 10-5 14-2M4 40c7-7 14-7 21 0s14 7 21 0 10-5 14-2')
   };
 
+  /* full-colour illustrations (assets/designer-more.js fills it): an icon name "il:<key>" draws one */
+  var ILLUS = {};
   /* the customer's logo replaces the drawing wherever the design has one */
   var cur = null;
   function ic(name, size, c) {
     if (cur && cur.logo) return '<img src="' + esc(cur.logo) + '" alt="" style="display:block;flex:none;width:' + size + 'px;height:' + size + 'px;object-fit:contain">';
+    if (/^il:/.test(name || '') && ILLUS[name.slice(3)]) return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 100 100" style="display:block;flex:none">' + ILLUS[name.slice(3)] + '</svg>';
     var body = ICONS[name] || ICONS.star;
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 64 64" style="display:block;flex:none">' + body.split('{c}').join(c) + '</svg>';
   }
@@ -201,7 +204,7 @@
   };
   L.useful = function (p) {
     var rows = (p.rows || []).map(function (r) {
-      return '<div style="display:flex;align-items:flex-end;gap:12px;border-bottom:2px solid ' + p.soft + ';padding:9px 0 7px;font:500 24px ' + JT + '">' +
+      return '<div style="display:flex;align-items:flex-end;gap:12px;border-bottom:2px solid ' + (/^#[0-9a-f]{6}$/i.test(p.ink) ? p.ink + '30' : p.soft) + ';padding:9px 0 7px;font:500 24px ' + JT + '">' +
         '<span style="flex:none;font-weight:700;' + (p.kw ? 'width:' + p.kw + 'px' : '') + '">' + T(r[0]) + '</span>' +
         one('flex:1;min-width:0;text-align:right;font:' + def(p.vf, '400 30px/1.1 ' + CA) + ';color:' + def(p.pen, p.ac), T(r[1]) || '&nbsp;') + '</div>';
     }).join('');
@@ -377,7 +380,7 @@
     if (!c.own) for (k in d.tweak) p[k] = d.tweak[k];   /* the little color touches of the original */
     for (k in t) p[k] = t[k];
     p.bg = c.bg; p.ink = c.ink; p.ac = c.ac; p.soft = c.soft; p.slug = d.slug;
-    p.icon = ch.icon && ICONS[ch.icon] ? ch.icon : d.opt.icon;
+    p.icon = ch.icon && (ICONS[ch.icon] || ILLUS[String(ch.icon).slice(3)]) ? ch.icon : d.opt.icon;
     p.logo = ch.logo || '';
     p.photo = ch.photo || (d.opt.photoUrl ? (window.LHHDesignBase || '') + d.opt.photoUrl : '');
     p.url = ch.url || d.opt.url || 'https://littlehivehouse.com/';
@@ -431,7 +434,7 @@
   var FONT_FILES = [["Anton", "normal", "400", "Anton.ttf"], ["Bebas Neue", "normal", "400", "BebasNeue.ttf"], ["Josefin Sans", "normal", "100 900", "JosefinSans.ttf"],
     ["Jost", "normal", "100 900", "Jost.ttf"], ["Caveat", "normal", "100 900", "Caveat.ttf"], ["Playfair Display", "italic", "100 900", "PlayfairItalic.ttf"],
     ["DM Serif Display", "normal", "400", "DMSerifDisplay.ttf"], ["Cinzel", "normal", "100 900", "Cinzel.ttf"], ["Cormorant Garamond", "normal", "100 900", "CormorantItalic.ttf"],
-    ["Cormorant Garamond", "italic", "100 900", "CormorantItalic.ttf"], ["Dancing Script", "normal", "100 900", "DancingScript.ttf"]];
+    ["Cormorant Garamond", "italic", "100 900", "CormorantItalic.ttf"], ["Dancing Script", "normal", "100 900", "DancingScript.ttf"], ["DM Mono", "normal", "500", "DMMono.ttf"]];
   var fontCssP = null;
   function asDataUrl(blob) { return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej; r.readAsDataURL(blob); }); }
   function fetchData(url) { return fetch(url, { mode: 'cors' }).then(function (r) { if (!r.ok) throw new Error(r.status + ' ' + url); return r.blob(); }).then(asDataUrl); }
@@ -497,8 +500,33 @@
     }).then(function (b) { host.remove(); return b; }, function (e) { host.remove(); throw e; });
   }
 
-  var byslug = {};
-  DATA.list.forEach(function (d) { byslug[d.slug] = d; });
+  /* the designs: each set (a kind of business, a Personalize theme, an event) in its own file, assets/designs/<set>.json,
+     loaded the first time it is needed; DATA.where says which set a design is in. (The thumbnail renderer passes a
+     plain list.) */
+  var byslug = {}, list = [], sets = {};
+  function keep(arr) { arr.forEach(function (d) { if (!byslug[d.slug]) { byslug[d.slug] = d; list.push(d); } }); return arr; }
+  keep(DATA.list || []);
+  function base() { return (window.LHHDesignBase != null ? window.LHHDesignBase : (function () { var s = document.querySelector('script[src*="designer.js"]'); return s ? s.src.replace(/assets\/designer\.js.*$/, '') : ''; })()); }
+  function load(set) {
+    if (!set) return Promise.resolve([]);
+    if (!sets[set]) {
+      sets[set] = fetch(base() + 'assets/designs/' + set + '.json?v=' + (DATA.v || '')).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(keep, function (e) { delete sets[set]; throw e; });
+    }
+    return sets[set];
+  }
+  /* the design with this slug, its set loaded if need be */
+  function need(slug) {
+    if (byslug[slug]) return Promise.resolve(byslug[slug]);
+    var w = DATA.where && DATA.where[slug];
+    return w ? load(w).then(function () { return byslug[slug] || null; }) : Promise.resolve(null);
+  }
 
-  window.LHHDesigner = { stock: DATA.stock || [], toPng: toPng, render: render, fit: fit, paint: paint, icons: ICONS, palettes: DATA.pal, designs: DATA.list, get: function (s) { return byslug[s]; }, esc: esc };
+  /* more layouts and illustrations live in assets/designer-more.js, drawn with these same helpers */
+  var helpers = { esc: esc, T: T, ic: ic, star: star, qr: qr, photo: photo, def: def, one: one, mix: mix, SQ: SQ,
+    F: { A: A, BE: BE, JO: JO, JT: JT, CA: CA, PL: PL, DS: DS, CI: CI, CO: CO, DA: DA }, cur: function () { return cur; } };
+  window.LHHDesigner = { layouts: L, illus: ILLUS, h: helpers, stock: DATA.stock || [], toPng: toPng, render: render, fit: fit, paint: paint, icons: ICONS, palettes: DATA.pal, designs: list, get: function (s) { return byslug[s]; }, load: load, need: need, data: DATA, esc: esc,
+    /* does this design take a photo / a QR link (the studio and Hive Admin show the right boxes) */
+    hasPhoto: function (d) { return !!(d && (d.opt.photoUrl || /^(photo|wphoto|polaroid|magazine|halfphoto|frame|archphoto|circlephoto|snapshot|photocircle|film)$/.test(d.layout))); },
+    hasQR: function (d) { return !!(d && /^(qr|eqr|qrbig|qrphone|review)$/.test(d.layout)); } };
 })();

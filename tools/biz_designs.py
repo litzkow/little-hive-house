@@ -8,6 +8,7 @@ of businesses and events. Fictional names, 555 phone numbers; every sample QR op
 
 build.py reads GALLERY (slug, page, group, title) to show the gallery and the style picker. Rendering needs
 google-chrome and node (for the real QR codes, assets/qr.js); building the site does not."""
+import hashlib
 import os, sys, json, subprocess, tempfile, pathlib, html
 from concurrent.futures import ThreadPoolExecutor
 
@@ -231,6 +232,91 @@ DESIGNS = [
     D("party-vbs", "parties", "Big celebrations", "Church & VBS · Summer", "L_word", "sun", icon="sun", sub="VACATION BIBLE SCHOOL", head="Shine<br>bright!", line="June 14 – 18, 2027 · Ages 4 to 12 · Free", name="Grace Community", phone="(555) 700-4673"),
 ]
 
+HAND_COUNT = len(DESIGNS)
+
+# ---------------------------------------------------------------- the big catalog (tools/design_kits.py)
+import design_kits as KITS   # noqa: E402
+
+HAND_SET = {"pizza": "pizza", "taco": "mexican", "sushi": "sushi", "ramen": "sushi", "cafe": "cafe", "bakery": "bakery", "foodtruck": "bbq", "restaurant": "restaurant",
+            "dental": "dentist", "ortho": "ortho", "clinic": "doctor", "peds": "pediatrics", "chiro": "chiro", "eye": "eyes", "clean": "cleaning", "hvac": "hvac",
+            "plumber": "plumber", "electric": "electric", "roof": "roofing", "lawn": "lawn", "pest": "pest", "pool": "pool", "moving": "moving", "handyman": "handyman",
+            "locksmith": "locksmith", "realtor": "realtor", "insurance": "insurance", "tax": "tax", "lawyer": "lawyer", "mortgage": "mortgage", "salon": "salon",
+            "barber": "barber", "nails": "nails", "medspa": "medspa", "gym": "gym", "yoga": "yoga", "trainer": "trainer", "vet": "vet", "groomer": "groomer",
+            "petsit": "petsitter", "auto": "autorepair", "tow": "towing", "detail": "detailing", "tires": "tires", "church": "church", "school": "school",
+            "tutor": "tutor", "team": "team", "nonprofit": "nonprofit", "photog": "photographer", "florist": "florist", "car": "detailing", "coffee": "cafe",
+            "food": "restaurant"}
+HAND_THANKS = {"thanks-fall": "hvac", "thanks-xmas": "insurance", "thanks-valentine": "salon", "thanks-july": "roofing", "thanks-school": "pediatrics", "thanks-newyear": "tax"}
+HAND_ROW = {"L_coupon": "promo", "L_punch": "promo", "L_bar": "number", "L_hazard": "number", "L_word": "number", "L_qr": "qr", "L_photo": "photo", "W_photo": "photo",
+            "L_useful": "useful", "L_hours": "useful", "L_appt": "useful", "L_classic": "brand", "L_mono": "brand", "L_badge": "brand", "L_split": "brand", "L_thanks": "thanks"}
+EVENT_ROW = {"Save the date": "date", "Favors & thank-yous": "thanks", "Graduation": "date", "College & school spirit": "date", "Birthdays": "party",
+             "Baby showers": "party", "Work events": "party", "Big celebrations": "party"}
+for _d in DESIGNS:
+    if _d["page"] == "business":
+        _d["set"] = HAND_THANKS.get(_d["slug"]) or HAND_SET.get(_d["slug"].split("-")[0], "restaurant")
+        _d["row"] = HAND_ROW.get(_d["layout"], "brand")
+    else:
+        _d["set"] = {"weddings": "w-main", "graduation": "g-main", "parties": "x-main"}[_d["page"]]
+        _d["row"] = "photo" if _d["layout"] in ("W_photo", "W_polaroid") else "qr" if _d["layout"] == "E_qr" else EVENT_ROW.get(_d["group"], "date")
+
+SETS = {}   # key -> {page, name, group, icon, rows}
+for _k in KITS.K:
+    SETS[_k["key"]] = dict(page="business", name=_k["name"], group=_k["group"], icon=_k["icon"], il=_k.get("il") or "", words=KITS.words_for(_k), rows=[r for r, _ in KITS.ROWS])
+SETS.update({"w-main": dict(page="weddings", name="Weddings", group="Weddings", icon="rings", rows=[r for r, _ in KITS.EROWS]),
+             "g-main": dict(page="graduation", name="Graduation", group="Graduation", icon="cap", rows=[r for r, _ in KITS.EROWS]),
+             "x-main": dict(page="parties", name="Parties & events", group="Parties", icon="balloon", rows=[r for r, _ in KITS.EROWS])})
+for _p in KITS.PSETS:
+    SETS[_p["key"]] = dict(page="personalize", name=_p["name"], group="Personalize", icon=_p["icon"], il=KITS.PICON.get(_p["key"], "")[3:] if KITS.PICON.get(_p["key"], "").startswith("il:") else "",
+                           words=_p["name"] + " " + KITS.PT.get(_p["key"], ""), rows=[r for r, _ in KITS.PROWS])
+for _e in KITS.ESETS:
+    SETS[_e["key"]] = dict(page=_e["page"], name=_e["name"], group=SETS[{"weddings": "w-main", "graduation": "g-main", "parties": "x-main"}[_e["page"]]]["group"], icon=_e["icon"], rows=[r for r, _ in KITS.EROWS])
+# the event pages show their two sets as one
+MERGE = {"w-more": "w-main", "g-more": "g-main", "x-more": "x-main", **{_p["key"] + "x": _p["key"] for _p in KITS.PSETS}}
+
+_ROWNAME = dict(KITS.ROWS + KITS.PROWS + KITS.EROWS)
+
+
+def _gen(set_key, page, recipes, pals, label):
+    n = 0
+    for i, (row, lay, words, opt) in enumerate(recipes):
+        opt = dict(opt)
+        pal = opt.pop("pal", None) or pals[(i * 7 + len(set_key)) % len(pals)]
+        if lay in ("neon", "chalk") and P[pal]["bg"] in ("#FBF4E6", "#FAF6EF", "#EEF0E6", "#F7E8E4", "#FFF8E7", "#F1EBF8", "#E5F3F1"):
+            pal = "black"
+        n += 1
+        slug = f"{set_key}-{n}"
+        title = f"{label} · {_ROWNAME.get(row, row)}"
+        d = dict(words); d.update(opt)
+        if "items" in d and isinstance(d["items"], list):
+            pass
+        DESIGNS.append(D(slug, page, SETS[MERGE.get(set_key, set_key)]["name"], title, lay, pal, set=MERGE.get(set_key, set_key), row=row, **d))
+
+
+QUOTA = {"promo": 3, "number": 4, "qr": 3, "photo": 4, "useful": 4, "brand": 6, "thanks": 2}
+
+
+def _pick(recipes, seed):
+    """At most QUOTA[row] designs per row, starting at a different place for each kind of business (more variety)."""
+    out = []
+    for row, q in QUOTA.items():
+        mine = [r for r in recipes if r[0] == row]
+        if len(mine) > q:
+            st = seed % len(mine)
+            mine = (mine[st:] + mine[:st])[:q]
+        out += mine
+    return out
+
+
+for _i, _k in enumerate(KITS.K):
+    _gen(_k["key"], "business", _pick(KITS.recipes_business(_k), _i * 5), _k["pals"], _k["name"])
+
+for _p in KITS.PSETS:
+    _gen(_p["key"], "personalize", _p["recipes"], _p["pals"], _p["name"])
+    _gen(_p["key"] + "x", "personalize", KITS.personal_more(_p), _p["pals"], _p["name"])
+for _e in KITS.ESETS:
+    _gen(_e["key"], _e["page"], _e["recipes"], _e["pals"], {"weddings": "Wedding", "graduation": "Graduation", "parties": "Party"}[_e["page"]])
+for _e in KITS.ESETS:
+    SETS.pop(_e["key"], None)
+
 LAYOUT = {"L_bar": "bar", "L_hazard": "hazard", "L_classic": "classic", "L_split": "split", "L_badge": "badge", "L_appt": "appt", "L_qr": "qr",
           "L_coupon": "coupon", "L_useful": "useful", "L_punch": "punch", "L_mono": "mono", "L_word": "word", "L_photo": "photo", "L_hours": "hours",
           "L_thanks": "thanks", "W_names": "names", "W_botanical": "botanical", "W_bigdate": "bigdate", "W_photo": "wphoto", "W_polaroid": "polaroid",
@@ -242,8 +328,25 @@ TEXT = {"bar": "name sub head line phone", "hazard": "name sub head phone line",
         "photo": "sub name line phone", "hours": "name sub head rows phone line", "thanks": "head line name phone", "names": "sub a b date place",
         "botanical": "sub a b date place", "bigdate": "sub date a b place line", "wphoto": "head line", "polaroid": "head date line", "year": "sub year head line",
         "pennant": "school head line sub", "party": "sub head line date", "eqr": "head sub line"}
+NEW_TEXT = {"neon": "sub name head line phone", "kraft": "name sub head line phone", "chalk": "name head rows phone", "watercolor": "name sub line phone web",
+            "ticket": "kicker offer head name phone line", "bizcard": "name sub phone line web", "retro": "sub name line phone", "stamp": "name sub since phone",
+            "label": "since name sub line phone", "bignum": "name sub head phone line", "bubble": "head line name phone", "sticky": "head line name phone",
+            "magazine": "name sub head line phone", "halfphoto": "name sub line phone web", "frame": "name sub phone", "archphoto": "name sub phone",
+            "diagonal": "name head line sub phone", "qrbig": "head line name", "qrphone": "head line name web", "review": "head line name",
+            "referral": "kicker offer head name phone", "emergency": "head line rows name phone", "gradient": "head line name web phone", "minimal": "name sub phone web",
+            "crest": "mono name sub phone", "burst": "kicker offer head name phone", "receipt": "name sub rows head phone", "tag": "kicker offer head name phone",
+            "pin": "head name line phone", "clock": "name head rows phone line", "diner": "sub name line phone", "floral": "sub name line phone",
+            "wave": "name sub head line phone", "geo": "name sub line phone", "blobs": "head line name phone", "jersey": "name year sub line",
+            "blueprint": "name sub head line since phone", "pole": "name sub line phone", "paws": "name sub line phone", "deco": "mono name sub phone",
+            "ribbon": "name sub line phone", "remind": "name sub head hand line phone", "checklist": "head line rows name phone", "circlephoto": "name sub phone",
+            "snapshot": "head name phone", "stripes": "kicker offer head name phone", "wreath": "head line name phone", "menu": "name sub head rows line phone",
+            "seal": "name sub phone", "hero": "name sub phone", "duo": "sub head line name phone", "invite": "sub head date line",
+            "photocircle": "head line", "film": "head line", "monodate": "sub a b date place", "bigtype": "sub head line date"}
+for _k, _v in NEW_TEXT.items():
+    TEXT[_k] = _v
+    LAYOUT[_k] = _k
 TWEAK = {"icon_c", "bar_ink", "word_c", "ph_c", "head_c", "star_c", "qr_c", "txt", "shade", "pen", "conf"}
-META = {"slug", "page", "group", "title", "layout", "bg", "ink", "ac", "soft", "pal"}
+META = {"slug", "page", "group", "title", "layout", "bg", "ink", "ac", "soft", "pal", "set", "row"}
 FONTNAMES = [("Playfair", "'Playfair Display'"), ("Dancing", "'Dancing Script'"), ("DMSerif", "'DM Serif Display'"), ("Josefin", "'Josefin Sans'"),
              ("Bebas", "'Bebas Neue'"), ("Cormorant", "'Cormorant Garamond'")]
 
@@ -279,23 +382,68 @@ def export(d):
             opt[k] = v
     if "items" in d: opt["items"] = [plain(x) for x in d["items"]]
     if "rows" in d: opt["rows"] = [[plain(x), plain(y)] for x, y in d["rows"]]
-    if lay == "appt": opt["hand"] = [text["hand0"], text["hand1"]]
-    if lay in ("qr", "eqr"): opt["url"] = SITE + d.get("page", "business") + ".html"
+    if lay in ("appt", "remind"): opt["hand"] = [text["hand0"], text["hand1"]]
+    if lay in ("qr", "eqr", "qrbig", "qrphone", "review"): opt["url"] = d.get("url") or SITE + d.get("page", "business") + ".html"
     if lay in ("wphoto",) and isinstance(d.get("bg"), str) and d["bg"].startswith("rgba"):
         tweak["shade"] = d["bg"]
     pal = P[d["pal"]]
     colors = {k: (d[k] if isinstance(d.get(k), str) and d[k].startswith("#") else pal[k]) for k in ("bg", "ink", "ac", "soft")}
-    return {"slug": d["slug"], "page": d["page"], "group": d["group"], "title": d["title"], "layout": lay,
+    return {"slug": d["slug"], "page": d["page"], "group": d["group"], "title": d["title"], "layout": lay, "set": d.get("set", ""), "row": d.get("row", ""),
             "colors": colors, "text": text, "opt": opt, "tweak": tweak}
 
 
+FEATURED = {
+    "business": [("Most loved", ["pizza-night", "dental-coupon", "clean-word", "realtor-qr", "barber-badge", "cafe-punch", "hvac-bar", "insurance-useful", "gym-word", "vet-useful", "salon-photo", "church-classic"]),
+                 ("Scan me", ["realtor-qr", "dental-qr", "ramen-qr", "medspa-qr", "church-qr", "tutor-qr", "trainer-qr", "foodtruck-qr"]),
+                 ("Bring customers back", ["pizza-coupon", "clean-coupon", "auto-coupon", "plumber-coupon", "salon-punch", "groomer-punch", "bakery-punch", "dental-coupon"])],
+}
+
+
+def write_sets():
+    """assets/designs/<set>.json, one per set (the studio loads a set when it opens), and the small index for designs.js."""
+    out = ROOT / "assets" / "designs"
+    out.mkdir(exist_ok=True)
+    by = {}
+    for d in DESIGNS:
+        by.setdefault(d["set"], []).append(export(d))
+    for k, lst in by.items():
+        (out / f"{k}.json").write_text(json.dumps(lst, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    for f in out.glob("*.json"):
+        if f.stem not in by:
+            f.unlink()
+    return by
+
+
 def js():
-    """assets/designs.js (build.py writes it)."""
+    """assets/designs.js (build.py writes it): palettes, stock photos, the sets and where each design lives. The designs
+    themselves are in assets/designs/<set>.json (write_sets)."""
+    by = write_sets()
     stock = [c["name"] for c in json.loads((ROOT / "assets" / "stock" / "credits.json").read_text())]
-    return "window.LHHDesigns=" + json.dumps({"pal": P, "list": [export(d) for d in DESIGNS], "stock": stock}, ensure_ascii=False, separators=(",", ":")) + ";"
+    sets = {}
+    for k, meta in SETS.items():
+        lst = by.get(k, [])
+        rows = {}
+        for d in lst:
+            rows[d["row"]] = rows.get(d["row"], 0) + 1
+        sets[k] = {"page": meta["page"], "name": meta["name"], "group": meta["group"], "icon": meta["icon"], "il": meta.get("il", ""), "words": meta.get("words", ""),
+                   "n": len(lst), "rows": [r for r in meta["rows"] if r in rows], "first": lst[0]["slug"] if lst else ""}
+    where = {d["slug"]: d["set"] for d in DESIGNS}
+    rownames = dict(KITS.ROWS + KITS.PROWS + KITS.EROWS)
+    feat = dict(FEATURED)
+    feat["personalize"] = [("Most loved", [by[k][i]["slug"] for i in (0, 1, 3) for k in [p["key"] for p in KITS.PSETS] if len(by.get(k, [])) > i][:16])]
+    v = hashlib.md5(json.dumps(by, sort_keys=True).encode()).hexdigest()[:8]
+    data = {"v": v, "pal": P, "stock": stock, "sets": sets, "where": where, "rowNames": rownames, "featured": feat,
+            "groups": [KITS.G_FOOD, KITS.G_HEALTH, KITS.G_HOME, KITS.G_MONEY, KITS.G_BEAUTY, KITS.G_PETS, KITS.G_AUTO, KITS.G_COMM, KITS.G_SHOPS]}
+    return "window.LHHDesigns=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
 
 
 GALLERY = [(d["slug"], d["page"], d["group"], d["title"]) for d in DESIGNS]
+SET_N = {}
+for _d in DESIGNS:
+    SET_N[_d["set"]] = SET_N.get(_d["set"], 0) + 1
+COUNTS = {}
+for _d in DESIGNS:
+    COUNTS[_d["page"]] = COUNTS.get(_d["page"], 0) + 1
 
 
 RFONTS = "".join(f"@font-face{{font-family:{n};src:url('file://{F}/{f}'){x}}}" for n, f, x in [
@@ -304,7 +452,28 @@ RFONTS = "".join(f"@font-face{{font-family:{n};src:url('file://{F}/{f}'){x}}}" f
     ("'DM Serif Display'", "DMSerifDisplay-Regular.ttf", ""), ("Cinzel", "Cinzel[wght].ttf", ";font-weight:400 900"),
     ("'Bebas Neue'", "BebasNeue-Regular.ttf", ""), ("'Cormorant Garamond'", "CormorantGaramond-SemiBoldItalic.ttf", ";font-style:normal"),
     ("'Cormorant Garamond'", "CormorantGaramond-SemiBoldItalic.ttf", ";font-style:italic"),
-    ("'Dancing Script'", "DancingScript-SemiBold.ttf", ""), ("Anton", "Anton-Regular.ttf", "")])
+    ("'Dancing Script'", "DancingScript-SemiBold.ttf", ""), ("Anton", "Anton-Regular.ttf", ""), ("'DM Mono'", "DMMono-Medium.ttf", ";font-weight:500")])
+
+
+def render_batch(ds, cols=5, size=360):
+    """Many designs on one page, one screenshot, then cut: much faster than one browser per design."""
+    from PIL import Image
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    rows = (len(ds) + cols - 1) // cols
+    data = json.dumps({"pal": P, "list": [export(d) for d in ds], "stock": []}, ensure_ascii=False)
+    (tmp / "p.html").write_text(f"""<!doctype html><html><head><meta charset='utf-8'><style>{RFONTS}*{{margin:0;padding:0;box-sizing:border-box}}body{{width:{cols * 600}px;display:flex;flex-wrap:wrap}}.c{{width:600px;height:600px;overflow:hidden;position:relative}}</style>
+<script>window.LHHDesignBase='file://{ROOT}/';window.LHHDesigns={data};</script><script src='file://{ROOT}/assets/qr.js'></script><script src='file://{ROOT}/assets/designer.js'></script><script src='file://{ROOT}/assets/designer-more.js'></script></head>
+<body><script>var D=LHHDesigner;D.designs.forEach(function(d){{var c=document.createElement('div');c.className='c';c.innerHTML=D.render(d);document.body.appendChild(c);}});
+document.fonts.ready.then(function(){{document.querySelectorAll('.c').forEach(function(c){{D.fit(c)}})}});</script></body></html>""", encoding="utf-8")
+    png = tmp / "o.png"
+    subprocess.run(["google-chrome", "--headless=new", "--disable-gpu", "--no-sandbox", "--hide-scrollbars", "--allow-file-access-from-files",
+                    f"--window-size={cols * 600},{rows * 600}", "--force-device-scale-factor=1", "--virtual-time-budget=9000",
+                    f"--screenshot={png}", f"file://{tmp / 'p.html'}"], check=True, capture_output=True)
+    im = Image.open(png).convert("RGB")
+    for i, d in enumerate(ds):
+        x, y = (i % cols) * 600, (i // cols) * 600
+        im.crop((x, y, x + 600, y + 600)).resize((size, size), Image.LANCZOS).save(OUT / f"{d['slug']}.webp", quality=80, method=5)
+    return len(ds)
 
 
 def render(d):
@@ -312,7 +481,7 @@ def render(d):
     tmp = pathlib.Path(tempfile.mkdtemp())
     data = js()
     (tmp / "p.html").write_text(f"""<!doctype html><html><head><meta charset='utf-8'><style>{RFONTS}*{{margin:0;padding:0;box-sizing:border-box}}html,body{{width:600px;height:600px;overflow:hidden}}</style>
-<script>window.LHHDesignBase='file://{ROOT}/';</script><script src='file://{ROOT}/assets/qr.js'></script><script>{data}</script><script src='file://{ROOT}/assets/designer.js'></script></head>
+<script>window.LHHDesignBase='file://{ROOT}/';</script><script src='file://{ROOT}/assets/qr.js'></script><script>{data}</script><script src='file://{ROOT}/assets/designer.js'></script><script src='file://{ROOT}/assets/designer-more.js'></script></head>
 <body><div id=m></div><script>var D=LHHDesigner,m=document.getElementById('m');m.innerHTML=D.render(D.get({json.dumps(d['slug'])}));
 document.fonts.ready.then(function(){{D.fit(m)}});</script></body></html>""", encoding="utf-8")
     png = tmp / "o.png"
@@ -334,6 +503,16 @@ def sheet(page):
         im.paste(Image.open(OUT / f"{d['slug']}.webp").convert("RGB").resize((t, t)), (x, y))
     im.save(f"/tmp/biz_sheet_{page}.png")
 
+
+if __name__ == "__main__" and sys.argv[1:2] == ["batch"]:
+    # python3 tools/biz_designs.py batch [all]: the generated designs (the hand-made ones keep their 600 px pictures)
+    hand = {d["slug"] for d in DESIGNS[:HAND_COUNT]}
+    todo = [d for d in DESIGNS if d["slug"] not in hand and ("all" in sys.argv or not (OUT / f"{d['slug']}.webp").exists())]
+    chunks = [todo[i:i + 25] for i in range(0, len(todo), 25)]
+    with ThreadPoolExecutor(4) as ex:
+        done = sum(ex.map(render_batch, chunks))
+    print("rendered", done)
+    sys.exit(0)
 
 if __name__ == "__main__":
     args = sys.argv[1:]

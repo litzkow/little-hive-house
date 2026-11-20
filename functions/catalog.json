@@ -6658,6 +6658,30 @@
    "size": 30,
    "price": 69
   },
+  "personal-1": {
+   "title": "Personalized magnets, 1 magnets",
+   "group": "personal",
+   "size": 1,
+   "price": 6
+  },
+  "personal-2": {
+   "title": "Personalized magnets, 2 magnets",
+   "group": "personal",
+   "size": 2,
+   "price": 10
+  },
+  "personal-4": {
+   "title": "Personalized magnets, 4 magnets",
+   "group": "personal",
+   "size": 4,
+   "price": 18
+  },
+  "personal-10": {
+   "title": "Personalized magnets, 10 magnets",
+   "group": "personal",
+   "size": 10,
+   "price": 39
+  },
   "mailing-25": {
    "title": "Mailed to your list, 25 addresses",
    "group": "mailing",

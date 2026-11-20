@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "57"
+VERSION = "58"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"
@@ -113,7 +113,7 @@ def seal(idp):
 
 
 NAV = [("shop.html", "Shop all", "shop"), ("collections/index.html", "Collections", "collections"),
-       ("photo-magnets.html", "Photo magnets", "photo"), ("business.html", "For business", "business"), ("big-orders.html", "Bulk orders", "big"),
+       ("photo-magnets.html", "Photo magnets", "photo"), ("personalize.html", "Personalize", "personalize"), ("business.html", "For business", "business"), ("big-orders.html", "Bulk orders", "big"),
        ("shipping.html", "Shipping", "shipping"), ("suggestions.html", "Share an idea", "ideas")]
 
 
@@ -711,6 +711,15 @@ def doors(pg):
             <h2>Magnets from your pictures</h2>
             <p>Upload, pick a frame, move and zoom each photo. Any number from 1 to 100, from $4.</p>
             <span class="btn">Make photo magnets</span>
+          </div>
+        </a></li>
+        <li><a class="col-card door" href="{pg.p}personalize.html">
+          <div class="fan" aria-hidden="true">{"".join(f'<span class="m"><img src="{pg.p}assets/occasions/{sl}.webp" alt="" width="360" height="360" loading="lazy" decoding="async"></span>' for sl in ("p-family-2", "p-pets-1", "p-baby-2"))}</div>
+          <div class="col-body">
+            <p class="eyebrow">Personalize</p>
+            <h2>Your name, your pet, your family</h2>
+            <p>Hundreds of designs to make yours: change the words and colors, add a photo. From ${PERSONAL[3][0][1]}.</p>
+            <span class="btn">Make yours</span>
           </div>
         </a></li>
       </ul>
@@ -1443,11 +1452,16 @@ PACKAGES = [
 ]
 
 
+# Personalize (personalize.html): one magnet or a few, with their family name, pet, baby... (not a bulk order)
+PERSONAL = ("Personalized magnets", "Personal", "Your family name, your pet, your baby or your trip, made in the design studio.",
+            [(1, 6), (2, 10), (4, 18), (10, 39)], 1)
+
 # store: package ids used by the cart, catalog.json and createCheckout ("weddings-50")
 PACKAGE_IDS = {"Weddings": "weddings", "Business": "business", "Party or event": "parties", "Team or school": "teams", "Graduation": "graduation",
-               "Mailing": "mailing"}
+               "Mailing": "mailing", "Personal": "personal"}
 from occasions import MAILING, OCCASIONS as BULK_PAGES   # noqa: E402  the bulk-order pages (tools/occasions.py)
 import biz_designs as BIZ_DESIGNS   # noqa: E402  the design gallery and studio (tools/biz_designs.py, assets/designer.js)
+import design_kits as KITS   # noqa: E402  the kinds of business and the Personalize themes (tools/design_kits.py)
 
 
 def pkg_card(title, key, desc, tiers, pick, unit="magnets", styles=None):
@@ -1584,48 +1598,62 @@ DIGITAL_TITLE, DIGITAL_PRICE = "Design file (digital, no magnet)", 4.99
 DESIGN_GALLERY = BIZ_DESIGNS.GALLERY   # (slug, page, group, title): tools/biz_designs.py
 
 
-def studio_html(pg, o, mine, by_key):
-    """The design gallery (filter by kind of business or event) and the studio dialog where a design is made theirs."""
-    groups = []
-    for _, _, g, _ in mine:
-        if g not in groups: groups.append(g)
-    GICON = {"Restaurants & food": "pizza", "Health & dental": "tooth", "Home services": "house", "Real estate & finance": "key", "Beauty & fitness": "scissors",
-             "Pets": "paw", "Auto": "car", "Churches & nonprofits": "church", "Schools & teams": "apple", "Florists & photographers": "flower",
-             "Holidays & thank-yous": "gift", "Save the date": "rings", "Favors & thank-yous": "heart", "Graduation": "cap", "College & school spirit": "book",
-             "Birthdays": "cake", "Baby showers": "baby", "Work events": "building", "Big celebrations": "cheers"}
-    chips = "".join(f'<button type="button" class="dz-chip" data-dz-group="{E(g)}" data-icon="{GICON.get(g, "star")}" aria-pressed="false"><span class="dz-ci" aria-hidden="true"></span><span>{E(g)}</span> <small>{sum(1 for x in mine if x[2] == g)}</small></button>' for g in groups) + (
-        f'<button type="button" class="dz-chip dz-all" data-dz-group="all" aria-pressed="true"><span>All</span> <small>{len(mine)}</small></button>')
-    ask = "What kind of business?" if o["slug"] == "business" else "What are you celebrating?"
-    hint = "Type your business: church, pizza, dentist…" if o["slug"] == "business" else "Type what you’re looking for: photo, QR, date…"
-    KW = {"Health & dental": "dentist doctor clinic chiropractor orthodontist eye optometrist pediatrician medical dentista medico clinica consultorio",
-          "Restaurants & food": "restaurant pizzeria pizza cafe coffee bakery taco mexican sushi food truck bbq catering restaurante pizzaria padaria lanchonete comida",
-          "Home services": "cleaning cleaner maid hvac air plumber plumbing electrician roofer roofing lawn landscaping pest pool movers moving handyman locksmith contractor limpeza faxina diarista encanador eletricista telhado jardim dedetizacao piscina mudanca chaveiro",
-          "Real estate & finance": "realtor real estate agent homes insurance tax accountant bookkeeping lawyer attorney law mortgage loan corretor imobiliaria seguro contador advogado financiamento",
-          "Beauty & fitness": "salon hair stylist barber nails spa med spa gym fitness yoga pilates trainer salao cabelo cabeleireiro barbearia unhas manicure estetica academia personal",
-          "Pets": "vet veterinarian groomer grooming dog cat pet sitter walker veterinario cachorro gato banho tosa",
-          "Auto": "mechanic garage auto car tires towing tow detailing oficina mecanico carro pneu guincho",
-          "Churches & nonprofits": "church pastor ministry faith nonprofit charity food bank igreja pastor ministerio culto ong caridade",
-          "Schools & teams": "school daycare preschool tutor tutoring teacher team sport soccer football league escola creche professor aula time esporte futebol",
-          "Florists & photographers": "florist flowers photographer photography floricultura flores fotografo fotografia"}
-    cards = "".join(f'<li class="dz-card" data-group="{E(g)}" data-words="{E(sl.replace("-", " ") + " " + KW.get(g, ""))}"><button type="button" data-design="{E(sl)}"><img src="{pg.p}assets/occasions/{sl}.webp" alt="" width="600" height="600" loading="lazy" decoding="async">'
-                    f'<span class="dz-t">{E(t)}</span><span class="dz-go">Make it yours →</span></button></li>' for sl, _, g, t in mine)
-    _t, _k, _d, tiers, pick = by_key[o["package"]]
-    pid = PACKAGE_IDS[_k]
+def studio_html(pg, page, pkg, who):
+    """The design gallery, like a streaming app: kinds of business (or Personalize themes) grouped, a search box, and for
+    the kind they pick, rows of designs by what the magnet is for (assets/studio.js fills the rows from
+    assets/designs/<set>.json). Then the studio dialog where a design is made theirs."""
+    sets = {k: v for k, v in BIZ_DESIGNS.SETS.items() if v["page"] == page}
+    n_all = BIZ_DESIGNS.COUNTS.get(page, 0)
+    GICON = {KITS.G_FOOD: "pizza", KITS.G_HEALTH: "tooth", KITS.G_HOME: "house", KITS.G_MONEY: "key", KITS.G_BEAUTY: "scissors", KITS.G_PETS: "paw",
+             KITS.G_AUTO: "car", KITS.G_COMM: "church", KITS.G_SHOPS: "flower"}
+
+    def kind(k, v):
+        return (f'<button type="button" class="dz-kind" data-set="{k}" data-group="{E(v["group"])}" data-words="{E(v.get("words", ""))}">'
+                f'<span class="dz-ki" data-il="{E(v.get("il", ""))}" data-icon="{E(v["icon"])}" aria-hidden="true"></span>'
+                f'<span class="dz-kn">{E(v["name"])}</span><small>{BIZ_DESIGNS.SET_N.get(k, 0)} designs</small></button>')
+    kinds = "".join(kind(k, v) for k, v in sets.items())
+    many = len(sets) > 1
+    grouped = page == "business"
+    groups = ""
+    if grouped:
+        gs = []
+        for v in sets.values():
+            if v["group"] not in gs: gs.append(v["group"])
+        groups = "".join(
+            f'<button type="button" class="dz-grp" data-dz-grp="{E(g)}"><span class="dz-gi" data-icon="{GICON.get(g, "star")}" aria-hidden="true"></span>'
+            f'<span class="dz-gn">{E(g)}</span><small>{sum(1 for v in sets.values() if v["group"] == g)} kinds · '
+            f'{sum(BIZ_DESIGNS.SET_N.get(k, 0) for k, v in sets.items() if v["group"] == g)} designs</small></button>' for g in gs)
+    ask = {"business": "What kind of business?", "personalize": "What would you like on your fridge?"}.get(page, "")
+    hint = {"business": "Type your business: church, pizza, dentist…", "personalize": "Type: dog, grandma, baby, family name…"}.get(page, "")
+    title, _key, _d, tiers, pick = pkg
+    pid = PACKAGE_IDS[_key]
     chosen = min(tiers, key=lambda t: abs(t[0] - pick))[0]
-    packs = "".join(f'<option value="{pid}-{n}" data-size="{n}" data-price="{pr}" data-title="{E(_t)}"{" selected" if n == chosen else ""}>{n} magnets · ${pr} (${pr / n:.2f} each)</option>' for n, pr in tiers)
+    unit = lambda n: "magnet" if n == 1 else "magnets"
+    packs = "".join(f'<option value="{pid}-{n}" data-size="{n}" data-price="{pr}" data-title="{E(title)}"{" selected" if n == chosen else ""}>{n} {unit(n)} · ${pr}'
+                    f'{f" (${pr / n:.2f} each)" if n > 1 else ""}</option>' for n, pr in tiers)
     pals = "".join(f'<button type="button" class="dz-pal" data-pal="{k}" aria-label="{E(k)}" style="--a:{v["bg"]};--b:{v["ac"]};--c:{v["ink"]}"></button>' for k, v in BIZ_DESIGNS.P.items())
-    who = {"business": "business", "weddings": "wedding", "graduation": "graduation", "parties": "party"}.get(o["slug"], "event")
-    return f"""  <section class="tight" id="designs" data-gallery>
-    <div class="wrap">
-      <div class="section-head"><div><p class="eyebrow">Design studio</p><h2>Pick a design, make it yours</h2></div><p>{len(mine)} ready-made designs for your {who}. Tap one to change the colors and the words, add your logo and see it right away.</p></div>
-      <div class="dz-pick">
-        <h3 class="dz-ask">{ask}</h3><p class="dz-sub">Tap yours to see its designs, or type it below.</p>
-        <div class="dz-chips">{chips}</div>
-        <div class="dz-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg><input type="search" data-dz-search placeholder="{hint}" aria-label="{hint}"></div>
+    pick_html = ""
+    if many:
+        pick_html = f"""
+      <div class="dz-pick" data-dz-home>
+        <h3 class="dz-ask">{ask}</h3>
+        <div class="dz-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg><input type="search" data-dz-search placeholder="{hint}" aria-label="{hint}" autocomplete="off"></div>
+        {f'<div class="dz-grps" data-dz-grps>{groups}</div>' if grouped else ""}
+        <div class="dz-kinds-box" data-dz-kinds-box{" hidden" if grouped else ""}>
+          {'<div class="dz-crumb"><button type="button" class="dz-back" data-dz-back>← All kinds</button><h3 data-dz-ktitle></h3></div>' if grouped else ""}
+          <div class="dz-kinds" data-dz-kinds>{kinds}</div>
+        </div>
+        <p class="dz-none" data-dz-none hidden>We don’t have that one yet, but we design it for free: pick any design below and change the words, or ask us below.</p>
       </div>
-      <p class="dz-none" data-dz-none hidden>No designs with that word yet. Try another, or ask us for a free mockup below.</p>
-      <ul class="dz-grid">{cards}</ul>
-      <div class="see-all"><button type="button" class="btn btn-ghost" data-dz-more>Show more designs</button></div>
+      <div class="dz-feat" data-dz-feat></div>"""
+    first = next(iter(sets), "")
+    return f"""  <section class="tight" id="designs" data-gallery data-page="{page}"{"" if many else f' data-dz-only="{first}"'}>
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Design studio</p><h2>Pick a design, make it yours</h2></div><p>{n_all:,} ready-made designs for {who}. Tap one to change the colors and the words{", add your logo" if page == "business" else ", add your photo"} and see it right away.</p></div>{pick_html}
+      <div class="dz-view" data-dz-view{" hidden" if many else ""}>
+        {'<div class="dz-crumb"><button type="button" class="dz-back" data-dz-up>← Back</button><h3 data-dz-vtitle></h3></div>' if many else ""}
+        <div class="dz-rows" data-dz-rows><p class="hint">Loading the designs…</p></div>
+      </div>
     </div>
   </section>
   <dialog class="dz" data-studio aria-labelledby="dz-title">
@@ -1727,7 +1755,7 @@ def page_occasions():
     </div>
   </div>
 
-{studio_html(pg, o, mine, by_key)}
+{studio_html(pg, o["slug"], by_key[o["package"]], {"business": "your business", "weddings": "your wedding", "graduation": "your graduation", "parties": "your party or event"}.get(o["slug"], "your event"))}
 
   <section class="tight occ-now" aria-label="The moment to order">
     <div class="wrap"><div class="band honey">{now}</div></div>
@@ -1788,8 +1816,71 @@ def page_occasions():
 </main>
 {footer(pg)}
 <script>(function(){{var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),done=false;document.querySelectorAll('[data-from]').forEach(function(e){{if(done)return;var a=+e.getAttribute('data-from'),b=+e.getAttribute('data-to');if(a<=b?(k>=a&&k<=b):(k>=a||k<=b)){{e.hidden=false;done=true;}}}});if(!done){{var s=document.querySelector('.occ-now');if(s)s.hidden=true;}}}})();</script>"""
-        write(f'{o["slug"]}.html', head(pg, o["name"], o["lede"][:155], f'{o["slug"]}.html') + body + chrome_end(pg, ("quote.js", "qr.js", "designs.js", "designer.js", "studio.js") + (("qrmagnet.js",) if o.get("qr") else ())))
+        write(f'{o["slug"]}.html', head(pg, o["name"], o["lede"][:155], f'{o["slug"]}.html') + body + chrome_end(pg, ("quote.js", "qr.js", "designs.js", "designer.js", "designer-more.js", "studio.js") + (("qrmagnet.js",) if o.get("qr") else ())))
 
+
+
+def page_personalize():
+    """personalize.html: the design studio for families. Their name, their pet, their baby, grandma's kitchen, a trip:
+    one magnet or a few (PERSONAL), or just the design file."""
+    pg = Page("")
+    title, key, desc, tiers, pick = PERSONAL
+    prices = "".join(f"<li><strong>{n} {'magnet' if n == 1 else 'magnets'}</strong><span>${p}{f' · ${p / n:.2f} each' if n > 1 else ''}</span></li>" for n, p in tiers)
+    faq = "".join(f"<details><summary>{E(q)}</summary><p>{E(a)}</p></details>" for q, a in [
+        ("How big is the magnet?", "2 × 2 inches, a glossy photo-quality print on a strong flexible magnet, pressed by hand."),
+        ("Can I put my own photo?", "Yes. Designs with a photo let you upload yours, or pick one of ours. We check it before printing."),
+        ("Will I see it before you print?", "Yes. We email you a proof within one business day. Nothing is printed until you approve it."),
+        ("Can I just buy the design?", f"Yes. Tap the design, make it yours and choose “Only want the file”: ${DIGITAL_PRICE}, sent to your email right away, no magnet. It is free with any magnet order."),
+        ("Is it a good gift?", "It is one of our favorites: grandma’s kitchen, a new home, a baby’s birth date, a pet. Ship it straight to them with a gift note."),
+        ("How fast will it ship?", "We press and ship in 3 to 5 business days after you approve the proof. Free US shipping on orders over $35."),
+    ])
+    body = f"""{header(pg, "personalize")}
+<main id="main" class="occ" data-occasion="personalize">
+  <div class="wrap page-head">
+    <ol class="crumbs"><li><a href="index.html">Home</a></li><li aria-current="page">Personalize</li></ol>
+    <div class="occ-hero">
+      <div>
+        <p class="eyebrow">Personalize · just for you</p>
+        <h1>Your family on the fridge</h1>
+        <p class="lede">Your family name, your dog, your baby’s birth date, grandma’s kitchen, your last trip. Pick a design, change the words and the colors, add your photo and see it right away.</p>
+        <div class="actions"><a class="btn btn-honey" href="#designs">Make yours now</a><a class="btn btn-ghost" href="#prices">See prices</a></div>
+        <ul class="occ-points"><li>From ${tiers[0][1]} a magnet</li><li>Free proof before we print</li><li>A lovely gift, ready to mail</li></ul>
+      </div>
+      <img class="occ-hero-img" src="assets/occasions/hero-personalize.webp" alt="Personalized magnets on a fridge: a dog, a family name, a baby, grandma's kitchen" width="1400" height="963" fetchpriority="high">
+    </div>
+  </div>
+
+{studio_html(pg, "personalize", PERSONAL, "your home")}
+
+  <section class="tight" id="prices">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Prices</p><h2>One or a few, your choice</h2></div><p>Every magnet is made just for you. Want only the design? ${DIGITAL_PRICE} for the file, free with any magnet.</p></div>
+      <ul class="occ-year pz-prices">{prices}<li><strong>Design file only</strong><span>${DIGITAL_PRICE} · sent to your email</span></li></ul>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">How it works</p><h2>Three easy steps</h2></div></div>
+      <ol class="included occ-steps">
+        <li><strong>1. Pick a design</strong><span>Change the words and the colors, add your photo.</span></li>
+        <li><strong>2. Approve the proof</strong><span>We email it within one business day. Change anything you want.</span></li>
+        <li><strong>3. We press &amp; ship</strong><span>By hand, in 3 to 5 business days. Straight to you or as a gift.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="tight" id="faq">
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Questions</p><h2>Good to know</h2></div></div>
+      <div class="faq">{faq}</div>
+      <p class="occ-others">Also: <a href="photo-magnets.html">Photo magnets</a> · <a href="shop.html">Our designs</a> · <a href="business.html">For business</a></p>
+    </div>
+  </section>
+</main>
+{footer(pg)}"""
+    write("personalize.html", head(pg, "Personalized magnets: your family, pet or baby", "Personalized fridge magnets: your family name, your pet, your baby, grandma's kitchen. Make it yours in our design studio and see it right away.", "personalize.html")
+          + body + chrome_end(pg, ("qr.js", "designs.js", "designer.js", "designer-more.js", "studio.js")))
 
 
 def page_404():
@@ -1852,7 +1943,7 @@ def export_store_catalog():
         "photoPricing": {"extra": {str(k): v for k, v in STORE_PHOTO_EXTRA.items()}, "max": STORE_PHOTO_MAX},
         "packages": {f'{ids.get(key) or title.split()[0].lower()}-{n}': {"title": f"{title}, {n} magnets", "group": ids.get(key) or title.split()[0].lower(),
                                                                          "size": n, "price": p}
-                     for title, key, _, tiers, _ in PACKAGES for n, p in tiers}
+                     for title, key, _, tiers, _ in PACKAGES + [PERSONAL] for n, p in tiers}
                     | {f"mailing-{n}": {"title": f"Mailed to your list, {n} addresses", "group": "mailing", "size": 0, "addresses": n, "price": p}
                        for n, p in MAILING[3]}
                     | {"digital-file": {"title": DIGITAL_TITLE, "group": "digital", "size": 0, "price": DIGITAL_PRICE, "digital": True}},
@@ -1878,7 +1969,7 @@ def write_sitemap():
         return (f"\n    <image:image><image:loc>{site}assets/art/{col_slug}/{slug}.webp</image:loc>"
                 f"<image:title>{E(title)} magnet</image:title></image:image>")
     entries = [("", "1.0", ""), ("shop.html", "0.9", ""), ("collections/", "0.9", ""),
-               ("photo-magnets.html", "0.8", ""), ("big-orders.html", "0.8", "")] + [(f'{o["slug"]}.html', "0.8", "") for o in BULK_PAGES]
+               ("photo-magnets.html", "0.8", ""), ("personalize.html", "0.8", ""), ("big-orders.html", "0.8", "")] + [(f'{o["slug"]}.html', "0.8", "") for o in BULK_PAGES]
     for g in GROUPS:
         entries.append((f"collections/{g['slug']}.html", "0.8", ""))
     for c in COLLECTIONS + MORE_COLLECTIONS:
@@ -1921,6 +2012,7 @@ if __name__ == "__main__":
     page_photo()
     page_big()
     page_occasions()        # business.html, weddings.html, graduation.html, parties.html
+    page_personalize()      # personalize.html
     page_404()
     page_cart()             # cart.html: checkout link for the Facebook/Instagram shop
     # store: customer pages (account, orders, tracking, policies...) live in tools/store_pages.py

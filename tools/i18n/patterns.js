@@ -46,6 +46,17 @@ function date(s) {
 function n(x) { return x === "1" ? 1 : 2; }
 function tr(s) { return COL[s] || (window.LHH_I18N ? window.LHH_I18N.t(s) : s); }
 var PATTERNS = [
+  [/^([\d,]+) ready-made designs for (your business|your wedding|your graduation|your party or event|your home)\. Tap one to change the colors and the words, add your (logo|photo) and see it right away\.$/, function (_, n, w, x) { return n.replace(/,/g, ".") + " designs prontos para " + { "your business": "a sua empresa", "your wedding": "o seu casamento", "your graduation": "a sua formatura", "your party or event": "a sua festa ou evento", "your home": "a sua casa" }[w] + ". Toque em um para mudar as cores e os textos, pôr " + (x === "logo" ? "o seu logo" : "a sua foto") + " e ver na hora."; }],
+  [/^(\d+) kinds · ([\d,]+) designs$/, function (_, k, n) { return k + " tipos · " + n.replace(/,/g, ".") + " designs"; }],
+  [/^(\d+) (magnets?) · \$([\d.]+)(?: \(\$([\d.]+) each\))?$/, function (_, n, m, p, e) { return n + (n === "1" ? " ímã" : " ímãs") + " · $" + p + (e ? " ($" + e + " cada)" : ""); }],
+  [/^From \$(\d+) a magnet$/, "A partir de $$$1 o ímã"],
+  [/^\$([\d.]+) · sent to your email$/, "$$$1 · vai para o seu e-mail"],
+  [/^Hundreds of designs to make yours: change the words and colors, add a photo\. From \$(\d+)\.$/, "Centenas de designs para personalizar: mude os textos e as cores, ponha uma foto. A partir de $$$1."],
+  [/^Every magnet is made just for you\. Want only the design\? \$([\d.]+) for the file, free with any magnet\.$/, "Cada ímã é feito só para você. Quer só o design? $$$1 pelo arquivo, grátis com qualquer ímã."],
+  [/^Yes\. Tap the design, make it yours and choose “Only want the file”: \$([\d.]+), sent to your email right away, no magnet\. It is free with any magnet order\.$/, "Sim. Toque no design, personalize e escolha “Só quer o arquivo”: $$$1, vai na hora para o seu e-mail, sem ímã. É grátis em qualquer pedido de ímãs."],
+  [/^([^·<]{2,40}) · ([^·<]{2,40})$/, function (_, a, b) { var x = tr(a), y = tr(b); return x !== a && y !== b ? x + " · " + y : null; }],
+  [/^1 magnet$/, "1 ímã"],
+  [/^\$(\d+) · \$([\d.]+) each$/, "$$$1 · $$$2 cada"],
   [/^Photo ([\d, ]+) didn't finish uploading\. Please try again\.$/, "A foto $1 não terminou de enviar. Tente de novo."],
   [/^Photo (\d+) didn't upload correctly\. Please remove it and add it again\.$/, "A foto $1 não foi enviada direito. Tire e adicione de novo."],
   [/^Photo (\d+) is too big or empty\.$/, "A foto $1 está grande demais ou vazia."],
