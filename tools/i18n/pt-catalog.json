@@ -112,7 +112,6 @@
  "Loading the designs…": "Carregando os designs…",
  "No designs here yet.": "Ainda não há designs aqui.",
  "We couldn’t load the designs. Check the connection and try again.": "Não conseguimos carregar os designs. Confira a internet e tente de novo.",
- "We don’t have that one yet, but we design it for free: pick any design below and change the words, or ask us below.": "Ainda não temos esse, mas criamos de graça: escolha qualquer design abaixo e mude os textos, ou peça para nós.",
  "Open this design": "Abrir este design",
  "Scroll left": "Voltar",
  "Scroll right": "Avançar",
@@ -142,5 +141,9 @@
  "We press and ship in 3 to 5 business days after you approve the proof. Free US shipping on orders over $35.": "Prensamos e enviamos em 3 a 5 dias úteis depois da aprovação. Frete grátis nos EUA acima de $35.",
  "Your name, your pet, your family": "Seu nome, seu pet, sua família",
  "Make yours": "Faça o seu",
- "Personalized magnets": "Ímãs personalizados"
+ "Personalized magnets": "Ímãs personalizados",
+ "We don’t have that one yet. Start from one of these designs for any business and change the words, or ask us for a free design below.": "Ainda não temos esse. Comece por um destes designs para qualquer negócio e mude os textos, ou peça um design grátis para nós.",
+ "Other & any business": "Outros e qualquer negócio",
+ "Any business": "Qualquer negócio",
+ "New business & side hustle": "Negócio novo e renda extra"
 }

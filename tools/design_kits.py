@@ -24,9 +24,9 @@ def web(name):
 
 # ---------------------------------------------------------------- kinds of business
 # key, name, group, line icon, illustration, palettes, names, tagline, services, bold headlines, offer, photos, extra
-G_FOOD, G_HEALTH, G_HOME, G_MONEY, G_BEAUTY, G_PETS, G_AUTO, G_COMM, G_SHOPS = (
+G_FOOD, G_HEALTH, G_HOME, G_MONEY, G_BEAUTY, G_PETS, G_AUTO, G_COMM, G_SHOPS, G_OTHER = (
     "Restaurants & food", "Health & dental", "Home services", "Real estate & finance", "Beauty & fitness", "Pets", "Auto",
-    "Churches, schools & teams", "Shops & studios")
+    "Churches, schools & teams", "Shops & studios", "Other & any business")
 K = []
 
 
@@ -228,6 +228,16 @@ kit("dj", "DJ & entertainment", G_SHOPS, "music", None, ["black", "plum", "pink"
     "WEDDINGS · PARTIES · EVENTS", ["Weddings", "Quinceañeras", "Corporate", "Photo booth"], ["Let’s get\nthis party\nstarted!", "Press play."],
     ("PHOTO BOOTH", "FREE", "with any wedding package"), ["party-1", "party-3"])
 
+
+# any business at all: plain words they change to their own (every recipe, no limit per row)
+kit("general", "Any business", G_OTHER, "star", None, ["navy", "forest", "red", "teal", "black", "terracotta", "lilac", "sun", "sage", "orange"],
+    ["Your Business Name", "Main Street Co.", "Smith & Sons"], "YOUR SERVICES · YOUR CITY", ["Quality service", "Fair prices", "Locally owned", "Free estimates"],
+    ["Here to\nhelp.", "Proudly\nlocal."], ("SHOW THIS MAGNET", "10% OFF", "your next visit"), ["handshake-1", "team-1", "team-3", "handshake-2"],
+    appt=True, emergency=True, hours=[("Mon – Fri", "9 am – 6 pm"), ("Saturday", "10 am – 4 pm"), ("Sunday", "Closed"), ("Holidays", "Call us")],
+    checklist=[("Call us", ""), ("Visit us", ""), ("Follow us", ""), ("Tell a friend", ""), ("Leave a review", "")])
+kit("startup", "New business & side hustle", G_OTHER, "star", None, ["pink", "aqua", "lilac", "sun", "black", "orange"],
+    ["Your Brand", "Bright Idea Co.", "Made by Maya"], "SMALL BUSINESS · BIG HEART", ["Handmade", "Custom orders", "Local delivery", "Gift sets"],
+    ["Shop\nsmall.", "Thanks for\nsupporting us!"], ("FIRST ORDER", "15% OFF", "use code FRIDGE15"), ["team-2", "handshake-1"])
 
 # ---------------------------------------------------------------- recipes: one layout, the words it needs
 def T(*a):
@@ -684,7 +694,8 @@ PT = {"pizza": "pizzaria", "mexican": "taqueria comida mexicana tacos", "burger"
       "towing": "guincho reboque", "church": "igreja pastor ministerio culto", "nonprofit": "ong caridade instituicao", "school": "escola creche",
       "tutor": "aula particular reforco professor", "team": "time esporte futebol liga", "dance": "danca escola de musica aula de musica",
       "florist": "floricultura flores", "photographer": "fotografo fotografia", "boutique": "loja boutique presentes", "eventvenue": "salao de festas cerimonial eventos",
-      "dj": "dj som festa", "p-family": "familia sobrenome", "p-home": "casa nova lar", "p-pets": "cachorro gato pet animal", "p-baby": "bebe criancas filhos",
+      "dj": "dj som festa", "general": "outro outros geral qualquer qualquer negocio empresa other any general business generic",
+      "startup": "negocio novo pequeno empreendedor artesanato loja online etsy side hustle small business handmade new", "p-family": "familia sobrenome", "p-home": "casa nova lar", "p-pets": "cachorro gato pet animal", "p-baby": "bebe criancas filhos",
       "p-grandparents": "avo avos vovo vovo", "p-kitchen": "cozinha receita jantar", "p-love": "casal amor aniversario de casamento namorados",
       "p-faith": "fe religiao biblia deus", "p-teacher": "professor professora treinador", "p-sports": "esporte time torcedor",
       "p-holidays": "natal pascoa feriados ação de gracas", "p-travel": "viagem ferias praia"}

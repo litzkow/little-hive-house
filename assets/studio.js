@@ -52,6 +52,8 @@
         : (!g || b.getAttribute('data-group') === g);
       b.hidden = !ok; if (ok) n++;
     });
+    /* nothing found: the designs for any business, so there is always something to start from */
+    if (q.length && !n) gal.querySelectorAll('.dz-kind[data-set="general"],.dz-kind[data-set="startup"]').forEach(function (b) { b.hidden = false; });
     if (kbox) kbox.hidden = !(g || q.length || !grps);
     if (grps) grps.hidden = !!(g || q.length);
     var t = gal.querySelector('[data-dz-ktitle]');

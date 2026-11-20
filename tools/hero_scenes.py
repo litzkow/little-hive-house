@@ -36,8 +36,8 @@ if __name__ == "__main__":
                               ("p-grandparents-1", 70, 270, 196, 3), ("p-love-4", 282, 232, 178, -3, 2), ("p-home-1", 470, 262, 186, 2), ("p-travel-3", 640, 236, 130, -5),
                               ("p-faith-1", 640, 380, 140, 4)])
     hero("hero-business", [("pizza-night", 34, 40, 200, -4), ("dental-coupon", 248, 22, 180, 3), ("realtor-photo", 440, 36, 196, -2), ("cafe-punch", 610, 64, 150, 5),
-                           ("clean-word", 70, 270, 196, 3), ("hvac-bar", 282, 230, 178, -3, 2), ("realtor-qr", 470, 262, 186, 2), ("barber-badge", 640, 236, 130, -5),
-                           ("insurance-useful", 640, 380, 140, 4)])
+                           ("clean-word", 70, 270, 196, 3), ("plumber-hazard", 282, 230, 178, -3, 2), ("medspa-qr", 470, 262, 186, 2), ("barber-badge", 640, 236, 130, -5),
+                           ("lawn-useful", 640, 380, 140, 4)])
     hero("hero-weddings", [("wed-arch", 40, 40, 210, -3), ("wed-photo", 266, 24, 230, 2), ("wed-botanical", 516, 48, 200, -2),
                            ("wed-engaged", 90, 286, 190, 4), ("wed-qr", 300, 284, 180, -3), ("wed-bigdate", 500, 280, 196, 3)])
     hero("hero-graduation", [("grad-year-navy", 40, 40, 210, -3), ("grad-photo", 268, 24, 230, 2), ("college-pennant", 520, 46, 196, -2),

@@ -307,7 +307,8 @@ def _pick(recipes, seed):
 
 
 for _i, _k in enumerate(KITS.K):
-    _gen(_k["key"], "business", _pick(KITS.recipes_business(_k), _i * 5), _k["pals"], _k["name"])
+    _all = KITS.recipes_business(_k)
+    _gen(_k["key"], "business", _all if _k["group"] == KITS.G_OTHER else _pick(_all, _i * 5), _k["pals"], _k["name"])
 
 for _p in KITS.PSETS:
     _gen(_p["key"], "personalize", _p["recipes"], _p["pals"], _p["name"])
@@ -433,7 +434,7 @@ def js():
     feat["personalize"] = [("Most loved", [by[k][i]["slug"] for i in (0, 1, 3) for k in [p["key"] for p in KITS.PSETS] if len(by.get(k, [])) > i][:16])]
     v = hashlib.md5(json.dumps(by, sort_keys=True).encode()).hexdigest()[:8]
     data = {"v": v, "pal": P, "stock": stock, "sets": sets, "where": where, "rowNames": rownames, "featured": feat,
-            "groups": [KITS.G_FOOD, KITS.G_HEALTH, KITS.G_HOME, KITS.G_MONEY, KITS.G_BEAUTY, KITS.G_PETS, KITS.G_AUTO, KITS.G_COMM, KITS.G_SHOPS]}
+            "groups": [KITS.G_FOOD, KITS.G_HEALTH, KITS.G_HOME, KITS.G_MONEY, KITS.G_BEAUTY, KITS.G_PETS, KITS.G_AUTO, KITS.G_COMM, KITS.G_SHOPS, KITS.G_OTHER]}
     return "window.LHHDesigns=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
 
 

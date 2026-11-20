@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "58"
+VERSION = "59"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"
@@ -1605,7 +1605,7 @@ def studio_html(pg, page, pkg, who):
     sets = {k: v for k, v in BIZ_DESIGNS.SETS.items() if v["page"] == page}
     n_all = BIZ_DESIGNS.COUNTS.get(page, 0)
     GICON = {KITS.G_FOOD: "pizza", KITS.G_HEALTH: "tooth", KITS.G_HOME: "house", KITS.G_MONEY: "key", KITS.G_BEAUTY: "scissors", KITS.G_PETS: "paw",
-             KITS.G_AUTO: "car", KITS.G_COMM: "church", KITS.G_SHOPS: "flower"}
+             KITS.G_AUTO: "car", KITS.G_COMM: "church", KITS.G_SHOPS: "flower", KITS.G_OTHER: "star"}
 
     def kind(k, v):
         return (f'<button type="button" class="dz-kind" data-set="{k}" data-group="{E(v["group"])}" data-words="{E(v.get("words", ""))}">'
@@ -1638,12 +1638,12 @@ def studio_html(pg, page, pkg, who):
       <div class="dz-pick" data-dz-home>
         <h3 class="dz-ask">{ask}</h3>
         <div class="dz-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg><input type="search" data-dz-search placeholder="{hint}" aria-label="{hint}" autocomplete="off"></div>
+        <p class="dz-none" data-dz-none hidden>We don’t have that one yet. Start from one of these designs for any business and change the words, or ask us for a free design below.</p>
         {f'<div class="dz-grps" data-dz-grps>{groups}</div>' if grouped else ""}
         <div class="dz-kinds-box" data-dz-kinds-box{" hidden" if grouped else ""}>
           {'<div class="dz-crumb"><button type="button" class="dz-back" data-dz-back>← All kinds</button><h3 data-dz-ktitle></h3></div>' if grouped else ""}
           <div class="dz-kinds" data-dz-kinds>{kinds}</div>
         </div>
-        <p class="dz-none" data-dz-none hidden>We don’t have that one yet, but we design it for free: pick any design below and change the words, or ask us below.</p>
       </div>
       <div class="dz-feat" data-dz-feat></div>"""
     first = next(iter(sets), "")
