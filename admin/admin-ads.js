@@ -247,8 +247,8 @@
       : '<div class="row sp-acts"><button class="btn btn-ghost btn-sm" data-act="adsNextReel" data-on="1"' + dis + '>' + T('Boost the next Reel that goes out', 'Impulsionar o próximo Reel que sair') + '</button></div>';
     var active = d.boosts.filter(function (b) { return b.status === 'active'; }).length;
     var seasonNote = d.season === 'shipping' ? T('From Dec 15 the post office can’t deliver by Christmas: the ads rest until January.', 'Depois de 15/dez os Correios não entregam antes do Natal: os anúncios descansam até janeiro.')
-      : d.season === 'lastcall' ? T('Dec 2–14: last days to buy for Christmas, so the day’s budget is doubled (inside the cap).', '2 a 14/dez: últimos dias para comprar para o Natal, então o orçamento do dia dobra (dentro do teto).')
-      : d.season === 'peak' ? T('Black Friday week: ads cost the most now, so the budget stays the usual.', 'Semana da Black Friday: o anúncio está mais caro, então o orçamento fica o de sempre.') : '';
+      : d.season === 'lastcall' ? T('Dec 2–14: last days to buy for Christmas, so these days get about twice a normal day, the last weekend three times (inside the cap).', '2 a 14/dez: últimos dias para comprar para o Natal, então esses dias recebem o dobro de um dia comum, e o último fim de semana o triplo (dentro do teto).')
+      : d.season === 'peak' ? T('Black Friday week: the month’s money goes mostly to Black Friday (4 times a normal day) and Cyber Monday (3 times), inside the cap.', 'Semana da Black Friday: o dinheiro do mês vai mais para a Black Friday (4 vezes um dia comum) e a Cyber Monday (3 vezes), dentro do teto.') : '';
     var budget = '<p class="small">' + (active ? T('Today: ' + dollars(d.allowed) + ' for all ' + active + ' boosted posts together; Meta puts more into the one that works.',
         'Hoje: ' + dollars(d.allowed) + ' para os ' + active + ' posts impulsionados juntos; o Meta põe mais no que funciona.') : '') + (seasonNote ? ' ' + esc(seasonNote) : '') + '</p>';
     var aud = '<p class="tiny muted">' + T('Who sees them: only people who live in the US, 25 to 65', 'Quem vê: só quem mora nos EUA, de 25 a 65 anos') +

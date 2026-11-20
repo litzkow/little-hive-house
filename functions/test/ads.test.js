@@ -110,16 +110,30 @@ test("plan: a Reel waiting takes the place of a photo that sold nothing; the Ree
   assert.deepEqual(p.start, []);
 });
 
-test("the calendar: Black Friday week the usual, Dec 2–14 double, from Dec 15 nothing (the post office), inside the cap", () => {
+test("the calendar: the month's money goes to the days people buy, nothing from Dec 15, never past the cap", () => {
   const { A } = setup();
-  const cfg = A.cleanConfig({ monthCap: 1000, channels: { meta: { on: true, daily: 4 }, etsy: { on: false, daily: 2 } } });
+  // a big cap: the usual daily budget times the day's weight
+  const big = A.cleanConfig({ monthCap: 1000, channels: { meta: { on: true, daily: 4 }, etsy: { on: false, daily: 2 } } });
   const t = { total: 0 };
-  assert.equal(A.dailyAllowed(cfg, t, "2026-11-27"), 4);
-  assert.equal(A.dailyAllowed(cfg, t, "2026-12-05"), 8);
-  assert.equal(A.dailyAllowed(cfg, t, "2026-12-16"), 0);
-  assert.equal(A.dailyAllowed(cfg, t, "2027-01-03"), 4);
-  assert.equal(A.dailyAllowed(cfg, { total: 990 }, "2026-12-05"), 0.37);  // $10 left for 27 days: inside the cap
-  assert.equal(A.dailyAllowed(A.cleanConfig({ ...cfg, rules: { holiday: false } }), t, "2026-12-16"), 4);
+  assert.equal(A.dailyAllowed(big, t, "2026-11-27"), 16);
+  assert.equal(A.dailyAllowed(big, t, "2026-12-05"), 8);
+  assert.equal(A.dailyAllowed(big, t, "2026-12-16"), 0);
+  assert.equal(A.dailyAllowed(big, t, "2027-01-03"), 4);
+  assert.equal(A.dailyAllowed(A.cleanConfig({ ...big, rules: { holiday: false } }), t, "2026-12-16"), 4);
+  // the shop's $60 a month: split by weight over the days left
+  const cfg = A.cleanConfig({ monthCap: 60, channels: { meta: { on: true, daily: 20 }, etsy: { on: false, daily: 1 } } });
+  // Dec 1: weights 1.5 + 10 x 2 + 3 x 3 = 30.5 → $60 x 1.5 / 30.5
+  assert.equal(A.dailyAllowed(cfg, t, "2026-12-01"), 2.95);
+  assert.equal(A.dailyAllowed(cfg, t, "2026-12-12"), 20);                 // only the last weekend left: all of it, by weight
+  assert.equal(A.dailyAllowed(cfg, { total: 40 }, "2026-12-12"), 6.67);   // $20 left for Dec 12–14
+  // Nov 21 with $20 left: weights 1+1+1+1.5+1.5+1+4+2+2+3 = 18 → Black Friday gets 4/18 of it
+  assert.equal(A.dailyAllowed(cfg, { total: 40 }, "2026-11-21"), 1.11);
+  assert.equal(A.dailyAllowed(cfg, { total: 40 }, "2026-11-27"), 7.27);   // on the day itself: $20 x 4 / (4+2+2+3)
+  assert.equal(A.dailyAllowed(cfg, { total: 59.5 }, "2026-11-27"), 0);    // less than Meta's $1 left
+  assert.equal(A.dailyAllowed(cfg, { total: 59 }, "2026-11-30"), 1);
+  // the other channels' days come out first
+  const both = A.cleanConfig({ ...cfg, channels: { meta: { on: true, daily: 20 }, etsy: { on: true, daily: 1 } } });
+  assert.equal(A.dailyAllowed(both, t, "2026-12-12"), 13.33);             // ($60 − Etsy $1 x the 20 days left) x 3/9
 });
 
 test("month totals and Etsy advice", () => {

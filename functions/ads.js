@@ -513,25 +513,40 @@ async function notify(text, tag) {
 }
 
 /* ---------- the robot ---------- */
-/** The calendar (rules.holiday): Black Friday week costs the most, so no more than the usual; Dec 2–14 is the time to
-   spend (prices fall after Cyber Monday and people still buy for Christmas); from Dec 15 the post office can't deliver
-   by Christmas, so finding new buyers stops until the year turns. Returns the factor on the usual daily budget. */
+/** The calendar (rules.holiday). With a small monthly cap, spreading it evenly means a dollar or two a day that never
+   gets going, so the month's money is split by weight: more on the days people buy, nothing when a sale can't arrive.
+     Nov 24–25 (Thanksgiving week) 1.5 · Thanksgiving 1 · Black Friday 4 (the shop's best offer) · Nov 28–29 2 ·
+     Cyber Monday 3 · Dec 1 1.5 · Dec 2–11 2 (last weeks to buy for Christmas) · Dec 12–14 3 (last weekend) ·
+     Dec 15–31 0 (the post office can't deliver by Christmas) · any other day 1.
+   The ad set is never paused between weights (no relearning), only from Dec 15 to the new year. */
 function season(day) {
   const md = String(day).slice(5);
-  if (md >= "11-26" && md <= "12-01") return { factor: 1, why: "peak" };
-  if (md >= "12-02" && md <= "12-14") return { factor: 2, why: "lastcall" };
+  if (md === "11-27") return { factor: 4, why: "peak" };
+  if (md === "11-30") return { factor: 3, why: "peak" };
+  if (md === "11-28" || md === "11-29") return { factor: 2, why: "peak" };
+  if (md === "11-24" || md === "11-25" || md === "12-01") return { factor: 1.5, why: "peak" };
+  if (md === "11-26") return { factor: 1, why: "peak" };
+  if (md >= "12-02" && md <= "12-11") return { factor: 2, why: "lastcall" };
+  if (md >= "12-12" && md <= "12-14") return { factor: 3, why: "lastcall" };
   if (md >= "12-15" && md <= "12-31") return { factor: 0, why: "shipping" };
   return { factor: 1, why: "" };
 }
-/** How much Meta may spend today: the usual daily budget (times the calendar), never more than what keeps the month
-   inside the cap. */
+/** How much Meta may spend today: the month's money left (after the other channels' days) split over the days left by
+   their weight, at least Meta's $1 on a day with weight, never more than the usual daily budget times today's weight,
+   and never past the cap. */
 function dailyAllowed(cfg, totals, today) {
-  const month = monthOf(today);
-  const left = daysInMonth(month) - dayOfMonth(today) + 1;
-  const room = Math.max(0, cfg.monthCap - totals.total);
+  if (!cfg.channels.meta.on) return 0;
+  const month = monthOf(today), last = daysInMonth(month);
+  const left = last - dayOfMonth(today) + 1;
   const others = CHANNELS.filter((k) => k !== "meta" && cfg.channels[k].on).reduce((t, k) => t + cfg.channels[k].daily, 0);
-  const f = cfg.rules.holiday === false ? 1 : season(today).factor;
-  return r2(Math.max(0, Math.min(cfg.channels.meta.on ? cfg.channels.meta.daily * f : 0, room / left - others)));
+  const room = Math.max(0, cfg.monthCap - totals.total - others * left);
+  const w = (d) => (cfg.rules.holiday === false ? 1 : season(d).factor);
+  const f = w(today);
+  if (!f || room < MIN_DAILY.meta) return 0;
+  let sum = 0;
+  for (let i = 0; i < left; i++) sum += w(addDays(today, i));
+  const share = Math.max(MIN_DAILY.meta, (room * f) / sum);
+  return r2(Math.max(0, Math.min(cfg.channels.meta.daily * f, share, room)));
 }
 
 /**
