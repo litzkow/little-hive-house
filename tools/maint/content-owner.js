@@ -34,6 +34,9 @@ const isMe = (by, name) => /claude/i.test(`${by || ""} ${name || ""}`);
       man.push({ id: d.id, title: it.title, kind: it.kind, caption: it.caption, notes: it.notes, files });
     }
     fs.writeFileSync("/tmp/content-out/manifest.json", JSON.stringify(man, null, 1)); say(`${man.length} posts exportados`);
+  } else if (v.startsWith("notes:")) {
+    const map = JSON.parse(Buffer.from(v.slice(6), "base64").toString("utf8"));
+    for (const d of all.filter((x) => map[x.id])) { await d.ref.set({ notes: map[d.id] }, { merge: true }); say(`${d.data().title}: ${map[d.id]}`); }
   } else if (v.startsWith("delete:")) {
     const ids = v.slice(7).split(",");
     for (const d of all.filter((x) => ids.includes(x.id))) {
