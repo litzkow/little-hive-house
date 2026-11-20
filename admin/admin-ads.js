@@ -124,10 +124,12 @@
 
   /* ---------- pieces ---------- */
   function capCard(d) {
-    var c = d.config, t = d.totals, pct = c.monthCap > 0 ? Math.min(100, Math.round(t.total / c.monthCap * 100)) : 100;
-    var left = Math.max(0, c.monthCap - t.total), daysLeft = d.daysInMonth - d.dayOfMonth + 1;
-    var over = d.planned * daysLeft + t.total > c.monthCap + 0.01;
+    var c = d.config, t = d.totals, cap = d.cap != null ? d.cap : c.monthCap, extra = d.extra || 0;
+    var pct = cap > 0 ? Math.min(100, Math.round(t.total / cap * 100)) : 100;
+    var left = Math.max(0, cap - t.total), daysLeft = d.daysInMonth - d.dayOfMonth + 1;
+    var over = d.planned * daysLeft + t.total > cap + 0.01;
     return '<section class="card ads-cap"><div class="card-head"><div><h2>' + T('Monthly cap', 'Teto do mês') + ': ' + dollars(c.monthCap) + '</h2>' +
+      (extra > 0 ? '<p class="small"><b>' + T('+ ' + dollars(extra) + ' extra approved for Black Friday through Dec 14 (Thiago): ' + dollars(cap) + ' this month', '+ ' + dollars(extra) + ' extra aprovado para a Black Friday até 14/dez (Thiago): ' + dollars(cap) + ' neste mês') + '</b></p>' : '') +
       '<p class="sub">' + (c.capAt ? T('Approved by ' + esc(c.capBy || '') + ' on ' + esc(h.fmtDate(c.capAt)), 'Aprovado por ' + esc(c.capBy || '') + ' em ' + esc(h.fmtDate(c.capAt))) :
         T('The most the shop can spend on ads in a month. The robot never goes past it.', 'O máximo que a loja pode gastar com anúncios no mês. O robô nunca passa disso.')) + '</p></div>' +
       '<button class="btn btn-ghost btn-sm" data-act="adsCap">' + T('Change cap', 'Mudar teto') + '</button></div>' +
@@ -154,7 +156,7 @@
     var t = d.totals, sales = Math.round((t.sales.ads + t.sales.etsy) * 100) / 100, orders = t.sales.adOrders + t.sales.etsyOrders;
     var ret = t.total > 0 ? sales / t.total : null;
     return '<div class="tiles">' +
-      h.tile(T('Spent this month', 'Gasto no mês'), dollars(t.total), T('of ' + dollars(d.config.monthCap), 'de ' + dollars(d.config.monthCap)), true) +
+      h.tile(T('Spent this month', 'Gasto no mês'), dollars(t.total), T('of ' + dollars(d.cap != null ? d.cap : d.config.monthCap), 'de ' + dollars(d.cap != null ? d.cap : d.config.monthCap)), true) +
       h.tile(T('Sales from ads', 'Vendas dos anúncios'), dollars(sales), orders ? T(orders + (orders === 1 ? ' order' : ' orders'), orders + (orders === 1 ? ' pedido' : ' pedidos')) : T('None yet', 'Nenhuma ainda')) +
       h.tile(T('Return', 'Retorno'), ret == null ? '—' : dollars(ret), ret == null ? T('per $1 spent', 'para cada $1 gasto') : T('back for each $1 spent', 'de volta para cada $1 gasto')) +
       h.tile(T('Site sales this month', 'Vendas do site no mês'), dollars(t.sales.site), T('all sales, with or without ads', 'todas, com ou sem anúncio')) +

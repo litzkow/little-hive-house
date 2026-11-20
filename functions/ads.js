@@ -531,6 +531,28 @@ function season(day) {
   if (md >= "12-15" && md <= "12-31") return { factor: 0, why: "shipping" };
   return { factor: 1, why: "" };
 }
+/** Extra money the owners approved above the monthly cap for a stretch of days (Thiago, Nov 20 2026: $40 more for
+   Black Friday through the Christmas shipping deadline). It is split over the stretch by the calendar's weights, so
+   each month gets its part and each day inside it may spend its share on top of the usual. Ends on its own. */
+const EXTRAS = [{ from: "2026-11-27", to: "2026-12-14", amount: 40, by: "Thiago", at: "2026-11-20" }];
+function weightOf(cfg, day) { return cfg.rules.holiday === false ? 1 : season(day).factor; }
+function extraWeights(cfg, x) {
+  const out = [];
+  for (let d = x.from; d <= x.to; d = addDays(d, 1)) out.push([d, weightOf(cfg, d)]);
+  return out;
+}
+/** The extra on top of the cap for a month (or one day when `day` is given). */
+function extraOf(cfg, month, day) {
+  let t = 0;
+  EXTRAS.forEach((x) => {
+    const ws = extraWeights(cfg, x), sum = ws.reduce((a, [, w]) => a + w, 0);
+    if (!sum) return;
+    ws.forEach(([d, w]) => { if (day ? d === day : monthOf(d) === month) t += (x.amount * w) / sum; });
+  });
+  return r2(t);
+}
+/** The month's cap with the approved extra. */
+function capOf(cfg, month) { return cfg.monthCap > 0 ? r2(cfg.monthCap + extraOf(cfg, month)) : 0; }
 /** How much Meta may spend today: the month's money left (after the other channels' days) split over the days left by
    their weight, at least Meta's $1 on a day with weight, never more than the usual daily budget times today's weight,
    and never past the cap. */
@@ -539,14 +561,14 @@ function dailyAllowed(cfg, totals, today) {
   const month = monthOf(today), last = daysInMonth(month);
   const left = last - dayOfMonth(today) + 1;
   const others = CHANNELS.filter((k) => k !== "meta" && cfg.channels[k].on).reduce((t, k) => t + cfg.channels[k].daily, 0);
-  const room = Math.max(0, cfg.monthCap - totals.total - others * left);
-  const w = (d) => (cfg.rules.holiday === false ? 1 : season(d).factor);
+  const room = Math.max(0, capOf(cfg, month) - totals.total - others * left);
+  const w = (d) => weightOf(cfg, d);
   const f = w(today);
   if (!f || room < MIN_DAILY.meta) return 0;
   let sum = 0;
   for (let i = 0; i < left; i++) sum += w(addDays(today, i));
   const share = Math.max(MIN_DAILY.meta, (room * f) / sum);
-  return r2(Math.max(0, Math.min(cfg.channels.meta.daily * f, share, room)));
+  return r2(Math.max(0, Math.min(cfg.channels.meta.daily * f + extraOf(cfg, month, today), share, room)));
 }
 
 /**
@@ -673,7 +695,8 @@ async function run({ by = "robot", onlyNext = false } = {}) {
   await syncReports(manual);
 
   // the robot (Instagram/Facebook); Etsy only gets advice
-  const capReached = cfg.monthCap > 0 ? totals.total >= cfg.monthCap - 0.01 : true;
+  const cap = capOf(cfg, month);
+  const capReached = cap > 0 ? totals.total >= cap - 0.01 : true;
   const allowed = dailyAllowed(cfg, totals, today);
   const did = [];
   if (meta && meta.igUserId && meta.pageId) {
@@ -781,10 +804,10 @@ async function run({ by = "robot", onlyNext = false } = {}) {
     }
   }
   // the teto was reached today: one notice
-  if (capReached && cfg.monthCap > 0 && state.capNoticed !== month) {
+  if (capReached && cap > 0 && state.capNoticed !== month) {
     state.capNoticed = month;
-    const pt = `O teto de anúncios do mês (${money(cfg.monthCap)}) chegou. Os anúncios do Instagram/Facebook foram pausados${cfg.channels.etsy.on ? "; pause o Etsy Ads no app do Etsy" : ""}.`;
-    await log("all", "cap", pt, `The month's ad cap (${money(cfg.monthCap)}) was reached. Instagram/Facebook ads were paused${cfg.channels.etsy.on ? "; pause Etsy Ads in the Etsy app" : ""}.`);
+    const pt = `O teto de anúncios do mês (${money(cap)}) chegou. Os anúncios do Instagram/Facebook foram pausados${cfg.channels.etsy.on ? "; pause o Etsy Ads no app do Etsy" : ""}.`;
+    await log("all", "cap", pt, `The month’s ad cap (${money(cap)}) was reached. Instagram/Facebook ads were paused${cfg.channels.etsy.on ? "; pause Etsy Ads in the Etsy app" : ""}.`);
     await notify(pt, "ads-cap");
   }
   const advice = etsyAdvice(cfg, totals);
@@ -862,7 +885,7 @@ async function view() {
   let etsyConnected = false;
   try { const a = await require("./etsy")._internal.readAuth(); etsyConnected = !!(a && a.shopId); } catch (e) { etsyConnected = false; }
   return {
-    config: cfg, planned: plannedDaily(cfg), month, today, daysInMonth: daysInMonth(month), dayOfMonth: dayOfMonth(today),
+    config: cfg, cap: capOf(cfg, month), extra: extraOf(cfg, month), planned: plannedDaily(cfg), month, today, daysInMonth: daysInMonth(month), dayOfMonth: dayOfMonth(today),
     totals, meta: metaPublic(auth.meta), etsy: { connected: etsyConnected, advice: state.etsyAdvice || etsyAdvice(cfg, totals) },
     boosts, posts: (state.posts || []).map((p) => ({ ...p, never: !!(state.never || {})[p.id], boosted: !!(state.boosts || {})[p.id] })),
     nextReel: state.nextReel || null, pixel: !!(auth.meta && auth.meta.pixelId),
@@ -944,7 +967,7 @@ async function adminAds(data, auth) {
         await log("meta", "pause", `Post ${short(b)} pausado por vocês.`, `Post ${short(b)} paused by you.`, { post: id, by: U.who(auth) });
       } else if (what === "boost") {
         const v = await view();
-        if (v.config.monthCap > 0 && v.totals.total >= v.config.monthCap - 0.01) fail("failed-precondition", `The monthly cap (${money(cfg.monthCap)}) was reached. Raise the cap first.`);
+        if (v.cap > 0 && v.totals.total >= v.cap - 0.01) fail("failed-precondition", `The monthly cap (${money(cfg.monthCap)}) was reached. Raise the cap first.`);
         // "instead": the one they're swapping out; else, with no room, the weakest the robot chose makes room
         const instead = U.text(data.instead || "", 40).replace(/\D/g, "");
         let out = instead && state.boosts[instead] && state.boosts[instead].status === "active" ? state.boosts[instead] : null;
@@ -1004,5 +1027,5 @@ async function adminAds(data, auth) {
   }
 }
 
-module.exports = { adminAds, run, plan, season, dailyAllowed, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
+module.exports = { adminAds, run, plan, season, dailyAllowed, capOf, extraOf, EXTRAS, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
   _internal: { graph, version: () => META_VERSION(), audience, themesOf, THEMES, AUDIENCE_V, withTargeting, pageFor, landing, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };
