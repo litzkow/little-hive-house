@@ -454,15 +454,19 @@ test("posts: among Reels, sends and saves count more than likes (Instagram's num
 test("the audience: only people who live in the US, plus gift, home and photo interests (looked up once); an old ad set is updated once", async () => {
   const { db, A } = setup();
   const calls = net({ meta: {
-    "GET search": (p) => ({ data: p.q === "Etsy" ? [] : [{ id: `id-${p.q}`, name: p.q }, { id: "other", name: "Other" }] }),
+    // Meta's search: close-but-wrong names first; "Gift" only as "Unique Gifts" (out), "Gifts" exact (in); Etsy not found
+    "GET search": (p) => ({ data: p.q === "Etsy" ? [{ id: "x", name: "Etsy Shop Owners Club" }] : p.q === "Gift" ? [{ id: "u", name: "Unique Gifts" }]
+      : p.q === "Souvenir" ? [{ id: "film", name: "Only Yesterday (1991 film)" }] : [{ id: "other", name: "Other" }, { id: `id-${p.q}`, name: p.q }] }),
     "GET act_123/insights": { data: [] }, [`GET ${META.igUserId}/media`]: { data: [] },
     "POST shared1": { success: true },
   } });
   const state = {};
   const t = await A._internal.audience(META, state);
   assert.deepEqual(t.geo_locations, { countries: ["US"], location_types: ["home"] });
-  assert.ok(t.flexible_spec[0].interests.some((i) => i.name === "Gifts"));
-  assert.ok(!t.flexible_spec[0].interests.some((i) => i.name === "Etsy"));
+  assert.ok(t.flexible_spec[0].interests.some((i) => i.name === "Gifts"));   // "Gift" missed, "Gifts" exact
+  const names = t.flexible_spec[0].interests.map((i) => i.name);
+  assert.ok(!names.includes("Etsy") && !names.includes("Unique Gifts") && !names.some((n) => /film/.test(n)));
+  assert.ok(names.includes("Home décor") && !names.includes("Home decor"));   // one per idea
   const n = calls.filter((c) => c.path === "search").length;
   await A._internal.audience(META, state);
   assert.equal(calls.filter((c) => c.path === "search").length, n);       // kept: not looked up again

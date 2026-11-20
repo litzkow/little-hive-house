@@ -223,16 +223,21 @@ function minFromError(e) {
    starts with them and, with its automatic audience on, goes further only where it finds buyers. Looked up once by name
    (Meta's ids) and kept in the state; TARGET_V changes when this changes, so the next run updates the ad set. */
 const TARGET_V = 2;
-const INTEREST_TERMS = ["Gifts", "Home decor", "Souvenir", "Handicraft", "Etsy", "Photography", "Travel", "Interior design", "Scrapbooking"];
+// each line is one idea; the first name Meta has EXACTLY (no "close enough": its search returns films and brands)
+const INTEREST_TERMS = [["Gift", "Gifts", "Gift shop"], ["Home décor", "Home decor", "Interior design"], ["Handicraft", "Handicrafts", "Arts and crafts"],
+  ["Etsy"], ["Photography"], ["Travel"], ["Scrapbooking"], ["Souvenir"], ["Refrigerator magnet", "Fridge magnet"]];
 async function audience(meta, state) {
   if (!Array.isArray(state.interests)) {
     const found = [];
-    for (const q of INTEREST_TERMS) {
-      try {
-        const j = await graph(meta, "GET", "search", { type: "adinterest", q, limit: 3 });
-        const hit = ((j && j.data) || []).find((x) => String(x.name).toLowerCase() === q.toLowerCase()) || ((j && j.data) || [])[0];
-        if (hit && !found.some((f) => f.id === String(hit.id))) found.push({ id: String(hit.id), name: hit.name });
-      } catch (e) { /* that one stays out */ }
+    for (const names of INTEREST_TERMS) {
+      for (const q of names) {
+        let hit = null;
+        try {
+          const j = await graph(meta, "GET", "search", { type: "adinterest", q, limit: 10 });
+          hit = ((j && j.data) || []).find((x) => String(x.name).trim().toLowerCase() === q.toLowerCase());
+        } catch (e) { /* this name stays out */ }
+        if (hit) { if (!found.some((f) => f.id === String(hit.id))) found.push({ id: String(hit.id), name: hit.name }); break; }
+      }
     }
     state.interests = found;
   }
