@@ -9,14 +9,14 @@ const say = (s) => console.log(`::warning title=publico::${String(s).replace(/\n
   const db = require("../../functions/deps").db();
   const meta = ((await db.collection("ads").doc("auth").get()).data() || {}).meta;
   const sref = db.collection("ads").doc("state"), st = (await sref.get()).data() || {};
-  delete st.interests;                       // look them up fresh
-  const t = await A.audience(meta, st);
-  say(`interesses: ${(st.interests || []).map((i) => i.name).join(", ") || "nenhum"}`);
+  const th = [...new Set(Object.values(st.boosts || {}).filter((b) => b.status === "active" && b.shared).flatMap((b) => A.themesOf(b.caption)))].sort();
+  const t = await A.audience(meta, st, th);
+  say(`grupos: ${st.audience.join(", ")} · ${JSON.stringify(t.flexible_spec || []).slice(0, 700)}`);
   if (st.adsetId) {
     await A.graph(meta, "POST", st.adsetId, { targeting: t });
-    st.targetV = A.TARGET_V;
+    st.targetV = A.AUDIENCE_V; st.targetKey = st.audience.join(",");
     const now = await A.graph(meta, "GET", st.adsetId, { fields: "targeting,effective_status" });
     say(`no Meta agora: ${JSON.stringify(now).slice(0, 800)}`);
   }
-  await sref.set({ interests: st.interests, targetV: st.targetV || null }, { merge: true });
+  await sref.set({ audIds: st.audIds || {}, audience: st.audience, targetV: st.targetV || null, targetKey: st.targetKey || null }, { merge: true });
 })().catch((e) => { console.log(`::error::${e.message}`); process.exit(1); });
