@@ -1,0 +1,207 @@
+/* Patterns: English text with a number, a date or a name in it. Each is [regex, French] where the French is a
+   replacement string ($1…) or a function of the match. Checked in order, after the exact dictionary.
+   "vous"; prices keep the US format ($5.49) since the shop sells in dollars from the US. */
+var COL = {
+  "USA Places": "Lieux des États-Unis", "World Places": "Lieux du monde", "Ink Cities": "Villes à l'encre",
+  "City Sketches": "Croquis de villes", "Fall": "Automne", "Halloween": "Halloween", "Horror Classics": "Classiques de l'horreur",
+  "Furry Friends": "Amis à poils", "Kitchen Words": "Mots de cuisine", "Americana": "Americana", "México": "Mexique",
+  "Ireland": "Irlande", "Italia": "Italie", "Puerto Rico": "Porto Rico", "Pilipinas": "Philippines", "India": "Inde",
+  "Korea": "Corée", "Japan": "Japon", "Brasil": "Brésil", "Greece": "Grèce", "France": "France",
+  "Great Masters": "Grands maîtres", "Mythology": "Mythologie", "Home Notes": "Petits mots de la maison", "Bee Kind": "Bee Kind",
+  "Night Sky": "Ciel nocturne", "Birth Flowers": "Fleurs de naissance", "Storybook Classics": "Classiques de la littérature",
+  "Fairy Tales & Myths": "Contes et mythes", "Wise Words": "Paroles de sagesse", "Holidays & Dates": "Fêtes et dates",
+  "Bumper Stickers": "Autocollants de pare-chocs", "Christmas": "Noël", "Summer": "Été", "Heritage": "Racines",
+  "Photo magnets": "Aimants photo", "Custom photo magnets": "Aimants photo personnalisés"
+};
+var FRAME = { "Arch": "Arche", "Art deco": "Art déco", "Autumn": "Automne", "Birthday": "Anniversaire", "Botanical": "Botanique",
+  "Circle": "Cercle", "Classic": "Classique", "Crisp white mat": "Passe-partout blanc", "Date stamp": "Tampon dateur",
+  "Eucalyptus wreath": "Couronne d'eucalyptus", "Film frame": "Cadre pellicule", "Full photo": "Photo entière",
+  "Gallery mat": "Passe-partout galerie", "Gallery with caption": "Galerie avec légende", "Gold line": "Filet doré",
+  "Graduation": "Diplôme", "Handwritten": "Manuscrit", "Holiday": "Fêtes", "Honeycomb": "Nid d'abeille",
+  "Instant print": "Instantané", "Love": "Amour", "Modern": "Moderne", "Name band": "Bandeau prénom",
+  "Postage stamp": "Timbre-poste", "Postcard": "Carte postale", "Rounded modern": "Moderne arrondi",
+  "Scalloped lace": "Dentelle festonnée", "Script": "Cursive", "Sweet dreams": "Fais de beaux rêves", "Team": "Équipe",
+  "Thin white border": "Fine bordure blanche", "Tropical leaves": "Feuilles tropicales", "Vintage ornate gold": "Or vintage orné",
+  "Watercolour peonies": "Pivoines à l'aquarelle", "Wedding": "Mariage", "Winter": "Hiver", "No border": "Sans bordure" };
+function fr(s) { return FRAME[s] || s; }
+function col(s) { return COL[s] || s; }
+/** only for the shop's own collection names: anything else is left to the dictionary */
+function known(s) { return Object.prototype.hasOwnProperty.call(COL, s) || /^(Americana|México|Brasil|Halloween|Bee Kind)$/.test(s); }
+var MON = { Jan: "janv.", Feb: "févr.", Mar: "mars", Apr: "avr.", May: "mai", Jun: "juin", Jul: "juil.", Aug: "août", Sep: "sept.", Oct: "oct.", Nov: "nov.", Dec: "déc.",
+  January: "janvier", February: "février", March: "mars", April: "avril", June: "juin", July: "juillet", August: "août",
+  September: "septembre", October: "octobre", November: "novembre", December: "décembre" };
+var DAY = { Mon: "lun.", Tue: "mar.", Wed: "mer.", Thu: "jeu.", Fri: "ven.", Sat: "sam.", Sun: "dim.",
+  Monday: "lundi", Tuesday: "mardi", Wednesday: "mercredi", Thursday: "jeudi", Friday: "vendredi", Saturday: "samedi", Sunday: "dimanche" };
+var M = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December)";
+/* "Nov 17–20" → "17–20 nov."; "Nov 28–Dec 2" → "28 nov.–2 déc."; "November 3, 2026" → "3 novembre 2026"; "Tue, Nov 17" → "mar. 17 nov." */
+function date(s) {
+  return s
+    .replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b,?/g, function (d, x) { return DAY[x]; })
+    .replace(new RegExp(M + " (\\d{1,2}), (\\d{4})", "g"), function (_, m, d, y) { return d + " " + MON[m] + " " + y; })
+    .replace(new RegExp(M + " (\\d{1,2})[–-](\\d{1,2})\\b", "g"), function (_, m, a, b) { return a + "–" + b + " " + MON[m]; })
+    .replace(new RegExp(M + " (\\d{1,2})[–-]" + M + " (\\d{1,2})", "g"), function (_, m1, a, m2, b) { return a + " " + MON[m1] + "–" + b + " " + MON[m2]; })
+    .replace(new RegExp(M + " (\\d{1,2})\\b", "g"), function (_, m, d) { return d + " " + MON[m]; })
+    .replace(new RegExp(M + " (\\d{4})", "g"), function (_, m, y) { return MON[m] + " " + y; });
+}
+function tr(s) { return COL[s] || (window.LHH_I18N ? window.LHH_I18N.t(s) : s); }
+function pl(k, one, many) { return k + " " + (k === "1" ? one : many); }
+var PATTERNS = [
+  [/^([\d,]+) ready-made designs for (your business|your wedding|your graduation|your party or event|your home)\. Tap one to change the colors and the words, add your (logo|photo) and see it right away\.$/, function (_, n, w, x) { return n + " modèles prêts pour " + { "your business": "votre entreprise", "your wedding": "votre mariage", "your graduation": "votre remise de diplôme", "your party or event": "votre fête ou événement", "your home": "votre maison" }[w] + ". Touchez-en un pour changer les couleurs et les textes, ajouter " + (x === "logo" ? "votre logo" : "votre photo") + " et voir le résultat tout de suite."; }],
+  [/^(\d+) kinds · ([\d,]+) designs$/, "$1 catégories · $2 modèles"],
+  [/^(\d+) (magnets?) · \$([\d.]+)(?: \(\$([\d.]+) each\))?$/, function (_, n, m, p, e) { return pl(n, "aimant", "aimants") + " · $" + p + (e ? " ($" + e + " pièce)" : ""); }],
+  [/^From \$(\d+) a magnet$/, "À partir de $$$1 l'aimant"],
+  [/^\$([\d.]+) · sent to your email$/, "$$$1 · envoyé par e-mail"],
+  [/^Hundreds of designs to make yours: change the words and colors, add a photo\. From \$(\d+)\.$/, "Des centaines de modèles à personnaliser : changez les textes et les couleurs, ajoutez une photo. À partir de $$$1."],
+  [/^Every magnet is made just for you\. Want only the design\? \$([\d.]+) for the file, free with any magnet\.$/, "Chaque aimant est fait pour vous. Juste le design ? $$$1 le fichier, offert avec tout aimant."],
+  [/^Yes\. Tap the design, make it yours and choose “Only want the file”: \$([\d.]+), sent to your email right away, no magnet\. It is free with any magnet order\.$/, "Oui. Touchez le modèle, personnalisez-le et choisissez « Juste le fichier » : $$$1, envoyé tout de suite par e-mail, sans aimant. Offert avec toute commande d'aimants."],
+  [/^([^·<]{2,40}) · ([^·<]{2,40})$/, function (_, a, b) { var x = tr(a), y = tr(b); return x !== a || y !== b ? x + " · " + y : null; }],
+  [/^1 magnet$/, "1 aimant"],
+  [/^(\d+) photo designs with names, dates and captions$/, "$1 modèles photo avec prénoms, dates et légendes"],
+  [/^\$(\d+) · \$([\d.]+) each$/, "$$$1 · $$$2 pièce"],
+  [/^Photo ([\d, ]+) didn't finish uploading\. Please try again\.$/, "L'envoi de la photo $1 n'est pas terminé. Réessayez."],
+  [/^Photo (\d+) didn't upload correctly\. Please remove it and add it again\.$/, "La photo $1 ne s'est pas bien envoyée. Retirez-la et ajoutez-la à nouveau."],
+  [/^Photo (\d+) is too big or empty\.$/, "La photo $1 est trop lourde ou vide."],
+  [/^Cart <span>(\d+)<\/span>$/, "Panier <span>$1</span>"],
+  [/^Order today and it arrives about (.+) in the US\. <a>Shipping details<\/a>$/, function (_, d) { return "Commandez aujourd'hui, livraison vers le " + date(d) + " aux États-Unis. <a>Détails de livraison</a>"; }],
+  // cart, photo builder, checkout (assets/site.js, custom.js, checkout.js)
+  [/^One less (.+)$/, "Un de moins : $1"],
+  [/^One more (.+)$/, "Un de plus : $1"],
+  [/^Add (\d+) more magnets for (\d+)% off your whole order\.$/, "Ajoutez $1 aimants pour obtenir -$2 % sur toute la commande."],
+  [/^Order today and it arrives about (.+) in the US\.$/, function (_, d) { return "Commandez aujourd'hui, livraison vers le " + date(d) + " aux États-Unis."; }],
+  [/^Custom photo magnets$/, "Aimants photo personnalisés"],
+  [/^(.+) added to cart$/, function (_, x) { return tr(x) + " ajouté au panier"; }],
+  [/^Your (\d+) magnets are in the cart$/, "Vos $1 aimants sont dans le panier"],
+  [/^(\d+) magnets · we plan the design with you by email after checkout$/, "$1 aimants · nous préparons le design avec vous par e-mail après le paiement"],
+  // bulk-order pages (business, weddings, graduation, parties): packs, the mailing service, the QR maker
+  [/^(\d+) magnets · \$([\d.,]+) \(\$([\d.,]+) each\)$/, "$1 aimants · $$$2 ($$$3 pièce)"],
+  [/^(\d+) addresses$/, "$1 adresses"],
+  [/^(\d+) addresses · we ask for your list after checkout$/, "$1 adresses · nous demandons votre liste après le paiement"],
+  [/^(\d+) magnets · style: (.+) · we plan the design with you by email after checkout$/, function (_, n, s) { return n + " aimants · style : " + tr(s) + " · nous préparons le design avec vous par e-mail après le paiement"; }],
+  [/^(\d+) QR magnets · (.+) · proof before we print$/, "$1 aimants QR · $2 · épreuve avant impression"],
+  [/^Mailed to your list, (\d+) addresses$/, "Envoyé à votre liste, $1 adresses"],
+  [/^Graduation & college, (\d+) magnets$/, "Diplômes et université, $1 aimants"],
+  [/^(\d+) magnets · (\d+) photos? · (\d+) frames$/, function (_, a, b, c) { return a + " aimants · " + pl(b, "photo", "photos") + " · " + c + " cadres"; }],
+  [/^(\d+) magnets · (\d+) photos? · (.+)$/, function (_, a, b, f) { return a + " aimants · " + pl(b, "photo", "photos") + " · " + fr(f); }],
+  [/^2 × 2 in · (.+)$/, function (_, c) { return "5 × 5 cm · " + col(c); }],
+  [/^(.+) magnet$/, "Aimant $1"],
+  [/^Remove photo (\d+)$/, "Retirer la photo $1"],
+  [/^1 photo is too small and may print blurry\. (.+)$/, "1 photo est trop petite et risque d'être floue. Pour des aimants nets, utilisez la photo originale de votre galerie, pas une capture d'écran ni une photo enregistrée depuis une messagerie."],
+  [/^(\d+) photos are too small and may print blurry\. (.+)$/, "$1 photos sont trop petites et risquent d'être floues. Pour des aimants nets, utilisez la photo originale de votre galerie, pas une capture d'écran ni une photo enregistrée depuis une messagerie."],
+  [/^(\d+) photos added\. This pack holds (\d+), so remove (\d+) or pick a bigger pack\.$/, "$1 photos ajoutées. Ce lot en contient $2 : retirez-en $3 ou choisissez un lot plus grand."],
+  [/^(\d+) of (\d+) photos added\. We will repeat your favorites to fill the pack, or tell us in the notes\.$/, "$1 photos sur $2 ajoutées. Nous répéterons vos préférées pour compléter le lot, ou dites-nous dans les notes."],
+  [/^Frame for photo (\d+)$/, "Cadre de la photo $1"],
+  [/^Photo (\d+): (.+) frame(, caption (.+?))?(, low resolution)?\. Choose frame$/, function (_, k, f, c1, c, low) { return "Photo " + k + " : cadre " + fr(f) + (c ? ", légende " + c : "") + (low ? ", basse résolution" : "") + ". Choisir le cadre"; }],
+  [/^Preview of photo (\d+) with the (.+?) frame( and the caption (.+))?$/, function (_, k, f, c1, c) { return "Aperçu de la photo " + k + " avec le cadre " + fr(f) + (c ? " et la légende " + c : ""); }],
+  [/^Apply this frame to all (\d+) photos$/, "Appliquer ce cadre aux $1 photos"],
+  [/^(.+) is now on all (\d+) photos\.$/, function (_, f, k) { return "Le cadre " + fr(f) + " est appliqué aux " + k + " photos."; }],
+  [/^Caption added to all (\d+) photos\. It prints on photos with a caption frame\.$/, "Légende ajoutée aux $1 photos. Elle s'imprime sur les photos avec un cadre à légende."],
+  [/^All (\d+) photos uploaded$/, "Les $1 photos sont envoyées"],
+  [/^Uploading your photo · (\d+)%$/, "Envoi de votre photo · $1 %"],
+  [/^Uploading your (\d+) photos · (\d+)%$/, "Envoi de vos $1 photos · $2 %"],
+  // orders, account, returns (assets/orders.js, account.js, return.js)
+  [/^Tracking history \((\d+) scans?\)$/, function (_, k) { return "Historique de suivi (" + pl(k, "scan", "scans") + ")"; }],
+  [/^(.+) has your package out for delivery\. Keep an eye on the porch!$/, "$1 est en train de livrer votre colis. Surveillez votre porte !"],
+  [/^Your package is with (.+?)\.( It shipped on (.+?)\.)?( We’ll email you when it’s out for delivery and when it arrives\.)?$/, function (_, c, s1, d, tail) { return "Votre colis est chez " + c + "." + (d ? " Il a été expédié le " + d + "." : "") + (tail ? " Nous vous écrirons quand il sera en cours de livraison et à son arrivée." : ""); }],
+  [/^Delivered on (.+?)\. We hope you love them!$/, "Livré le $1. Nous espérons qu'ils vous plairont !"],
+  [/^We hope you love them!$/, "Nous espérons qu'ils vous plairont !"],
+  [/^We refunded (\$[\d.,]+)\. Refunds take 5 to 10 business days to show on your statement\.$/, "Nous avons remboursé $1. Les remboursements apparaissent sur votre relevé sous 5 à 10 jours ouvrés."],
+  [/^Rating for (.+)$/, "Note pour $1"],
+  [/^Thank you, (.+)!$/, "Merci, $1 !"],
+  [/^Order (LHH-\d+) is confirmed\. We emailed you a receipt, so keep it handy for tracking\.$/, "La commande $1 est confirmée. Nous vous avons envoyé un reçu par e-mail, gardez-le pour le suivi."],
+  [/^Check your inbox\. If there’s an account for (.+?), we just sent a link to choose a new password\.( It can take a minute, and sometimes lands in spam\.)?$/, function (_, e, tail) { return "Vérifiez votre boîte de réception. S'il existe un compte pour " + e + ", nous venons d'envoyer un lien pour choisir un nouveau mot de passe." + (tail ? " Cela peut prendre une minute, et il arrive parfois dans les spams." : ""); }],
+  [/^See all (\d+) orders$/, "Voir les $1 commandes"],
+  [/^We found (\d+) earlier orders with your email and added them to your account\.$/, "Nous avons trouvé $1 commandes précédentes avec votre e-mail et les avons ajoutées à votre compte."],
+  [/^Signed in as (.+)\.$/, "Connecté en tant que $1."],
+  [/^We emailed (.+) a link to choose a new password\.$/, "Nous avons envoyé à $1 un lien pour choisir un nouveau mot de passe."],
+  [/^Your account and orders \(signed in as (.+)\)$/, "Votre compte et vos commandes (connecté en tant que $1)"],
+  [/^(.+) saved to your favorites$/, function (_, x) { return tr(x) + " ajouté aux favoris"; }],
+  [/^(.+) removed from favorites$/, function (_, x) { return tr(x) + " retiré des favoris"; }],
+  [/^Refunded (\$[\d.,]+) on (.+)\.$/, "Remboursé $1 le $2."],
+  [/^(\$[\d.,]+) back to your card on (.+)$/, "$1 remboursé sur votre carte le $2"],
+  [/^Your refund: (\$[\d.,]+) \((\$[\d.,]+) for the magnets − (\$[\d.,]+) return shipping\)\.$/, "Votre remboursement : $1 ($2 pour les aimants − $3 de frais de retour)."],
+  [/^(\d+) magnets · (\$[\d.,]+) each$/, "$1 aimants · $2 pièce"],
+  [/^(\$[\d.,]+) each$/, "$1 pièce"],
+  [/^This account is turned off\. Email (.+) and we’ll sort it out\.$/, "Ce compte est désactivé. Écrivez à $1 et nous réglerons ça."],
+  [/^We couldn’t save one of your photos\. (.+?) or email (.+?)\.?$/, "Impossible d'enregistrer l'une de vos photos. Utilisez des photos classiques de moins de 25 Mo (JPG, PNG, HEIC ou WebP) et réessayez, ou écrivez à $2."],
+  [/^We can’t take photo uploads right now\. Please email (.+)$/, "Nous ne pouvons pas recevoir de photos pour le moment. Écrivez à $1"],
+  [/^Something went wrong on our side\. Please try again, or email (.+)$/, "Un problème est survenu de notre côté. Réessayez, ou écrivez à $1"],
+  [/^This link has expired or is incomplete\. Email (.+) and we’ll remove you by hand\.$/, "Ce lien a expiré ou est incomplet. Écrivez à $1 et nous vous retirerons à la main."],
+  [/^Your email app should open now\. If it doesn't, write to us at (.+)$/, "Votre messagerie devrait s'ouvrir. Sinon, écrivez-nous à $1"],
+  [/^Ordering today\? Most US orders arrive <strong>about (.+)<\/strong>\.$/, function (_, d) { return "Vous commandez aujourd'hui ? La plupart des commandes aux États-Unis arrivent <strong>vers le " + date(d) + "</strong>."; }],
+  [/^(\d+) photos? added, (\$[\d.,]+) each$/, function (_, k, v) { return (k === "1" ? "1 photo ajoutée" : k + " photos ajoutées") + ", " + v + " pièce"; }],
+  [/^Add 1 to 3 photos, (\$[\d.,]+) each$/, "Ajoutez 1 à 3 photos, $1 pièce"],
+  [/^Add 1 more photo and get the pack of 4 for (\$[\d.,]+)\.$/, "Ajoutez 1 photo et obtenez le lot de 4 pour $1."],
+  [/^(\d+) photos: pack of (\d+) \+ (\d+) extra photos? \((\$[\d.,]+) each\)$/, function (_, n, s, k, r) { return n + " photos : lot de " + s + " + " + pl(k, "photo en plus", "photos en plus") + " (" + r + " pièce)"; }],
+  [/^Only want (\d+) magnets?\? Make just these for (\$[\d.,]+)$/, function (_, n, v) { return "Seulement " + pl(n, "aimant", "aimants") + " ? Faites juste ceux-ci pour " + v; }],
+  [/^Add (\d+) more photos? at no extra cost: they fit in your pack of (\d+)\.$/, function (_, k, p) { return "Ajoutez " + pl(k, "photo", "photos") + " sans frais : " + (k === "1" ? "elle tient" : "elles tiennent") + " dans votre lot de " + p + "."; }],
+  [/^Want more\? Add 1 more photo for (\$[\d.,]+), or 2 for (\$[\d.,]+)\.$/, "Envie de plus ? Ajoutez 1 photo pour $1, ou 2 pour $2."],
+  [/^Same price, more room: we moved you to the pack of (\d+)\. Add (\d+) more photos? at no extra cost\.$/, function (_, p, k) { return "Même prix, plus de place : nous vous passons au lot de " + p + ". Ajoutez " + pl(k, "photo", "photos") + " sans frais."; }],
+  [/^A photo order holds up to (\d+) photos, so (\d+) (?:was|were) not added\.$/, function (_, m, k) { return "Une commande photo contient au maximum " + m + " photos, donc " + k + (k === "1" ? " n'a pas été ajoutée." : " n'ont pas été ajoutées."); }],
+  [/^(\d+) of (\d+) photos added$/, "$1 photos sur $2 ajoutées"],
+  [/^Photo (\d+) of (\d+)$/, "Photo $1 sur $2"],
+  [/^<span>(\d+\/\d+)<\/span> · Optional, leave empty for none$/, "<span>$1</span> · Facultatif, laissez vide si aucune"],
+  [/^(\d+) designs · \$5 each$/, "$1 modèles · $$5 pièce"],
+  [/^(\d+) countries · (\d+) designs · \$5 each$/, "$1 pays · $2 modèles · $$5 pièce"],
+  [/^See all (\d+)$/, "Voir les $1"],
+  [/^Add all (\d+) to cart$/, "Ajouter les $1 au panier"],
+  [/^Ships in 1–2 business days\. Order today and it arrives <strong>about (.+)<\/strong> in the US\.$/, function (_, d) { return "Expédié sous 1 à 2 jours ouvrés. Commandez aujourd'hui, livraison <strong>vers le " + date(d) + "</strong> aux États-Unis."; }],
+  [/^\$([\d.,]+) each$/, "$$$1 pièce"],
+  [/^Buy now · \$([\d.,]+)$/, "Acheter · $$$1"],
+  [/^Digital file · (.+) · sent to your email · no magnet$/, function (_, t) { return "Fichier numérique · " + tr(t) + " · envoyé par e-mail · sans aimant"; }],
+  [/^Service (\d)$/, "Service $1"],
+  [/^Line (\d+)$/, "Ligne $1"],
+  [/^Line (\d+), right side$/, "Ligne $1, côté droit"],
+  [/^(\d+) ready-made designs for your (business|wedding|graduation|party)\. Tap one to change the colors and the words, add your logo and see it right away\.$/, function (_, n, w) { return n + " modèles prêts pour " + { business: "votre entreprise", wedding: "votre mariage", graduation: "votre remise de diplôme", party: "votre fête" }[w] + ". Touchez-en un pour changer les couleurs et les textes, ajouter votre logo et voir le résultat tout de suite."; }],
+  [/^Pack size for (.+)$/, function (_, c) { return "Taille du lot pour " + tr(c); }],
+  [/^(.+?) <small>([\d,]+\+?)<\/small>$/, function (_, c, k) { return (c === "All" ? "Tout" : tr(c)) + " <small>" + k + "</small>"; }],
+  [/^(.+) · (\d+) countries · (\d+) designs$/, function (_, a, k, d) { return tr(a) + " · " + k + " pays · " + d + " modèles"; }],
+  [/^(.+) · (\d+) designs$/, function (_, a, k) { return tr(a) + " · " + k + " modèles"; }],
+  // design pages and lists
+  [/^See (.+) larger$/, "Voir $1 en grand"],
+  [/^Favorite: (.+)$/, "Ajouter aux favoris : $1"],
+  [/^Remove from favorites: (.+)$/, "Retirer des favoris : $1"],
+  [/^(.+) fridge magnet$/, "Aimant de frigo $1"],
+  [/^(.+) magnet · Little Hive House$/, "Aimant $1 · Little Hive House"],
+  [/^(.+) magnets · Little Hive House$/, function (_, c) { return "Aimants " + col(c) + " · Little Hive House"; }],
+  [/^(.+) · Little Hive House$/, function (_, c) { var x = COL[c] || (window.LHH_I18N && LHH_I18N.t(c)) || c; return x !== c || known(c) ? x + " · Little Hive House" : null; }],
+  [/^All (.{1,40}) designs$/, function (_, c) { return known(c) ? "Tous les modèles " + col(c) : null; }],
+  [/^More from (.{1,40})$/, function (_, c) { return known(c) ? "Plus de " + col(c) : null; }],
+  [/^(.{1,40}) on the fridge$/, function (_, c) { return known(c) ? col(c) + " sur le frigo" : null; }],
+  [/^(.+) on the fridge · (\d+) designs$/, function (_, c, k) { return known(c) ? col(c) + " sur le frigo · " + k + " modèles" : null; }],
+  [/^(\d[\d,]*) designs?$/, function (_, k) { return pl(k, "modèle", "modèles"); }],
+  [/^(\d[\d,]*)\+ designs$/, "$1+ modèles"],
+  [/^(\d+) magnets?$/, function (_, k) { return pl(k, "aimant", "aimants"); }],
+  [/^(\d+) items?$/, function (_, k) { return pl(k, "article", "articles"); }],
+  [/^(\d+) photos?$/, function (_, k) { return pl(k, "photo", "photos"); }],
+  [/^(\d+) collections$/, "$1 collections"],
+  [/^See all (\d+) designs$/, "Voir les $1 modèles"],
+  [/^See (\d+) more designs?$/, function (_, k) { return "Voir " + pl(k, "modèle", "modèles") + " de plus"; }],
+  [/^Show (\d+) more$/, "Afficher $1 de plus"],
+  [/^Big order, (\d+) magnets \((\d+)% off\)$/, "Grande commande, $1 aimants (-$2 %)"],
+  [/^Add \$([\d.]+) more for free US shipping\.$/, "Plus que $$$1 pour la livraison gratuite aux États-Unis."],
+  [/^Order today, it arrives <strong>about (.+)<\/strong> in the US · <a>Shipping details<\/a>$/, function (_, d) { return "Commandez aujourd'hui, livraison <strong>vers le " + date(d) + "</strong> aux États-Unis · <a>Détails de livraison</a>"; }],
+  [/^about (.+\d.*)$/, function (_, d) { return "vers le " + date(d); }],
+  [/^Updated (.+)$/, function (_, d) { return "Mis à jour le " + date(d); }],
+  [/^Ordered (.+)$/, function (_, d) { return "Commandé le " + date(d); }],
+  [/^Delivered (.+)$/, function (_, d) { return "Livré le " + date(d); }],
+  [/^Shipped (.+)$/, function (_, d) { return "Expédié le " + date(d); }],
+  [/^Order (LHH-\d+)$/, "Commande $1"],
+  [/^Qty (\d+)$/, "Qté $1"],
+  [/^Magnet (\d+)$/, "Aimant $1"],
+  [/^Photo (\d+)$/, "Photo $1"],
+  [/^Step (\d+) of (\d+)$/, "Étape $1 sur $2"],
+  [/^(\d+)% off everything, or buy (\d+) designs, get (\d+) free(.*)$/, function (_, p, b, g, rest) { return "-" + p + " % sur tout, ou " + b + " modèles achetés et " + g + " offert" + (g === "1" ? "" : "s") + saleEnd(rest); }],
+  [/^today only: (\d+)% off everything( \+ free shipping)?(.*)$/, function (_, p, f, rest) { return "aujourd'hui seulement : -" + p + " % sur tout" + (f ? " + livraison gratuite" : "") + saleEnd(rest); }],
+  [/^(Black Friday|Cyber Monday), (\d+)% off$/, "$1, -$2 %"],
+  [/^(Black Friday|Cyber Monday), (\d+) designs? free$/, function (_, n, k) { return n + ", " + pl(k, "modèle offert", "modèles offerts"); }],
+  [/^(Black Friday|Cyber Monday): add (\d+) more designs? and (\d+) of them (?:is|are) free\.$/, function (_, n, a, f) { return n + " : ajoutez " + pl(a, "modèle", "modèles") + " et " + f + (f === "1" ? " est offert." : " sont offerts."); }],
+  [/^(Black Friday|Cyber Monday): free shipping on every order today\.$/, "$1 : livraison gratuite sur toutes les commandes aujourd'hui."],
+  [/^(\d+) of (\d+)$/, "$1 sur $2"]
+];
+/* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
+function saleEnd(rest) {
+  if (!rest) return "";
+  if (/through Cyber Monday/.test(rest)) return " · jusqu'au Cyber Monday";
+  var m = /ends in (.*)$/.exec(rest);
+  return m ? " · se termine dans " + m[1].replace(/(\d+)m\b/, "$1 min") : rest;
+}
