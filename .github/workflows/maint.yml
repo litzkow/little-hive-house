@@ -19,7 +19,7 @@ on:
 
 jobs:
   maint:
-    if: inputs.task != 'import-content' && inputs.task != 'stock-photos' && inputs.task != 'showcase'
+    if: inputs.task != 'import-content' && inputs.task != 'stock-photos' && inputs.task != 'showcase' && inputs.task != 'fetch-files'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -418,3 +418,24 @@ jobs:
           cd ig-out && git init -q && git checkout -q -b ig-out && git add -A
           git -c user.name=hive-robo -c user.email=noreply@littlehivehouse.com commit -q -m "Fotos dos posts do Instagram"
           git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ig-out
+
+  fetch-files:
+    # Músicas geradas no vidIQ: baixa (só do endereço das faixas) e põe no ramo fetch-out, para o Claude pegar.
+    if: inputs.task == 'fetch-files'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: "Baixar as músicas para o ramo fetch-out"
+        env:
+          URLS: ${{ inputs.value }}
+        run: |
+          mkdir out && cd out
+          for u in $URLS; do
+            case "$u" in https://ai-music-tracks.s3.us-east-1.amazonaws.com/*) ;; *) echo "::error::endereço não permitido"; exit 1;; esac
+            curl -fsS -m 120 -o "$(basename "$u")" "$u"
+          done
+          ls -la
+          git init -q && git checkout -q -b fetch-out && git add -A
+          git -c user.name=hive-robo -c user.email=noreply@littlehivehouse.com commit -q -m "Músicas"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" fetch-out
