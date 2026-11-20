@@ -32,7 +32,7 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "59"
+VERSION = "60"
 E = html.escape
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"
@@ -1313,6 +1313,7 @@ def page_photo():
     <ul class="ideas" aria-label="Photo magnet ideas">
 {chr(10).join(f'      <li><a href="?frame={frame}#custom">{showcase_img(pg, oid, 1, lazy=False)}<span>{E(title)}</span></a></li>' for oid, title, _, frame, _n in OCCASIONS)}
     </ul>
+    <a class="biz-hook photo-hook" href="personalize.html#kind-p-photo"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="16" height="12" rx="2"/><circle cx="10" cy="11" r="3.2"/><path d="M7 5l1.4-2h3.2L13 5"/></svg><span><strong>Want words on your photo?</strong> <span class="bh-more">{BIZ_DESIGNS.SET_N.get("p-photo", 0)} photo designs with names, dates and captions</span></span><span class="bh-arrow" aria-hidden="true">→</span></a>
   </div>
   <section class="tight" id="custom">
     <div class="wrap custom-grid">

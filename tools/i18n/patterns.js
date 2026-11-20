@@ -56,6 +56,7 @@ var PATTERNS = [
   [/^Yes\. Tap the design, make it yours and choose “Only want the file”: \$([\d.]+), sent to your email right away, no magnet\. It is free with any magnet order\.$/, "Sim. Toque no design, personalize e escolha “Só quer o arquivo”: $$$1, vai na hora para o seu e-mail, sem ímã. É grátis em qualquer pedido de ímãs."],
   [/^([^·<]{2,40}) · ([^·<]{2,40})$/, function (_, a, b) { var x = tr(a), y = tr(b); return x !== a && y !== b ? x + " · " + y : null; }],
   [/^1 magnet$/, "1 ímã"],
+  [/^(\d+) photo designs with names, dates and captions$/, "$1 designs de foto com nomes, datas e frases"],
   [/^\$(\d+) · \$([\d.]+) each$/, "$$$1 · $$$2 cada"],
   [/^Photo ([\d, ]+) didn't finish uploading\. Please try again\.$/, "A foto $1 não terminou de enviar. Tente de novo."],
   [/^Photo (\d+) didn't upload correctly\. Please remove it and add it again\.$/, "A foto $1 não foi enviada direito. Tire e adicione de novo."],

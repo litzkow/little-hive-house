@@ -264,6 +264,8 @@ for _k in KITS.K:
 SETS.update({"w-main": dict(page="weddings", name="Weddings", group="Weddings", icon="rings", rows=[r for r, _ in KITS.EROWS]),
              "g-main": dict(page="graduation", name="Graduation", group="Graduation", icon="cap", rows=[r for r, _ in KITS.EROWS]),
              "x-main": dict(page="parties", name="Parties & events", group="Parties", icon="balloon", rows=[r for r, _ in KITS.EROWS])})
+SETS["p-photo"] = dict(page="personalize", name="Your photo with words", group="Personalize", icon="camera", il="camera",
+                      words="Your photo with words " + KITS.PT["p-photo"], rows=[r for r, _ in KITS.PHOTO_ROWS])
 for _p in KITS.PSETS:
     SETS[_p["key"]] = dict(page="personalize", name=_p["name"], group="Personalize", icon=_p["icon"], il=KITS.PICON.get(_p["key"], "")[3:] if KITS.PICON.get(_p["key"], "").startswith("il:") else "",
                            words=_p["name"] + " " + KITS.PT.get(_p["key"], ""), rows=[r for r, _ in KITS.PROWS])
@@ -272,7 +274,7 @@ for _e in KITS.ESETS:
 # the event pages show their two sets as one
 MERGE = {"w-more": "w-main", "g-more": "g-main", "x-more": "x-main", **{_p["key"] + "x": _p["key"] for _p in KITS.PSETS}}
 
-_ROWNAME = dict(KITS.ROWS + KITS.PROWS + KITS.EROWS)
+_ROWNAME = dict(KITS.ROWS + KITS.PROWS + KITS.EROWS + KITS.PHOTO_ROWS)
 
 
 def _gen(set_key, page, recipes, pals, label):
@@ -310,6 +312,7 @@ for _i, _k in enumerate(KITS.K):
     _all = KITS.recipes_business(_k)
     _gen(_k["key"], "business", _all if _k["group"] == KITS.G_OTHER else _pick(_all, _i * 5), _k["pals"], _k["name"])
 
+_gen("p-photo", "personalize", KITS.photo_designs(), ["ivory", "black", "blush", "sage", "navy", "terracotta", "sky", "burgundy"], "Your photo")
 for _p in KITS.PSETS:
     _gen(_p["key"], "personalize", _p["recipes"], _p["pals"], _p["name"])
     _gen(_p["key"] + "x", "personalize", KITS.personal_more(_p), _p["pals"], _p["name"])
@@ -429,7 +432,7 @@ def js():
         sets[k] = {"page": meta["page"], "name": meta["name"], "group": meta["group"], "icon": meta["icon"], "il": meta.get("il", ""), "words": meta.get("words", ""),
                    "n": len(lst), "rows": [r for r in meta["rows"] if r in rows], "first": lst[0]["slug"] if lst else ""}
     where = {d["slug"]: d["set"] for d in DESIGNS}
-    rownames = dict(KITS.ROWS + KITS.PROWS + KITS.EROWS)
+    rownames = dict(KITS.ROWS + KITS.PROWS + KITS.EROWS + KITS.PHOTO_ROWS)
     feat = dict(FEATURED)
     feat["personalize"] = [("Most loved", [by[k][i]["slug"] for i in (0, 1, 3) for k in [p["key"] for p in KITS.PSETS] if len(by.get(k, [])) > i][:16])]
     v = hashlib.md5(json.dumps(by, sort_keys=True).encode()).hexdigest()[:8]

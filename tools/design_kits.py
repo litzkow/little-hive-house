@@ -277,8 +277,11 @@ def recipes_business(k):
     add("qr", "review", dict(head="Love us?", line="Scan and leave us a review.", name=n2), icon=il)
     add("qr", "qrbig", dict(head="Scan me!", line="Our menu, booking and hours.", name=n0), icon=il)
     # with a photo
-    for i, p in enumerate(k["photos"][:4]):
-        lay = ["L_photo", "magazine", "halfphoto", "frame", "archphoto", "circlephoto", "snapshot"][(i + len(k["key"])) % 7]
+    PL = ["L_photo", "magazine", "halfphoto", "frame", "archphoto", "circlephoto", "snapshot"]
+    shots = [(p, PL[(i + len(k["key"])) % 7]) for i, p in enumerate(k["photos"][:4])]
+    if k["group"] == G_OTHER:   # any business: every photo layout, twice, with different photos
+        shots = [(k["photos"][i % len(k["photos"])], PL[i % 7]) for i in range(14)]
+    for i, (p, lay) in enumerate(shots):
         nm = [n0, n1, n2][i % 3]
         add("photo", lay, dict(sub=sub, name=nm, head=heads[i % len(heads)], line=svc[i % 4], phone=ph(nm), web=web(nm)), icon=il, photo="stock:" + p, pos="center 40%")
     # useful every day
@@ -698,9 +701,57 @@ PT = {"pizza": "pizzaria", "mexican": "taqueria comida mexicana tacos", "burger"
       "startup": "negocio novo pequeno empreendedor artesanato loja online etsy side hustle small business handmade new", "p-family": "familia sobrenome", "p-home": "casa nova lar", "p-pets": "cachorro gato pet animal", "p-baby": "bebe criancas filhos",
       "p-grandparents": "avo avos vovo vovo", "p-kitchen": "cozinha receita jantar", "p-love": "casal amor aniversario de casamento namorados",
       "p-faith": "fe religiao biblia deus", "p-teacher": "professor professora treinador", "p-sports": "esporte time torcedor",
-      "p-holidays": "natal pascoa feriados ação de gracas", "p-travel": "viagem ferias praia"}
+      "p-holidays": "natal pascoa feriados ação de gracas", "p-travel": "viagem ferias praia",
+      "p-photo": "foto fotos minha foto retrato polaroid photo picture"}
 
 
 def words_for(k):
     """The words that find a kind of business in the search box."""
     return " ".join([k["key"], k["name"], k["group"], k["sub"].lower(), " ".join(k["services"]).lower(), PT.get(k["key"], "")])
+
+
+# ---------------------------------------------------------------- Personalize: their own photo, with words, in every photo layout
+PPHOTO = [  # (stock photo to show, name, small line, sentence, signature or date, headline)
+    ("family-1", "The Garcias", "EST. 2015", "Love lives here", "Our family", "Family is everything"),
+    ("dog-3", "Max", "GOOD BOY", "Treats accepted at all times", "Adopted 2024", "Best boy ever"),
+    ("baby-1", "Olivia Rose", "BORN 03.14.26", "7 lb 2 oz · 20 in", "Welcome to the world", "Hello, world!"),
+    ("couple-1", "Ana & Leo", "EST. 2025", "Our forever starts here", "06 · 14 · 2025", "Us. Always."),
+    ("beach-3", "Outer Banks", "SUMMER 2027", "Sun, sand and us", "The Garcias", "Best trip ever"),
+    ("grandparents-2", "Nana & Papa", "LOVE YOU BIG", "Our favorite people", "Since 1972", "Best grandparents"),
+    ("grad-1", "Jordan", "CLASS OF 2027", "So proud of you", "Lincoln High", "Congrats, Grad!"),
+    ("cat-2", "Luna", "QUEEN OF THE HOUSE", "Spoiled and proud of it", "Since 2022", "Cat mom life"),
+    ("christmas-family-1", "Merry Christmas", "THE GARCIAS · 2026", "Peace, love and cookies", "Love, the Garcias", "Merry & bright"),
+    ("kids-1", "Emma & Leo", "BEST SIBLINGS", "Partners in crime", "2026", "Little rascals"),
+    ("wedding-1", "Mr & Mrs Park", "JUST MARRIED", "Still my favorite", "09 · 20 · 2026", "We said I do"),
+    ("birthday-1", "Sofia is 7!", "HAPPY BIRTHDAY", "Thanks for coming to my party", "April 2027", "Party time!"),
+]
+PHOTO_ROWS = [("pclassic", "Classic & framed"), ("psnap", "Polaroid & snapshot"), ("pbold", "Big & bold")]
+PHOTO_ROW = {"L_photo": "pclassic", "frame": "pclassic", "archphoto": "pclassic", "circlephoto": "pclassic", "halfphoto": "pclassic",
+             "W_polaroid": "psnap", "snapshot": "psnap", "film": "psnap", "photocircle": "psnap", "W_photo": "pbold", "magazine": "pbold"}
+PHOTO_LAYS = ["L_photo", "W_photo", "W_polaroid", "magazine", "halfphoto", "frame", "archphoto", "circlephoto", "snapshot", "photocircle", "film"]
+
+
+def _pp(lay, name, sub, line, foot, head):
+    return {
+        "L_photo": dict(sub=sub, name=name, line=line, phone=foot, web=""),
+        "W_photo": dict(head=head, line=f"{name.upper()} · {sub}"),
+        "W_polaroid": dict(head=head, date=sub, line=name.upper()),
+        "magazine": dict(name=name, sub=sub, head=head.replace(" ", "\n", 1), line=line, phone=foot),
+        "halfphoto": dict(name=name, sub=sub, line=line, phone=foot, web=""),
+        "frame": dict(name=name, sub=sub, phone=foot),
+        "archphoto": dict(name=name, sub=sub, phone=foot),
+        "circlephoto": dict(name=name, sub=sub, phone=foot),
+        "snapshot": dict(head=head, name=name, phone=foot),
+        "photocircle": dict(head=head, line=f"{name.upper()} · {sub}"),
+        "film": dict(head=head, line=f"{name.upper()} · {sub}"),
+    }[lay]
+
+
+def photo_designs():
+    """Every wording in about 8 photo layouts (a different run for each), so the theme has plenty to choose from."""
+    out = []
+    for wi, (ph, name, sub, line, foot, head) in enumerate(PPHOTO):
+        for li in range(8):
+            lay = PHOTO_LAYS[(wi * 3 + li) % len(PHOTO_LAYS)]
+            out.append((PHOTO_ROW[lay], lay, _pp(lay, name, sub, line, foot, head), dict(photo="stock:" + ph, pos="center 40%", icon="heart")))
+    return out
