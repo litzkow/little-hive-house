@@ -8,7 +8,7 @@ const say = (s) => console.log(`::warning title=emails::${String(s).replace(/\n/
 const mask = (e) => String(e || "").replace(/^(.).*?(.)@/, "$1***$2@");
 (async () => {
   const n = Number(String(process.env.VALUE || "").replace(/\D/g, ""));
-  const q = await db.collection("orders").where("number", "==", n).limit(1).get();
+  const q = await db.collection("orders").where("number", "==", `LHH-${n}`).limit(1).get();
   if (q.empty) return say(`pedido ${n} não encontrado`);
   const o = q.docs[0].data();
   say(`pedido LHH-${n}: status ${o.status} · e-mail ${mask(o.email)} · marketing ${!!o.marketing} · emails ${JSON.stringify(o.emails || {})}`);
