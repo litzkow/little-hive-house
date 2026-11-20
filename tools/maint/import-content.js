@@ -52,7 +52,21 @@ async function replaceFile(m, base) {
   DIR = await unlock();
   const man = JSON.parse(fs.readFileSync(path.join(DIR, "manifest.json"), "utf8"));
   const base = Date.now();
+  /* by: "owner" = sent as the owner would (his e-mail and name, from his own last upload in the app) */
+  let owner = null;
+  if (man.some((m) => m.by === "owner")) {
+    const q = await db.collection("content").orderBy("at", "desc").limit(200).get();
+    for (const d of q.docs) {
+      const it = d.data(); const fs_ = (it.files || []).slice().reverse();
+      const f = fs_.find((x) => x.by && x.by !== "Claude" && x.by !== "system" && /thiago|litzkow/i.test(`${x.by} ${x.byName}`));
+      if (f) { owner = { by: f.by, byName: f.byName || f.by }; break; }
+      if (it.by && it.by !== "Claude" && it.by !== "system" && /thiago|litzkow/i.test(`${it.by} ${it.byName}`)) { owner = { by: it.by, byName: it.byName || it.by }; break; }
+    }
+    if (!owner) throw new Error("não achei um envio do Thiago para copiar o nome");
+    say(`enviando como ${owner.byName}`);
+  }
   for (const m of man) {
+    const by = m.by === "owner" ? owner.by : m.by || "Claude", byName = m.by === "owner" ? owner.byName : m.by || "Claude";
     if (m.replace) { await replaceFile(m, base); continue; }
     const ref = db.collection("content").doc();
     const at = new Date(base - (m.order || 0) * 60000).toISOString();     // the first one shows on top
@@ -60,12 +74,12 @@ async function replaceFile(m, base) {
     for (const f of m.files) {
       const dest = `content/${ref.id}/${base}-${f.file}`;
       await bucket.upload(path.join(DIR, f.file), { destination: dest, resumable: true, metadata: { contentType: f.type || "video/mp4", metadata: { name: f.file, firebaseStorageDownloadTokens: require("crypto").randomUUID() } } });
-      files.push({ path: dest, name: f.file, type: f.type || "video/mp4", size: f.size, w: f.w, h: f.h, dur: f.dur || 0, at, by: m.by || "Claude", byName: m.by || "Claude" });
+      files.push({ path: dest, name: f.file, type: f.type || "video/mp4", size: f.size, w: f.w, h: f.h, dur: f.dur || 0, at, by, byName });
     }
     await ref.set({
       title: m.title, kind: m.kind || "video", status: m.status || "ready", date: m.date || "", time: m.time || "", caption: m.caption || "", script: "", onScreen: "", tip: "",
       notes: m.notes || "", planFile: "", nets: m.nets || { instagram: true, facebook: true, tiktok: true }, files, posted: {},
-      source: m.source || "app", by: m.by || "Claude", byName: m.by || "Claude", at, updatedAt: at, lastFileAt: at,
+      source: m.source || "app", by, byName, at, updatedAt: at, lastFileAt: at,
     });
     say(`${m.title}: ${files.length} arquivo(s), post ${ref.id}`);
   }

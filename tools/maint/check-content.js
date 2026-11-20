@@ -13,7 +13,7 @@ const say = (s) => console.log(`::warning title=conteudo::${String(s).replace(/%
   const by = {};
   for (const i of all) { const k = `${i.source}/${i.status}/${(i.files || []).length ? "arquivo" : "sem-arquivo"}`; by[k] = (by[k] || 0) + 1; }
   say(`total ${all.length}: ${JSON.stringify(by)}`);
-  all.filter((i) => i.source !== "plan" || ["scheduled", "posted"].includes(i.status) || (i.files || []).length)
+  all.filter((i) => process.env.ALL || i.source !== "plan" || ["scheduled", "posted"].includes(i.status) || (i.files || []).length)
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-    .forEach((i) => say(`${i.date} ${i.time || ""} [${i.source}/${i.status}] ${i.title} | nets ${JSON.stringify(i.nets)} posted ${JSON.stringify(i.posted)} | ig ${i.igId || "-"} fbSched ${i.fbScheduledId || "-"} fbPost ${i.fbPostId || "-"} | prev ${i.preview ? "sim" : "não"} | ${String(i.caption || "").slice(0, 90)}`));
+    .forEach((i) => say(`${i.id} ${i.date} ${i.time || ""} [${i.source}/${i.status}/${i.kind}] por ${i.byName || i.by || "-"} em ${String(i.at || "").slice(0, 10)} (${(i.files || []).length} arq) ${i.title} | nets ${JSON.stringify(i.nets)} posted ${JSON.stringify(i.posted)} | ig ${i.igId || "-"} fbSched ${i.fbScheduledId || "-"} fbPost ${i.fbPostId || "-"} | prev ${i.preview ? "sim" : "não"} | ${String(i.caption || "").slice(0, 90)}`));
 })().catch((e) => { say(`erro: ${e.message}`); process.exit(1); });
