@@ -19,7 +19,7 @@ on:
 
 jobs:
   maint:
-    if: inputs.task != 'import-content' && inputs.task != 'stock-photos'
+    if: inputs.task != 'import-content' && inputs.task != 'stock-photos' && inputs.task != 'showcase'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -341,3 +341,28 @@ jobs:
           cd /tmp/stock && git init -q && git checkout -q -b stock-photos
           git add -A && git -c user.name=robo -c user.email=robo@users.noreply.github.com commit -qm "Fotos de banco gratuito"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" stock-photos
+
+  # Exemplos de ímãs de foto (assets/showcase): desenha com o mesmo código da impressão, a partir das fotos de assets/stock
+  # (tools/showcase/list.json). Guarda o resultado no galho showcase-out para conferir antes de publicar.
+  showcase:
+    if: inputs.task == 'showcase'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: "Exemplos: instalar"
+        working-directory: functions
+        run: npm ci --no-audit --no-fund
+      - name: "Exemplos: desenhar"
+        env: { NODE_PATH: "${{ github.workspace }}/functions/node_modules" }
+        run: node tools/showcase/render.js assets/stock
+      - name: "Exemplos: guardar no galho showcase-out"
+        run: |
+          mkdir -p /tmp/out && cp -r assets/showcase /tmp/out/ && mkdir -p /tmp/out/email && cp -r assets/email/thumbs/showcase /tmp/out/email/
+          cd /tmp/out && git init -q && git checkout -q -b showcase-out && git add -A
+          git -c user.name=robo -c user.email=robo@users.noreply.github.com commit -qm "Exemplos de ímãs de foto"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" showcase-out

@@ -151,6 +151,7 @@
         var pk = { kind: 'package', id: l.id, qty: l.qty };
         if (l.style) pk.style = l.style;
         if (l.qr) pk.qr = l.qr;   /* the QR magnet maker: link, name and message for the proof */
+        if (l.design) pk.design = l.design;   /* the design studio: colors, words, logo and photo for the proof */
         return pk;
       }
       if (l.kind === 'custom') {

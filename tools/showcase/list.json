@@ -3,32 +3,32 @@
   "id": "wedding",
   "magnets": [
    {
-    "file": "1fcbfc4c-image.jpg",
+    "file": "wedding-2.webp",
     "frame": "wedding",
     "caption": "Ana & Leo · 06.14.26",
     "crop": {
      "x": 0.5,
-     "y": 0.42,
-     "z": 1.15
+     "y": 0.4,
+     "z": 1.05
     }
    },
    {
-    "file": "1555d152-image.jpg",
+    "file": "couple-2.webp",
     "frame": "border",
     "crop": {
      "x": 0.5,
      "y": 0.4,
-     "z": 1.2
+     "z": 1.1
     }
    },
    {
-    "file": "31557e59-image.jpg",
+    "file": "bride-1.webp",
     "frame": "gold-cream",
     "caption": "Forever & always",
     "crop": {
      "x": 0.5,
-     "y": 0.35,
-     "z": 1.1
+     "y": 0.3,
+     "z": 1
     }
    }
   ]
@@ -37,17 +37,17 @@
   "id": "family",
   "magnets": [
    {
-    "file": "a2dd42b8-image.jpg",
+    "file": "grandparents-1.webp",
     "frame": "instant",
-    "caption": "Grandpa & Leo"
+    "caption": "Grandma & Grandpa"
    },
    {
-    "file": "c0ddb996-image.jpg",
+    "file": "family-3.webp",
     "frame": "band",
-    "caption": "Sunday lunch"
+    "caption": "Sunday at the park"
    },
    {
-    "file": "45e6d27d-image.jpg",
+    "file": "family-5.webp",
     "frame": "gallery"
    }
   ]
@@ -56,28 +56,23 @@
   "id": "baby",
   "magnets": [
    {
-    "file": "5d418299-image.jpg",
+    "file": "baby-2.webp",
     "frame": "none",
     "crop": {
-     "x": 0.402,
-     "y": 0.379,
-     "z": 1.5
+     "x": 0.5,
+     "y": 0.45,
+     "z": 1.2
     }
    },
    {
-    "file": "a748d654-image.jpg",
+    "file": "toddler-1.webp",
     "frame": "baby",
     "caption": "Welcome, Olivia"
    },
    {
-    "file": "1e232d3c-image.jpg",
+    "file": "baby-4.webp",
     "frame": "arch",
-    "caption": "Our little one",
-    "crop": {
-     "x": 0.5,
-     "y": 0.5,
-     "z": 1.1
-    }
+    "caption": "Our little one"
    }
   ]
  },
@@ -85,16 +80,16 @@
   "id": "pets",
   "magnets": [
    {
-    "file": "eff73d0f-image.jpg",
+    "file": "dog-2.webp",
     "frame": "none",
     "crop": {
      "x": 0.5,
-     "y": 0.4,
+     "y": 0.45,
      "z": 1
     }
    },
    {
-    "file": "20502b69-image.jpg",
+    "file": "cat-3.webp",
     "frame": "circle",
     "caption": "Bento",
     "crop": {
@@ -104,7 +99,7 @@
     }
    },
    {
-    "file": "1e1ea244-image.jpg",
+    "file": "puppy-5.webp",
     "frame": "none"
    }
   ]
@@ -113,22 +108,27 @@
   "id": "graduation",
   "magnets": [
    {
-    "file": "9864608b-image.jpg",
+    "file": "grad-girl-2.webp",
     "frame": "graduation",
     "caption": "Class of 2026",
     "crop": {
      "x": 0.5,
-     "y": 0.35,
+     "y": 0.3,
      "z": 1
     }
    },
    {
-    "file": "cf333f2e-image.jpg",
+    "file": "grad-4.webp",
     "frame": "none"
    },
    {
-    "file": "8bad3e68-image.jpg",
-    "frame": "border"
+    "file": "grad-girl-4.webp",
+    "frame": "border",
+    "crop": {
+     "x": 0.5,
+     "y": 0.3,
+     "z": 1
+    }
    }
   ]
  },
@@ -136,29 +136,19 @@
   "id": "travel",
   "magnets": [
    {
-    "file": "20420bb5-image.jpg",
+    "file": "travel-2.webp",
     "frame": "postcard",
     "caption": "Tulum"
    },
    {
-    "file": "16bb0f8d-image.jpg",
+    "file": "beach-3.webp",
     "frame": "band",
-    "caption": "Beach day · 2026",
-    "crop": {
-     "x": 0.46,
-     "y": 0.55,
-     "z": 1
-    }
+    "caption": "Beach day · 2026"
    },
    {
-    "file": "11f0c9d4-image.jpg",
+    "file": "travel-3.webp",
     "frame": "datestamp",
-    "caption": "07 04 26",
-    "crop": {
-     "x": 0.42,
-     "y": 0.6,
-     "z": 1.25
-    }
+    "caption": "07 04 26"
    }
   ]
  }

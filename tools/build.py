@@ -32,12 +32,12 @@ def group_kids(g):
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGNS = ROOT / "designs"
-VERSION = "54"
+VERSION = "55"
 E = html.escape
 
-FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600"
-         "&family=DM+Mono:wght@500&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700"
-         "&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@1,700"
+FONTS = ("https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600"
+         "&family=DM+Mono:wght@500&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700;800"
+         "&family=Jost:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,700"
          "&family=Caveat:wght@600&family=Dancing+Script:wght@600&family=Cormorant+Garamond:ital,wght@1,600&display=swap")
 
 import raster  # noqa: E402
@@ -117,8 +117,8 @@ NAV = [("shop.html", "Shop all", "shop"), ("collections/index.html", "Collection
        ("shipping.html", "Shipping", "shipping"), ("suggestions.html", "Share an idea", "ideas")]
 
 
-BIZ_LINKS = (("business.html", "Business gifts", "office"), ("weddings.html", "Weddings", "savedate"),
-             ("graduation.html", "Graduation", "classof"), ("parties.html", "Parties & events", "reunion"))
+BIZ_LINKS = (("business.html", "Your business", "clean-word"), ("weddings.html", "Weddings", "wed-arch"),
+             ("graduation.html", "Graduation", "grad-year-navy"), ("parties.html", "Parties & events", "party-birthday"))
 BRIEFCASE = ('<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">'
              '<rect x="2.5" y="6" width="15" height="10.5" rx="2"/><path d="M7 6V4.6c0-.6.4-1 1-1h4c.6 0 1 .4 1 1V6M2.5 10.5h15"/></svg>')
 
@@ -1447,6 +1447,7 @@ PACKAGES = [
 PACKAGE_IDS = {"Weddings": "weddings", "Business": "business", "Party or event": "parties", "Team or school": "teams", "Graduation": "graduation",
                "Mailing": "mailing"}
 from occasions import MAILING, OCCASIONS as BULK_PAGES   # noqa: E402  the bulk-order pages (tools/occasions.py)
+import biz_designs as BIZ_DESIGNS   # noqa: E402  the design gallery and studio (tools/biz_designs.py, assets/designer.js)
 
 
 def pkg_card(title, key, desc, tiers, pick, unit="magnets", styles=None):
@@ -1463,7 +1464,12 @@ def pkg_card(title, key, desc, tiers, pick, unit="magnets", styles=None):
     price = dict(tiers)[chosen]
     pick_style = ""
     if styles:
-        opts = "".join(f'<option value="{E(sl)}">{E(nm)}</option>' for sl, nm in styles)
+        if styles and len(styles[0]) == 3:   # (slug, title, group): one group per kind of business
+            groups = {}
+            for sl, nm, g in styles: groups.setdefault(g, []).append((sl, nm))
+            opts = "".join(f'<optgroup label="{E(g)}">' + "".join(f'<option value="{E(sl)}">{E(nm)}</option>' for sl, nm in v) + "</optgroup>" for g, v in groups.items())
+        else:
+            opts = "".join(f'<option value="{E(sl)}">{E(nm)}</option>' for sl, nm in styles)
         pick_style = (f'<div class="field pkg-style"><label for="st-{pid}">Start from a style</label>'
                       f'<select id="st-{pid}" data-pkg-style><option value="">We design it with you</option>{opts}'
                       f'<option value="own">My own logo or design (send it after checkout)</option></select></div>')
@@ -1573,12 +1579,84 @@ def occ_img(pg, slug, cls="", lazy=True, size=600):
     return f'<img src="{pg.p}{src}" alt="" width="{size}" height="{size}"{" loading=" + chr(34) + "lazy" + chr(34) if lazy else ""} decoding="async"{(" class=" + chr(34) + cls + chr(34)) if cls else ""}>'
 
 
+DESIGN_GALLERY = BIZ_DESIGNS.GALLERY   # (slug, page, group, title): tools/biz_designs.py
+
+
+def studio_html(pg, o, mine, by_key):
+    """The design gallery (filter by kind of business or event) and the studio dialog where a design is made theirs."""
+    groups = []
+    for _, _, g, _ in mine:
+        if g not in groups: groups.append(g)
+    GICON = {"Restaurants & food": "pizza", "Health & dental": "tooth", "Home services": "house", "Real estate & finance": "key", "Beauty & fitness": "scissors",
+             "Pets": "paw", "Auto": "car", "Churches & nonprofits": "church", "Schools & teams": "apple", "Florists & photographers": "flower",
+             "Holidays & thank-yous": "gift", "Save the date": "rings", "Favors & thank-yous": "heart", "Graduation": "cap", "College & school spirit": "book",
+             "Birthdays": "cake", "Baby showers": "baby", "Work events": "building", "Big celebrations": "cheers"}
+    chips = "".join(f'<button type="button" class="dz-chip" data-dz-group="{E(g)}" data-icon="{GICON.get(g, "star")}" aria-pressed="false"><span class="dz-ci" aria-hidden="true"></span><span>{E(g)}</span> <small>{sum(1 for x in mine if x[2] == g)}</small></button>' for g in groups) + (
+        f'<button type="button" class="dz-chip dz-all" data-dz-group="all" aria-pressed="true"><span>All</span> <small>{len(mine)}</small></button>')
+    ask = "What kind of business?" if o["slug"] == "business" else "What are you celebrating?"
+    hint = "Type your business: church, pizza, dentist…" if o["slug"] == "business" else "Type what you’re looking for: photo, QR, date…"
+    KW = {"Health & dental": "dentist doctor clinic chiropractor orthodontist eye optometrist pediatrician medical dentista medico clinica consultorio",
+          "Restaurants & food": "restaurant pizzeria pizza cafe coffee bakery taco mexican sushi food truck bbq catering restaurante pizzaria padaria lanchonete comida",
+          "Home services": "cleaning cleaner maid hvac air plumber plumbing electrician roofer roofing lawn landscaping pest pool movers moving handyman locksmith contractor limpeza faxina diarista encanador eletricista telhado jardim dedetizacao piscina mudanca chaveiro",
+          "Real estate & finance": "realtor real estate agent homes insurance tax accountant bookkeeping lawyer attorney law mortgage loan corretor imobiliaria seguro contador advogado financiamento",
+          "Beauty & fitness": "salon hair stylist barber nails spa med spa gym fitness yoga pilates trainer salao cabelo cabeleireiro barbearia unhas manicure estetica academia personal",
+          "Pets": "vet veterinarian groomer grooming dog cat pet sitter walker veterinario cachorro gato banho tosa",
+          "Auto": "mechanic garage auto car tires towing tow detailing oficina mecanico carro pneu guincho",
+          "Churches & nonprofits": "church pastor ministry faith nonprofit charity food bank igreja pastor ministerio culto ong caridade",
+          "Schools & teams": "school daycare preschool tutor tutoring teacher team sport soccer football league escola creche professor aula time esporte futebol",
+          "Florists & photographers": "florist flowers photographer photography floricultura flores fotografo fotografia"}
+    cards = "".join(f'<li class="dz-card" data-group="{E(g)}" data-words="{E(sl.replace("-", " ") + " " + KW.get(g, ""))}"><button type="button" data-design="{E(sl)}"><img src="{pg.p}assets/occasions/{sl}.webp" alt="" width="600" height="600" loading="lazy" decoding="async">'
+                    f'<span class="dz-t">{E(t)}</span><span class="dz-go">Make it yours →</span></button></li>' for sl, _, g, t in mine)
+    _t, _k, _d, tiers, pick = by_key[o["package"]]
+    pid = PACKAGE_IDS[_k]
+    chosen = min(tiers, key=lambda t: abs(t[0] - pick))[0]
+    packs = "".join(f'<option value="{pid}-{n}" data-size="{n}" data-price="{pr}" data-title="{E(_t)}"{" selected" if n == chosen else ""}>{n} magnets · ${pr} (${pr / n:.2f} each)</option>' for n, pr in tiers)
+    pals = "".join(f'<button type="button" class="dz-pal" data-pal="{k}" aria-label="{E(k)}" style="--a:{v["bg"]};--b:{v["ac"]};--c:{v["ink"]}"></button>' for k, v in BIZ_DESIGNS.P.items())
+    who = {"business": "business", "weddings": "wedding", "graduation": "graduation", "parties": "party"}.get(o["slug"], "event")
+    return f"""  <section class="tight" id="designs" data-gallery>
+    <div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Design studio</p><h2>Pick a design, make it yours</h2></div><p>{len(mine)} ready-made designs for your {who}. Tap one to change the colors and the words, add your logo and see it right away.</p></div>
+      <div class="dz-pick">
+        <h3 class="dz-ask">{ask}</h3><p class="dz-sub">Tap yours to see its designs, or type it below.</p>
+        <div class="dz-chips">{chips}</div>
+        <div class="dz-search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg><input type="search" data-dz-search placeholder="{hint}" aria-label="{hint}"></div>
+      </div>
+      <p class="dz-none" data-dz-none hidden>No designs with that word yet. Try another, or ask us for a free mockup below.</p>
+      <ul class="dz-grid">{cards}</ul>
+      <div class="see-all"><button type="button" class="btn btn-ghost" data-dz-more>Show more designs</button></div>
+    </div>
+  </section>
+  <dialog class="dz" data-studio aria-labelledby="dz-title">
+    <div class="dz-head"><p class="eyebrow">Design studio</p><h2 id="dz-title" data-dz-title></h2><button type="button" class="dz-x" data-dz-close aria-label="Close">×</button></div>
+    <div class="dz-body">
+      <div class="dz-left"><div class="dz-prev" data-dz-prev></div><p class="hint">Your magnet, 2 × 2 inches. We email you a proof before we print.</p></div>
+      <div class="dz-right">
+        <div class="dz-sec"><h3>Colors</h3>
+          <div class="dz-pals"><button type="button" class="dz-orig" data-dz-orig aria-pressed="true">Original</button>{pals}</div>
+          <div class="dz-picks"><label>Background <input type="color" data-dz-c="bg"></label><label>Text <input type="color" data-dz-c="ink"></label><label>Accent <input type="color" data-dz-c="ac"></label></div></div>
+        <div class="dz-sec"><h3>Words</h3><div class="dz-fields" data-dz-fields></div></div>
+        <div class="dz-sec"><h3>Your logo</h3>
+          <div class="dz-up"><label class="btn btn-ghost btn-small">Upload your logo<input type="file" accept="image/*" data-dz-logo hidden></label><span class="hint" data-dz-logo-name></span><button type="button" class="linkish" data-dz-nologo hidden>Remove</button></div>
+          <div data-dz-icons-box><p class="hint">Or pick a drawing:</p><div class="dz-icons" data-dz-icons></div></div></div>
+        <div class="dz-sec" data-dz-photo-box hidden><h3>Your photo</h3>
+          <div class="dz-up"><label class="btn btn-ghost btn-small">Upload your photo<input type="file" accept="image/*" data-dz-photo hidden></label><span class="hint" data-dz-photo-name></span></div>
+          <p class="hint">Or pick one of ours:</p><div class="dz-stock" data-dz-stock></div></div>
+        <div class="dz-sec dz-buyrow"><div class="field"><label for="dz-pack">How many</label><select id="dz-pack" data-dz-pack>{packs}</select></div>
+          <button type="button" class="btn btn-honey" data-dz-buy>Buy now</button>
+          <p class="hint" data-dz-msg data-default="Free design check: we email you a proof within one business day. Nothing is printed until you approve it.">Free design check: we email you a proof within one business day. Nothing is printed until you approve it.</p></div>
+      </div>
+    </div>
+  </dialog>"""
+
+
 def page_occasions():
+    (ROOT / "assets" / "designs.js").write_text(BIZ_DESIGNS.js() + "\n", encoding="utf-8")
     """business.html, weddings.html, graduation.html, parties.html (tools/occasions.py): for people who buy many."""
     by_key = {key: (title, key, desc, tiers, pick) for title, key, desc, tiers, pick in PACKAGES}
     for o in BULK_PAGES:
         pg = Page("")
-        styles = [(sl, nm) for sl, nm, _ in o["ideas"]]
+        mine = [g for g in DESIGN_GALLERY if g[1] == o["slug"]]
+        styles = [(sl, ti, gr) for sl, _, gr, ti in mine]
         cards = [pkg_card(*by_key[o["package"]], styles=styles)]
         cards += [pkg_card(*by_key[k]) for k in o.get("extra", [])]
         if o.get("mailing"):
@@ -1599,7 +1677,7 @@ def page_occasions():
             lines = "".join(f'<option data-top="{E(t)}" data-cta="{E(c)}"{" data-stars" if st else ""}>{E(t)} · {E(c.capitalize())}</option>' for t, c, st in Q["lines"])
             packs = "".join(f'<option value="{pid}-{n}" data-size="{n}" data-price="{pr}" data-title="{E(_t)}"{" selected" if n == chosen else ""}>{n} magnets · ${pr} (${pr / n:.2f} each)</option>' for n, pr in tiers)
             pals = "".join(f'<button type="button" class="qr-pal" data-pal="{k}" aria-label="{E(lab)}"{" aria-pressed=" + chr(34) + "true" + chr(34) if i == 0 else ""}></button>'
-                           for i, (k, lab) in enumerate([("fern", "Sage"), ("honey", "Honey"), ("navy", "Navy"), ("blush", "Blush"), ("brick", "Brick")]))
+                           for i, (k, lab) in enumerate([("fern", "Sage"), ("honey", "Honey"), ("navy", "Navy"), ("blush", "Blush"), ("brick", "Brick"), ("teal", "Teal"), ("sky", "Sky"), ("plum", "Plum"), ("black", "Black & gold"), ("red", "Red"), ("sun", "Sunshine"), ("forest", "Forest"), ("lilac", "Lilac"), ("orange", "Orange")]))
             qr = f"""
   <section class="tight" id="qr">
     <div class="wrap">
@@ -1638,23 +1716,18 @@ def page_occasions():
         <p class="eyebrow">{E(o["eyebrow"])}</p>
         <h1>{E(o["h1"])}</h1>
         <p class="lede">{E(o["lede"])}</p>
-        <div class="actions"><a class="btn btn-honey" href="#packs">See prices</a><a class="btn btn-ghost" href="#request">Get a free mockup</a></div>
+        <div class="actions"><a class="btn btn-honey" href="#designs">Design yours now</a><a class="btn btn-ghost" href="#packs">See prices</a></div>
         <ul class="occ-points">{points}</ul>
       </div>
       <img class="occ-hero-img" src="assets/occasions/{o["hero"]}.webp" alt="Example magnets on a fridge" width="1400" height="963" fetchpriority="high">
     </div>
   </div>
 
+{studio_html(pg, o, mine, by_key)}
+
   <section class="tight occ-now" aria-label="The moment to order">
     <div class="wrap"><div class="band honey">{now}</div></div>
   </section>{qr}
-
-  <section class="tight" id="ideas">
-    <div class="wrap">
-      <div class="section-head"><div><p class="eyebrow">Ideas</p><h2>Pick a style to start from</h2></div><p>Every example is made with your own names, logo, photos and colors. These are just to get you started.</p></div>
-      <ul class="occ-ideas">{ideas}</ul>
-    </div>
-  </section>
 
   <section class="tight" id="packs">
     <div class="wrap">
@@ -1667,8 +1740,8 @@ def page_occasions():
     <div class="wrap">
       <div class="section-head"><div><p class="eyebrow">How it works</p><h2>Four easy steps</h2></div></div>
       <ol class="included occ-steps">
-        <li><strong>1. Choose a pack</strong><span>And a style to start from, if you like one.</span></li>
-        <li><strong>2. Send your details</strong><span>Logo, names, dates or photos, by email after checkout.</span></li>
+        <li><strong>1. Pick a design</strong><span>Change the colors and the words, add your logo, or let us design it with you.</span></li>
+        <li><strong>2. Choose how many</strong><span>Buy the pack. Anything else (a logo file, a list) by email after checkout.</span></li>
         <li><strong>3. Approve the proof</strong><span>Within one business day. Change anything you want.</span></li>
         <li><strong>4. We press &amp; ship</strong><span>By hand, in 3 to 5 business days{", or mailed to your list" if o.get("mailing") else ""}.</span></li>
       </ol>
@@ -1711,7 +1784,7 @@ def page_occasions():
 </main>
 {footer(pg)}
 <script>(function(){{var d=new Date(),k=(d.getMonth()+1)*100+d.getDate(),done=false;document.querySelectorAll('[data-from]').forEach(function(e){{if(done)return;var a=+e.getAttribute('data-from'),b=+e.getAttribute('data-to');if(a<=b?(k>=a&&k<=b):(k>=a||k<=b)){{e.hidden=false;done=true;}}}});if(!done){{var s=document.querySelector('.occ-now');if(s)s.hidden=true;}}}})();</script>"""
-        write(f'{o["slug"]}.html', head(pg, o["name"], o["lede"][:155], f'{o["slug"]}.html') + body + chrome_end(pg, ("quote.js", "qr.js", "qrmagnet.js") if o.get("qr") else ("quote.js",)))
+        write(f'{o["slug"]}.html', head(pg, o["name"], o["lede"][:155], f'{o["slug"]}.html') + body + chrome_end(pg, ("quote.js", "qr.js", "designs.js", "designer.js", "studio.js") + (("qrmagnet.js",) if o.get("qr") else ())))
 
 
 

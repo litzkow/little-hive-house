@@ -159,9 +159,10 @@
     var src = '';
     if (l.kind === 'design' && /^[a-z0-9-]+\/[a-z0-9-]+$/.test(l.id || '')) src = ROOT + 'assets/art/' + l.id + '.webp';
     else if (l.photos && l.photos.length && /^[a-z0-9-]+$/.test(l.photos[0].frame || '')) src = ROOT + 'assets/email/thumbs/frames/' + l.photos[0].frame + '.jpg';
+    else if (l.kind === 'package' && /^[a-z0-9-]{2,40}$/.test(l.style || '') && l.style !== 'own' && l.style !== 'qr') src = ROOT + 'assets/occasions/' + l.style + '.webp';
     else src = ROOT + 'assets/favicon.svg';
     var img = document.createElement('img');
-    img.className = 'line-thumb' + (l.kind === 'design' ? '' : ' line-thumb-icon');
+    img.className = 'line-thumb' + (l.kind === 'design' || /occasions/.test(src) ? '' : ' line-thumb-icon');
     img.src = src; img.alt = ''; img.width = 56; img.height = 56; img.loading = 'lazy'; img.decoding = 'async';
     img.onerror = function () { img.remove(); };
     return img;
@@ -454,7 +455,8 @@
     openCart();
   });
   function addLine(line, quiet) {   /* quiet: the cart drawer opens right after, so no toast over it */
-    var same = line.kind !== 'custom' && cart.find(function (l) { return l.id === line.id && l.kind === line.kind; });
+    /* a pack made in the studio or the QR maker is its own line: two different designs never merge */
+    var same = line.kind !== 'custom' && !line.design && !line.qr && cart.find(function (l) { return l.id === line.id && l.kind === line.kind && !l.design && !l.qr && (l.style || '') === (line.style || ''); });
     if (same) same.qty += line.qty || 1;
     else { if (!line.qty) line.qty = 1; cart.push(line); }
     save(); render(); if (!quiet) toast(line.name + ' added to cart');

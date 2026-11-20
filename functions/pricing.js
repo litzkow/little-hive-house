@@ -158,8 +158,9 @@ function priceCart(cart, catalog = loadCatalog()) {
         const link = str(raw.qr.url, 200);
         if (!/^https?:\/\/\S+\.\S+$/i.test(link)) throw bad("The QR link doesn't look like a web address.");
         item.qr = { url: link, name: str(raw.qr.name, 40), top: str(raw.qr.top, 60), cta: str(raw.qr.cta, 40), stars: !!raw.qr.stars,
-          pal: ["fern", "honey", "navy", "blush", "brick"].includes(raw.qr.pal) ? raw.qr.pal : "fern" };
+          pal: QR_PALS.includes(raw.qr.pal) ? raw.qr.pal : "fern" };
       }
+      if (raw.design && typeof raw.design === "object") item.design = cleanDesign(raw.design);   // made in the design studio
       items.push(item);
       lines.push({ kind: "package", unit, qty, count: p.size, name: p.title });
     } else {
@@ -170,6 +171,36 @@ function priceCart(cart, catalog = loadCatalog()) {
   const totals = computeTotals(lines, rules);
   if (totals.magnets > MAX_MAGNETS) throw bad(`That is more than ${MAX_MAGNETS} magnets. Please ask us for a quote instead.`);
   return { items, lines, totals, pricing: pricingDollars(totals, rules.currency) };
+}
+
+/* What the customer made in the design studio (assets/studio.js): which design, their colors, the words they changed,
+   a drawing, the QR link and the paths of their uploaded logo and photo. Anything odd is dropped, never trusted. */
+const HEX = /^#[0-9a-f]{6}$/i;
+const QR_PALS = ["fern", "honey", "navy", "blush", "brick", "teal", "sky", "plum", "black", "red", "sun", "forest", "lilac", "orange"];   // the QR magnet maker's colors (site.css .qrm)
+const UPLOAD = /^uploads\/[A-Za-z0-9]{6,64}\/[A-Za-z0-9_-]{1,64}\/[0-9]{1,3}\.(png|jpg|jpeg|webp)$/;
+function cleanDesign(d) {
+  const slug = String(d.slug || "");
+  if (!/^[a-z0-9-]{2,40}$/.test(slug)) throw bad("That design doesn't look right. Please pick it again.");
+  const out = { slug };
+  if (d.colors && typeof d.colors === "object" && ["bg", "ink", "ac"].every((k) => HEX.test(String(d.colors[k] || "")))) {
+    out.colors = { bg: d.colors.bg.toUpperCase(), ink: d.colors.ink.toUpperCase(), ac: d.colors.ac.toUpperCase() };
+  }
+  const text = {};
+  if (d.text && typeof d.text === "object") {
+    for (const k of Object.keys(d.text).slice(0, 40)) {
+      if (/^[a-z][a-z0-9]{0,11}$/.test(k)) text[k] = String(d.text[k] == null ? "" : d.text[k]).slice(0, 120);
+    }
+  }
+  out.text = text;
+  if (/^[a-z]{2,12}$/.test(String(d.icon || ""))) out.icon = d.icon;
+  if (d.url) {
+    const u = str(d.url, 200);
+    if (!/^https?:\/\/\S+\.\S+$/i.test(u)) throw bad("The QR link doesn't look like a web address.");
+    out.url = u;
+  }
+  for (const k of ["logo", "photo"]) if (UPLOAD.test(String(d[k] || ""))) out[k] = d[k];
+  if (!out.photo && /^[a-z][a-z-]{1,30}-\d{1,2}$/.test(String(d.stock || ""))) out.stock = d.stock;   // one of our stock photos (assets/stock)
+  return out;
 }
 
 function pricingDollars(t, currency = "usd") {

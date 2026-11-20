@@ -173,7 +173,7 @@ function publicItem(it) {
       frames: Array.isArray(it.photos) ? it.photos.map((p) => ({ frame: p.frame, caption: p.caption || "" })) : [],
     };
     case "package": return { kind: "package", id: it.id, title: it.title, size: it.size, price: it.price, qty: it.qty || 1,
-      ...(it.style ? { style: it.style } : {}), ...(it.addresses ? { addresses: it.addresses } : {}), ...(it.qr ? { qr: it.qr } : {}) };
+      ...(it.style ? { style: it.style } : {}), ...(it.addresses ? { addresses: it.addresses } : {}), ...(it.qr ? { qr: it.qr } : {}), ...(it.design ? { design: it.design } : {}) };
     case "custom": return { kind: "custom", title: it.title, amount: it.amount };
     default: return null;
   }

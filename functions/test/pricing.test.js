@@ -235,3 +235,17 @@ test("the QR magnet maker: the link, name and message go with the pack; a link t
   assert.equal(priceCart([{ kind: "package", id: "business-50", qty: 1, qr: { ...qr, pal: "<x>" } }], catalog).items[0].qr.pal, "fern");
   assert.throws(() => priceCart([{ kind: "package", id: "business-50", qty: 1, qr: { ...qr, url: "javascript:alert(1)" } }], catalog), /web address/);
 });
+
+test("the design studio: colors, changed words, drawing, QR link and uploaded files go with the pack; anything odd is dropped", () => {
+  const design = { slug: "pizza-night", colors: { bg: "#b3261e", ink: "#FFFFFF", ac: "#FFD166" }, text: { name: "Luigi’s", phone: "(555) 123-4567", "<x>": "no" },
+    icon: "pizza", url: "https://luigis.com/menu", logo: "uploads/AbC123xyz/d1abc/1.png", photo: "../../etc/passwd" };
+  const r = priceCart([{ kind: "package", id: "business-100", qty: 1, style: "pizza-night", design }], catalog);
+  assert.deepEqual(r.items[0].design, { slug: "pizza-night", colors: { bg: "#B3261E", ink: "#FFFFFF", ac: "#FFD166" }, text: { name: "Luigi’s", phone: "(555) 123-4567" },
+    icon: "pizza", url: "https://luigis.com/menu", logo: "uploads/AbC123xyz/d1abc/1.png" });
+  assert.equal(r.pricing.total, 160);
+  const bad = priceCart([{ kind: "package", id: "business-50", qty: 1, design: { slug: "pizza-night", colors: { bg: "red", ink: "#000000", ac: "#000000" }, icon: "<svg>" } }], catalog);
+  assert.equal(bad.items[0].design.colors, undefined);
+  assert.equal(bad.items[0].design.icon, undefined);
+  assert.throws(() => priceCart([{ kind: "package", id: "business-50", qty: 1, design: { slug: "<b>" } }], catalog), /design/);
+  assert.throws(() => priceCart([{ kind: "package", id: "business-50", qty: 1, design: { slug: "x-y", url: "javascript:alert(1)" } }], catalog), /web address/);
+});

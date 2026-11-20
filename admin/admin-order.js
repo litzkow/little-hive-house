@@ -184,6 +184,45 @@
   function globalIndex(o, pack, j) { var n = 0, ps = photoItems(o); for (var k = 0; k < pack; k++) n += (ps[k].photos || []).length; return n + j; }
   function thumbFor(u, p, globalIndex) { return (p.path && u.thumbs && u.thumbs[p.path]) || (u.tlist && u.tlist[globalIndex]) || urlFor(u, p, globalIndex); }
   function repeats(size, n, i) { if (!n || !size || size <= n) return 1; return Math.floor(size / n) + (i < size % n ? 1 : 0); }
+  /* the studio designs: drawn with the site's own code (assets/designer.js), with the customer's logo and photo */
+  var STORAGE_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js', storageP = null;
+  function storage() {
+    if (!storageP) storageP = new Promise(function (res, rej) {
+      if (window.firebase && firebase.storage) return res(firebase.storage());
+      var sc = document.createElement('script'); sc.src = STORAGE_SDK;
+      sc.onload = function () { res(firebase.storage()); }; sc.onerror = function () { storageP = null; rej(new Error('sdk')); };
+      document.head.appendChild(sc);
+    });
+    return storageP;
+  }
+  function fileUrl(path) { return storage().then(function (s) { return s.ref(path).getDownloadURL(); }); }
+  function fillDesigns() {
+    var D = window.LHHDesigner; if (!D) return;
+    document.querySelectorAll('[data-dz-item]').forEach(function (box) {
+      var dg; try { dg = JSON.parse(box.getAttribute('data-dz-item')); } catch (e) { return; }
+      var d = D.get(dg.slug); if (!d) return;
+      var ch = { colors: dg.colors, text: dg.text, icon: dg.icon, url: dg.url, photo: dg.stock ? '/assets/stock/' + dg.stock + '.webp' : '' };
+      var jobs = [];
+      if (dg.logo) jobs.push(fileUrl(dg.logo).then(function (u) { ch.logo = u; }, function () {}));
+      if (dg.photo) jobs.push(fileUrl(dg.photo).then(function (u) { ch.photo = u; }, function () {}));
+      D.paint(box, d, ch);
+      Promise.all(jobs).then(function () { if (jobs.length) D.paint(box, d, ch); });
+      var li = box.closest('.dz-order');
+      li.addEventListener('click', function (e) {
+        var f = e.target.closest('[data-dz-file]');
+        if (f) { e.preventDefault(); fileUrl(f.getAttribute('data-dz-file')).then(function (u) { window.open(u, '_blank'); }); return; }
+        if (e.target.closest('[data-dz-big]')) {
+          e.preventDefault();
+          var w = window.open('', '_blank'); if (!w) return;
+          w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + D.esc(d.title) + '</title><link rel="stylesheet" href="' + FONTS_CSS + '"><style>body{margin:0;display:grid;place-items:center;min-height:100vh;background:#ddd}</style></head><body><div id="m" style="width:600px;height:600px;background:#fff">' + D.render(d, ch) + '</div></body></html>');
+          w.document.close();
+          setTimeout(function () { try { D.fit(w.document.getElementById('m')); } catch (x) { /* ignore */ } }, 900);
+        }
+      });
+    });
+  }
+  var FONTS_CSS = 'https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@500;600&family=DM+Serif+Display&family=Josefin+Sans:wght@600;700;800&family=Jost:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,700&family=Caveat:wght@600&family=Dancing+Script:wght@600&family=Cormorant+Garamond:ital,wght@1,600&display=swap';
+
   function fillPhotos() {
     var o = current; if (!o || !photoItems(o).length) return;
     var box = document.getElementById('photos-status');
@@ -504,8 +543,25 @@
             '</div></div>';
           pd = T('QR magnets · ' + R.num(it.size) + ' magnets', 'Ímãs com QR · ' + R.num(it.size) + ' ímãs');
         }
+        var dzBox = '';
+        if (it.design && it.design.slug && window.LHHDesigner && window.LHHDesigner.get(it.design.slug)) {   /* made in the design studio */
+          var dg = it.design, dd = window.LHHDesigner.get(dg.slug), tx = dg.text || {};
+          var words = Object.keys(tx).map(function (k) { return '<b>' + esc(k) + ':</b> ' + esc(tx[k]); }).join('<br>');
+          dzBox = '<div class="dz-order" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin-top:10px">' +
+            '<div class="dz-admin" data-dz-item="' + esc(JSON.stringify(dg)) + '" style="width:220px;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.18)"></div>' +
+            '<div class="small" style="min-width:200px;flex:1"><b>' + T('Design studio', 'Estúdio de designs') + ':</b> ' + esc(dd.title) +
+            (dg.colors ? '<br>' + T('Their colors', 'Cores do cliente') + ': ' + ['bg', 'ink', 'ac'].map(function (k) { return '<span style="display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;background:' + esc(dg.colors[k]) + '"></span> ' + esc(dg.colors[k]); }).join(' ') : '') +
+            (words ? '<br>' + T('Words they changed', 'Textos que mudaram') + ':<br>' + words : '') +
+            (dg.icon ? '<br>' + T('Drawing', 'Desenho') + ': ' + esc(dg.icon) : '') +
+            (dg.url ? '<br>QR: <a href="' + esc(dg.url) + '" target="_blank" rel="noopener">' + esc(dg.url) + '</a>' : '') +
+            (dg.logo ? '<br><a href="#" data-dz-file="' + esc(dg.logo) + '">' + T('Download their logo', 'Baixar o logo do cliente') + '</a>' : '') +
+            (dg.photo ? '<br><a href="#" data-dz-file="' + esc(dg.photo) + '">' + T('Download their photo', 'Baixar a foto do cliente') + '</a>' : '') +
+            (dg.stock ? '<br><a href="/assets/stock/' + esc(dg.stock) + '.webp" target="_blank" rel="noopener">' + T('Our stock photo', 'Foto do nosso banco') + ': ' + esc(dg.stock) + '</a>' : '') +
+            '<br><a href="#" data-dz-big>' + T('Open full size (600 px)', 'Abrir em tamanho real (600 px)') + '</a></div></div>';
+          pd = T('Design studio · ' + R.num(it.size) + ' magnets', 'Estúdio de designs · ' + R.num(it.size) + ' ímãs');
+        }
         return '<li>' + (styleImg && it.style !== 'qr' ? '<span class="thumb"><img src="' + styleImg + '" alt="" width="56" height="56" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></span>' : thumb(it)) +
-          '<div><h3>' + esc(it.title || it.id) + '</h3><p class="d">' + pd + '</p>' + qrBox + '</div>' +
+          '<div><h3>' + esc(it.title || it.id) + '</h3><p class="d">' + pd + '</p>' + qrBox + dzBox + '</div>' +
           '<div class="p"><b>' + qty + ' × ' + money(it.price) + '</b><span>' + money(R.itemPrice(it)) + '</span></div></li>';
       }
       return '<li>' + thumb(it) + '<div><h3>' + esc(it.title || 'Custom order') + '</h3><p class="d">Custom quote</p></div><div class="p"><b>' + money(R.itemPrice(it)) + '</b></div></li>';
@@ -818,7 +874,7 @@
       '<span><b>' + h.plural(R.magnetsOf(o), 'magnet') + '</b></span>' + (o.uid ? '' : '<span>Guest</span>') + '</div>' +
       '<div class="cols"><div>' + fulfilCard(o) + itemsCard(o) + (R.isSale(o) && R.stage(o) !== 'refunded' && R.stage(o) !== 'canceled' ? printCard(o) : '') + timelineCard(o) + '</div>' +
       '<div>' + customerCard(o) + paymentCard(o) + emailsCard(o) + notesCard(o) + statusCard(o) + deleteCard(o) + '</div></div>';
-    return { title: h.orderNo(o), html: html, after: function () { bindOrder(o); fillPhotos(); } };
+    return { title: h.orderNo(o), html: html, after: function () { bindOrder(o); fillPhotos(); fillDesigns(); } };
   };
 
   function bindOrder(o) {
