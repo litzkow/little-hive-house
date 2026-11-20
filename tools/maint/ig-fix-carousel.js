@@ -19,12 +19,18 @@ const KEEP = { "18153139336482572": ["christmas-merry-and-bright-classic", "chri
     }
     if (extra.length) {
       const idx = Object.keys(KEEP).indexOf(child);
-      try { await G(meta, "DELETE", `${child}/product_tags`, { deleted_tags: extra }); }
-      catch (e) {
-        try { await G(meta, "DELETE", "17913388521309037/product_tags", { deleted_tags: extra, child_index: idx }); }
-        catch (e2) { await G(meta, "DELETE", "17913388521309037/product_tags", { deleted_tags: extra.map((t) => ({ product_id: t.product_id })), child_index: idx }); }
+      // DELETE with everything in the address (Graph ignores a body on DELETE)
+      const del = async (id, extraQ) => {
+        const q = new URLSearchParams({ deleted_tags: JSON.stringify(extra), access_token: meta.token, ...(extraQ || {}) });
+        if (meta.appSecret) q.set("appsecret_proof", require("crypto").createHmac("sha256", meta.appSecret).update(meta.token).digest("hex"));
+        const r = await fetch(`https://graph.facebook.com/v26.0/${id}/product_tags?${q}`, { method: "DELETE" });
+        const j = await r.json(); if (j.error) throw new Error(j.error.message); return j;
+      };
+      let done = false;
+      for (const [id, q] of [[child, null], ["17913388521309037", { child_index: String(idx) }]]) {
+        try { await del(id, q); done = true; break; } catch (e) { say(`tentativa ${id}: ${e.message}`); }
       }
-      say(`${child}: ${extra.length} marcação(ões) a mais removida(s)`);
+      say(`${child}: ${done ? extra.length + " marcação(ões) a mais removida(s)" : "não deu para remover"}`);
     }
     const after = ((await G(meta, "GET", `${child}/product_tags`)).data) || [];
     say(`${child} agora: ${after.map((t) => t.product_name || t.product_id).join(" | ")}`);
