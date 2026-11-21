@@ -51,7 +51,7 @@ async function sync({ now = Date.now() } = {}) {
       const missing = active.filter((id) => !(row.products || []).includes(id));
       for (let i = 0; i < missing.length; i += 20) {
         const batch = missing.slice(i, i + 20);
-        await T().call("PUT", `/promotion/202309/activities/${row.activityId}/products`, { json: {
+        await T().call("PUT", `/promotion/202309/activities/${row.activityId}/products`, { json: { activity_id: row.activityId,
           products: batch.map((id) => ({ id, discount: String(p.pct), quantity_limit: -1, quantity_per_user: -1 })) } });   // -1: no limit
         row.products = (row.products || []).concat(batch);
         await col().doc("promos").set({ [p.key]: { products: row.products, at: nowIso() } }, { merge: true });
