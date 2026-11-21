@@ -185,6 +185,7 @@ exports.etsyOrders = onSchedule({ region: REGION, schedule: "every 15 minutes", 
   // the TikTok Shop orders ready to ship come in the same way (tiktok-orders.js), and new products' review is checked
   try { await require("./tiktok-orders").importOrders(); } catch (e) { console.warn("[tiktokOrders]", e.message); }
   try { await require("./tiktok-products").refresh({ onlyPending: true }); } catch (e) { console.warn("[tiktokProducts]", e.message); }
+  try { await require("./tiktok-promotions").sync(); } catch (e) { console.warn("[tiktokPromos]", e.message); }
 });
 
 /* ---------- every 10 minutes: Instagram & Facebook looked after (social.js): products tagged on the posts, comments and Direct ---------- */
