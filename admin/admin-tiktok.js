@@ -19,7 +19,7 @@
     var pt = h.LANG() === 'pt' && I && I.tr ? I.tr(f) : null;
     return pt || f;
   }
-  var st = { data: null, loading: false, err: '', finishing: false, saving: false };
+  var st = { data: null, loading: false, err: '', finishing: false, saving: false, products: null, loadingProducts: false, publishing: false, at: 0, total: 0, current: '' };
 
   function load() {
     if (st.loading) return;
@@ -59,14 +59,47 @@
 
   function connection(d) {
     return '<section class="card"><div class="card-head"><h2>' + T('Connection', 'Conexão') + '</h2></div><ol class="tt-steps">' +
-      secretStep(d) + connectStep(d) + '</ol></section>';
+      secretStep(d) + connectStep(d) + '</ol>' + links(d) + '</section>';
   }
 
-  function next(d) {
+  function links(d) {
     if (!d.connected) return '';
-    return '<section class="card"><div class="card-head"><h2>' + T('Products and orders', 'Produtos e pedidos') + '</h2></div><p class="small">' +
-      T('Coming next: the design collections published here with one tap, TikTok orders coming into Orders by themselves, and the TikTok shipping label printed from the order.',
-        'Vem a seguir: as coleções de design publicadas daqui com um toque, os pedidos do TikTok entrando sozinhos em Pedidos, e a etiqueta do TikTok impressa pelo pedido.') + '</p></section>';
+    return '<p class="tt-links">' +
+      '<a class="btn btn-ghost btn-sm" href="https://seller-us.tiktok.com/homepage" target="_blank" rel="noopener">' + T('Open Seller Center', 'Abrir o Seller Center') + ' ' + icon('external') + '</a>' +
+      '<a class="btn btn-ghost btn-sm" href="https://www.tiktok.com/@littlehivehouse" target="_blank" rel="noopener">' + T('See the shop on TikTok', 'Ver a loja no TikTok') + ' ' + icon('external') + '</a></p>' +
+      '<p class="tiny muted">' + T('Seller Center opens with the shop’s TikTok account (the same as the TikTok Shop Seller Center app).', 'O Seller Center abre com a conta da loja no TikTok (a mesma do app TikTok Shop Seller Center).') + '</p>';
+  }
+
+  var PSTATE = { active: ['On TikTok', 'No TikTok', 'ok'], pending: ['TikTok is reviewing it', 'O TikTok está revisando', 'warn'], draft: ['Draft, not for sale', 'Rascunho, não está à venda', 'warn'],
+    failed: ['TikTok didn’t approve it', 'O TikTok não aprovou', 'err'], '': ['Not published yet', 'Ainda não publicado', ''] };
+
+  function products(d) {
+    if (!d.connected) return '';
+    var rows = st.products;
+    if (!rows) {
+      if (!st.loadingProducts) {
+        st.loadingProducts = true;
+        h.call('adminTikTok', { action: 'products', check: true }).then(function (res) { st.products = res.products || []; })
+          .catch(function (e) { st.products = []; h.toast(errText(e), true); })
+          .then(function () { st.loadingProducts = false; if (A.parseHash().view === 'tiktok') h.route(); });
+      }
+      return '<section class="card"><div class="card-head"><h2>' + T('Products', 'Produtos') + '</h2></div><div class="loading"><span>' + T('Loading…', 'Carregando…') + '</span></div></section>';
+    }
+    var left = rows.filter(function (p) { return p.state !== 'active' && p.state !== 'pending'; }).length;
+    var btn = st.publishing
+      ? '<p class="small"><b>' + T('Publishing ', 'Publicando ') + st.at + T(' of ', ' de ') + st.total + '…</b> ' + esc(st.current) + '<br><span class="muted">' + T('Keep this screen open. Each one takes about a minute.', 'Deixe esta tela aberta. Cada um leva mais ou menos um minuto.') + '</span></p>'
+      : left ? '<p><button class="btn btn-honey" data-act="ttPublish">' + icon('shop') + T('Publish the ' + left + ' that are missing', 'Publicar os ' + left + ' que faltam') + '</button></p>' : '';
+    var list = rows.map(function (p) {
+      var s = PSTATE[p.state] || PSTATE[''];
+      return '<li class="et-row"><div><b>' + esc(p.name) + '</b><span class="small muted"> · ' + p.designs + T(' designs', ' designs') + '</span>' +
+        (p.error ? '<div class="small err">' + esc(errText({ message: p.error })) + '</div>' : '') + '</div>' +
+        (p.state === 'active' && p.productId ? '<a class="pill ok" href="https://www.tiktok.com/view/product/' + esc(p.productId) + '" target="_blank" rel="noopener">' + esc(T(s[0], s[1])) + ' ' + icon('external') + '</a>'
+          : '<span class="pill ' + s[2] + '">' + esc(T(s[0], s[1])) + '</span>') + '</li>';
+    }).join('');
+    return '<section class="card"><div class="card-head"><div><h2>' + T('Products', 'Produtos') + '</h2><p class="sub">' +
+      T('The site’s design collections, in the site’s order, with photos in the site’s look and the site’s price ($5 a magnet).',
+        'As coleções de design do site, na ordem do site, com fotos no visual do site e o preço do site ($5 o ímã).') + '</p></div></div>' +
+      btn + '<ul class="et-list">' + list + '</ul></section>';
   }
 
   V.tiktok = function (r) {
@@ -85,7 +118,7 @@
     var d = st.data;
     var body = st.err ? '<p class="err">' + esc(st.err) + '</p>'
       : !d || st.finishing ? '<div class="loading"><span>' + (st.finishing ? T('Connecting to TikTok…', 'Conectando ao TikTok…') : T('Loading…', 'Carregando…')) + '</span></div>'
-      : connection(d) + next(d);
+      : connection(d) + products(d);
     var html = '<div translate="no" class="tt-page"><div class="page-head"><div><p class="eyebrow">' + T('Sales channels', 'Canais de venda') + '</p><h1>TikTok Shop</h1>' +
       '<p class="sub">' + T('The Little Hive House shop on TikTok, run from here.', 'A loja Little Hive House no TikTok, cuidada daqui.') + '</p></div></div>' + body + '</div>';
     return { title: 'TikTok Shop', html: html };
@@ -111,6 +144,25 @@
     el.disabled = true;
     h.call('adminTikTok', { action: 'start' }).then(function (res) { location.href = res.url; })
       .catch(function (e) { el.disabled = false; h.toast(errText(e), true); });
+  };
+  ACT.ttPublish = function () {
+    var todo = (st.products || []).filter(function (p) { return p.state !== 'active' && p.state !== 'pending'; });
+    st.publishing = true; st.total = todo.length; st.at = 0;
+    var failed = 0;
+    var next = function (i) {
+      if (i >= todo.length) {
+        st.publishing = false;
+        h.toast(failed ? T(failed + ' didn’t publish. See the note next to them.', failed + (failed === 1 ? ' não publicou' : ' não publicaram') + '. Veja o aviso ao lado.') : T('All sent to TikTok. TikTok reviews each one before it goes on sale.', 'Tudo enviado ao TikTok. O TikTok revisa cada um antes de pôr à venda.'), !!failed);
+        st.products = null; h.route(); return;
+      }
+      st.at = i + 1; st.current = todo[i].name; h.route();
+      var row = todo[i];
+      h.call('adminTikTok', { action: 'publish', id: row.id })
+        .then(function (res) { if (res && res.product) { Object.assign(row, res.product); row.error = ''; } })
+        .catch(function (e) { failed += 1; row.error = errText(e); })
+        .then(function () { next(i + 1); });
+    };
+    next(0);
   };
   ACT.ttDisconnect = function () {
     if (!confirm(T('Disconnect TikTok Shop? Products and orders stop syncing until you connect again.', 'Desconectar o TikTok Shop? Produtos e pedidos param de sincronizar até conectar de novo.'))) return;

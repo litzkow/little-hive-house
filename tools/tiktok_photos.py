@@ -3,7 +3,8 @@
 Owners (Nov 2026): the TikTok shop as close as possible to the real site. So no Etsy lifestyle scenes here (those are
 Etsy-only): the site's cream paper, its fonts and colors, the real designs in the site's order, numbered like the
 "Design" options of the TikTok product.
-  1      the collection: its name, how many designs, nine designs as magnets
+  1      one magnet, big and clear on the cream paper (TikTok wants a single product, not a collage, as the main photo)
+  2      the collection: its name, how many designs, nine designs as magnets
   2..    "Pick your design": every design, numbered, 16 per photo
   then   actual size (2 x 2 in) and "Good to know" with the shop's seal
 TikTok takes 9 photos at most: a collection with more than 80 designs would lose its last guides (none has, Nov 2026).
@@ -32,6 +33,12 @@ def art(slug):
 def head(d, kicker, title, y=150, size=92):
     E.text_center(d, (S / 2, y), kicker.upper(), E.font("josefin", 34, 600), E.BROWN_SOFT, spacing=7)
     E.text_center(d, (S / 2, y + size + 10), title, E.font("josefin", size, 700), E.BROWN)
+
+
+def hero(slug):
+    im = E.cream_bg(S, S)
+    big = ROOT / "assets" / "print" / f"{slug}.jpg"          # the 1200 px print file when there is one: sharper
+    return E.drop_tile(im, Image.open(big).convert("RGB") if big.exists() else art(slug), S / 2, S / 2 - 20, 980, 0, shadow=0.26)
 
 
 def cover(name, slugs, n):
@@ -142,7 +149,7 @@ def build(l):
     for i, slug in enumerate(l["designs"]):
         label = names[i].split(" ", 1)[1] if " " in names[i] else names[i]
         designs.append((slug, label.replace(" ·", "").strip(" ·")))
-    photos = [cover(l["name"], l["designs"], len(l["designs"]))] + guides(l["name"], designs)
+    photos = [hero(l["designs"][0]), cover(l["name"], l["designs"], len(l["designs"]))] + guides(l["name"], designs)
     photos += [actual_size(l["designs"][0]), good_to_know()]
     photos = photos[:9]
     out = OUT / l["id"]

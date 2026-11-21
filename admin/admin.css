@@ -737,6 +737,9 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .tt-steps { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 14px; }
 .tt-steps .tt-done { color: var(--ok); }
 .tt-steps .tt-done svg, .tt-page p svg, .tt-page button svg { width: 14px; height: 14px; vertical-align: -2px; }
+.tt-links { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 4px; }
+.tt-links svg { width: 14px; height: 14px; vertical-align: -2px; }
+.et-row .pill.err { background: #fde8e4; color: #a33; }
 .tt-how { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; }
 .tt-secret { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .tt-secret .input { flex: 1 1 220px; min-width: 0; }
