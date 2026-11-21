@@ -167,11 +167,22 @@ async function refresh({ onlyPending = false } = {}) {
     try {
       const p = await T().call("GET", `/product/202309/products/${row.productId}`);
       const st = String(p.status || "").toUpperCase();
-      const state = st === "ACTIVATE" ? "active" : st === "PENDING" ? "pending" : st === "FAILED" ? "failed" : st.toLowerCase() || row.state;
+      const state = st === "ACTIVATE" ? "active" : st === "PENDING" ? "pending" : st === "FAILED" ? "failed" : /DEACTIVATED/.test(st) ? "off" : st.toLowerCase() || row.state;
       const reason = ((p.audit_failed_reasons || [])[0] || {});
       await col().doc("products").set({ [id]: { ...row, state, error: state === "failed" ? String((reason.reasons || []).join("; ") || "TikTok didn't approve it.").slice(0, 300) : "", checkedAt: nowIso() } }, { merge: true });
     } catch (e) { /* the next check tries again */ }
   }
+}
+
+/** Takes collections off sale on TikTok (out of season) or puts them back; tiktok/products keeps "off" so nothing
+    republishes them. on = false: off sale; true: back on sale (TikTok reviews it again). */
+async function setOnSale(ids, on) {
+  const done = (await col().doc("products").get()).data() || {};
+  const rows = ids.map((id) => [id, done[id]]).filter(([, r]) => r && r.productId);
+  if (!rows.length) return { changed: 0 };
+  await T().call("POST", `/product/202309/products/${on ? "activate" : "deactivate"}`, { json: { product_ids: rows.map(([, r]) => r.productId) } });
+  for (const [id, r] of rows) await col().doc("products").set({ [id]: { ...r, state: on ? "pending" : "off", off: !on, at: nowIso() } }, { merge: true });
+  return { changed: rows.length };
 }
 
 async function status() {
@@ -179,4 +190,4 @@ async function status() {
   return LISTINGS().map((l) => ({ id: l.id, name: l.name, section: l.section, designs: l.variations[0].options.length, ...(done[l.id] || { state: "" }) }));
 }
 
-module.exports = { publish, refresh, status, setPhotoTools, _internal: { body, description, optionName, TIKTOK, ATTRS } };
+module.exports = { publish, refresh, status, setOnSale, setPhotoTools, _internal: { body, description, optionName, TIKTOK, ATTRS } };

@@ -8,11 +8,16 @@ const say = (s) => console.log(`::warning title=tiktok::${String(s).replace(/\n/
 (async () => {
   const P = require("../../functions/tiktok-products");
   const id = (process.env.VALUE || "").trim();
-  if (id === "all") {
+  if (/^(off|on):/.test(id)) {
+    // "off:halloween,fall" takes them off sale on TikTok; "on:halloween" puts them back
+    const [mode, list] = id.split(":");
+    try { say(`${mode}: ${JSON.stringify(await P.setOnSale(list.split(",").map((x) => x.trim()).filter(Boolean), mode === "on"))}`); }
+    catch (e) { say(`ERRO ${id}: ${e.message}`); }
+  } else if (id === "all") {
     // every collection not yet on TikTok (or still a draft), in the site's order
     const done = await P.status();
     for (const p of done) {
-      if (p.state === "active" || p.state === "pending") continue;
+      if (p.state === "active" || p.state === "pending" || p.off) continue;
       try { const r = await P.publish(p.id, { force: p.state === "draft" }); say(`publicado ${p.id}: ${r.product.productId} ${r.product.state}`); }
       catch (e) { say(`ERRO ${p.id}: ${e.message}`); }
     }

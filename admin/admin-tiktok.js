@@ -66,11 +66,11 @@
     if (!d.connected) return '';
     return '<p class="tt-links">' +
       '<a class="btn btn-ghost btn-sm" href="https://seller-us.tiktok.com/homepage" target="_blank" rel="noopener">' + T('Open Seller Center', 'Abrir o Seller Center') + ' ' + icon('external') + '</a>' +
-      '<a class="btn btn-ghost btn-sm" href="https://www.tiktok.com/@littlehivehouse" target="_blank" rel="noopener">' + T('See the shop on TikTok', 'Ver a loja no TikTok') + ' ' + icon('external') + '</a></p>' +
+      '<a class="btn btn-ghost btn-sm" href="' + (d.shop && d.shop.id ? 'https://www.tiktok.com/shop/store/little-hive-house/' + encodeURIComponent(d.shop.id) : 'https://www.tiktok.com/@littlehivehouse') + '" target="_blank" rel="noopener">' + T('See the shop on TikTok', 'Ver a loja no TikTok') + ' ' + icon('external') + '</a></p>' +
       '<p class="tiny muted">' + T('Seller Center opens with the shop’s TikTok account (the same as the TikTok Shop Seller Center app).', 'O Seller Center abre com a conta da loja no TikTok (a mesma do app TikTok Shop Seller Center).') + '</p>';
   }
 
-  var PSTATE = { active: ['On TikTok', 'No TikTok', 'ok'], pending: ['TikTok is reviewing it', 'O TikTok está revisando', 'warn'], draft: ['Draft, not for sale', 'Rascunho, não está à venda', 'warn'],
+  var PSTATE = { off: ['Off sale (out of season)', 'Fora da loja (fora de época)', ''], active: ['On TikTok', 'No TikTok', 'ok'], pending: ['TikTok is reviewing it', 'O TikTok está revisando', 'warn'], draft: ['Draft, not for sale', 'Rascunho, não está à venda', 'warn'],
     failed: ['TikTok didn’t approve it', 'O TikTok não aprovou', 'err'], '': ['Not published yet', 'Ainda não publicado', ''] };
 
   function products(d) {
@@ -85,7 +85,7 @@
       }
       return '<section class="card"><div class="card-head"><h2>' + T('Products', 'Produtos') + '</h2></div><div class="loading"><span>' + T('Loading…', 'Carregando…') + '</span></div></section>';
     }
-    var left = rows.filter(function (p) { return p.state !== 'active' && p.state !== 'pending'; }).length;
+    var left = rows.filter(function (p) { return p.state !== 'active' && p.state !== 'pending' && p.state !== 'off'; }).length;
     var btn = st.publishing
       ? '<p class="small"><b>' + T('Publishing ', 'Publicando ') + st.at + T(' of ', ' de ') + st.total + '…</b> ' + esc(st.current) + '<br><span class="muted">' + T('Keep this screen open. Each one takes about a minute.', 'Deixe esta tela aberta. Cada um leva mais ou menos um minuto.') + '</span></p>'
       : left ? '<p><button class="btn btn-honey" data-act="ttPublish">' + icon('shop') + T('Publish the ' + left + ' that are missing', 'Publicar os ' + left + ' que faltam') + '</button></p>' : '';
@@ -146,7 +146,7 @@
       .catch(function (e) { el.disabled = false; h.toast(errText(e), true); });
   };
   ACT.ttPublish = function () {
-    var todo = (st.products || []).filter(function (p) { return p.state !== 'active' && p.state !== 'pending'; });
+    var todo = (st.products || []).filter(function (p) { return p.state !== 'active' && p.state !== 'pending' && p.state !== 'off'; });
     st.publishing = true; st.total = todo.length; st.at = 0;
     var failed = 0;
     var next = function (i) {
