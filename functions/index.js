@@ -102,6 +102,8 @@ exports.adminNewsletter = callable("adminNewsletter", newsletter, null, { timeou
 // builds the print-ready PDF (sharp + pdfkit) on demand: more memory and time than the other callables
 exports.adminPrintSheet = callable("adminPrintSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });
 exports.adminEtsy = callable("adminEtsy", () => require("./etsy"), null, { timeoutSeconds: 300, memory: "512MiB" });
+// TikTok Shop (tiktok.js): connection, products, orders
+exports.adminTikTok = callable("adminTikTok", () => require("./tiktok"), null, { timeoutSeconds: 300, memory: "512MiB" });
 exports.adminPrintBatch = callable("adminPrintBatch", admin, null, { timeoutSeconds: 540, memory: "2GiB" });
 // a test PDF of designs / photos without an order, and deleting test orders
 exports.adminTestSheet = callable("adminTestSheet", admin, null, { timeoutSeconds: 300, memory: "1GiB" });

@@ -453,7 +453,7 @@
      you are on opens by itself; the others remember whether you left them open. */
   var NAV_TOP = [['home', 'Home', 'home'], ['orders', 'Orders', 'orders'], ['messages', 'Messages', 'messages'], ['content', 'Content', 'camera'], ['ads', 'Ads', 'megaphone']];
   var NAV_GROUPS = [
-    { id: 'stores', name: 'Stores', icon: 'shop', items: [['etsy', 'Etsy', 'shop'], ['links', 'Payment links', 'links']] },
+    { id: 'stores', name: 'Stores', icon: 'shop', items: [['etsy', 'Etsy', 'shop'], ['tiktok', 'TikTok Shop', 'shop'], ['links', 'Payment links', 'links']] },
     { id: 'sales', name: 'Customers & sales', icon: 'customers', items: [['customers', 'Customers', 'customers'], ['discounts', 'Discounts', 'discounts'], ['returns', 'Returns', 'refund'], ['reviews', 'Reviews', 'reviews']] },
     { id: 'numbers', name: 'Numbers', icon: 'reports', items: [['reports', 'Reports', 'reports'], ['visits', 'Visits', 'visits'], ['plan', 'Growth plan', 'growth']] },
     { id: 'email', name: 'Email', icon: 'mail', items: [['subscribers', 'Subscribers', 'subscribers'], ['newsletter', 'Email subscribers', 'mail']] },
