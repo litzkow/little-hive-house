@@ -156,6 +156,20 @@ async function adminTikTok(data, auth) {
       await col().doc("auth").set({ shopCipher: s.cipher, shopId: String(s.id || ""), shopName: s.name || "", shopRegion: s.region || "", shopCode: s.code || "" }, { merge: true });
       return status();
     }
+    case "products": {
+      const P = require("./tiktok-products");
+      if (data.check) await P.refresh();
+      return { products: await P.status() };
+    }
+    case "publish": {
+      const P = require("./tiktok-products");
+      const id = U.text(data.id, 80, { required: true, field: "the collection" });
+      try { return await P.publish(id); } catch (err) {
+        console.error("tiktok publish", id, String(err.message || err));
+        await col().doc("products").set({ [id]: { state: "", error: String(err.message || err).slice(0, 300), at: nowIso() } }, { merge: true });
+        throw err;
+      }
+    }
     case "disconnect": {
       const a = (await readDoc("auth")) || {};
       // the app secret stays (it belongs to the app, not to the connection)
