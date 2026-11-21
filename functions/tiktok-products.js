@@ -157,10 +157,13 @@ async function publish(id, { draft = false, force = false } = {}) {
 }
 
 /** TikTok reviews each new product: asks it where each one is now (PENDING, ACTIVATE, FAILED…). */
-async function refresh() {
+async function refresh({ onlyPending = false } = {}) {
+  const a = await T().readAuth();
+  if (!a || !a.shopCipher) return;
   const done = (await col().doc("products").get()).data() || {};
   for (const [id, row] of Object.entries(done)) {
     if (!row || !row.productId) continue;
+    if (onlyPending && row.state !== "pending") continue;
     try {
       const p = await T().call("GET", `/product/202309/products/${row.productId}`);
       const st = String(p.status || "").toUpperCase();

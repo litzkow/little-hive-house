@@ -460,7 +460,13 @@
       '<button class="btn btn-honey" type="button" data-act="labelQuote">' + icon('truck') + 'Buy label</button></div>' +
       '<div id="label-quote" hidden></div><p class="err" id="label-err" hidden></p></div>';
   }
+  /* TikTok orders: the label must come from TikTok (TikTok Shipping); TikTok then tells the buyer */
+  function tiktokBox(o) {
+    return '<div class="labelbuy"><div class="row between wrap"><div class="stack" style="gap:2px;min-width:0;flex:1"><b>TikTok label</b><span class="small muted">TikTok makes the label (it pays the postage from the sale). Print it, stick it on and drop the package at the post office or the carrier on the label. The tracking goes to the order by itself.</span></div>' +
+      '<button class="btn btn-honey" type="button" data-act="ttLabel">' + icon('truck') + 'Get TikTok label</button></div><p class="err" id="tt-label-err" hidden></p></div>';
+  }
   function labelPrint(o) {
+    if (o.source === 'tiktok') return '<div class="row between wrap gap-top"><span class="small muted">TikTok label</span><button class="btn btn-ghost btn-sm" type="button" data-act="ttLabel">' + icon('print') + 'Print the label again</button></div>';
     var L = (o.fulfillment || {}).label;
     if (!L || L.test || !L.url) return '';
     return '<div class="row between wrap gap-top"><span class="small muted">USPS label bought ' + esc(h.ago(L.at)) + (L.cost != null ? ' · ' + money(L.cost) : '') + (L.oz ? ' · ' + esc(String(L.oz)) + ' oz' : '') + '</span>' +
@@ -506,10 +512,12 @@
     if (st === 'to_fulfil') {
       return '<section class="card tint"><div class="card-head"><div><h2>Make &amp; ship</h2><p class="sub">Paid ' + esc(h.ago(R.orderDate(o))) + ' · ' + h.plural(R.magnetsOf(o), 'magnet') + '</p></div>' +
         '<button class="btn btn-sm" data-act="startProd">Start production</button></div>' + holdBox(o) +
-        labelBox(o) + '<details class="panel" open><summary>Bought the label somewhere else? Type the tracking</summary><div>' + pirateBox(o) + shipForm(o) + '</div></details></section>';
+        (o.source === 'tiktok' ? tiktokBox(o) + '</section>' :
+        labelBox(o) + '<details class="panel" open><summary>Bought the label somewhere else? Type the tracking</summary><div>' + pirateBox(o) + shipForm(o) + '</div></details></section>');
     }
     if (st === 'in_production') {
       var since = (o.timeline || []).filter(function (t) { return t.status === 'in_production'; }).pop();
+      if (o.source === 'tiktok') return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Close the parcel, then get the TikTok label.') + tiktokBox(o) + '</section>';
       return '<section class="card tint">' + head('Ship it', 'In production' + (since ? ' since ' + esc(h.fmtDate(since.at)) : '') + '. Close the parcel, then buy the label.') + holdBox(o) + labelBox(o) +
         '<details class="panel" open><summary>Bought the label somewhere else? Type the tracking</summary><div>' + pirateBox(o) + shipForm(o) + '</div></details></section>';
     }
@@ -747,9 +755,15 @@
       (lines.length ? '<address class="addr">' + esc(addr) + '</address>' : '<p class="muted">No address yet (not paid).</p>') + '</div>' +
       (o.giftMessage ? '<div class="sect"><h3>Gift message</h3><p class="quote" translate="no">' + esc(o.giftMessage) + '</p></div>' : '') +
       (o.notes ? '<div class="sect"><h3>Note from the customer</h3><p class="quote" translate="no">' + esc(o.notes) + '</p></div>' : '') +
-      (window.LHHAdsOrigin && o.source !== 'etsy' && o.status !== 'pending' ? '<div class="sect"><h3>Where they came from</h3><p translate="no"><a href="#ads">' + esc(window.LHHAdsOrigin(o.ref)) + '</a></p></div>' : '') + '</section>';
+      (window.LHHAdsOrigin && o.source !== 'etsy' && o.source !== 'tiktok' && o.status !== 'pending' ? '<div class="sect"><h3>Where they came from</h3><p translate="no"><a href="#ads">' + esc(window.LHHAdsOrigin(o.ref)) + '</a></p></div>' : '') + '</section>';
   }
   function paymentCard(o) {
+    if (o.source === 'tiktok') {   /* paid on TikTok Shop (functions/tiktok-orders.js): TikTok keeps the money and talks to the buyer */
+      var pt = R.pricing(o), tk = o.tiktok || {};
+      return '<section class="card"><div class="card-head"><h2>Payment</h2>' + (tk.url ? '<a class="btn btn-ghost btn-sm" href="' + esc(tk.url) + '" target="_blank" rel="noopener">TikTok ' + icon('external') + '</a>' : '') + '</div>' +
+        '<dl class="kv"><dt>Paid on TikTok</dt><dd>' + money(pt.total) + '</dd><dt>TikTok order</dt><dd translate="no">' + esc(tk.orderId || '') + '</dd></dl>' +
+        '<p class="small muted">Refunds, messages and returns for this order are done in TikTok Shop (Seller Center). The label comes from TikTok too.</p></section>';
+    }
     if (o.source === 'etsy') {   /* paid on Etsy (functions/etsy-orders.js): Etsy keeps the money and talks to the buyer */
       var pe = R.pricing(o);
       return '<section class="card"><div class="card-head"><h2>Payment</h2>' + (o.etsy && o.etsy.url ? '<a class="btn btn-ghost btn-sm" href="' + esc(o.etsy.url) + '" target="_blank" rel="noopener">Etsy ' + icon('external') + '</a>' : '') + '</div>' +
@@ -821,7 +835,7 @@
     return R.toMs(v) ? 'Sent ' + h.fmtDT(v) : 'Sent';
   }
   function emailsCard(o) {
-    if (o.source === 'etsy') return '';   /* Etsy emails its buyers itself */
+    if (o.source === 'etsy' || o.source === 'tiktok') return '';   /* Etsy and TikTok email their buyers themselves */
     var e = o.emails || {}, st = R.stage(o);
     var allowed = { confirmation: R.isSale(o), shipped: R.wasShipped(o), outForDelivery: !!e.outForDelivery, delivered: st === 'delivered', refund: R.refundedTotal(o) > 0 };
     if (o.status === 'pending') {
@@ -1034,6 +1048,19 @@
         rerender();
       })
       .catch(function (e) { h.busy(el, false); err.textContent = h.friendlyError(e); err.hidden = false; });
+  };
+  ACT.ttLabel = function (el) {
+    var o = current; if (!o) return;
+    var err = document.getElementById('tt-label-err');
+    if (err) err.hidden = true;
+    h.busy(el, true);
+    h.call('adminTikTok', { action: 'label', orderId: o.id }).then(function (res) {
+      h.busy(el, false);
+      h.dialog({ title: 'TikTok label', ok: false, cancel: 'Close',
+        html: '<p class="small muted">' + (res.tracking ? 'Tracking ' + esc(res.tracking) + (res.carrier && res.carrier !== 'other' ? ' (' + esc(res.carrier.toUpperCase()) + ')' : '') + '. ' : '') +
+          'Print at 100% (Actual size). The link works for a short while; tap “Print the label again” later for a new one.</p>' +
+          (res.url ? '<p><a class="btn btn-honey" href="' + esc(res.url) + '" target="_blank" rel="noopener">' + icon('external') + 'Open the label</a></p>' : '<p class="err">TikTok didn’t send the label yet. Try again in a minute.</p>') });
+    }).catch(function (e) { h.busy(el, false); var m = h.friendlyError(e); if (err) { err.textContent = m; err.hidden = false; } else h.toast(m, true); });
   };
   ACT.labelPdf = function (el) {
     var o = current; if (!o) return;

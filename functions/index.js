@@ -182,6 +182,9 @@ exports.deliveredFollowUp = onSchedule({ region: REGION, schedule: "every day 09
 /* ---------- every 15 minutes: the paid Etsy orders come into Hive Admin (etsy-orders.js) ---------- */
 exports.etsyOrders = onSchedule({ region: REGION, schedule: "every 15 minutes", timeZone: "America/New_York", timeoutSeconds: 300, memory: "256MiB" }, async () => {
   try { await require("./etsy-orders").importOrders(); } catch (e) { console.warn("[etsyOrders]", e.message); }
+  // the TikTok Shop orders ready to ship come in the same way (tiktok-orders.js), and new products' review is checked
+  try { await require("./tiktok-orders").importOrders(); } catch (e) { console.warn("[tiktokOrders]", e.message); }
+  try { await require("./tiktok-products").refresh({ onlyPending: true }); } catch (e) { console.warn("[tiktokProducts]", e.message); }
 });
 
 /* ---------- every 10 minutes: Instagram & Facebook looked after (social.js): products tagged on the posts, comments and Direct ---------- */

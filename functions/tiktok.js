@@ -170,6 +170,8 @@ async function adminTikTok(data, auth) {
         throw err;
       }
     }
+    case "orders": return require("./tiktok-orders").importOrders({ days: Math.min(90, Number(data.days) || 30) });
+    case "label": return require("./tiktok-orders").label(U.text(data.orderId, 120, { required: true, field: "the order" }));
     case "disconnect": {
       const a = (await readDoc("auth")) || {};
       // the app secret stays (it belongs to the app, not to the connection)

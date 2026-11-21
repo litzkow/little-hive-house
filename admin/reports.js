@@ -159,6 +159,8 @@
     if (f != null && f !== '' && isFinite(Number(f))) return { amount: num(f), estimated: false };
     s = settingsWithDefaults(s);
     var t = pricing(o).total;
+    // TikTok Shop keeps its referral fee (8% of what the buyer paid, tax out; it includes the card fee) instead of Stripe
+    if (o.source === 'tiktok') return { amount: t > 0 ? round2(t * 0.08) : 0, estimated: true };
     return { amount: t > 0 ? round2(t * s.stripePct / 100 + s.stripeFixed) : 0, estimated: true };
   }
   function wasShipped(o) {
