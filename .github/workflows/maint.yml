@@ -272,6 +272,11 @@ jobs:
         run: |
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           node tools/maint/tiktok-promo.js
+      - name: "TikTok Shop: subir as imagens da página da loja"
+        if: inputs.task == 'tiktok-upload'
+        run: |
+          (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
+          node tools/maint/tiktok-upload.js
       - name: "TikTok Shop: guardar o resultado"
         if: always() && inputs.task == 'tiktok-probe'
         uses: actions/upload-artifact@v4
@@ -318,7 +323,7 @@ jobs:
           (cd functions && npm install --no-audit --no-fund --omit=dev >/dev/null)
           ALL="${{ inputs.value == 'all' && '1' || '' }}" node tools/maint/check-content.js
       - name: Run
-        if: inputs.task != 'storage-cors' && inputs.task != 'set-ads' && inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'ig-tags' && inputs.task != 'social-run' && inputs.task != 'etsy-check' && inputs.task != 'tiktok-probe' && inputs.task != 'tiktok-publish' && inputs.task != 'tiktok-promo' && inputs.task != 'social-fix' && inputs.task != 'ig-fix-carousel' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
+        if: inputs.task != 'storage-cors' && inputs.task != 'set-ads' && inputs.task != 'probe-meta' && inputs.task != 'probe-meta-options' && inputs.task != 'ads-pause-all' && inputs.task != 'ads-audience' && inputs.task != 'order-emails' && inputs.task != 'probe-shop' && inputs.task != 'meta-shop-collections' && inputs.task != 'meta-audience-lookup' && inputs.task != 'meta-pixel' && inputs.task != 'check-meta-perms' && inputs.task != 'ig-tags' && inputs.task != 'social-run' && inputs.task != 'etsy-check' && inputs.task != 'tiktok-probe' && inputs.task != 'tiktok-publish' && inputs.task != 'tiktok-promo' && inputs.task != 'tiktok-upload' && inputs.task != 'social-fix' && inputs.task != 'ig-fix-carousel' && inputs.task != 'check-content' && inputs.task != 'check-shippo' && inputs.task != 'check-order' && inputs.task != 'check-analytics' && inputs.task != 'etsy-images' && inputs.task != 'etsy-try' && inputs.task != 'etsy-publish' && inputs.task != 'etsy-shop' && inputs.task != 'etsy-perso'
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           VALUE: ${{ inputs.value }}
