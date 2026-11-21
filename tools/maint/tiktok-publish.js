@@ -1,6 +1,6 @@
 "use strict";
 /* TikTok Shop: publishes one design collection (VALUE = its id, e.g. birth-flowers), then asks TikTok where each
-   published product stands. VALUE=check only asks; DRAFT=1 saves it as a draft (not for sale). Prints no token or secret. */
+   published product stands. VALUE=all publishes every one missing; VALUE=check only asks; DRAFT=1 saves it as a draft (not for sale). Prints no token or secret. */
 process.env.SITE_URL = process.env.SITE_URL || "https://littlehivehouse.com";
 const { Firestore } = require("@google-cloud/firestore");
 require("../../functions/deps").set({ db: new Firestore({ projectId: process.env.PROJECT || "little-hive-house", ignoreUndefinedProperties: true }) });
@@ -8,7 +8,15 @@ const say = (s) => console.log(`::warning title=tiktok::${String(s).replace(/\n/
 (async () => {
   const P = require("../../functions/tiktok-products");
   const id = (process.env.VALUE || "").trim();
-  if (id && id !== "check") {
+  if (id === "all") {
+    // every collection not yet on TikTok (or still a draft), in the site's order
+    const done = await P.status();
+    for (const p of done) {
+      if (p.state === "active" || p.state === "pending") continue;
+      try { const r = await P.publish(p.id, { force: p.state === "draft" }); say(`publicado ${p.id}: ${r.product.productId} ${r.product.state}`); }
+      catch (e) { say(`ERRO ${p.id}: ${e.message}`); }
+    }
+  } else if (id && id !== "check") {
     try { const r = await P.publish(id, { draft: process.env.DRAFT === "1", force: true }); say(`publicado ${id}: ${JSON.stringify(r).slice(0, 600)}`); }
     catch (e) {
       say(`ERRO ao publicar ${id}: ${e.message}`);
