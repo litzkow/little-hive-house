@@ -1,9 +1,10 @@
 "use strict";
-/* The design collections on TikTok Shop, one product per collection, made from the same listings as Etsy
-   (etsy-listings.json, kind "design"): title, a TikTok version of the description, the Etsy photos made square
-   (TikTok shows square photos: the photo on a blurred copy of itself), and one SKU per design ("Design" sales attribute,
-   the design's own art as the SKU picture, seller_sku "<collection>-<n>", the same as Etsy's sku). Price: TIKTOK.price
-   for one magnet (each channel has its own price; the owners, Nov 2026). Made to order, so stock is always 99.
+/* The design collections on TikTok Shop, one product per collection, as close to the website as possible (owners,
+   Nov 2026): the site's collections in the site's order (etsy-listings.json, kind "design", keeps that order and the
+   designs' numbering), the site's look in the photos (tiktok/img/<collection>/<n>.jpg, square, made by
+   tools/tiktok_photos.py: never the Etsy lifestyle scenes, which are Etsy-only), the collection's own text, and one SKU
+   per design ("Design" sales attribute, the design's art as the SKU picture, seller_sku "<collection>-<n>", the same as
+   Etsy's sku). Price: TIKTOK.price for one magnet, the site's price. Made to order, so stock is always 99.
    Category 854536 "Refrigerator Magnets" (TikTok's own recommendation for these, category version v2).
    tiktok/products remembers each collection's TikTok product id and SKU ids (orders use them). */
 
@@ -12,7 +13,7 @@ const deps = require("./deps");
 const T = () => require("./tiktok")._internal;
 
 const TIKTOK = {
-  price: 5.5,                 // one magnet
+  price: 5,                   // one magnet: the same as the site (catalog.json designPrice)
   category: "854536",         // Home Supplies > Home Decor > Refrigerator Magnets
   stock: 99,
   // one magnet in its sleeve, in a kraft A7 envelope with the cards: what the label is bought for
@@ -89,10 +90,12 @@ async function upload(buf, name, useCase) {
   }
 }
 
-const etsyImg = (l, n) => {
-  const v = Math.max(Number(require("./etsy-listings.json").imagesVersion || 1), Number(l.imagesVersion || 0));
-  return `${siteUrl()}/etsy/img/${l.id}/${n}.jpg?v=${v}`;
-};
+const PHOTOS = () => require("./tiktok-photos.json");
+const photoCount = (l) => Math.min(9, Number(PHOTOS().photos[l.id]) || 0);
+const photoV = () => Number(PHOTOS().imagesVersion) || 1;
+const tiktokImg = (l, n) => `${siteUrl()}/tiktok/img/${l.id}/${n}.jpg?v=${photoV()}`;
+/** The site's way of naming a collection's product ("USA Places Fridge Magnets, Handmade 2x2 in…"). */
+const title = (l) => `${l.name} Fridge Magnets, Handmade 2x2 Inch Square Magnet Collection`.slice(0, 255);
 const artImg = (slug) => `${siteUrl()}/assets/art/${slug}.webp`;
 
 /* ---------- the product ---------- */
@@ -106,10 +109,10 @@ async function warehouseId() {
   return w.id;
 }
 
-function body(l, mainUris, skuUris, wh) {
+function body(l, mainUris, skuUris, wh, skuIds = {}) {
   const v = l.variations[0];
   return {
-    title: String(l.title).slice(0, 255),
+    title: title(l),
     description: description(l),
     category_id: TIKTOK.category,
     category_version: "v2",
@@ -119,6 +122,7 @@ function body(l, mainUris, skuUris, wh) {
     product_attributes: ATTRS.map(([id, value]) => ({ id, values: [{ id: value }] })),
     is_cod_allowed: false,
     skus: v.options.map((o, i) => ({
+      ...(skuIds[`${l.id}-${i + 1}`] ? { id: skuIds[`${l.id}-${i + 1}`] } : {}),
       seller_sku: `${l.id}-${i + 1}`.slice(0, 50),
       sales_attributes: [{ name: "Design", value_name: optionName(o), ...(skuUris[i] ? { sku_img: { uri: skuUris[i] } } : {}) }],
       price: { amount: TIKTOK.price.toFixed(2), currency: "USD" },
@@ -127,22 +131,27 @@ function body(l, mainUris, skuUris, wh) {
   };
 }
 
-/** Puts one collection on TikTok (photos up, then the product). Done once; tiktok/products remembers it. */
-async function publish(id, { draft = false } = {}) {
+/** Puts one collection on TikTok (photos up, then the product), or brings a product already there up to date when its
+    photos or texts changed (a new photo version). tiktok/products remembers it. */
+async function publish(id, { draft = false, force = false } = {}) {
   const l = LISTINGS().find((x) => x.id === id);
   if (!l) fail("invalid-argument", "Unknown collection.");
+  if (!photoCount(l)) fail("failed-precondition", `The TikTok photos of ${l.name} aren't made yet (tools/tiktok_photos.py).`);
   const done = ((await col().doc("products").get()).data() || {})[l.id];
-  if (done && done.productId) return { product: { id: l.id, ...done }, skipped: true };
+  if (done && done.productId && !force && Number(done.photosV) >= photoV()) return { product: { id: l.id, ...done }, skipped: true };
   const wh = await warehouseId();
   const main = [];
-  for (let n = 1; n <= Math.min(9, l.images); n++) main.push(await upload(await shape(await fetchBytes(etsyImg(l, n)), true), `${l.id}-${n}.jpg`, "MAIN_IMAGE"));
+  for (let n = 1; n <= photoCount(l); n++) main.push(await upload(await shape(await fetchBytes(tiktokImg(l, n)), false), `${l.id}-${n}.jpg`, "MAIN_IMAGE"));
   const skuUris = [];
   for (const slug of l.designs || []) skuUris.push(await upload(await shape(await fetchBytes(artImg(slug)), false), `${slug.replace(/\//g, "-")}.jpg`, "ATTRIBUTE_IMAGE"));
   if (skuUris.length !== l.variations[0].options.length) skuUris.length = 0;   // all or none (TikTok's rule)
-  const d = await T().call("POST", "/product/202309/products", { json: { ...body(l, main, skuUris, wh), ...(draft ? { save_mode: "AS_DRAFT" } : {}) } });
-  const skus = {};
+  const json = { ...body(l, main, skuUris, wh, (done && done.skus) || {}), ...(draft ? { save_mode: "AS_DRAFT" } : {}) };
+  const d = done && done.productId
+    ? await T().call("PUT", `/product/202309/products/${done.productId}`, { json })
+    : await T().call("POST", "/product/202309/products", { json });
+  const skus = { ...((done && done.skus) || {}) };
   (d.skus || []).forEach((s) => { if (s.seller_sku) skus[s.seller_sku] = String(s.id); });
-  const row = { productId: String(d.product_id), skus, state: draft ? "draft" : "pending", price: TIKTOK.price, at: nowIso(), error: "" };
+  const row = { productId: String(d.product_id || (done && done.productId)), skus, state: draft ? "draft" : "pending", price: TIKTOK.price, photosV: photoV(), at: nowIso(), error: "" };
   await col().doc("products").set({ [l.id]: row }, { merge: true });
   return { product: { id: l.id, ...row } };
 }

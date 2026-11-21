@@ -9,7 +9,7 @@ const say = (s) => console.log(`::warning title=tiktok::${String(s).replace(/\n/
   const P = require("../../functions/tiktok-products");
   const id = (process.env.VALUE || "").trim();
   if (id && id !== "check") {
-    try { const r = await P.publish(id, { draft: process.env.DRAFT === "1" }); say(`publicado ${id}: ${JSON.stringify(r).slice(0, 600)}`); }
+    try { const r = await P.publish(id, { draft: process.env.DRAFT === "1", force: true }); say(`publicado ${id}: ${JSON.stringify(r).slice(0, 600)}`); }
     catch (e) {
       say(`ERRO ao publicar ${id}: ${e.message}`);
       if (process.env.DUMP === "1") say(JSON.stringify(P._internal.body(require("../../functions/etsy-listings.json").listings.find((l) => l.id === id), ["uri"], [], "wh")).slice(0, 900));
