@@ -140,5 +140,10 @@
  "Your photo pack was removed. Please add your photos again.": "Naalis ang photo pack mo. Idagdag ulit ang mga litrato mo.",
  "One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).": "May isang file na hindi mabuksan, kaya hindi ito naidagdag. Pumili ng litrato (JPG, PNG, HEIC o WebP).",
  "No preview": "Walang preview",
- "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Hindi namin mabuksan ang isa sa mga litrato mo. Alisin ito, idagdag ang orihinal na litrato mula sa camera roll mo (JPG, PNG, HEIC o WebP) at subukan ulit."
+ "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Hindi namin mabuksan ang isa sa mga litrato mo. Alisin ito, idagdag ang orihinal na litrato mula sa camera roll mo (JPG, PNG, HEIC o WebP) at subukan ulit.",
+ "Edit photos": "I-edit ang mga larawan",
+ "Update cart": "I-update ang cart",
+ "Editing the photo magnets in your cart": "Ine-edit ang photo magnets sa cart mo",
+ "Change frames, captions or photos, then tap Update cart.": "Palitan ang frame, caption o larawan, saka i-tap ang I-update ang cart.",
+ "Photo magnets updated": "Na-update ang photo magnets"
 }

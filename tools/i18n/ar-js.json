@@ -140,5 +140,10 @@
  "Your photo pack was removed. Please add your photos again.": "أُزيلت باقة صورك. أضف صورك مرة أخرى.",
  "One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).": "تعذّر فتح ملف واحد، لذا لم يُضَف. اختر صورة (JPG أو PNG أو HEIC أو WebP).",
  "No preview": "لا توجد معاينة",
- "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "تعذّر فتح إحدى صورك. أزِلها، وأضف الصورة الأصلية من ألبوم الكاميرا (JPG أو PNG أو HEIC أو WebP) وحاول مرة أخرى."
+ "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "تعذّر فتح إحدى صورك. أزِلها، وأضف الصورة الأصلية من ألبوم الكاميرا (JPG أو PNG أو HEIC أو WebP) وحاول مرة أخرى.",
+ "Edit photos": "تعديل الصور",
+ "Update cart": "تحديث السلة",
+ "Editing the photo magnets in your cart": "تعديل مغناطيسات الصور في سلتك",
+ "Change frames, captions or photos, then tap Update cart.": "غيّر الإطارات أو التعليقات أو الصور، ثم اضغط \"تحديث السلة\".",
+ "Photo magnets updated": "تم تحديث مغناطيسات الصور"
 }

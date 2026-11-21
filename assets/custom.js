@@ -4,6 +4,7 @@
    drawn as a mini preview of that same photo. The placement prints exactly as shown (functions/crop.js). */
 (function () {
   var $ = function (id) { return document.getElementById(id); };
+  var editing = null;   /* the cart line being edited (photo-magnets.html?edit=<line id>), see openEdit */
   var NS = 'http://www.w3.org/2000/svg';
   var DATA = window.LHH_FRAMES || { list: [], groups: [] };
   var ALL = DATA.list || [];
@@ -376,6 +377,7 @@
     return {
       /* Safari's private browsing won't keep a File in IndexedDB: then the photo is kept as raw bytes instead */
       file: function (p) {
+        if (editing) return Promise.resolve();   /* editing a pack from the cart: the cart keeps it */
         return tx('files', 'readwrite', function (s) { return s.put(p.blob, p.id); }).then(function (ok) {
           if (ok !== null || !p.blob.arrayBuffer) return;
           return p.blob.arrayBuffer().then(function (buf) {
@@ -385,6 +387,7 @@
       },
       drop: function (id) { tx('files', 'readwrite', function (s) { return s.delete(id); }); },
       state: function () {
+        if (editing) return;
         clearTimeout(stTimer);
         stTimer = setTimeout(function () { var v = snapshot(); tx('state', 'readwrite', function (s) { return s.put(v, 'builder'); }); }, 300);
       },
@@ -675,12 +678,18 @@
     if (photos.length < size) orderNotes += '\nPack of ' + size + ': repeat photos in order to fill it.';
     else if (picked() !== 1 && photos.length > picked()) orderNotes += '\nPack of ' + picked() + ' + ' + (photos.length - picked()) + ' extra photos.';
     if (notes) orderNotes += '\nNotes: ' + notes;
-    LHH.addCustom({ id: 'custom-' + Date.now(), count: size, name: 'Custom photo magnets', detail: detail, price: packPrice(),
-                    photos: lines, notes: notes, orderNotes: orderNotes });
+    var item = { id: 'custom-' + Date.now(), count: size, name: 'Custom photo magnets', detail: detail, price: packPrice(),
+                 photos: lines, notes: notes, orderNotes: orderNotes };
+    var wasEditing = !!editing;
+    if (editing) {
+      item.qty = editing.qty || 1;
+      LHH.replaceCustom(editing.id, item);
+      endEdit();
+    } else LHH.addCustom(item);
     if (window.lhhTrack) window.lhhTrack('add_to_cart', { currency: 'USD', value: packPrice(), items: [{ item_id: 'photo-pack-' + size, item_name: 'Custom photo magnets (' + size + ')', item_category: 'Photo magnets', price: packPrice(), quantity: 1 }] });
     photos.forEach(function (p) { if (p.big) { URL.revokeObjectURL(p.big); p.big = null; } });
     photos = []; $('notes').value = ''; $('rights').checked = false;
-    keep.clear();
+    if (!wasEditing) keep.clear();   /* photos picked before the edit, not yet in the cart, stay for later */
     renderBuilder();
   });
 
@@ -699,5 +708,44 @@
       setInterval(function () { try { if (photos.length) sessionStorage.setItem(K, String(photos.length)); else sessionStorage.removeItem(K); } catch (e) { /* ignore */ } }, 2000);
     } catch (e) { /* private mode */ }
   })();
-  keep.restore();
+  /* ---------- editing a pack that is already in the cart ----------
+     The cart's "Edit photos" opens this page with ?edit=<line id>: the pack's photos come back here with their frames,
+     captions and placement, the customer changes anything (frames, captions, adds or removes photos), and
+     "Update cart" puts the new pack in the old one's place. Leaving without updating leaves the cart as it was. */
+  function endEdit() {
+    editing = null;
+    var b = $('edit-banner'); if (b) b.remove();
+    $('add-custom').textContent = 'Add to cart';
+    try { var u = new URL(location.href); u.searchParams.delete('edit'); history.replaceState(null, '', u); } catch (e) { /* old browser */ }
+  }
+  function openEdit(id) {
+    return (LHH.photosReady || Promise.resolve()).then(function () {
+      var line = LHH.cart().filter(function (l) { return l.kind === 'custom' && l.id === id; })[0];
+      if (!line || !line.photos.length || line.photos.some(function (ph) { return !ph.blob; })) {
+        if (line && LHH.toast) LHH.toast('Your photos aren’t on this page anymore. Remove the photo pack from your cart and add your photos again.');
+        endEdit(); return false;
+      }
+      editing = { id: line.id, qty: line.qty };
+      photos.forEach(function (p) { if (p.url) URL.revokeObjectURL(p.url); if (p.big) URL.revokeObjectURL(p.big); });
+      photos = line.photos.map(function (ph) { return newPhoto(ph.blob, { name: ph.file, frame: ph.frame, caption: ph.caption, capStyle: ph.capStyle, crop: ph.crop }); });
+      var n = photos.length, first = (PR.packs[0] || [4])[0];
+      if (document.getElementById('pack-' + line.count)) pick(line.count); else pick(n < first ? 1 : baseFor(n)[0]);
+      $('notes').value = line.notes || '';
+      $('rights').checked = true;
+      $('add-custom').textContent = 'Update cart';
+      var ban = document.createElement('div'); ban.id = 'edit-banner'; ban.className = 'edit-banner'; ban.setAttribute('role', 'status');
+      var bt = document.createElement('strong'); bt.textContent = 'Editing the photo magnets in your cart';
+      var bp = document.createElement('span'); bp.textContent = 'Change frames, captions or photos, then tap Update cart.';
+      ban.append(bt, bp);
+      $('builder').insertBefore(ban, $('builder').firstChild);
+      photos.forEach(prepare);
+      renderBuilder();
+      try { window.scrollTo(0, ban.getBoundingClientRect().top + window.pageYOffset - 96); } catch (e) { /* old browser */ }   /* below the sticky header */
+      return true;
+    });
+  }
+  var editId = null;
+  try { editId = new URLSearchParams(location.search).get('edit'); } catch (e) { /* old browser */ }
+  if (editId) openEdit(editId).then(function (ok) { if (!ok) keep.restore(); });
+  else keep.restore();
 })();

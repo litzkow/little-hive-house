@@ -140,5 +140,10 @@
  "Your photo pack was removed. Please add your photos again.": "你的照片套餐已被移除。请重新添加照片。",
  "One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).": "有一个文件打不开，所以没有添加。请选择照片（JPG、PNG、HEIC 或 WebP）。",
  "No preview": "无预览",
- "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "有一张照片打不开。请删除它，从相册添加原图（JPG、PNG、HEIC 或 WebP）后再试。"
+ "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "有一张照片打不开。请删除它，从相册添加原图（JPG、PNG、HEIC 或 WebP）后再试。",
+ "Edit photos": "编辑照片",
+ "Update cart": "更新购物车",
+ "Editing the photo magnets in your cart": "正在编辑购物车里的照片冰箱贴",
+ "Change frames, captions or photos, then tap Update cart.": "可以更换相框、文字或照片，然后点“更新购物车”。",
+ "Photo magnets updated": "照片冰箱贴已更新"
 }

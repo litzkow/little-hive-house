@@ -140,5 +140,10 @@
  "Your photo pack was removed. Please add your photos again.": "Ваш набор фото удалён. Добавьте фото заново.",
  "One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).": "Один файл не удалось открыть, поэтому он не добавлен. Выберите фото (JPG, PNG, HEIC или WebP).",
  "No preview": "Нет превью",
- "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Не удалось открыть одно из ваших фото. Удалите его, добавьте оригинал из галереи (JPG, PNG, HEIC или WebP) и попробуйте снова."
+ "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Не удалось открыть одно из ваших фото. Удалите его, добавьте оригинал из галереи (JPG, PNG, HEIC или WebP) и попробуйте снова.",
+ "Edit photos": "Изменить фото",
+ "Update cart": "Обновить корзину",
+ "Editing the photo magnets in your cart": "Вы меняете фотомагниты из корзины",
+ "Change frames, captions or photos, then tap Update cart.": "Поменяйте рамки, подписи или фото и нажмите «Обновить корзину».",
+ "Photo magnets updated": "Фотомагниты обновлены"
 }

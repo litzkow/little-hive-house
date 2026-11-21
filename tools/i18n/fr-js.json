@@ -140,5 +140,10 @@
  "Your photo pack was removed. Please add your photos again.": "Votre lot photo a été retiré. Ajoutez à nouveau vos photos.",
  "One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).": "Un fichier n'a pas pu être ouvert et n'a pas été ajouté. Choisissez une photo (JPG, PNG, HEIC ou WebP).",
  "No preview": "Pas d'aperçu",
- "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Impossible d'ouvrir l'une de vos photos. Retirez-la, ajoutez la photo originale de votre galerie (JPG, PNG, HEIC ou WebP) et réessayez."
+ "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Impossible d'ouvrir l'une de vos photos. Retirez-la, ajoutez la photo originale de votre galerie (JPG, PNG, HEIC ou WebP) et réessayez.",
+ "Edit photos": "Modifier les photos",
+ "Update cart": "Mettre à jour le panier",
+ "Editing the photo magnets in your cart": "Modification des magnets photo de votre panier",
+ "Change frames, captions or photos, then tap Update cart.": "Changez les cadres, les légendes ou les photos, puis touchez Mettre à jour le panier.",
+ "Photo magnets updated": "Magnets photo mis à jour"
 }

@@ -140,5 +140,10 @@
  "Your photo pack was removed. Please add your photos again.": "사진 팩이 삭제됐어요. 사진을 다시 추가해 주세요.",
  "One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).": "파일 하나를 열 수 없어서 추가하지 않았어요. 사진(JPG, PNG, HEIC, WebP)을 골라 주세요.",
  "No preview": "미리보기 없음",
- "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "사진 하나를 열 수 없어요. 그 사진을 삭제하고 카메라 롤의 원본 사진(JPG, PNG, HEIC, WebP)을 추가한 뒤 다시 시도해 주세요."
+ "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "사진 하나를 열 수 없어요. 그 사진을 삭제하고 카메라 롤의 원본 사진(JPG, PNG, HEIC, WebP)을 추가한 뒤 다시 시도해 주세요.",
+ "Edit photos": "사진 편집",
+ "Update cart": "장바구니 업데이트",
+ "Editing the photo magnets in your cart": "장바구니에 담긴 사진 자석을 편집하고 있어요",
+ "Change frames, captions or photos, then tap Update cart.": "프레임, 문구, 사진을 바꾼 뒤 장바구니 업데이트를 누르세요.",
+ "Photo magnets updated": "사진 자석을 업데이트했어요"
 }

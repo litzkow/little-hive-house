@@ -140,5 +140,10 @@
  "Your photo pack was removed. Please add your photos again.": "Gói ảnh đã bị xóa. Vui lòng thêm ảnh lại.",
  "One file couldn’t be opened, so it wasn’t added. Please choose a photo (JPG, PNG, HEIC or WebP).": "Một file không mở được nên chưa được thêm. Vui lòng chọn ảnh (JPG, PNG, HEIC hoặc WebP).",
  "No preview": "Không có xem trước",
- "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Không mở được một ảnh của bạn. Hãy xóa ảnh đó, thêm ảnh gốc từ thư viện (JPG, PNG, HEIC hoặc WebP) và thử lại."
+ "We couldn’t open one of your photos. Please remove it, add the original photo from your camera roll (JPG, PNG, HEIC or WebP) and try again.": "Không mở được một ảnh của bạn. Hãy xóa ảnh đó, thêm ảnh gốc từ thư viện (JPG, PNG, HEIC hoặc WebP) và thử lại.",
+ "Edit photos": "Sửa ảnh",
+ "Update cart": "Cập nhật giỏ hàng",
+ "Editing the photo magnets in your cart": "Đang sửa nam châm ảnh trong giỏ hàng",
+ "Change frames, captions or photos, then tap Update cart.": "Đổi khung, chú thích hoặc ảnh, rồi chạm Cập nhật giỏ hàng.",
+ "Photo magnets updated": "Đã cập nhật nam châm ảnh"
 }

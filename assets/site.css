@@ -1433,3 +1433,13 @@ html.sale-today .hero-sale .sale-deals-day { order: -1; }
 :root[data-season] main > section:first-child > .wrap > :is(.crumbs, .eyebrow):first-child,
 :root[data-season] main > .page-head:first-child > :is(.crumbs, .eyebrow):first-child { margin-top: 30px; }
 @media (max-width: 820px) { html.sale-live .hero .seal { order: 0; max-width: 220px; } html.sale-live .hero { padding-top: 56px; } }
+
+/* a photo pack in the cart: the customer's photos, "Edit photos", and the frames only when they differ */
+.line-pics { grid-column: 1 / -1; margin-left: 68px; display: grid; gap: 8px; justify-items: start; }
+.line-pics-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.line-pics-row img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2, #F3E7CF); }
+.line-pics-more { font-size: 13px; font-weight: 600; color: var(--muted); padding: 0 4px; }
+.line-pics .line-photos { margin-top: 0; }
+html[dir=rtl] .line-pics { margin-left: 0; margin-right: 68px; }
+.edit-banner { display: grid; gap: 2px; padding: 12px 16px; margin-bottom: 16px; border-radius: 14px; background: #F9D88A; color: #2B2118; }
+.edit-banner span { font-size: 14px; }

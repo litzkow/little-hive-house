@@ -192,6 +192,47 @@ window.LHH_LOCALE = { en: 'en-US', es: 'es-US', pt: 'pt-BR', zh: 'zh-CN', fil: '
     return img;
   }
 
+  /* A photo pack in the cart: the customer's own photos in a row (the light copies made on the photo page, kept in this
+     browser as "<line>/<n>/t"), an "Edit photos" button that opens the pack again on the photo page, and the frame of
+     each photo only when they differ. */
+  var PICS_SHOWN = 12;
+  function linePics(l) {
+    var box = document.createElement('div'); box.className = 'line-pics';
+    var row = document.createElement('div'); row.className = 'line-pics-row';
+    l.photos.slice(0, PICS_SHOWN).forEach(function (ph) {
+      var img = document.createElement('img'); img.alt = ''; img.width = 44; img.height = 44; img.decoding = 'async';
+      if (ph.url) img.src = ph.url;
+      else {
+        img.hidden = true;
+        PB.get(l.id + '/' + ph.n + '/t').then(function (b) {
+          if (!b || !b.size) return;
+          try { ph.url = URL.createObjectURL(b); img.src = ph.url; img.hidden = false; } catch (e) { /* old browser */ }
+        });
+      }
+      img.onload = function () { img.hidden = false; };
+      img.onerror = function () { img.remove(); };
+      row.appendChild(img);
+    });
+    if (l.photos.length > PICS_SHOWN) { var more = document.createElement('span'); more.className = 'line-pics-more'; more.textContent = '+' + (l.photos.length - PICS_SHOWN); row.appendChild(more); }
+    box.appendChild(row);
+    var ed = document.createElement('a'); ed.className = 'btn btn-small line-pics-edit'; ed.textContent = 'Edit photos';
+    ed.href = ROOT + 'photo-magnets.html?edit=' + encodeURIComponent(l.id);
+    box.appendChild(ed);
+    var mixed = l.photos.some(function (ph) { return ph.frame !== l.photos[0].frame || ph.caption; });
+    if (mixed) {
+      var det = document.createElement('details'); det.className = 'line-photos';
+      var sm = document.createElement('summary'); sm.textContent = 'Frame for each photo'; det.appendChild(sm);
+      var ol = document.createElement('ol');
+      l.photos.forEach(function (ph) {
+        var it = document.createElement('li');
+        it.textContent = ph.frameName + (ph.caption ? ' · “' + ph.caption + '”' : '');
+        ol.appendChild(it);
+      });
+      det.appendChild(ol); box.appendChild(det);
+    }
+    return box;
+  }
+
   function render() {
     var t = totals();
     document.querySelectorAll('[data-cart-count]').forEach(function (el) { el.textContent = t.count; });
@@ -205,17 +246,7 @@ window.LHH_LOCALE = { en: 'en-US', es: 'es-US', pt: 'pt-BR', zh: 'zh-CN', fil: '
       var txt = document.createElement('div'); left.appendChild(txt);
       var h = document.createElement('h3'); h.textContent = l.name; txt.appendChild(h);
       var d = document.createElement('p'); d.className = 'detail'; d.textContent = l.detail; txt.appendChild(d);
-      if (l.photos && l.photos.length) {  /* photo packs: the frame (and caption) chosen for each photo */
-        var det = document.createElement('details'); det.className = 'line-photos';
-        var sm = document.createElement('summary'); sm.textContent = 'Frame for each photo'; det.appendChild(sm);
-        var ol = document.createElement('ol');
-        l.photos.forEach(function (ph) {
-          var it = document.createElement('li');
-          it.textContent = ph.frameName + (ph.caption ? ' · “' + ph.caption + '”' : '');
-          ol.appendChild(it);
-        });
-        det.appendChild(ol); left.appendChild(det);
-      }
+      var pics = l.photos && l.photos.length ? linePics(l) : null;
       var amt = document.createElement('div'); amt.className = 'amt'; amt.textContent = money(l.price * l.qty);
       var qty = document.createElement('div'); qty.className = 'qty';
       var minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.setAttribute('aria-label', 'One less ' + l.name);
@@ -226,7 +257,9 @@ window.LHH_LOCALE = { en: 'en-US', es: 'es-US', pt: 'pt-BR', zh: 'zh-CN', fil: '
       qty.append(minus, out, plus);
       var rm = document.createElement('button'); rm.type = 'button'; rm.className = 'remove'; rm.textContent = 'Remove';
       rm.onclick = function () { cart.splice(i, 1); save(); render(); };
-      li.append(left, amt, qty, rm);
+      li.append(left, amt);
+      if (pics) li.appendChild(pics);
+      li.append(qty, rm);
       ul.appendChild(li);
     });
     var empty = cart.length === 0;
@@ -550,16 +583,30 @@ window.LHH_LOCALE = { en: 'en-US', es: 'es-US', pt: 'pt-BR', zh: 'zh-CN', fil: '
     });
   })();
 
+  function putCustom(item, at) {
+    item.kind = 'custom'; item.qty = item.qty || 1;
+    if (at >= 0) cart.splice(at, 0, item); else cart.push(item);
+    render();
+    /* the photos (and their light copies, for the cart) are stored before the cart line is saved, so another page or
+       tab always finds them */
+    Promise.all((item.photos || []).map(function (ph) {
+      var jobs = [ph.blob ? PB.put(item.id + '/' + ph.n, ph.blob) : null];
+      if (ph.url && window.fetch) jobs.push(fetch(ph.url).then(function (r) { return r.blob(); }).then(function (b) { return PB.put(item.id + '/' + ph.n + '/t', b); }, function () { return null; }));
+      return Promise.all(jobs);
+    })).then(function () { if (cart.indexOf(item) >= 0) save(); }, function () { if (cart.indexOf(item) >= 0) save(); });
+  }
+
   window.LHH = {
     sale: saleInfo, priceHtml: priceHtml,
     /* a bulk-order pack built on the page (the QR magnet maker): one cart line, then the cart */
     addPackage: function (line) { line.kind = 'package'; addLine(line, true); openCart(); },
-    addCustom: function (item) {
-      item.kind = 'custom'; item.qty = 1; cart.push(item);
-      render(); toast('Photo magnets added to cart'); openCart();
-      /* the photos are stored before the cart line is saved, so another page or tab always finds them */
-      Promise.all((item.photos || []).map(function (ph) { return ph.blob ? PB.put(item.id + '/' + ph.n, ph.blob) : null; }))
-        .then(function () { if (cart.indexOf(item) >= 0) save(); }, function () { if (cart.indexOf(item) >= 0) save(); });
+    addCustom: function (item) { putCustom(item, -1); toast('Photo magnets added to cart'); openCart(); },
+    /* the photo page in edit mode (?edit=<line id>): the pack takes the old line's place in the cart */
+    replaceCustom: function (oldId, item) {
+      var at = -1;
+      cart.forEach(function (l, i) { if (l.id === oldId) at = i; });
+      if (at >= 0) cart.splice(at, 1);
+      putCustom(item, at); toast('Photo magnets updated'); openCart();
     },
     /* resolves when the photos of the packs saved on another page are back (checkout.js waits for it) */
     photosReady: Promise.resolve(),
