@@ -56,14 +56,17 @@
       { k: 'meta', spend: t.spend.meta, sales: t.sales.meta, pct: mg.pct },
       { k: 'etsy', spend: t.spend.etsy, sales: t.sales.etsy, pct: etsyPct }
     ];
-    var other = (t.spend.google || 0) + (t.spend.tiktok || 0) + (t.spend.amazon || 0);
+    // TikTok: the TikTok Shop sales of the month (TikTok keeps about 8%)
+    var tts = (d.tiktok && d.tiktok.sales && d.tiktok.sales.revenue) || 0;
+    if (d.config.channels.tiktok.on || t.spend.tiktok > 0) rows.push({ k: 'tiktok', spend: t.spend.tiktok || 0, sales: tts, pct: Math.max(0.02, mg.pct - 0.08) });
+    var other = (t.spend.google || 0) + (t.spend.amazon || 0);
     if (other > 0) rows.push({ k: 'other', spend: other, sales: 0, pct: mg.pct });
     rows.forEach(function (r) { r.v = verdict(r.spend, r.sales, r.pct); });
     var spend = t.total, profit = Math.round(rows.reduce(function (a, r) { return a + r.v.profit; }, 0) * 100) / 100;
-    var sales = Math.round((t.sales.meta + t.sales.etsy) * 100) / 100;
+    var sales = Math.round((t.sales.meta + t.sales.etsy + (rows.some(function (r) { return r.k === 'tiktok'; }) ? tts : 0)) * 100) / 100;
     var all = verdict(spend, sales, sales > 0 ? (profit + spend) / sales : mg.pct);
     var line = function (r) {
-      var name = r.k === 'other' ? T('Google, TikTok, Amazon', 'Google, TikTok, Amazon') : cname(r.k);
+      var name = r.k === 'other' ? T('Google, Amazon', 'Google, Amazon') : cname(r.k);
       var txt = r.v.kind === 'idle' ? T('nothing spent yet', 'nada gasto ainda')
         : T('spent ' + money(r.spend) + ', sold ' + money(r.sales) + ' → ', 'gastou ' + money(r.spend) + ', vendeu ' + money(r.sales) + ' → ') + '<b class="' + (r.v.profit < 0 ? 'neg' : 'pos') + '">' + signed(r.v.profit) + '</b>';
       return '<li><span><b>' + esc(name) + '</b> <span class="ads-v ' + r.v.kind + '">' + esc(T(VERDICT[r.v.kind][0], VERDICT[r.v.kind][1])) + '</span></span><span class="small">' + txt + '</span></li>';

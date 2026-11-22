@@ -6,7 +6,7 @@
    It also shows the owners' notifications (Web Push from functions/push.js: new orders, messages, card holds…). */
 'use strict';
 
-var CACHE = 'hive-admin-shell-v104';
+var CACHE = 'hive-admin-shell-v105';
 var SHELL = ['./', 'index.html', 'admin.css', 'boot.js', 'i18n-pt.js', 'i18n.js', 'reports.js', 'zip.js', 'admin.js', 'admin-order.js', 'admin-more.js', 'admin-plan.js', 'admin-visits.js', 'admin-returns.js', 'admin-etsy.js', 'admin-tiktok.js', 'admin-supplies.js', 'admin-ads.js', 'admin-content.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', '../assets/favicon.svg'];
 
