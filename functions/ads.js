@@ -10,7 +10,10 @@
              pauses the ones that spend without selling, gives more to the ones that sell and never passes the teto.
      etsy    Etsy doesn't let apps run Etsy Ads. The robot reads what Etsy charged for ads (payment ledger) and the Etsy
              sales (receipts) with the shop's Etsy connection (functions/etsy.js) and advises: turn on, raise, stop.
-     google / tiktok / amazon   not automated yet; spend paid by hand can be logged ("Registrar gasto").
+     tiktok  TikTok Promote ($3 a day, 1 to 7 days, only in the TikTok app: no API, and the Ads Manager starts at $20 a day).
+             The channel's daily is an average: daily x days of the month is TikTok's money for the month. The robot says
+             how many $3 days are left; "Iniciei um Promote" logs the days ahead (adsManual) so the cap counts them.
+     google / amazon   not automated yet; spend paid by hand can be logged ("Registrar gasto").
    Sales that came from an ad: the site's purchases in Google Analytics with medium "paid" (functions/analytics.js).
 
    Firestore: ads/config (teto, budgets, rules), ads/auth (Meta token), ads/state (boosted posts, last run, advice),
@@ -39,8 +42,10 @@ const DEFAULTS = {
   channels: { meta: { on: true, daily: 4 }, etsy: { on: true, daily: 2 }, google: { on: false, daily: 0 }, tiktok: { on: false, daily: 0 }, amazon: { on: false, daily: 0 } },
   rules: { perPost: 2, maxPosts: 3, maxPerPost: 5, stopAfter: 8, growRoas: 3, postDays: 90, holiday: true },
 };
-/* Platform floors the app enforces (TikTok: $20 a day per ad group; Meta and Etsy: $1). */
-const MIN_DAILY = { meta: 1, etsy: 1, google: 1, tiktok: 20, amazon: 1 };
+/* Platform floors the app enforces (Meta and Etsy: $1 a day). TikTok's is an average ($1 a day = $30 a month), spent in
+   Promote runs of at least PROMOTE_MIN a day. */
+const MIN_DAILY = { meta: 1, etsy: 1, google: 1, tiktok: 1, amazon: 1 };
+const PROMOTE_MIN = 3;
 
 const db = () => deps.db();
 const doc = (id) => db().collection("ads").doc(id);
@@ -494,7 +499,7 @@ async function orderSales(since) {
     const k = orderDay(o);
     if (k < since) return;
     const total = orderTotal(o), org = originOf(o.ref);
-    list.push({ id: d.id, number: o.number || "", day: k, at: o.paidAt || o.createdAt, total, origin: org, ref: o.ref || null });
+    list.push({ id: d.id, number: o.number || "", day: k, at: o.paidAt || o.createdAt, total, origin: org, ref: o.ref || null, source: o.source || "site" });
     if (org.kind !== "ad") return;
     const x = (days[k] = days[k] || { adOrders: 0, adRevenue: 0, meta: { orders: 0, revenue: 0 } });
     x.adOrders += 1; x.adRevenue = r2(x.adRevenue + total);
@@ -560,8 +565,10 @@ function dailyAllowed(cfg, totals, today) {
   if (!cfg.channels.meta.on) return 0;
   const month = monthOf(today), last = daysInMonth(month);
   const left = last - dayOfMonth(today) + 1;
-  const others = CHANNELS.filter((k) => k !== "meta" && cfg.channels[k].on).reduce((t, k) => t + cfg.channels[k].daily, 0);
-  const room = Math.max(0, capOf(cfg, month) - totals.total - others * left);
+  // TikTok keeps what's left of its month (its runs are logged ahead); the others keep their daily for the days left
+  const others = CHANNELS.filter((k) => k !== "meta" && cfg.channels[k].on).reduce((t, k) => t + (k === "tiktok"
+    ? Math.max(0, cfg.channels.tiktok.daily * last - num(totals.spend && totals.spend.tiktok)) : cfg.channels[k].daily * left), 0);
+  const room = Math.max(0, capOf(cfg, month) - totals.total - others);
   const w = (d) => weightOf(cfg, d);
   const f = w(today);
   if (!f || room < MIN_DAILY.meta) return 0;
@@ -641,6 +648,24 @@ function etsyAdvice(cfg, t) {
   return { kind: "ok", pt: `Deixe o Etsy Ads em ${money(c.daily)} por dia no app do Etsy.`, en: `Keep Etsy Ads at ${money(c.daily)} a day in the Etsy app.` };
 }
 const money = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+
+/** Pure: TikTok's month. budget = daily x days of the month; left = what's left of it and of the cap; runs of $3 a day. */
+function tiktokPlan(cfg, t, today) {
+  const c = cfg.channels.tiktok, month = monthOf(today);
+  const budget = c.on ? r2(c.daily * daysInMonth(month)) : 0, spent = r2(num(t.spend && t.spend.tiktok));
+  const cap = capOf(cfg, month);
+  const left = r2(Math.max(0, Math.min(budget - spent, cap > 0 ? cap - num(t.total) : 0)));
+  const out = { budget, spent, left, min: PROMOTE_MIN, days: 0 };
+  if (!c.on) return { ...out, kind: "idle" };
+  if (cfg.rules.holiday !== false && season(today).why === "shipping") return { ...out, kind: "rest",
+    pt: "De 15/dez em diante os Correios não entregam antes do Natal: o Promote descansa até janeiro.", en: "From Dec 15 the post office can't deliver by Christmas: Promote rests until January." };
+  const can = Math.min(7, Math.floor((left + 0.001) / PROMOTE_MIN));
+  if (can < 1) return { ...out, kind: "used", pt: "O dinheiro do TikTok deste mês já foi usado. Volta no dia 1º.", en: "TikTok's money for this month is used. It comes back on the 1st." };
+  const days = Math.min(3, can);
+  return { ...out, kind: "go", days,
+    pt: `Sobram ${money(left)} para o TikTok este mês: dá para ${can} dia${can === 1 ? "" : "s"} de Promote a $3. Próxima rodada: ${days} dia${days === 1 ? "" : "s"} (${money(days * PROMOTE_MIN)}) no vídeo com mais visualizações e o produto marcado. Depois toque em "Iniciei um Promote".`,
+    en: `${money(left)} left for TikTok this month: room for ${can} day${can === 1 ? "" : "s"} of Promote at $3. Next run: ${days} day${days === 1 ? "" : "s"} (${money(days * PROMOTE_MIN)}) on the video with the most views and the product tagged. Then tap "I started a Promote".` };
+}
 
 /** Reads every channel, saves the days and the Reports cost, then lets the robot act. Never throws: errors go in the log. */
 async function run({ by = "robot", onlyNext = false } = {}) {
@@ -878,15 +903,19 @@ async function view() {
   });
   const boosts = Object.values(state.boosts || {}).sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
   let sales = [];
+  const tiktokSales = { orders: 0, revenue: 0 };
   try {
     const caps = {}; (state.posts || []).forEach((p) => { caps[p.id] = p.caption; }); Object.values(state.boosts || {}).forEach((b) => { caps[b.id] = caps[b.id] || b.caption; });
-    sales = (await orderSales(`${month}-01`)).list.slice(0, 60).map((x) => ({ ...x, post: x.origin.post ? { id: x.origin.post, caption: caps[x.origin.post] || "" } : null }));
+    const list = (await orderSales(`${month}-01`)).list;
+    list.filter((x) => x.source === "tiktok").forEach((x) => { tiktokSales.orders += 1; tiktokSales.revenue = r2(tiktokSales.revenue + x.total); });
+    sales = list.slice(0, 60).map((x) => ({ ...x, post: x.origin.post ? { id: x.origin.post, caption: caps[x.origin.post] || "" } : null }));
   } catch (e) { sales = []; }
   let etsyConnected = false;
   try { const a = await require("./etsy")._internal.readAuth(); etsyConnected = !!(a && a.shopId); } catch (e) { etsyConnected = false; }
   return {
     config: cfg, cap: capOf(cfg, month), extra: extraOf(cfg, month), planned: plannedDaily(cfg), month, today, daysInMonth: daysInMonth(month), dayOfMonth: dayOfMonth(today),
     totals, meta: metaPublic(auth.meta), etsy: { connected: etsyConnected, advice: state.etsyAdvice || etsyAdvice(cfg, totals) },
+    tiktok: { ...tiktokPlan(cfg, totals, today), sales: tiktokSales },
     boosts, posts: (state.posts || []).map((p) => ({ ...p, never: !!(state.never || {})[p.id], boosted: !!(state.boosts || {})[p.id] })),
     nextReel: state.nextReel || null, pixel: !!(auth.meta && auth.meta.pixelId),
     audience: (state.audience || []).map((k) => THEMES[k] && THEMES[k].pt).filter(Boolean),
@@ -909,7 +938,7 @@ async function adminAds(data, auth) {
       const next = cleanConfig({ ...before, ...(data.config || {}), channels: { ...before.channels, ...((data.config || {}).channels || {}) }, rules: { ...before.rules, ...((data.config || {}).rules || {}) } });
       CHANNELS.forEach((k) => {
         const c = next.channels[k];
-        if (c.on && c.daily < MIN_DAILY[k]) fail("invalid-argument", k === "tiktok" ? "TikTok only runs ads from $20 a day." : `The least a day is ${money(MIN_DAILY[k])}.`);
+        if (c.on && c.daily < MIN_DAILY[k]) fail("invalid-argument", k === "tiktok" ? "TikTok needs at least $1 a day on average ($30 a month)." : `The least a day is ${money(MIN_DAILY[k])}.`);
       });
       if (next.monthCap !== before.monthCap) { next.capAt = nowIso(); next.capBy = U.who(auth); }
       await doc("config").set(next);
@@ -1017,6 +1046,26 @@ async function adminAds(data, auth) {
       await syncReports((await db().collection("adsManual").get()).docs.map((d) => d.data()));
       return view();
     }
+    case "tiktokPromote": {
+      // a Promote they started in the TikTok app: its days are logged ahead, so the cap and Reports count them
+      const days = Math.round(num(data.days)), daily = r2(num(data.daily));
+      if (!(days >= 1 && days <= 7)) fail("invalid-argument", "Promote runs 1 to 7 days.");
+      if (!(daily >= PROMOTE_MIN && daily <= 1000)) fail("invalid-argument", `Promote starts at ${money(PROMOTE_MIN)} a day.`);
+      const cfg = await config();
+      if (!cfg.channels.tiktok.on) fail("failed-precondition", "TikTok is off here. Turn it on first.");
+      const v = await view();
+      const total = r2(days * daily);
+      if (total > v.tiktok.left + 0.01) fail("failed-precondition", `That is ${money(total)} and only ${money(v.tiktok.left)} is left for TikTok this month.`);
+      const start = /^\d{4}-\d{2}-\d{2}$/.test(String(data.date || "")) ? String(data.date) : dayKey();
+      const note = U.text(data.note, 100);
+      for (let i = 0; i < days; i++) {
+        await db().collection("adsManual").add({ channel: "tiktok", amount: daily, date: addDays(start, i), note: `Promote ${i + 1}/${days}${note ? ` · ${note}` : ""}`, at: nowIso(), by: U.who(auth) });
+      }
+      await syncReports((await db().collection("adsManual").get()).docs.map((d) => d.data()));
+      await log("tiktok", "start", `Promote no TikTok: ${days} dia${days === 1 ? "" : "s"} a ${money(daily)} (${money(total)})${note ? ` · ${note}` : ""}.`,
+        `TikTok Promote: ${days} day${days === 1 ? "" : "s"} at ${money(daily)} (${money(total)})${note ? ` · ${note}` : ""}.`, { by: U.who(auth) });
+      return view();
+    }
     case "removeManual": {
       await db().collection("adsManual").doc(U.text(data.id, 80, { required: true })).delete();
       await syncReports((await db().collection("adsManual").get()).docs.map((d) => d.data()));
@@ -1027,5 +1076,5 @@ async function adminAds(data, auth) {
   }
 }
 
-module.exports = { adminAds, run, plan, season, dailyAllowed, capOf, extraOf, EXTRAS, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
+module.exports = { adminAds, run, plan, season, dailyAllowed, capOf, extraOf, EXTRAS, boostNextReel, originOf, orderSales, monthTotals, etsyAdvice, tiktokPlan, PROMOTE_MIN, cleanConfig, plannedDaily, dayKey, dayStartSec, addDays, landing, minFromError, DEFAULTS,
   _internal: { graph, version: () => META_VERSION(), audience, themesOf, THEMES, AUDIENCE_V, withTargeting, pageFor, landing, boost, recentPosts, metaDays, etsyDays, siteDays, syncReports, setPause: (ms) => { PAUSE_MS = ms; } } };

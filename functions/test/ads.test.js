@@ -157,12 +157,12 @@ test("month totals and Etsy advice", () => {
   assert.equal(A.etsyAdvice(A.cleanConfig({ channels: { etsy: { on: false } } }), t).kind, "off");
 });
 
-test("saving: the teto change is logged as approved; TikTok can't go under $20 a day", async () => {
+test("saving: the teto change is logged as approved; TikTok can't go under $1 a day on average", async () => {
   const { db, A } = setup();
   let v = await A.adminAds({ action: "view" }, ADMIN);
   assert.equal(v.config.monthCap, 200);
   assert.equal(v.planned, 6);                                     // $4 Meta + $2 Etsy
-  await assert.rejects(A.adminAds({ action: "save", config: { channels: { tiktok: { on: true, daily: 5 } } } }, ADMIN), /\$20/);
+  await assert.rejects(A.adminAds({ action: "save", config: { channels: { tiktok: { on: true, daily: 0.5 } } } }, ADMIN), /\$1 a day/);
   v = await A.adminAds({ action: "save", config: { monthCap: 150, channels: { meta: { daily: 3 } } } }, ADMIN);
   assert.equal(v.config.monthCap, 150);
   assert.equal(v.config.channels.meta.daily, 3);
@@ -555,4 +555,32 @@ test("posts for buyers of many get their own groups and send the ad to their pag
   assert.equal(A._internal.pageFor("Pumpkin spice or sweater weather?"), "");
   assert.match(A._internal.landing("123", "business.html"), /\/business\.html\?utm_source=instagram&utm_medium=paid/);
   assert.ok(A._internal.THEMES.business.behaviors.includes("Small business owners"));
+});
+
+test("TikTok Promote: its month is daily x days, in runs of $3; logged ahead it counts in the cap; Meta keeps the rest", async () => {
+  const { db, A } = setup();
+  const cfg = A.cleanConfig({ monthCap: 90, channels: { meta: { on: true, daily: 1 }, etsy: { on: true, daily: 1 }, tiktok: { on: true, daily: 1 } } });
+  const none = { spend: { tiktok: 0 }, total: 0 };
+  let p = A.tiktokPlan(cfg, none, "2027-01-10");
+  assert.equal(p.budget, 31); assert.equal(p.left, 31); assert.equal(p.kind, "go"); assert.equal(p.days, 3);
+  p = A.tiktokPlan(cfg, { spend: { tiktok: 29 }, total: 60 }, "2027-01-20");
+  assert.equal(p.kind, "used");                                   // $2 left: not even one $3 day
+  assert.equal(A.tiktokPlan(cfg, { spend: { tiktok: 0 }, total: 88 }, "2027-01-20").kind, "used");   // the cap wins
+  assert.equal(A.tiktokPlan(cfg, none, "2026-12-20").kind, "rest");                                   // after Dec 15
+  assert.equal(A.tiktokPlan(A.cleanConfig({ ...cfg, channels: { tiktok: { on: false } } }), none, "2027-01-10").kind, "idle");
+  // Meta's room: $90 − TikTok's $31 still to spend − Etsy $1 x 22 days left
+  assert.equal(A.dailyAllowed(A.cleanConfig({ ...cfg, rules: { holiday: false } }), none, "2027-01-10"), 1);
+  const roomy = A.cleanConfig({ ...cfg, channels: { ...cfg.channels, meta: { on: true, daily: 100 } }, rules: { holiday: false } });
+  assert.equal(A.dailyAllowed(roomy, none, "2027-01-31"), 58);           // 90 − 31 − 1
+  assert.equal(A.dailyAllowed(roomy, { spend: { tiktok: 9 }, total: 9 }, "2027-01-31"), 58);   // spent TikTok money isn't kept twice
+
+  // the action: 3 days at $3 from today, in Reports and the log; too much is refused
+  await A.adminAds({ action: "save", config: { monthCap: 90, channels: { tiktok: { on: true, daily: 1 } } } }, ADMIN);
+  let v = await A.adminAds({ action: "tiktokPromote", days: 3, daily: 3, date: "2027-01-10", note: "Christmas video" }, ADMIN);
+  const rows = [...db.docs.entries()].filter(([k]) => k.startsWith("adsManual/")).map(([, d]) => d).filter((m) => m.channel === "tiktok").sort((a, b) => a.date.localeCompare(b.date));
+  assert.deepEqual(rows.map((m) => [m.date, m.amount]), [["2027-01-10", 3], ["2027-01-11", 3], ["2027-01-12", 3]]);
+  assert.ok(v.log.some((l) => l.channel === "tiktok" && /3 dias a \$3\.00/.test(l.pt)));
+  await assert.rejects(A.adminAds({ action: "tiktokPromote", days: 2, daily: 2 }, ADMIN), /\$3\.00 a day/);
+  await assert.rejects(A.adminAds({ action: "tiktokPromote", days: 9, daily: 3 }, ADMIN), /1 to 7 days/);
+  assert.ok(v.tiktok && v.tiktok.sales && v.tiktok.sales.orders === 0);
 });

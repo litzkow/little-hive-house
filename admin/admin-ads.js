@@ -190,10 +190,18 @@
         (a.pt ? '<p class="small ads-advice ' + esc(a.kind || '') + '">' + esc(T(a.en || a.pt, a.pt)) + '</p>' : '') +
         '<p class="tiny muted">' + T('Etsy doesn’t let any app change Etsy Ads: the budget is set in the Etsy app (Shop Manager › Marketing › Etsy Ads).', 'O Etsy não deixa nenhum app mudar o Etsy Ads: o orçamento é colocado no app do Etsy (Gerenciador da loja › Marketing › Etsy Ads).') + '</p>';
       acts = '<a class="btn btn-ghost btn-sm" href="https://www.etsy.com/your/shops/me/advertising" target="_blank" rel="noopener">' + T('Open Etsy Ads', 'Abrir Etsy Ads') + ' ›</a>' + acts;
+    } else if (k === 'tiktok') {
+      var tk = d.tiktok || {}, ts = tk.sales || { orders: 0, revenue: 0 };
+      body = '<p class="small">' + T('TikTok Promote: $3 a day, 1 to 7 days, started in the TikTok app on a video with the product tagged.', 'TikTok Promote: $3 por dia, de 1 a 7 dias, ligado no app do TikTok num vídeo com o produto marcado.') + '</p>' +
+        (c.on ? '<p class="small">' + T('This month: ', 'Este mês: ') + '<b>' + dollars(tk.spent) + '</b> ' + T('of', 'de') + ' ' + dollars(tk.budget) + ' · ' + T('TikTok Shop sales ', 'vendas no TikTok Shop ') + '<b>' + dollars(ts.revenue) + '</b>' +
+          (ts.orders ? ' (' + ts.orders + (ts.orders === 1 ? T(' order', ' pedido') : T(' orders', ' pedidos')) + ')' : '') + '</p>' : '') +
+        (tk.pt ? '<p class="small ads-advice ' + esc(tk.kind || '') + '">' + esc(T(tk.en || tk.pt, tk.pt)) + '</p>' : '') +
+        '<p class="tiny muted">' + T('TikTok doesn’t let apps run Promote, so the robot plans the money and you start it in the app (Profile › ☰ › Creator tools › Promote).', 'O TikTok não deixa nenhum app ligar o Promote, então o robô planeja o dinheiro e vocês ligam no app (Perfil › ☰ › Ferramentas de criador › Promover).') + '</p>';
+      acts = (c.on && tk.kind === 'go' ? '<button class="btn btn-honey btn-sm" data-act="adsPromote"' + (st.busy ? ' disabled' : '') + '>' + T('I started a Promote', 'Iniciei um Promote') + '</button>' : '') +
+        '<button class="btn btn-ghost btn-sm" data-act="adsManual" data-k="tiktok"' + (st.busy ? ' disabled' : '') + '>' + T('Log spend', 'Registrar gasto') + '</button>' + acts;
     } else {
       var why = {
         google: ['Free first: your products in Google Shopping through Merchant Center. Paid Google ads come later.', 'Primeiro o grátis: os produtos no Google Shopping pelo Merchant Center. O anúncio pago do Google vem depois.'],
-        tiktok: ['TikTok ads start at $20 a day, too much for now. Keep posting videos for free.', 'O TikTok cobra no mínimo $20 por dia, muito para agora. Continuem postando vídeos de graça.'],
         amazon: ['Comes in when the Amazon seller account is approved.', 'Entra quando a conta de vendedor da Amazon for aprovada.']
       }[k];
       body = '<p class="small">' + esc(T(why[0], why[1])) + '</p>' + (spend ? '<p class="small">' + T('Logged by hand this month: ', 'Registrado à mão este mês: ') + '<b>' + dollars(spend) + '</b></p>' : '');
@@ -348,6 +356,7 @@
     ask(cname(k), '<label class="field ads-check"><input type="checkbox" name="on"' + (c.on ? ' checked' : '') + '> <span>' + T('On', 'Ligado') + '</span></label>' +
       field('daily', T('Budget a day ($, at least ' + money(min) + ')', 'Orçamento por dia ($, no mínimo ' + money(min) + ')'), c.daily, 'number') +
       (k === 'etsy' ? '<p class="tiny muted">' + T('Put the same amount in the Etsy app: the app can’t change it there.', 'Coloque o mesmo valor no app do Etsy: o app não consegue mudar lá.') + '</p>' : '') +
+      (k === 'tiktok' ? '<p class="tiny muted">' + T('An average: $1 a day is $30 a month, spent in Promote runs of $3 a day.', 'É uma média: $1 por dia são $30 no mês, gastos em rodadas de Promote de $3 por dia.') + '</p>' : '') +
       (k === 'meta' ? '<p class="tiny muted">' + T('One budget for all the boosted posts: Meta puts more into the one that works.', 'Um orçamento só para todos os posts impulsionados: o Meta põe mais no que funciona.') + '</p>' : ''), T('Save', 'Salvar')).then(function (v) {
       if (!v) return;
       var ch = {}; ch[k] = { on: !!v.on, daily: Number(v.daily) || 0 };
@@ -370,6 +379,15 @@
     ask(T('Log spend: ', 'Registrar gasto: ') + cname(k), field('amount', T('How much ($)', 'Quanto ($)'), '', 'number') + field('date', T('Day', 'Dia'), h.today(), 'date') +
       field('note', T('Note (optional)', 'Observação (opcional)'), ''), T('Save', 'Salvar')).then(function (v) {
       if (v && v.amount) load('manual', { channel: k, amount: Number(v.amount), date: v.date, note: v.note }, T('Saved. It counts in the cap and in Reports.', 'Salvo. Conta no teto e nos Relatórios.'));
+    });
+  };
+  ACT.adsPromote = function () {
+    var tk = st.data.tiktok || {};
+    ask(T('I started a Promote', 'Iniciei um Promote'), '<p class="small">' + T(dollars(tk.left) + ' left for TikTok this month. Put here what you chose in the TikTok app: the days are counted in the cap and in Reports.',
+      'Sobram ' + dollars(tk.left) + ' para o TikTok este mês. Coloque aqui o que escolheram no app do TikTok: os dias contam no teto e nos Relatórios.') + '</p>' +
+      field('days', T('Days (1 to 7)', 'Dias (1 a 7)'), tk.days || 3, 'number') + field('daily', T('$ a day (at least $3)', '$ por dia (no mínimo $3)'), tk.min || 3, 'number') +
+      field('date', T('First day', 'Primeiro dia'), h.today(), 'date') + field('note', T('Which video (optional)', 'Qual vídeo (opcional)'), ''), T('Save', 'Salvar')).then(function (v) {
+      if (v && v.days) load('tiktokPromote', { days: Number(v.days), daily: Number(v.daily), date: v.date, note: v.note }, T('Saved. The days count in the cap.', 'Salvo. Os dias contam no teto.'));
     });
   };
   ACT.adsDelManual = function (el) {

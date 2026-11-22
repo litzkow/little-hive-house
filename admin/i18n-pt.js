@@ -1,5 +1,10 @@
 /* Hive Admin in Portuguese: English text -> Portuguese (i18n.js). * stands for a number, a name or a date. */
 window.LHH_PT = {
+"TikTok needs at least $1 a day on average ($30 a month).": "O TikTok precisa de pelo menos $1 por dia em média ($30 no mês).",
+"Promote runs 1 to 7 days.": "O Promote roda de 1 a 7 dias.",
+"Promote starts at $3.00 a day.": "O Promote começa em $3,00 por dia.",
+"TikTok is off here. Turn it on first.": "O TikTok está desligado aqui. Ligue primeiro.",
+"That is * and only * is left for TikTok this month.": "Isso dá * e só sobram * para o TikTok este mês.",
 "Customers & sales": "Clientes e vendas",
 "Numbers": "Números",
 "Ads": "Anúncios",
