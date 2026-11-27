@@ -211,8 +211,11 @@ test("a morning run: saves the days, boosts the best eligible post with a tracke
     },
     ga: [[ymd, "instagram", "paid", "18000000000000003", 24, 1], [ymd, "(direct)", "(none)", "(not set)", 30, 1]],
   });
-  await A.adminAds({ action: "save", config: { channels: { etsy: { on: false } } } }, ADMIN);
-  const r = await A.run({ by: "test" });
+  // an ordinary day: no Black Friday weight or approved extra, whatever day the tests run (they failed on 27 Nov 2026)
+  await A.adminAds({ action: "save", config: { channels: { etsy: { on: false } }, rules: { ...A.DEFAULTS.rules, holiday: false } } }, ADMIN);
+  const extras = A.EXTRAS.splice(0);
+  let r;
+  try { r = await A.run({ by: "test" }); } finally { A.EXTRAS.push(...extras); }
   assert.deepEqual(r.errors, {});
   const day = db.get(`adsDaily/${today}`);
   assert.equal(day.meta.spend, 1.5);
@@ -252,7 +255,7 @@ test("a morning run: saves the days, boosts the best eligible post with a tracke
 test("the next run pauses (in the shared ad set) what spent past the limit with no cart, keeps what sells, and only warns about the owners' choice", async () => {
   const { db, pushes, A } = setup();
   db.docs.set("ads/auth", { meta: META });
-  db.docs.set("ads/config", { ...A.DEFAULTS, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
+  db.docs.set("ads/config", { ...A.DEFAULTS, rules: { ...A.DEFAULTS.rules, holiday: false }, channels: { ...A.DEFAULTS.channels, etsy: { on: false, daily: 2 } } });
   db.docs.set("ads/state", { metaCampaignId: "c1", adsetId: "shared1", adsetDaily: 4, adsetStatus: "ACTIVE", targetV: 3, targetKey: "gift,home,photo,season", boosts: {
     "18000000000000003": { id: "18000000000000003", adsetId: "shared1", adId: "ad3", shared: true, status: "active", caption: "Packing", by: "robot" },
     "18000000000000004": { id: "18000000000000004", adsetId: "shared1", adId: "ad4", shared: true, status: "active", caption: "Fall", by: "robot" },
@@ -272,7 +275,8 @@ test("the next run pauses (in the shared ad set) what spent past the limit with 
     },
     ga: [[ymd, "instagram", "paid", "18000000000000003", 24, 1]],
   });
-  await A.run();
+  const extras = A.EXTRAS.splice(0);   // an ordinary day (see the morning run test)
+  try { await A.run(); } finally { A.EXTRAS.push(...extras); }
   const st = db.get("ads/state");
   assert.equal(st.boosts["18000000000000004"].status, "stopped");
   assert.equal(st.boosts["18000000000000003"].status, "active");

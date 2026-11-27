@@ -16,7 +16,7 @@ function setup({ status = "paid" } = {}) {
   deps.set({ db, auth: new FakeAuth(), bucket });
   globalThis.fetch = net.fetch;
   const photos = Array.from({ length: 20 }, (_, n) => ({ path: `uploads/u1/pack-20/${n + 1}.jpg`, frame: n < 2 ? "polaroid" : "none", caption: n === 1 ? "Mom" : "", crop: { x: 0.5, y: 0.5, z: 1 } }));
-  photos.forEach((p) => bucket.files.set(p.path, { data: JPG }));
+  photos.forEach((p) => withThumb(bucket, p.path));
   db.docs.set("orders/o1", {
     number: "LHH-1004", email: "camila@example.com", name: "Camila Reis", status, uid: "u1",
     items: [
@@ -35,8 +35,9 @@ function setup({ status = "paid" } = {}) {
   require("../autocrop")._set({ token: async () => { throw Object.assign(new Error("no vision in tests"), { status: 403 }); } });
   return { db, net, bucket, pushes, builds, S: require("../photoswap") };
 }
-let JPG = null;
-test.before(async () => { JPG = await require("sharp")({ create: { width: 40, height: 30, channels: 3, background: "#c96" } }).jpeg().toBuffer(); });
+/* the small copies already made, as the Hive Admin leaves them: no sharp needed (the deploy machine has none) */
+const JPG = Buffer.from("jpg");
+const withThumb = (bucket, path) => { bucket.files.set(path, { data: JPG }); bucket.files.set(`thumbs/${path.replace(/\.[a-z]+$/, "")}.jpg`, { data: JPG }); };
 const who = { number: "lhh-1004", email: "Camila@Example.com" };
 
 test("the order page says when a photo can be swapped", () => {
@@ -65,7 +66,7 @@ test("lists the customer's photos with small links, by number + email or signed 
 
 test("swapping a photo keeps the price, frame and caption, rebuilds the sheet and tells the owners", async () => {
   const { S, db, bucket, net, pushes, builds } = setup();
-  bucket.files.set("uploads/guest9/swap-lhh-1004-a/2.jpg", { data: JPG });
+  withThumb(bucket, "uploads/guest9/swap-lhh-1004-a/2.jpg");
   const r = await S.swapOrderPhoto({ ...who, index: 1, n: 2, path: "uploads/guest9/swap-lhh-1004-a/2.jpg", w: 3000, h: 4000 }, GUEST, null);
   assert.equal(r.ok, true);
   assert.equal(r.swaps, 1);
