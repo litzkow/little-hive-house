@@ -278,10 +278,109 @@
     });
     return sec;
   }
-  function detail(o, mode) {
+
+  /* ---------- swap a photo (functions/photoswap.js) ----------
+     While the order is still "Order received", the customer can put a different photo in any spot of their photo
+     pack (say they sent the same photo twice). Same price, same frame and caption; the owners are told right away. */
+  var SWAP_EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  function swapDecode(blob) {
+    if (window.createImageBitmap) {
+      return createImageBitmap(blob, { imageOrientation: 'from-image' }).catch(function () { return createImageBitmap(blob); })
+        .then(function (b) { return { src: b, w: b.width, h: b.height, done: function () { if (b.close) b.close(); } }; })
+        .catch(function () { return swapImg(blob); });
+    }
+    return swapImg(blob);
+  }
+  function swapImg(blob) {
+    return new Promise(function (res, rej) {
+      var u = URL.createObjectURL(blob), im = new Image();
+      im.onload = function () { res({ src: im, w: im.naturalWidth, h: im.naturalHeight, done: function () { URL.revokeObjectURL(u); } }); };
+      im.onerror = function () { URL.revokeObjectURL(u); rej(Object.assign(new Error('unreadable'), { code: 'photos/unreadable' })); };
+      im.src = u;
+    });
+  }
+  /* → {blob, ext, type, w, h}: JPG, PNG and WebP up to 20 MB go up as they are; HEIC and anything bigger become a
+     4000 px JPG (the same rules as the checkout, assets/checkout.js) */
+  function swapPrepare(file) {
+    var type = String(file.type || '').toLowerCase();
+    return swapDecode(file).then(function (d) {
+      var w = d.w, hh = d.h;
+      if (SWAP_EXT[type] && file.size <= 20 * 1024 * 1024) { d.done(); return { blob: file, ext: SWAP_EXT[type], type: type === 'image/jpg' ? 'image/jpeg' : type, w: w, h: hh }; }
+      var k = Math.min(1, 4000 / Math.max(w, hh));
+      var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(hh * k);
+      var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(d.src, 0, 0, c.width, c.height); d.done();
+      return new Promise(function (res, rej) { c.toBlob(function (b) { if (b) res({ blob: b, ext: 'jpg', type: 'image/jpeg', w: w, h: hh }); else rej(Object.assign(new Error('unreadable'), { code: 'photos/unreadable' })); }, 'image/jpeg', 0.92); });
+    });
+  }
+  function photoSwap(o, who) {
+    if (!who || o.photoSwap !== 'open') return null;
+    var body = h('div', { class: 'oswap-body' });
+    var msg = h('p', { class: 'msg', role: 'status', hidden: true });
+    function say(t, ok) { msg.textContent = t || ''; msg.className = 'msg ' + (ok ? 'ok' : 'err'); msg.hidden = !t; }
+    var open = h('button', { type: 'button', class: 'btn btn-ghost btn-small' }, 'Change a photo');
+    var panel = h('section', { class: 'panel oswap', 'aria-labelledby': 'oswap-h' },
+      h('h2', { id: 'oswap-h', text: 'Need to change a photo?' }),
+      h('p', { class: 'muted', text: 'Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.' }),
+      open, body, msg);
+    var busy = false;
+    function errText(er) {
+      var c = String((er && er.code) || '').replace(/^functions\//, '');
+      if (c === 'photos/unreadable') return 'We couldn’t open that photo. Please try a JPG or PNG.';
+      if (/^storage\//.test(c)) return 'The photo didn’t upload. Please check your connection and try again.';
+      return S.message(er);
+    }
+    function load() {
+      open.disabled = true; open.textContent = 'Loading your photos…'; say('');
+      S.call('orderPhotos', who).then(function (r) {
+        open.hidden = true;
+        if (!r || !r.editable) { say((r && r.reason) || 'These photos can’t be changed anymore.'); return; }
+        var many = r.packs.length > 1;
+        body.replaceChildren(h('p', { class: 'small', text: 'Tap the photo you want to change, then pick the new one.' }));
+        r.packs.forEach(function (pk, k) {
+          if (many) body.append(h('h3', { class: 'oswap-pack', text: 'Pack ' + (k + 1) }));
+          body.append(h('ul', { class: 'oswap-grid' }, pk.photos.map(function (ph) { return tile(pk, ph); })));
+        });
+      }).catch(function (er) { open.disabled = false; open.textContent = 'Change a photo'; say(errText(er)); });
+    }
+    function tile(pk, ph) {
+      var input = h('input', { type: 'file', accept: 'image/*', hidden: true });
+      var img = ph.thumb ? h('img', { src: ph.thumb, alt: 'Photo ' + ph.n, loading: 'lazy' }) : svg(PHOTO_ART);
+      var num = h('span', { class: 'oswap-n', text: String(ph.n) });
+      var btn = h('button', { type: 'button', class: 'oswap-tile', 'aria-label': 'Change photo ' + ph.n }, img, num);
+      var li = h('li', null, btn, input);
+      btn.addEventListener('click', function () { if (!busy) input.click(); });
+      input.addEventListener('change', function () {
+        var file = input.files && input.files[0]; input.value = '';
+        if (!file || busy) return;
+        busy = true; li.classList.add('is-busy'); say('Uploading the new photo…', true);
+        var prepared;
+        swapPrepare(file).then(function (p) { prepared = p; return S.ensureUser(); }).then(function (u) {
+          var path = 'uploads/' + u.uid + '/swap-' + Date.now().toString(36) + '/' + ph.n + '.' + prepared.ext;
+          return S.upload(path, prepared.blob, { contentType: prepared.type, customMetadata: { swap: String(ph.n) } }).then(function () { return path; });
+        }).then(function (path) {
+          say('Saving…', true);
+          return S.call('swapOrderPhoto', Object.assign({ index: pk.index, n: ph.n, path: path, w: prepared.w, h: prepared.h }, who));
+        }).then(function (r) {
+          var local = URL.createObjectURL(prepared.blob);
+          var fresh = h('img', { src: (r && r.photo && r.photo.thumb) || local, alt: 'Photo ' + ph.n });
+          fresh.addEventListener('error', function () { if (fresh.src !== local) fresh.src = local; });
+          btn.replaceChildren(fresh, num);
+          li.classList.add('is-new');
+          say('Done! The photo was changed. We’ll print the new one.', true);
+        }).catch(function (er) { say(errText(er)); })
+          .then(function () { busy = false; li.classList.remove('is-busy'); });
+      });
+      return li;
+    }
+    open.addEventListener('click', load);
+    return panel;
+  }
+
+  function detail(o, mode, who) {
     var wrap = h('div', { class: 'odetail' });
     var mainCol = h('div', { class: 'ocol' }, progressPanel(o),
       h('section', { class: 'panel', 'aria-labelledby': 'oitems-h' }, h('h2', { id: 'oitems-h', text: 'Items' }), itemsList(o)));
+    var sw = photoSwap(o, who); if (sw) mainCol.append(sw);
     if (mode === 'account') mainCol.append(reviews(o));
     var side = h('div', { class: 'ocol side' }, summary(o), shipTo(o), actions(o, mode));
     wrap.append(mainCol, side);
@@ -325,7 +424,7 @@
       return S.getOrder(id).then(function (o) {
         if (!o || o.status === 'pending') return fail('We couldn’t find this order in your account. If you ordered as a guest, track it with your order number and email.');
         headline(o);
-        $('st-content').replaceChildren(detail(o, 'account'));
+        $('st-content').replaceChildren(detail(o, 'account', { id: id }));
         show('st-content');
       });
     }).catch(function (e) { fail(S.message(e, 'order')); });
@@ -351,7 +450,7 @@
         b.disabled = false; b.textContent = 'Track order';
         if (!o) throw Object.assign(new Error('nf'), { code: 'not-found-plain' });
         out.replaceChildren(h('div', { class: 'otrack-head' }, h('h2', { text: 'Order ' + (o.number || num) }), chip(o.status),
-          h('span', { class: 'muted', text: 'Placed ' + day(o.paidAt || o.createdAt, { month: 'long', day: 'numeric', year: 'numeric' }) })), detail(o, 'track'));
+          h('span', { class: 'muted', text: 'Placed ' + day(o.paidAt || o.createdAt, { month: 'long', day: 'numeric', year: 'numeric' }) })), detail(o, 'track', { number: o.number || num, email: email }));
         out.hidden = false;
         if (history.replaceState) history.replaceState(null, '', location.pathname);   /* keep the email out of the address bar */
         out.querySelector('h2').setAttribute('tabindex', '-1'); out.querySelector('h2').focus();

@@ -75,6 +75,7 @@ const SAMPLES = {
   return_update_received: { mode: "received", order, ret: { number: "LHH-1042", name: "Karina Vargas", kind: "problem", wants: "reprint", magnets: 1, lines: [{ title: "Bee Kind", qty: 1 }] } },
   return_update_reprint: { mode: "reprint", order, reprintNumber: "LHH-1050", ret: { number: "LHH-1042", name: "Karina Vargas", kind: "problem", wants: "reprint", lines: [{ title: "Bee Kind", qty: 1 }] } },
   return_update_declined: { mode: "declined", order, ret: { number: "LHH-1042", name: "Karina Vargas", kind: "problem", lines: [{ title: "Bee Kind", qty: 1 }], declineNote: "The photo shows the magnet the way it was uploaded, so this isn't a printing problem. Reply if you'd like help choosing a sharper photo." } },
+  admin_photo_swap: { order, swap: { n: 7, index: 1, rebuilt: true, swaps: 1 } },
   admin_return: { order, ret: { number: "LHH-1042", name: "Karina Vargas", kind: "problem", reasonLabel: "Arrived damaged", wants: "refund", value: 4.28, magnets: 1, lines: [{ title: "Bee Kind", qty: 1 }], note: "The corner was cracked when I opened it.", photos: ["a", "b"] } },
   refund: { order: { ...order, refundedTotal: 10 }, refund: { amount: 10, reason: "damaged", note: "So sorry the New York magnet cracked in the mail. We're also sending a fresh one, on us." } },
   welcome: { name: "Karina Vargas", email: "karina@example.com", promo: { code: "WELCOME10", percentOff: 10 } },

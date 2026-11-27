@@ -219,7 +219,12 @@ var PATTERNS = [
   [/^(Black Friday|Cyber Monday), (\d+) designs? free$/, function (_, n, k) { return ev(n) + ": " + k + " مجانًا"; }],
   [/^(Black Friday|Cyber Monday): add (\d+) more designs? and (\d+) of them (?:is|are) free\.$/, function (_, n, a, f) { return ev(n) + ": أضف " + des(a) + " أخرى ويكون " + f + " منها مجانًا."; }],
   [/^(Black Friday|Cyber Monday): free shipping on every order today\.$/, function (_, n) { return ev(n) + ": شحن مجاني لكل الطلبات اليوم."; }],
-  [/^(\d+) of (\d+)$/, "$1 من $2"]
+  [/^(\d+) of (\d+)$/, "$1 من $2"],
+  /* photo swap on the order pages (assets/orders.js, functions/photoswap.js) */
+  [/^Change photo (\d+)$/, "تغيير الصورة $1"],
+  [/^Photo (\d+) was changed for a new one\.$/, "تم استبدال الصورة $1 بصورة جديدة."],
+  [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "تم استبدال الصورة $1 (المجموعة $2) بصورة جديدة."],
+  [/^Pack (\d+)$/, "المجموعة $1"],
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

@@ -233,6 +233,40 @@ const SUITES = {
     ok('quantity: no JS errors', !errs.length, errs.join('|'));
     await ctx.close();
   },
+  async swap(browser) {
+    /* the customer swaps photo 2 of a paid order on track.html (functions/photoswap.js) */
+    const order = { id: 'o1', number: 'LHH-1004', status: 'paid', statusLabel: 'Order received', createdAt: '2026-11-27T15:00:00Z', paidAt: '2026-11-27T15:00:00Z', photoSwap: 'open',
+      items: [{ kind: 'photos', title: 'Custom photo magnets (4)', packSize: 4, price: 18, qty: 1, photoCount: 4, frames: [] }], pricing: { subtotal: 18, shipping: 5.49, tax: 0, total: 23.49 }, timeline: [], refunds: [] };
+    const packs = [{ index: 0, title: 'Custom photo magnets (4)', packSize: 4, photos: [1, 2, 3, 4].map((n) => ({ n, thumb: null, frame: 'none', caption: '' })) }];
+    for (const lang of ['en', 'pt']) {
+      const ctx = await context(browser, { lang, fake: { calls: { trackOrder: order, orderPhotos: { editable: true, reason: '', number: 'LHH-1004', packs }, swapOrderPhoto: { ok: true, photo: { n: 2, thumb: null }, swaps: 1 } } } });
+      const { pg, errs } = await page(ctx, 'track.html?number=LHH-1004&email=camila%40example.com');
+      await pg.waitForSelector('.oswap button', { timeout: 15000 });
+      const label = await pg.textContent('.oswap h2');
+      ok(`swap (${lang}): the panel shows on a paid photo order`, lang === 'pt' ? /Precisa trocar uma foto/.test(label) : /Need to change a photo/.test(label), label);
+      await pg.click('.oswap > button');
+      await pg.waitForSelector('.oswap-tile', { timeout: 15000 });
+      ok(`swap (${lang}): every photo of the pack is listed`, (await pg.$$('.oswap-tile')).length === 4);
+      await pg.evaluate(async () => {
+        const c = document.createElement('canvas'); c.width = 900; c.height = 1200; const g = c.getContext('2d'); g.fillStyle = '#c96'; g.fillRect(0, 0, 900, 1200);
+        const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.9));
+        const dt = new DataTransfer(); dt.items.add(new File([blob], 'new.jpg', { type: 'image/jpeg' }));
+        const inp = document.querySelectorAll('.oswap-grid li')[1].querySelector('input[type=file]'); inp.files = dt.files; inp.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await pg.waitForFunction(() => document.querySelector('.oswap-grid li.is-new'), null, { timeout: 30000 });
+      const made = await pg.evaluate(() => ({ calls: window.__FAKE.callsMade.filter((c) => c.name === 'swapOrderPhoto'), ups: window.__FAKE.uploads.map((u) => u.path), msg: document.querySelector('.oswap .msg').textContent }));
+      const c = made.calls[0] && made.calls[0].data;
+      ok(`swap (${lang}): uploads the new photo and asks the server to swap photo 2`, c && c.n === 2 && c.index === 0 && c.number === 'LHH-1004' && c.email === 'camila@example.com' && /^uploads\/[^/]+\/swap-[a-z0-9]+\/2\.jpg$/.test(c.path) && made.ups.includes(c.path) && c.w === 900 && c.h === 1200, JSON.stringify(made));
+      ok(`swap (${lang}): says it worked`, lang === 'pt' ? /Pronto! A foto foi trocada/.test(made.msg) : /Done! The photo was changed/.test(made.msg), made.msg);
+      ok(`swap (${lang}): no JS errors`, !errs.length, errs.join('|'));
+      await ctx.close();
+    }
+    const ctx = await context(browser, { fake: { calls: { trackOrder: { ...order, status: 'in_production', photoSwap: 'closed' } } } });
+    const { pg } = await page(ctx, 'track.html?number=LHH-1004&email=camila%40example.com');
+    await pg.waitForSelector('.odetail', { timeout: 15000 });
+    ok('swap: no panel once the order is being made', !(await pg.$('.oswap')));
+    await ctx.close();
+  },
   async reports(browser) {
     const ctx = await context(browser);
     const pg = await ctx.newPage(); watch(pg);

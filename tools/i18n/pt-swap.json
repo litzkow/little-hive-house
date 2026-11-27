@@ -1,0 +1,21 @@
+{
+ "Change a photo": "Trocar uma foto",
+ "Need to change a photo?": "Precisa trocar uma foto?",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "Mandou a mesma foto duas vezes ou escolheu a errada? Você pode trocar qualquer foto até a gente começar a fazer o seu pedido. O preço continua o mesmo.",
+ "Loading your photos…": "Carregando as suas fotos…",
+ "These photos can’t be changed anymore.": "Essas fotos não podem mais ser trocadas.",
+ "Tap the photo you want to change, then pick the new one.": "Toque na foto que quer trocar e escolha a nova.",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "Não conseguimos abrir essa foto. Tente um JPG ou PNG.",
+ "The photo didn’t upload. Please check your connection and try again.": "A foto não foi enviada. Confira a sua conexão e tente de novo.",
+ "Uploading the new photo…": "Enviando a foto nova…",
+ "Saving…": "Salvando…",
+ "Done! The photo was changed. We’ll print the new one.": "Pronto! A foto foi trocada. Vamos imprimir a nova.",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "Já começamos a fazer este pedido, então as fotos não podem mais ser trocadas. Fale com a gente que a gente ajuda.",
+ "This order has no photos to change.": "Este pedido não tem fotos para trocar.",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "Este pedido já teve muitas trocas de foto. Fale com a gente que a gente ajuda.",
+ "The new photo didn't upload correctly. Please try again.": "A foto nova não foi enviada direito. Tente de novo.",
+ "The new photo didn't finish uploading. Please try again.": "A foto nova não terminou de enviar. Tente de novo.",
+ "That's the same photo. Please pick a different one.": "É a mesma foto. Escolha uma diferente.",
+ "That photo pack isn't in this order.": "Esse pacote de fotos não está neste pedido.",
+ "That photo isn't in this order.": "Essa foto não está neste pedido."
+}

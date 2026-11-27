@@ -1,0 +1,21 @@
+{
+ "Change a photo": "사진 바꾸기",
+ "Need to change a photo?": "사진을 바꾸고 싶으세요?",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "같은 사진을 두 번 보내셨거나 다른 사진을 고르셨나요? 주문 제작을 시작하기 전까지 어떤 사진이든 바꿀 수 있어요. 가격은 그대로예요.",
+ "Loading your photos…": "사진을 불러오는 중…",
+ "These photos can’t be changed anymore.": "이 사진들은 더 이상 바꿀 수 없어요.",
+ "Tap the photo you want to change, then pick the new one.": "바꿀 사진을 누른 다음 새 사진을 고르세요.",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "사진을 열 수 없어요. JPG나 PNG로 다시 시도해 주세요.",
+ "The photo didn’t upload. Please check your connection and try again.": "사진이 업로드되지 않았어요. 인터넷 연결을 확인하고 다시 시도해 주세요.",
+ "Uploading the new photo…": "새 사진을 업로드하는 중…",
+ "Saving…": "저장하는 중…",
+ "Done! The photo was changed. We’ll print the new one.": "완료! 사진을 바꿨어요. 새 사진으로 인쇄할게요.",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "이 주문은 이미 제작을 시작해서 사진을 더 이상 바꿀 수 없어요. 연락 주시면 도와드릴게요.",
+ "This order has no photos to change.": "이 주문에는 바꿀 사진이 없어요.",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "이 주문은 이미 사진을 여러 번 바꿨어요. 연락 주시면 도와드릴게요.",
+ "The new photo didn't upload correctly. Please try again.": "새 사진이 제대로 업로드되지 않았어요. 다시 시도해 주세요.",
+ "The new photo didn't finish uploading. Please try again.": "새 사진 업로드가 끝나지 않았어요. 다시 시도해 주세요.",
+ "That's the same photo. Please pick a different one.": "같은 사진이에요. 다른 사진을 골라 주세요.",
+ "That photo pack isn't in this order.": "이 사진 묶음은 이 주문에 없어요.",
+ "That photo isn't in this order.": "이 사진은 이 주문에 없어요."
+}

@@ -1,0 +1,21 @@
+{
+ "Change a photo": "Cambiar una foto",
+ "Need to change a photo?": "¿Necesitas cambiar una foto?",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "¿Enviaste la misma foto dos veces o elegiste la equivocada? Puedes cambiar cualquier foto hasta que empecemos a hacer tu pedido. El precio sigue igual.",
+ "Loading your photos…": "Cargando tus fotos…",
+ "These photos can’t be changed anymore.": "Estas fotos ya no se pueden cambiar.",
+ "Tap the photo you want to change, then pick the new one.": "Toca la foto que quieres cambiar y elige la nueva.",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "No pudimos abrir esa foto. Prueba con un JPG o PNG.",
+ "The photo didn’t upload. Please check your connection and try again.": "La foto no se subió. Revisa tu conexión e inténtalo de nuevo.",
+ "Uploading the new photo…": "Subiendo la foto nueva…",
+ "Saving…": "Guardando…",
+ "Done! The photo was changed. We’ll print the new one.": "¡Listo! La foto se cambió. Imprimiremos la nueva.",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "Ya empezamos a hacer este pedido, así que sus fotos ya no se pueden cambiar. Escríbenos y te ayudamos.",
+ "This order has no photos to change.": "Este pedido no tiene fotos para cambiar.",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "Este pedido ya tuvo muchos cambios de foto. Escríbenos y te ayudamos.",
+ "The new photo didn't upload correctly. Please try again.": "La foto nueva no se subió bien. Inténtalo de nuevo.",
+ "The new photo didn't finish uploading. Please try again.": "La foto nueva no terminó de subir. Inténtalo de nuevo.",
+ "That's the same photo. Please pick a different one.": "Es la misma foto. Elige una diferente.",
+ "That photo pack isn't in this order.": "Ese paquete de fotos no está en este pedido.",
+ "That photo isn't in this order.": "Esa foto no está en este pedido."
+}

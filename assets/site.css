@@ -1034,6 +1034,21 @@ html.studio-open { overflow: hidden; }
 .ret-ph button { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg); font: 600 16px var(--body); cursor: pointer; }
 .ret-add { display: grid; place-content: center; justify-items: center; gap: 2px; width: 92px; height: 92px; border-radius: 12px; border: 1.5px dashed var(--line); color: var(--muted); font-size: 13px; text-align: center; cursor: pointer; }
 .ret-add span { font-size: 26px; line-height: 1; color: var(--ink); }
+/* swap a photo of an order (assets/orders.js photoSwap) */
+.oswap { margin-top: 20px; }
+.oswap > p.muted { margin: 6px 0 14px; }
+.oswap .msg { margin-top: 14px; }
+.oswap-body > p { margin: 0 0 10px; }
+.oswap-pack { font-size: 16px; margin: 16px 0 8px; }
+.oswap-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; }
+.oswap-grid li { position: relative; }
+.oswap-tile { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); cursor: pointer; }
+.oswap-tile img, .oswap-tile .othumb-art, .oswap-tile .othumb-art svg { display: block; width: 100%; height: 100%; object-fit: cover; }
+.oswap-tile:hover, .oswap-tile:focus-visible { border-color: var(--honey); }
+.oswap-n { position: absolute; left: 6px; bottom: 6px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: rgba(43, 33, 24, .78); color: #FFF6E5; font: 600 12px/22px var(--body); text-align: center; }
+.oswap-grid li.is-busy .oswap-tile { opacity: .45; }
+.oswap-grid li.is-new .oswap-tile { border-color: var(--honey); box-shadow: 0 0 0 2px var(--honey-soft); }
+html[dir=rtl] .oswap-n { left: auto; right: 6px; }
 .ret-wants { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 .ret-radio { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; }
 .ret-radio:has(input:checked) { border-color: var(--ink); }

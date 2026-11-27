@@ -192,7 +192,12 @@ var PATTERNS = [
   [/^(Black Friday|Cyber Monday), (\d+) designs? free$/, "$1, $2 libreng disenyo"],
   [/^(Black Friday|Cyber Monday): add (\d+) more designs? and (\d+) of them (?:is|are) free\.$/, "$1: magdagdag ng $2 pang disenyo at libre ang $3 sa mga iyon."],
   [/^(Black Friday|Cyber Monday): free shipping on every order today\.$/, "$1: libreng shipping sa bawat order ngayong araw."],
-  [/^(\d+) of (\d+)$/, "$1 sa $2"]
+  [/^(\d+) of (\d+)$/, "$1 sa $2"],
+  /* photo swap on the order pages (assets/orders.js, functions/photoswap.js) */
+  [/^Change photo (\d+)$/, "Palitan ang litrato $1"],
+  [/^Photo (\d+) was changed for a new one\.$/, "Napalitan ng bago ang litrato $1."],
+  [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "Napalitan ng bago ang litrato $1 (pack $2)."],
+  [/^Pack (\d+)$/, "Pack $1"],
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

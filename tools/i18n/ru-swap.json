@@ -1,0 +1,21 @@
+{
+ "Change a photo": "Заменить фото",
+ "Need to change a photo?": "Нужно заменить фото?",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "Отправили одно и то же фото дважды или выбрали не то? Вы можете заменить любое фото, пока мы не начали делать ваш заказ. Цена не меняется.",
+ "Loading your photos…": "Загружаем ваши фото…",
+ "These photos can’t be changed anymore.": "Эти фото больше нельзя заменить.",
+ "Tap the photo you want to change, then pick the new one.": "Нажмите на фото, которое хотите заменить, и выберите новое.",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "Не удалось открыть это фото. Попробуйте JPG или PNG.",
+ "The photo didn’t upload. Please check your connection and try again.": "Фото не загрузилось. Проверьте подключение и попробуйте ещё раз.",
+ "Uploading the new photo…": "Загружаем новое фото…",
+ "Saving…": "Сохраняем…",
+ "Done! The photo was changed. We’ll print the new one.": "Готово! Фото заменено. Мы напечатаем новое.",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "Мы уже начали делать этот заказ, поэтому его фото больше нельзя заменить. Напишите нам, и мы поможем.",
+ "This order has no photos to change.": "В этом заказе нет фото для замены.",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "В этом заказе фото уже меняли много раз. Напишите нам, и мы поможем.",
+ "The new photo didn't upload correctly. Please try again.": "Новое фото загрузилось неправильно. Попробуйте ещё раз.",
+ "The new photo didn't finish uploading. Please try again.": "Новое фото не загрузилось до конца. Попробуйте ещё раз.",
+ "That's the same photo. Please pick a different one.": "Это то же самое фото. Выберите другое.",
+ "That photo pack isn't in this order.": "Этого набора фото нет в этом заказе.",
+ "That photo isn't in this order.": "Этого фото нет в этом заказе."
+}

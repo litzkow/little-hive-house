@@ -30,6 +30,7 @@ const supplies = lazy("./supplies");
 const ads = lazy("./ads");
 const content = lazy("./content");
 const social = lazy("./social");
+const photoswap = lazy("./photoswap");
 
 const HTTPS_CODES = new Set(["cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists",
   "permission-denied", "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal",
@@ -54,6 +55,9 @@ function callable(name, mod, fnName, opts = {}) {
 /* ---------- public ---------- */
 exports.createCheckout = callable("createCheckout", checkout, null, { timeoutSeconds: 60, memory: "256MiB" });
 exports.trackOrder = callable("trackOrder", checkout);
+// the customer swaps a photo of their order while it is still "Order received" (photoswap.js); the swap rebuilds the print sheet
+exports.orderPhotos = callable("orderPhotos", photoswap, null, { timeoutSeconds: 120, memory: "512MiB" });
+exports.swapOrderPhoto = callable("swapOrderPhoto", photoswap, null, { timeoutSeconds: 300, memory: "1GiB" });
 // orderBySession may confirm the payment itself (before the webhook) and then builds the print sheet: give it room
 exports.orderBySession = callable("orderBySession", checkout, null, { timeoutSeconds: 120, memory: "1GiB" });
 exports.subscribe = callable("subscribe", pub);

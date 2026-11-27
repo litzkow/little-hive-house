@@ -15,6 +15,7 @@ const KINDS = {
   refund: require("./kinds/refund"),
   return_update: require("./kinds/return_update"),
   admin_return: require("./kinds/admin_return"),
+  admin_photo_swap: require("./kinds/admin_photo_swap"),
   welcome: require("./kinds/welcome"),
   password_reset: require("./kinds/password_reset"),
   verify_email: require("./kinds/verify_email"),

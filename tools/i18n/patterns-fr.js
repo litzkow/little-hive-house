@@ -196,7 +196,12 @@ var PATTERNS = [
   [/^(Black Friday|Cyber Monday), (\d+) designs? free$/, function (_, n, k) { return n + ", " + pl(k, "modèle offert", "modèles offerts"); }],
   [/^(Black Friday|Cyber Monday): add (\d+) more designs? and (\d+) of them (?:is|are) free\.$/, function (_, n, a, f) { return n + " : ajoutez " + pl(a, "modèle", "modèles") + " et " + f + (f === "1" ? " est offert." : " sont offerts."); }],
   [/^(Black Friday|Cyber Monday): free shipping on every order today\.$/, "$1 : livraison gratuite sur toutes les commandes aujourd'hui."],
-  [/^(\d+) of (\d+)$/, "$1 sur $2"]
+  [/^(\d+) of (\d+)$/, "$1 sur $2"],
+  /* photo swap on the order pages (assets/orders.js, functions/photoswap.js) */
+  [/^Change photo (\d+)$/, "Changer la photo $1"],
+  [/^Photo (\d+) was changed for a new one\.$/, "La photo $1 a été remplacée par une nouvelle."],
+  [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "La photo $1 (lot $2) a été remplacée par une nouvelle."],
+  [/^Pack (\d+)$/, "Lot $1"],
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

@@ -1,0 +1,21 @@
+{
+ "Change a photo": "تغيير صورة",
+ "Need to change a photo?": "هل تحتاج إلى تغيير صورة؟",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "أرسلت الصورة نفسها مرتين أو اخترت صورة خاطئة؟ يمكنك تبديل أي صورة إلى أن نبدأ في صنع طلبك. السعر يبقى كما هو.",
+ "Loading your photos…": "جارٍ تحميل صورك…",
+ "These photos can’t be changed anymore.": "لم يعد بالإمكان تغيير هذه الصور.",
+ "Tap the photo you want to change, then pick the new one.": "اضغط على الصورة التي تريد تغييرها، ثم اختر الصورة الجديدة.",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "تعذّر فتح هذه الصورة. جرّب صورة JPG أو PNG.",
+ "The photo didn’t upload. Please check your connection and try again.": "لم تُرفع الصورة. تحقّق من اتصالك وحاول مرة أخرى.",
+ "Uploading the new photo…": "جارٍ رفع الصورة الجديدة…",
+ "Saving…": "جارٍ الحفظ…",
+ "Done! The photo was changed. We’ll print the new one.": "تم! تغيّرت الصورة. سنطبع الصورة الجديدة.",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "بدأنا بالفعل في صنع هذا الطلب، لذا لم يعد بالإمكان تغيير صوره. تواصل معنا وسنساعدك.",
+ "This order has no photos to change.": "لا يحتوي هذا الطلب على صور لتغييرها.",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "تم تغيير صور هذا الطلب مرات كثيرة. تواصل معنا وسنساعدك.",
+ "The new photo didn't upload correctly. Please try again.": "لم تُرفع الصورة الجديدة بشكل صحيح. حاول مرة أخرى.",
+ "The new photo didn't finish uploading. Please try again.": "لم يكتمل رفع الصورة الجديدة. حاول مرة أخرى.",
+ "That's the same photo. Please pick a different one.": "هذه هي الصورة نفسها. اختر صورة مختلفة.",
+ "That photo pack isn't in this order.": "مجموعة الصور هذه ليست في هذا الطلب.",
+ "That photo isn't in this order.": "هذه الصورة ليست في هذا الطلب."
+}

@@ -837,7 +837,7 @@ async function adminLastTestSheet(data, auth) {
 }
 
 module.exports = {
-  refundOrder, _internal: { photoUrl },
+  refundOrder, _internal: { photoUrl, thumbUrl },
   adminDeleteOrder, adminTestSheet, adminLastTestSheet, deletable, adminPhotoFraming,
   adminPreviewEmail, claimAdmin, adminSetStatus, adminShip, adminCapture, adminMarkDelivered, adminRefund, adminAddNote, adminResendEmail,
   adminCreatePaymentLink, adminCreatePromo, adminListPromos, adminSaveSettings, adminPhotoUrls, adminModerateReview, adminPrintSheet, adminPrintBatch,

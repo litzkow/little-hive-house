@@ -214,6 +214,9 @@ function publicOrderView(id, o, { owner = false } = {}) {
       .map((r) => ({ amount: r.amount, at: r.at, reason: r.reason, reasonLabel: REFUND_REASONS[r.reason] || "Other" })),
     refundedTotal: o.refundedTotal || 0,
   };
+  // the customer may swap a photo of a pack they uploaded while the order is still "Order received" (photoswap.js)
+  const own = (it) => it && it.kind === "photos" && Array.isArray(it.photos) && it.photos.length > 0 && it.photos.every((ph) => ph && /^uploads\//.test(ph.path || ""));
+  if ((o.items || []).some(own)) view.photoSwap = o.status === "paid" ? "open" : "closed";
   if (owner) {
     view.shipping = s.name || a.line1 ? {
       name: s.name || "",

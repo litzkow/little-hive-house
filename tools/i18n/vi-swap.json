@@ -1,0 +1,21 @@
+{
+ "Change a photo": "Đổi một ảnh",
+ "Need to change a photo?": "Cần đổi một ảnh?",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "Gửi cùng một ảnh hai lần hoặc chọn nhầm ảnh? Bạn có thể đổi bất kỳ ảnh nào cho đến khi chúng tôi bắt đầu làm đơn hàng của bạn. Giá vẫn giữ nguyên.",
+ "Loading your photos…": "Đang tải ảnh của bạn…",
+ "These photos can’t be changed anymore.": "Không thể đổi những ảnh này nữa.",
+ "Tap the photo you want to change, then pick the new one.": "Chạm vào ảnh bạn muốn đổi, rồi chọn ảnh mới.",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "Không mở được ảnh đó. Hãy thử ảnh JPG hoặc PNG.",
+ "The photo didn’t upload. Please check your connection and try again.": "Ảnh chưa được tải lên. Hãy kiểm tra kết nối và thử lại.",
+ "Uploading the new photo…": "Đang tải ảnh mới lên…",
+ "Saving…": "Đang lưu…",
+ "Done! The photo was changed. We’ll print the new one.": "Xong! Ảnh đã được đổi. Chúng tôi sẽ in ảnh mới.",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "Chúng tôi đã bắt đầu làm đơn hàng này nên không thể đổi ảnh nữa. Hãy liên hệ, chúng tôi sẽ giúp bạn.",
+ "This order has no photos to change.": "Đơn hàng này không có ảnh để đổi.",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "Đơn hàng này đã đổi ảnh nhiều lần. Hãy liên hệ, chúng tôi sẽ giúp bạn.",
+ "The new photo didn't upload correctly. Please try again.": "Ảnh mới chưa tải lên đúng cách. Hãy thử lại.",
+ "The new photo didn't finish uploading. Please try again.": "Ảnh mới chưa tải lên xong. Hãy thử lại.",
+ "That's the same photo. Please pick a different one.": "Đây là cùng một ảnh. Hãy chọn ảnh khác.",
+ "That photo pack isn't in this order.": "Gói ảnh đó không có trong đơn hàng này.",
+ "That photo isn't in this order.": "Ảnh đó không có trong đơn hàng này."
+}

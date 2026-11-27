@@ -1,0 +1,21 @@
+{
+ "Change a photo": "Changer une photo",
+ "Need to change a photo?": "Besoin de changer une photo ?",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "Vous avez envoyé deux fois la même photo ou choisi la mauvaise ? Vous pouvez remplacer n’importe quelle photo jusqu’à ce que nous commencions à fabriquer votre commande. Le prix reste le même.",
+ "Loading your photos…": "Chargement de vos photos…",
+ "These photos can’t be changed anymore.": "Ces photos ne peuvent plus être changées.",
+ "Tap the photo you want to change, then pick the new one.": "Touchez la photo à changer, puis choisissez la nouvelle.",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "Impossible d’ouvrir cette photo. Essayez un JPG ou un PNG.",
+ "The photo didn’t upload. Please check your connection and try again.": "La photo n’a pas été envoyée. Vérifiez votre connexion et réessayez.",
+ "Uploading the new photo…": "Envoi de la nouvelle photo…",
+ "Saving…": "Enregistrement…",
+ "Done! The photo was changed. We’ll print the new one.": "C’est fait ! La photo a été changée. Nous imprimerons la nouvelle.",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "Nous avons déjà commencé à fabriquer cette commande, ses photos ne peuvent donc plus être changées. Contactez-nous, nous vous aiderons.",
+ "This order has no photos to change.": "Cette commande n’a pas de photos à changer.",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "Cette commande a déjà eu beaucoup de changements de photo. Contactez-nous, nous vous aiderons.",
+ "The new photo didn't upload correctly. Please try again.": "La nouvelle photo n’a pas été envoyée correctement. Réessayez.",
+ "The new photo didn't finish uploading. Please try again.": "La nouvelle photo n’a pas fini de s’envoyer. Réessayez.",
+ "That's the same photo. Please pick a different one.": "C’est la même photo. Choisissez-en une autre.",
+ "That photo pack isn't in this order.": "Ce lot de photos ne fait pas partie de cette commande.",
+ "That photo isn't in this order.": "Cette photo ne fait pas partie de cette commande."
+}

@@ -201,7 +201,12 @@ var PATTERNS = [
   [/^(Black Friday|Cyber Monday), (\d+) designs? free$/, function (_, n, k) { return ev(n) + ", 디자인 " + k + "개 무료"; }],
   [/^(Black Friday|Cyber Monday): add (\d+) more designs? and (\d+) of them (?:is|are) free\.$/, function (_, n, a, f) { return ev(n) + ": 디자인 " + a + "개를 더 담으면 그중 " + f + "개가 무료예요."; }],
   [/^(Black Friday|Cyber Monday): free shipping on every order today\.$/, function (_, n) { return ev(n) + ": 오늘은 모든 주문 무료 배송이에요."; }],
-  [/^(\d+) of (\d+)$/, "$1 / $2"]
+  [/^(\d+) of (\d+)$/, "$1 / $2"],
+  /* photo swap on the order pages (assets/orders.js, functions/photoswap.js) */
+  [/^Change photo (\d+)$/, "$1번 사진 바꾸기"],
+  [/^Photo (\d+) was changed for a new one\.$/, "$1번 사진을 새 사진으로 바꿨어요."],
+  [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "$1번 사진($2번 묶음)을 새 사진으로 바꿨어요."],
+  [/^Pack (\d+)$/, "$1번 묶음"],
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

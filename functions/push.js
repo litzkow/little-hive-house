@@ -17,7 +17,7 @@ const U = require("./util");
 /* email kind -> preference key the owner can switch off in Settings */
 const KIND_PREF = {
   admin_new_order: "orders", admin_contact: "messages", admin_suggestion: "messages", admin_quote: "quotes", admin_dispute: "disputes",
-  admin_delivery_check: "delivery", admin_delivered: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", admin_ads: "orders", admin_social: "messages", admin_content: "messages", push_test: null,
+  admin_delivery_check: "delivery", admin_delivered: "delivery", admin_site_problem: "orders", admin_payment_hold: "payments", admin_sales_tax: "taxes", admin_newsletter: "messages", admin_return: "orders", admin_supplies: "orders", admin_ads: "orders", admin_social: "messages", admin_photo_swap: "orders", admin_content: "messages", push_test: null,
 };
 const PREFS = ["orders", "payments", "messages", "quotes", "disputes", "delivery", "taxes"];
 const COLL = "adminPush";
@@ -88,6 +88,11 @@ function message(kind, data) {
       const total = o.pricing && o.pricing.total;
       return { title: `🛒 Novo pedido ${num}`.trim(), body: [money(total), m ? `${m} ${m === 1 ? "ímã" : "ímãs"}` : "", clip(o.name, 40)].filter(Boolean).join(" · "),
         url: orderUrl(id), tag: `order-${id || num}`, urgency: "high" };
+    }
+    case "admin_photo_swap": {
+      const sw = d.swap || {};
+      return { title: `🔄 Foto trocada ${num}`.trim(), body: [clip(o.name, 40), `trocou a foto ${sw.n || ""}`.trim(), sw.rebuilt ? "a folha de impressão já foi refeita" : "refaça a folha de impressão"].filter(Boolean).join(" · "),
+        url: orderUrl(id), tag: `swap-${id || num}-${sw.n || ""}`, urgency: "high" };
     }
     case "admin_newsletter":
       return d.mode === "blocked"

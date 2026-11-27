@@ -1,0 +1,21 @@
+{
+ "Change a photo": "更换照片",
+ "Need to change a photo?": "需要更换照片吗？",
+ "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "同一张照片传了两次，或选错了？在我们开始制作您的订单之前，您可以更换任何一张照片。价格不变。",
+ "Loading your photos…": "正在加载您的照片…",
+ "These photos can’t be changed anymore.": "这些照片已无法更换。",
+ "Tap the photo you want to change, then pick the new one.": "点按要更换的照片，然后选择新照片。",
+ "We couldn’t open that photo. Please try a JPG or PNG.": "无法打开这张照片。请尝试 JPG 或 PNG。",
+ "The photo didn’t upload. Please check your connection and try again.": "照片未能上传。请检查网络连接后重试。",
+ "Uploading the new photo…": "正在上传新照片…",
+ "Saving…": "正在保存…",
+ "Done! The photo was changed. We’ll print the new one.": "完成！照片已更换。我们会打印新照片。",
+ "We've already started making this order, so its photos can't be changed anymore. Please contact us and we'll help.": "我们已经开始制作此订单，照片无法再更换。请联系我们，我们会帮您处理。",
+ "This order has no photos to change.": "此订单没有可更换的照片。",
+ "This order has had a lot of photo changes already. Please contact us and we'll help.": "此订单的照片已更换多次。请联系我们，我们会帮您处理。",
+ "The new photo didn't upload correctly. Please try again.": "新照片未能正确上传。请重试。",
+ "The new photo didn't finish uploading. Please try again.": "新照片尚未上传完成。请重试。",
+ "That's the same photo. Please pick a different one.": "这是同一张照片。请选择另一张。",
+ "That photo pack isn't in this order.": "此订单中没有这组照片。",
+ "That photo isn't in this order.": "此订单中没有这张照片。"
+}

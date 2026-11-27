@@ -198,7 +198,12 @@ var PATTERNS = [
   [/^(Black Friday|Cyber Monday), (\d+) designs? free$/, function (_, n, k) { return ev(n) + "，免费送 " + k + " 款设计"; }],
   [/^(Black Friday|Cyber Monday): add (\d+) more designs? and (\d+) of them (?:is|are) free\.$/, function (_, n, a, f) { return ev(n) + "：再加 " + a + " 款设计，其中 " + f + " 款免费。"; }],
   [/^(Black Friday|Cyber Monday): free shipping on every order today\.$/, function (_, n) { return ev(n) + "：今天所有订单免运费。"; }],
-  [/^(\d+) of (\d+)$/, "$1/$2"]
+  [/^(\d+) of (\d+)$/, "$1/$2"],
+  /* photo swap on the order pages (assets/orders.js, functions/photoswap.js) */
+  [/^Change photo (\d+)$/, "更换第 $1 张照片"],
+  [/^Photo (\d+) was changed for a new one\.$/, "第 $1 张照片已换成新照片。"],
+  [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "第 $1 张照片（第 $2 组）已换成新照片。"],
+  [/^Pack (\d+)$/, "第 $1 组"],
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {
