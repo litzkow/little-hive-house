@@ -251,3 +251,11 @@ test('ads spend (Anúncios page) is a cost of the month it was paid', () => {
   assert.equal(t.adSpend, 14.5);
   assert.equal(t.costs, 14.5);
 });
+
+test('photos the customer removed before shipping are not counted as sold (functions/photoswap.js)', () => {
+  /* $55 list, 20% off -> $44, a photo taken out ($2.00 of goods, $0.12 of tax) -> $44.52 */
+  const p = R.pricing({ pricing: { subtotal: 55, sale: { name: 'Black Friday', pct: 20, amount: 11 }, removed: 2, shipping: 0, tax: 2.52, total: 44.52 } });
+  assert.equal(p.subtotal, 53);
+  assert.equal(p.discounts, 11);
+  assert.equal(Math.round((p.subtotal - p.discounts + p.shipping + p.tax) * 100) / 100, p.total);
+});

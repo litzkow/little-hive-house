@@ -1,10 +1,7 @@
 {
- "Change a photo": "更换照片",
  "Need to change a photo?": "需要更换照片吗？",
- "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "同一张照片传了两次，或选错了？在我们开始制作您的订单之前，您可以更换任何一张照片。价格不变。",
  "Loading your photos…": "正在加载您的照片…",
  "These photos can’t be changed anymore.": "这些照片已无法更换。",
- "Tap the photo you want to change, then pick the new one.": "点按要更换的照片，然后选择新照片。",
  "We couldn’t open that photo. Please try a JPG or PNG.": "无法打开这张照片。请尝试 JPG 或 PNG。",
  "The photo didn’t upload. Please check your connection and try again.": "照片未能上传。请检查网络连接后重试。",
  "Uploading the new photo…": "正在上传新照片…",
@@ -17,5 +14,19 @@
  "The new photo didn't finish uploading. Please try again.": "新照片尚未上传完成。请重试。",
  "That's the same photo. Please pick a different one.": "这是同一张照片。请选择另一张。",
  "That photo pack isn't in this order.": "此订单中没有这组照片。",
- "That photo isn't in this order.": "此订单中没有这张照片。"
+ "That photo isn't in this order.": "此订单中没有这张照片。",
+ "Change or remove a photo": "更换或移除照片",
+ "Sent the same photo twice, or picked the wrong one? Until we start making your order, you can swap any photo (same price) or remove it (you pay less).": "同一张照片传了两次，或选错了？在我们开始制作您的订单之前，您可以更换任何照片（价格不变）或移除照片（少付一些）。",
+ "Tap the photo you want to change or remove.": "点按要更换或移除的照片。",
+ "Swap it": "更换",
+ "Remove it": "移除",
+ "Cancel": "取消",
+ "Yes, remove it": "是的，移除",
+ "Keep it": "保留",
+ "Swap it for another photo. The price stays the same.": "换成另一张照片。价格不变。",
+ "Photos you removed": "您移除的照片",
+ "You can still change or remove photos": "仍可更换或移除照片",
+ "This pack repeats your photos to fill it, so photos can be changed but not removed. Please contact us and we'll help.": "这组照片会重复使用以填满套装，所以可以更换但不能移除。请联系我们，我们会帮您处理。",
+ "This is the last photo of the pack, so it can't be removed here. Please contact us and we'll help.": "这是这组的最后一张照片，无法在此移除。请联系我们，我们会帮您处理。",
+ "This order's payment can't be changed here. Please contact us and we'll help.": "此订单的付款无法在此更改。请联系我们，我们会帮您处理。"
 }

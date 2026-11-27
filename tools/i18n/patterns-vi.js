@@ -200,6 +200,15 @@ var PATTERNS = [
   [/^Photo (\d+) was changed for a new one\.$/, "Ảnh $1 đã được đổi sang ảnh mới."],
   [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "Ảnh $1 (gói $2) đã được đổi sang ảnh mới."],
   [/^Pack (\d+)$/, "Gói $1"],
+  [/^Photo (\d+): change or remove$/, "Ảnh $1: đổi hoặc bỏ"],
+  [/^Remove photo (\d+)\?$/, "Bỏ ảnh $1?"],
+  [/^You’ll get (\d+) magnets and pay (\$[\d.,]+) less\.$/, "Bạn sẽ nhận $1 nam châm và trả ít hơn $2."],
+  [/^Swap it for another photo \(same price\), or remove it \((\$[\d.,]+) less\)\.$/, "Đổi sang ảnh khác (giá không đổi) hoặc bỏ ảnh (ít hơn $1)."],
+  [/^Removing photo (\d+)…$/, "Đang bỏ ảnh $1…"],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and your new total is (\$[\d.,]+)\.$/, "Xong! Đã bỏ ảnh $1. Bây giờ có $2 nam châm và tổng mới là $3."],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and we refunded (\$[\d.,]+) to your card\.$/, "Xong! Đã bỏ ảnh $1. Bây giờ có $2 nam châm và chúng tôi đã hoàn $3 vào thẻ của bạn."],
+  [/^Photo (\d+) was removed\. (\d+) magnets now\.$/, "Đã bỏ ảnh $1. Bây giờ có $2 nam châm."],
+  [/^Photo (\d+) \(pack (\d+)\) was removed\. (\d+) magnets now\.$/, "Đã bỏ ảnh $1 (gói $2). Bây giờ có $3 nam châm."]
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

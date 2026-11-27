@@ -91,6 +91,11 @@ function message(kind, data) {
     }
     case "admin_photo_swap": {
       const sw = d.swap || {};
+      if (sw.removed) {
+        const off = sw.held ? `${money(sw.saved)} a menos na cobrança` : sw.refundFailed ? `devolva ${money(sw.saved)} pelo botão Reembolsar` : `${money(sw.saved)} devolvidos ao cartão`;
+        return { title: `➖ Foto tirada ${num}`.trim(), body: [clip(o.name, 40), `tirou a foto ${sw.n || ""}`.trim(), `agora ${sw.newSize} ímãs`, off].filter(Boolean).join(" · "),
+          url: orderUrl(id), tag: `swap-${id || num}-${Date.now()}`, urgency: "high" };
+      }
       return { title: `🔄 Foto trocada ${num}`.trim(), body: [clip(o.name, 40), `trocou a foto ${sw.n || ""}`.trim(), sw.rebuilt ? "a folha de impressão já foi refeita" : "refaça a folha de impressão"].filter(Boolean).join(" · "),
         url: orderUrl(id), tag: `swap-${id || num}-${sw.n || ""}`, urgency: "high" };
     }

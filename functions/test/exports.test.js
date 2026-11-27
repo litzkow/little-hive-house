@@ -8,7 +8,7 @@ const path = require("path");
 const Module = require("module");
 
 const CALLABLES = [
-  "createCheckout", "trackOrder", "orderPhotos", "swapOrderPhoto", "orderBySession", "subscribe", "contact", "suggest", "requestQuote", "sendPasswordReset", "welcome",
+  "createCheckout", "trackOrder", "orderPhotos", "swapOrderPhoto", "removeOrderPhoto", "orderBySession", "subscribe", "contact", "suggest", "requestQuote", "sendPasswordReset", "welcome",
   "submitReview", "unsubscribe", "setMarketing", "myOrders", "myOrder", "sendVerifyEmail",
   "claimAdmin", "adminSetStatus", "adminShip", "adminCapture", "adminPush", "adminMarkDelivered", "adminRefund", "adminAddNote", "adminPhotoFraming", "adminResendEmail",
   "adminCreatePaymentLink", "adminCreatePromo", "adminListPromos", "adminSaveSettings", "adminPhotoUrls", "adminModerateReview", "adminNewsletter", "adminTestSheet", "adminLastTestSheet", "adminDeleteOrder",

@@ -307,5 +307,7 @@
  "Your card is authorized now and charged only when your order ships.": "你的卡现在只做授权，订单发货时才扣款。",
  "Magnets": "冰箱贴",
  "Tracking": "物流",
- "Occasion": "场合"
+ "Occasion": "场合",
+ "Sent the wrong photo, or the same one twice? You can swap or remove photos until we start making your order:": "传错了照片，或同一张传了两次？在我们开始制作您的订单之前，您可以更换或移除照片：",
+ "change your photos": "更改您的照片"
 }

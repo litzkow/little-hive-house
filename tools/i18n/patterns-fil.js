@@ -198,6 +198,15 @@ var PATTERNS = [
   [/^Photo (\d+) was changed for a new one\.$/, "Napalitan ng bago ang litrato $1."],
   [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "Napalitan ng bago ang litrato $1 (pack $2)."],
   [/^Pack (\d+)$/, "Pack $1"],
+  [/^Photo (\d+): change or remove$/, "Litrato $1: palitan o alisin"],
+  [/^Remove photo (\d+)\?$/, "Alisin ang litrato $1?"],
+  [/^You’ll get (\d+) magnets and pay (\$[\d.,]+) less\.$/, "Makakatanggap ka ng $1 magnet at mas mababa nang $2 ang babayaran mo."],
+  [/^Swap it for another photo \(same price\), or remove it \((\$[\d.,]+) less\)\.$/, "Palitan ng ibang litrato (parehong presyo) o alisin ($1 na mas mababa)."],
+  [/^Removing photo (\d+)…$/, "Inaalis ang litrato $1…"],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and your new total is (\$[\d.,]+)\.$/, "Tapos na! Inalis ang litrato $1. $2 magnet na ngayon at ang bagong total mo ay $3."],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and we refunded (\$[\d.,]+) to your card\.$/, "Tapos na! Inalis ang litrato $1. $2 magnet na ngayon at ibinalik namin ang $3 sa card mo."],
+  [/^Photo (\d+) was removed\. (\d+) magnets now\.$/, "Inalis ang litrato $1. $2 magnet na ngayon."],
+  [/^Photo (\d+) \(pack (\d+)\) was removed\. (\d+) magnets now\.$/, "Inalis ang litrato $1 (pack $2). $3 magnet na ngayon."]
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

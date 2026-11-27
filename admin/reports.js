@@ -131,6 +131,8 @@
   function pricing(o) {
     var p = o.pricing || {};
     var subtotal = p.subtotal != null ? num(p.subtotal) : (o.items || []).reduce(function (a, it) { return a + itemPrice(it); }, 0);
+    /* photos the customer took out before it shipped (functions/photoswap.js): never sold, so out of the subtotal */
+    if (num(p.removed) > 0) subtotal = round2(subtotal - num(p.removed));
     var promo = p.promo && p.promo.amount ? num(p.promo.amount) : 0;
     var discounts = num(p.bundleDiscount) + num(p.volumeDiscount) + promo + (p.sale ? num(p.sale.amount) : 0);
     var shipping = num(p.shipping);

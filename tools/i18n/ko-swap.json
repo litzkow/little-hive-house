@@ -1,10 +1,7 @@
 {
- "Change a photo": "사진 바꾸기",
  "Need to change a photo?": "사진을 바꾸고 싶으세요?",
- "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "같은 사진을 두 번 보내셨거나 다른 사진을 고르셨나요? 주문 제작을 시작하기 전까지 어떤 사진이든 바꿀 수 있어요. 가격은 그대로예요.",
  "Loading your photos…": "사진을 불러오는 중…",
  "These photos can’t be changed anymore.": "이 사진들은 더 이상 바꿀 수 없어요.",
- "Tap the photo you want to change, then pick the new one.": "바꿀 사진을 누른 다음 새 사진을 고르세요.",
  "We couldn’t open that photo. Please try a JPG or PNG.": "사진을 열 수 없어요. JPG나 PNG로 다시 시도해 주세요.",
  "The photo didn’t upload. Please check your connection and try again.": "사진이 업로드되지 않았어요. 인터넷 연결을 확인하고 다시 시도해 주세요.",
  "Uploading the new photo…": "새 사진을 업로드하는 중…",
@@ -17,5 +14,19 @@
  "The new photo didn't finish uploading. Please try again.": "새 사진 업로드가 끝나지 않았어요. 다시 시도해 주세요.",
  "That's the same photo. Please pick a different one.": "같은 사진이에요. 다른 사진을 골라 주세요.",
  "That photo pack isn't in this order.": "이 사진 묶음은 이 주문에 없어요.",
- "That photo isn't in this order.": "이 사진은 이 주문에 없어요."
+ "That photo isn't in this order.": "이 사진은 이 주문에 없어요.",
+ "Change or remove a photo": "사진 바꾸기 또는 빼기",
+ "Sent the same photo twice, or picked the wrong one? Until we start making your order, you can swap any photo (same price) or remove it (you pay less).": "같은 사진을 두 번 보내셨거나 다른 사진을 고르셨나요? 주문 제작을 시작하기 전까지 사진을 바꾸거나(가격 동일) 뺄 수 있어요(금액이 줄어요).",
+ "Tap the photo you want to change or remove.": "바꾸거나 뺄 사진을 누르세요.",
+ "Swap it": "바꾸기",
+ "Remove it": "빼기",
+ "Cancel": "취소",
+ "Yes, remove it": "네, 뺄게요",
+ "Keep it": "그대로 두기",
+ "Swap it for another photo. The price stays the same.": "다른 사진으로 바꾸세요. 가격은 그대로예요.",
+ "Photos you removed": "뺀 사진",
+ "You can still change or remove photos": "아직 사진을 바꾸거나 뺄 수 있어요",
+ "This pack repeats your photos to fill it, so photos can be changed but not removed. Please contact us and we'll help.": "이 묶음은 사진을 반복해서 채우기 때문에 사진을 바꿀 수는 있지만 뺄 수는 없어요. 연락 주시면 도와드릴게요.",
+ "This is the last photo of the pack, so it can't be removed here. Please contact us and we'll help.": "이 묶음의 마지막 사진이라 여기서는 뺄 수 없어요. 연락 주시면 도와드릴게요.",
+ "This order's payment can't be changed here. Please contact us and we'll help.": "이 주문의 결제는 여기서 바꿀 수 없어요. 연락 주시면 도와드릴게요."
 }

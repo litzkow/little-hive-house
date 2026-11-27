@@ -1,10 +1,7 @@
 {
- "Change a photo": "Cambiar una foto",
  "Need to change a photo?": "¿Necesitas cambiar una foto?",
- "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "¿Enviaste la misma foto dos veces o elegiste la equivocada? Puedes cambiar cualquier foto hasta que empecemos a hacer tu pedido. El precio sigue igual.",
  "Loading your photos…": "Cargando tus fotos…",
  "These photos can’t be changed anymore.": "Estas fotos ya no se pueden cambiar.",
- "Tap the photo you want to change, then pick the new one.": "Toca la foto que quieres cambiar y elige la nueva.",
  "We couldn’t open that photo. Please try a JPG or PNG.": "No pudimos abrir esa foto. Prueba con un JPG o PNG.",
  "The photo didn’t upload. Please check your connection and try again.": "La foto no se subió. Revisa tu conexión e inténtalo de nuevo.",
  "Uploading the new photo…": "Subiendo la foto nueva…",
@@ -17,5 +14,19 @@
  "The new photo didn't finish uploading. Please try again.": "La foto nueva no terminó de subir. Inténtalo de nuevo.",
  "That's the same photo. Please pick a different one.": "Es la misma foto. Elige una diferente.",
  "That photo pack isn't in this order.": "Ese paquete de fotos no está en este pedido.",
- "That photo isn't in this order.": "Esa foto no está en este pedido."
+ "That photo isn't in this order.": "Esa foto no está en este pedido.",
+ "Change or remove a photo": "Cambiar o quitar una foto",
+ "Sent the same photo twice, or picked the wrong one? Until we start making your order, you can swap any photo (same price) or remove it (you pay less).": "¿Enviaste la misma foto dos veces o elegiste la equivocada? Hasta que empecemos a hacer tu pedido, puedes cambiar cualquier foto (mismo precio) o quitarla (pagas menos).",
+ "Tap the photo you want to change or remove.": "Toca la foto que quieres cambiar o quitar.",
+ "Swap it": "Cambiarla",
+ "Remove it": "Quitarla",
+ "Cancel": "Cancelar",
+ "Yes, remove it": "Sí, quitarla",
+ "Keep it": "Dejarla",
+ "Swap it for another photo. The price stays the same.": "Cámbiala por otra foto. El precio sigue igual.",
+ "Photos you removed": "Fotos que quitaste",
+ "You can still change or remove photos": "Todavía puedes cambiar o quitar fotos",
+ "This pack repeats your photos to fill it, so photos can be changed but not removed. Please contact us and we'll help.": "Este paquete repite tus fotos para completarse, así que puedes cambiar fotos pero no quitarlas. Escríbenos y te ayudamos.",
+ "This is the last photo of the pack, so it can't be removed here. Please contact us and we'll help.": "Es la última foto del paquete, así que no se puede quitar aquí. Escríbenos y te ayudamos.",
+ "This order's payment can't be changed here. Please contact us and we'll help.": "El pago de este pedido no se puede cambiar aquí. Escríbenos y te ayudamos."
 }

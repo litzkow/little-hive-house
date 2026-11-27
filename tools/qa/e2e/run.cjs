@@ -237,7 +237,7 @@ const SUITES = {
     /* the customer swaps photo 2 of a paid order on track.html (functions/photoswap.js) */
     const order = { id: 'o1', number: 'LHH-1004', status: 'paid', statusLabel: 'Order received', createdAt: '2026-11-27T15:00:00Z', paidAt: '2026-11-27T15:00:00Z', photoSwap: 'open',
       items: [{ kind: 'photos', title: 'Custom photo magnets (4)', packSize: 4, price: 18, qty: 1, photoCount: 4, frames: [] }], pricing: { subtotal: 18, shipping: 5.49, tax: 0, total: 23.49 }, timeline: [], refunds: [] };
-    const packs = [{ index: 0, title: 'Custom photo magnets (4)', packSize: 4, photos: [1, 2, 3, 4].map((n) => ({ n, thumb: null, frame: 'none', caption: '' })) }];
+    const packs = [{ index: 0, title: 'Custom photo magnets (4)', packSize: 4, removable: true, removeSaves: 2.12, photos: [1, 2, 3, 4].map((n) => ({ n, thumb: null, frame: 'none', caption: '' })) }];
     for (const lang of ['en', 'pt']) {
       const ctx = await context(browser, { lang, fake: { calls: { trackOrder: order, orderPhotos: { editable: true, reason: '', number: 'LHH-1004', packs }, swapOrderPhoto: { ok: true, photo: { n: 2, thumb: null }, swaps: 1 } } } });
       const { pg, errs } = await page(ctx, 'track.html?number=LHH-1004&email=camila%40example.com');
@@ -258,7 +258,35 @@ const SUITES = {
       const c = made.calls[0] && made.calls[0].data;
       ok(`swap (${lang}): uploads the new photo and asks the server to swap photo 2`, c && c.n === 2 && c.index === 0 && c.number === 'LHH-1004' && c.email === 'camila@example.com' && /^uploads\/[^/]+\/swap-[a-z0-9]+\/2\.jpg$/.test(c.path) && made.ups.includes(c.path) && c.w === 900 && c.h === 1200, JSON.stringify(made));
       ok(`swap (${lang}): says it worked`, lang === 'pt' ? /Pronto! A foto foi trocada/.test(made.msg) : /Done! The photo was changed/.test(made.msg), made.msg);
+      // remove photo 3: tap it, Remove it, Yes; the order is loaded again with the new total
+      await pg.evaluate(() => { window.__FAKE.calls.removeOrderPhoto = { ok: true, saved: 2.12, total: 21.37, packSize: 3, held: true, refunded: 0 };
+        window.__FAKE.calls.trackOrder = Object.assign({}, window.__FAKE.calls.trackOrder, { pricing: { subtotal: 18, removed: 2, shipping: 5.49, tax: 0, total: 21.37 } }); });
+      await pg.click('.oswap-grid li:nth-child(3) .oswap-tile');
+      await pg.waitForSelector('.oswap-bar:not([hidden]) button >> nth=1');
+      const choices = await pg.$$eval('.oswap-bar:not([hidden]) button', (b) => b.map((x) => x.textContent));
+      ok(`swap (${lang}): tapping a photo offers swap, remove and cancel`, choices.length === 3, choices.join(' / '));
+      await pg.click('.oswap-bar:not([hidden]) button >> nth=1');
+      const q = await pg.textContent('.oswap-bar:not([hidden]) .oswap-q');
+      ok(`swap (${lang}): removing asks first, with the money`, /\$2\.12/.test(q) && /3/.test(q), q);
+      await pg.click('.oswap-bar:not([hidden]) button >> nth=0');
+      await pg.waitForFunction(() => /21\.37/.test((document.querySelector('.oswap .msg') || {}).textContent || ''), null, { timeout: 15000 });
+      const after = await pg.evaluate(() => ({ call: window.__FAKE.callsMade.filter((c) => c.name === 'removeOrderPhoto')[0], msg: document.querySelector('.oswap .msg').textContent,
+        sum: [...document.querySelectorAll('.osum div')].map((d) => d.textContent).join(' | ') }));
+      ok(`swap (${lang}): removes photo 3 and shows the new total`, after.call && after.call.data.n === 3 && after.call.data.index === 0 && after.call.data.email === 'camila@example.com' && /\$21\.37/.test(after.sum) && /−\$2\.00/.test(after.sum), JSON.stringify(after));
       ok(`swap (${lang}): no JS errors`, !errs.length, errs.join('|'));
+      await ctx.close();
+    }
+    // the account's order list says photos can still be changed, and the link opens them
+    {
+      const ctx = await context(browser, { fake: { user: { uid: 'u1', email: 'camila@example.com', emailVerified: true, isAnonymous: false }, calls: { myOrders: { orders: [order] }, myOrder: order, orderPhotos: { editable: true, packs } } } });
+      const { pg } = await page(ctx, 'orders.html');
+      await pg.waitForSelector('.ocard', { timeout: 15000 }).catch(() => {});
+      const card = await pg.evaluate(() => { const a = document.querySelector('.ocard'); return a ? { href: a.getAttribute('href'), note: (a.querySelector('.ocard-note') || {}).textContent } : null; });
+      ok('swap: my orders says photos can still be changed and links to them', card && /order\.html\?id=o1#photos$/.test(card.href) && /change or remove photos/.test(card.note || ''), JSON.stringify(card));
+      if (card) {
+        await pg.goto(BASE + card.href); await pg.waitForSelector('.oswap-tile', { timeout: 15000 }).catch(() => {});
+        ok('swap: the order page opens the photos by itself from that link', (await pg.$$('.oswap-tile')).length === 4);
+      }
       await ctx.close();
     }
     const ctx = await context(browser, { fake: { calls: { trackOrder: { ...order, status: 'in_production', photoSwap: 'closed' } } } });

@@ -58,6 +58,7 @@ exports.trackOrder = callable("trackOrder", checkout);
 // the customer swaps a photo of their order while it is still "Order received" (photoswap.js); the swap rebuilds the print sheet
 exports.orderPhotos = callable("orderPhotos", photoswap, null, { timeoutSeconds: 120, memory: "512MiB" });
 exports.swapOrderPhoto = callable("swapOrderPhoto", photoswap, null, { timeoutSeconds: 300, memory: "1GiB" });
+exports.removeOrderPhoto = callable("removeOrderPhoto", photoswap, null, { timeoutSeconds: 300, memory: "1GiB" });
 // orderBySession may confirm the payment itself (before the webhook) and then builds the print sheet: give it room
 exports.orderBySession = callable("orderBySession", checkout, null, { timeoutSeconds: 120, memory: "1GiB" });
 exports.subscribe = callable("subscribe", pub);

@@ -307,5 +307,7 @@
  "Your card is authorized now and charged only when your order ships.": "카드는 지금 승인만 되고, 주문이 발송될 때만 결제돼요.",
  "Magnets": "자석",
  "Tracking": "배송 조회",
- "Occasion": "행사"
+ "Occasion": "행사",
+ "Sent the wrong photo, or the same one twice? You can swap or remove photos until we start making your order:": "사진을 잘못 보내셨거나 같은 사진을 두 번 보내셨나요? 주문 제작을 시작하기 전까지 사진을 바꾸거나 뺄 수 있어요:",
+ "change your photos": "사진 바꾸기"
 }

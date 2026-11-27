@@ -202,6 +202,15 @@ var PATTERNS = [
   [/^Photo (\d+) was changed for a new one\.$/, "La photo $1 a été remplacée par une nouvelle."],
   [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "La photo $1 (lot $2) a été remplacée par une nouvelle."],
   [/^Pack (\d+)$/, "Lot $1"],
+  [/^Photo (\d+): change or remove$/, "Photo $1 : changer ou retirer"],
+  [/^Remove photo (\d+)\?$/, "Retirer la photo $1 ?"],
+  [/^You’ll get (\d+) magnets and pay (\$[\d.,]+) less\.$/, "Vous recevrez $1 aimants et paierez $2 de moins."],
+  [/^Swap it for another photo \(same price\), or remove it \((\$[\d.,]+) less\)\.$/, "Remplacez-la par une autre photo (même prix) ou retirez-la ($1 de moins)."],
+  [/^Removing photo (\d+)…$/, "Retrait de la photo $1…"],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and your new total is (\$[\d.,]+)\.$/, "C’est fait ! La photo $1 a été retirée. Vous avez maintenant $2 aimants et votre nouveau total est de $3."],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and we refunded (\$[\d.,]+) to your card\.$/, "C’est fait ! La photo $1 a été retirée. Vous avez maintenant $2 aimants et nous vous avons remboursé $3."],
+  [/^Photo (\d+) was removed\. (\d+) magnets now\.$/, "La photo $1 a été retirée. $2 aimants maintenant."],
+  [/^Photo (\d+) \(pack (\d+)\) was removed\. (\d+) magnets now\.$/, "La photo $1 (lot $2) a été retirée. $3 aimants maintenant."]
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

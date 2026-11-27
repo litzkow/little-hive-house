@@ -1,10 +1,7 @@
 {
- "Change a photo": "تغيير صورة",
  "Need to change a photo?": "هل تحتاج إلى تغيير صورة؟",
- "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "أرسلت الصورة نفسها مرتين أو اخترت صورة خاطئة؟ يمكنك تبديل أي صورة إلى أن نبدأ في صنع طلبك. السعر يبقى كما هو.",
  "Loading your photos…": "جارٍ تحميل صورك…",
  "These photos can’t be changed anymore.": "لم يعد بالإمكان تغيير هذه الصور.",
- "Tap the photo you want to change, then pick the new one.": "اضغط على الصورة التي تريد تغييرها، ثم اختر الصورة الجديدة.",
  "We couldn’t open that photo. Please try a JPG or PNG.": "تعذّر فتح هذه الصورة. جرّب صورة JPG أو PNG.",
  "The photo didn’t upload. Please check your connection and try again.": "لم تُرفع الصورة. تحقّق من اتصالك وحاول مرة أخرى.",
  "Uploading the new photo…": "جارٍ رفع الصورة الجديدة…",
@@ -17,5 +14,19 @@
  "The new photo didn't finish uploading. Please try again.": "لم يكتمل رفع الصورة الجديدة. حاول مرة أخرى.",
  "That's the same photo. Please pick a different one.": "هذه هي الصورة نفسها. اختر صورة مختلفة.",
  "That photo pack isn't in this order.": "مجموعة الصور هذه ليست في هذا الطلب.",
- "That photo isn't in this order.": "هذه الصورة ليست في هذا الطلب."
+ "That photo isn't in this order.": "هذه الصورة ليست في هذا الطلب.",
+ "Change or remove a photo": "تغيير صورة أو إزالتها",
+ "Sent the same photo twice, or picked the wrong one? Until we start making your order, you can swap any photo (same price) or remove it (you pay less).": "أرسلت الصورة نفسها مرتين أو اخترت صورة خاطئة؟ إلى أن نبدأ في صنع طلبك، يمكنك تبديل أي صورة (بالسعر نفسه) أو إزالتها (تدفع أقل).",
+ "Tap the photo you want to change or remove.": "اضغط على الصورة التي تريد تغييرها أو إزالتها.",
+ "Swap it": "تبديلها",
+ "Remove it": "إزالتها",
+ "Cancel": "إلغاء",
+ "Yes, remove it": "نعم، أزلها",
+ "Keep it": "أبقها",
+ "Swap it for another photo. The price stays the same.": "استبدلها بصورة أخرى. السعر يبقى كما هو.",
+ "Photos you removed": "الصور التي أزلتها",
+ "You can still change or remove photos": "ما زال بإمكانك تغيير الصور أو إزالتها",
+ "This pack repeats your photos to fill it, so photos can be changed but not removed. Please contact us and we'll help.": "هذه المجموعة تكرر صورك لتكتمل، لذا يمكن تبديل الصور لا إزالتها. تواصل معنا وسنساعدك.",
+ "This is the last photo of the pack, so it can't be removed here. Please contact us and we'll help.": "هذه آخر صورة في المجموعة، لذا لا يمكن إزالتها من هنا. تواصل معنا وسنساعدك.",
+ "This order's payment can't be changed here. Please contact us and we'll help.": "لا يمكن تغيير دفع هذا الطلب من هنا. تواصل معنا وسنساعدك."
 }

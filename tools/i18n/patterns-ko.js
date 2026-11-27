@@ -207,6 +207,15 @@ var PATTERNS = [
   [/^Photo (\d+) was changed for a new one\.$/, "$1번 사진을 새 사진으로 바꿨어요."],
   [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "$1번 사진($2번 묶음)을 새 사진으로 바꿨어요."],
   [/^Pack (\d+)$/, "$1번 묶음"],
+  [/^Photo (\d+): change or remove$/, "$1번 사진: 바꾸기 또는 빼기"],
+  [/^Remove photo (\d+)\?$/, "$1번 사진을 뺄까요?"],
+  [/^You’ll get (\d+) magnets and pay (\$[\d.,]+) less\.$/, "자석 $1개를 받고 $2 덜 내요."],
+  [/^Swap it for another photo \(same price\), or remove it \((\$[\d.,]+) less\)\.$/, "다른 사진으로 바꾸거나(가격 동일) 빼세요($1 할인)."],
+  [/^Removing photo (\d+)…$/, "$1번 사진을 빼는 중…"],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and your new total is (\$[\d.,]+)\.$/, "완료! $1번 사진을 뺐어요. 이제 자석 $2개이고 새 합계는 $3이에요."],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and we refunded (\$[\d.,]+) to your card\.$/, "완료! $1번 사진을 뺐어요. 이제 자석 $2개이고 카드로 $3을 환불했어요."],
+  [/^Photo (\d+) was removed\. (\d+) magnets now\.$/, "$1번 사진을 뺐어요. 이제 자석 $2개예요."],
+  [/^Photo (\d+) \(pack (\d+)\) was removed\. (\d+) magnets now\.$/, "$1번 사진($2번 묶음)을 뺐어요. 이제 자석 $3개예요."]
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

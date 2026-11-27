@@ -215,6 +215,15 @@ var PATTERNS = [
   [/^Photo (\d+) was changed for a new one\.$/, "Фото $1 заменено на новое."],
   [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "Фото $1 (набор $2) заменено на новое."],
   [/^Pack (\d+)$/, "Набор $1"],
+  [/^Photo (\d+): change or remove$/, "Фото $1: заменить или убрать"],
+  [/^Remove photo (\d+)\?$/, "Убрать фото $1?"],
+  [/^You’ll get (\d+) magnets and pay (\$[\d.,]+) less\.$/, "Вы получите $1 магнитов и заплатите на $2 меньше."],
+  [/^Swap it for another photo \(same price\), or remove it \((\$[\d.,]+) less\)\.$/, "Замените его другим фото (цена та же) или уберите (на $1 меньше)."],
+  [/^Removing photo (\d+)…$/, "Убираем фото $1…"],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and your new total is (\$[\d.,]+)\.$/, "Готово! Фото $1 убрано. Теперь $2 магнитов, новая сумма — $3."],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and we refunded (\$[\d.,]+) to your card\.$/, "Готово! Фото $1 убрано. Теперь $2 магнитов, и мы вернули $3 на вашу карту."],
+  [/^Photo (\d+) was removed\. (\d+) magnets now\.$/, "Фото $1 убрано. Теперь $2 магнитов."],
+  [/^Photo (\d+) \(pack (\d+)\) was removed\. (\d+) magnets now\.$/, "Фото $1 (набор $2) убрано. Теперь $3 магнитов."]
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

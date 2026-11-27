@@ -86,6 +86,8 @@ module.exports = function orderConfirmation(data, { L }) {
         viewUrl ? { href: viewUrl, label: "View your order", variant: "honey" } : null,
         { href: L.track(num), label: viewUrl ? "Track it" : "Track your order", variant: viewUrl ? "ghost" : "honey" },
       ]),
+      // the photos can be swapped or removed on the site until the order is being made (functions/photoswap.js)
+      hasPhotos ? Lay.p(["Sent the wrong photo, or the same one twice? You can swap or remove photos until we start making your order:", " ", { a: "change your photos", href: `${L.track(num)}#photos` }, "."], { muted: true, small: true }) : null,
       Lay.p(["Need to change something? Reply to this email as soon as you can and we'll do our best to catch it before your magnets go to print."], { muted: true, small: true }),
     ],
     reason: "You're getting this email because you placed an order at littlehivehouse.com.",

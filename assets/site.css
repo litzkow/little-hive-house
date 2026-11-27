@@ -1049,6 +1049,13 @@ html.studio-open { overflow: hidden; }
 .oswap-grid li.is-busy .oswap-tile { opacity: .45; }
 .oswap-grid li.is-new .oswap-tile { border-color: var(--honey); box-shadow: 0 0 0 2px var(--honey-soft); }
 html[dir=rtl] .oswap-n { left: auto; right: 6px; }
+.oswap-grid li.is-picked .oswap-tile { border-color: var(--ink); box-shadow: 0 0 0 2px var(--honey); }
+.oswap-bar { margin-top: 12px; padding: 14px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.oswap-bar .oswap-t { display: block; font-size: 16px; }
+.oswap-bar .oswap-q { margin: 4px 0 12px; font-size: 15px; }
+.oswap-bar .row { display: flex; flex-wrap: wrap; gap: 8px; }
+.ocard-note { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.ocard-note::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--honey); vertical-align: 1px; }
 .ret-wants { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 .ret-radio { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; }
 .ret-radio:has(input:checked) { border-color: var(--ink); }

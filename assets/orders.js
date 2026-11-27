@@ -114,11 +114,13 @@
   /* ---------- list card (orders.html + account page) ---------- */
   function card(o) {
     var thumbs = (o.items || []).slice(0, 3).map(function (it) { return thumb(it, 'othumb sm'); });
-    return h('li', null, h('a', { class: 'ocard', href: BASE + 'order.html?id=' + encodeURIComponent(o.id) },
+    var photos = o.photoSwap === 'open';   /* photos can still be swapped or removed: say so, and open them */
+    return h('li', null, h('a', { class: 'ocard', href: BASE + 'order.html?id=' + encodeURIComponent(o.id) + (photos ? '#photos' : '') },
       h('span', { class: 'ocard-thumbs', 'aria-hidden': 'true' }, thumbs),
       h('span', { class: 'ocard-main' },
         h('strong', { text: 'Order ' + (o.number || '') }),
-        h('span', { text: [day(o.paidAt || o.createdAt), count(o)].filter(Boolean).join(' · ') })),
+        h('span', { text: [day(o.paidAt || o.createdAt), count(o)].filter(Boolean).join(' · ') }),
+        photos ? h('span', { class: 'ocard-note', text: 'You can still change or remove photos' }) : null),
       h('span', { class: 'ocard-side' }, chip(o.status), h('strong', { class: 'ocard-total', text: money((o.pricing || {}).total) })),
       h('span', { class: 'ocard-go', 'aria-hidden': 'true', text: '›' })));
   }
@@ -199,6 +201,7 @@
     if (p.volumeDiscount) rows.push(['Big order' + (p.volumePct ? ', ' + p.volumePct + '% off' : ''), money(-p.volumeDiscount), 'disc']);
     if (p.sale && p.sale.amount) rows.push([(p.sale.name || 'Sale') + ', ' + (p.sale.kind === 'free' ? (p.sale.free === 1 ? '1 design free' : p.sale.free + ' designs free') : p.sale.pct + '% off'), money(-p.sale.amount), 'disc']);
     if (p.promo && p.promo.amount) rows.push(['Code ' + (p.promo.code || ''), money(-p.promo.amount), 'disc']);
+    if (p.removed) rows.push(['Photos you removed', money(-p.removed), 'disc']);
     rows.push(['Shipping', p.shipping ? money(p.shipping) : 'Free']);
     if (p.tax) rows.push(['Sales tax', money(p.tax)]);
     var dl = h('dl', { class: 'osum' }, rows.map(function (r) { return h('div', { class: r[2] || null }, h('dt', { text: r[0] }), h('dd', { text: r[1] })); }),
@@ -312,47 +315,83 @@
       return new Promise(function (res, rej) { c.toBlob(function (b) { if (b) res({ blob: b, ext: 'jpg', type: 'image/jpeg', w: w, h: hh }); else rej(Object.assign(new Error('unreadable'), { code: 'photos/unreadable' })); }, 'image/jpeg', 0.92); });
     });
   }
-  function photoSwap(o, who) {
+  function photoSwap(o, who, opts) {
     if (!who || o.photoSwap !== 'open') return null;
+    opts = opts || {};
     var body = h('div', { class: 'oswap-body' });
     var msg = h('p', { class: 'msg', role: 'status', hidden: true });
     function say(t, ok) { msg.textContent = t || ''; msg.className = 'msg ' + (ok ? 'ok' : 'err'); msg.hidden = !t; }
-    var open = h('button', { type: 'button', class: 'btn btn-ghost btn-small' }, 'Change a photo');
-    var panel = h('section', { class: 'panel oswap', 'aria-labelledby': 'oswap-h' },
+    var open = h('button', { type: 'button', class: 'btn btn-ghost btn-small' }, 'Change or remove a photo');
+    var panel = h('section', { class: 'panel oswap', id: 'oswap', 'aria-labelledby': 'oswap-h' },
       h('h2', { id: 'oswap-h', text: 'Need to change a photo?' }),
-      h('p', { class: 'muted', text: 'Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.' }),
+      h('p', { class: 'muted', text: 'Sent the same photo twice, or picked the wrong one? Until we start making your order, you can swap any photo (same price) or remove it (you pay less).' }),
       open, body, msg);
-    var busy = false;
+    var busy = false, picked = null;
     function errText(er) {
       var c = String((er && er.code) || '').replace(/^functions\//, '');
       if (c === 'photos/unreadable') return 'We couldn’t open that photo. Please try a JPG or PNG.';
       if (/^storage\//.test(c)) return 'The photo didn’t upload. Please check your connection and try again.';
       return S.message(er);
     }
-    function load() {
-      open.disabled = true; open.textContent = 'Loading your photos…'; say('');
+    function load(note) {
+      open.disabled = true; open.textContent = 'Loading your photos…'; if (!note) say('');
       S.call('orderPhotos', who).then(function (r) {
         open.hidden = true;
-        if (!r || !r.editable) { say((r && r.reason) || 'These photos can’t be changed anymore.'); return; }
+        if (!r || !r.editable) { body.replaceChildren(); say((r && r.reason) || 'These photos can’t be changed anymore.'); return; }
         var many = r.packs.length > 1;
-        body.replaceChildren(h('p', { class: 'small', text: 'Tap the photo you want to change, then pick the new one.' }));
+        body.replaceChildren(h('p', { class: 'small', text: 'Tap the photo you want to change or remove.' }));
         r.packs.forEach(function (pk, k) {
           if (many) body.append(h('h3', { class: 'oswap-pack', text: 'Pack ' + (k + 1) }));
-          body.append(h('ul', { class: 'oswap-grid' }, pk.photos.map(function (ph) { return tile(pk, ph); })));
+          var bar = h('div', { class: 'oswap-bar', hidden: true });
+          body.append(h('ul', { class: 'oswap-grid' }, pk.photos.map(function (ph) { return tile(pk, ph, bar); })), bar);
         });
-      }).catch(function (er) { open.disabled = false; open.textContent = 'Change a photo'; say(errText(er)); });
+        if (note) say(note, true);
+      }).catch(function (er) { open.hidden = false; open.disabled = false; open.textContent = 'Change or remove a photo'; say(errText(er)); });
     }
-    function tile(pk, ph) {
+    /* the choices for the photo that was tapped, under its pack */
+    function choose(pk, ph, li, bar, input) {
+      if (busy) return;
+      if (picked) picked.classList.remove('is-picked');
+      picked = li; li.classList.add('is-picked'); say('');
+      var swapBtn = h('button', { type: 'button', class: 'btn btn-small' }, 'Swap it');
+      var remBtn = pk.removable ? h('button', { type: 'button', class: 'btn btn-ghost btn-small' }, 'Remove it') : null;
+      var cancel = h('button', { type: 'button', class: 'btn btn-ghost btn-small' }, 'Cancel');
+      swapBtn.addEventListener('click', function () { input.click(); });
+      cancel.addEventListener('click', function () { bar.hidden = true; li.classList.remove('is-picked'); picked = null; });
+      if (remBtn) remBtn.addEventListener('click', function () {
+        var yes = h('button', { type: 'button', class: 'btn btn-small' }, 'Yes, remove it');
+        var no = h('button', { type: 'button', class: 'btn btn-ghost btn-small' }, 'Keep it');
+        no.addEventListener('click', function () { choose(pk, ph, li, bar, input); });
+        yes.addEventListener('click', function () { remove(pk, ph, li, bar); });
+        bar.replaceChildren(h('strong', { class: 'oswap-t', text: 'Remove photo ' + ph.n + '?' }),
+          h('p', { class: 'oswap-q', text: 'You’ll get ' + (pk.packSize - 1) + ' magnets and pay ' + money(pk.removeSaves) + ' less.' }), h('div', { class: 'row' }, yes, no));
+      });
+      bar.replaceChildren(h('strong', { class: 'oswap-t', text: 'Photo ' + ph.n }),
+        h('p', { class: 'oswap-q', text: pk.removable ? 'Swap it for another photo (same price), or remove it (' + money(pk.removeSaves) + ' less).' : (pk.removeNote || 'Swap it for another photo. The price stays the same.') }),
+        h('div', { class: 'row' }, swapBtn, remBtn, cancel));
+      bar.hidden = false;
+      bar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function remove(pk, ph, li, bar) {
+      busy = true; li.classList.add('is-busy'); bar.hidden = true; say('Removing photo ' + ph.n + '…', true);
+      S.call('removeOrderPhoto', Object.assign({ index: pk.index, n: ph.n }, who)).then(function (r) {
+        busy = false; picked = null;
+        var t = 'Done! Photo ' + ph.n + ' was removed. You now have ' + r.packSize + ' magnets and your new total is ' + money(r.total) + '.';
+        if (r.refunded) t = 'Done! Photo ' + ph.n + ' was removed. You now have ' + r.packSize + ' magnets and we refunded ' + money(r.refunded) + ' to your card.';
+        if (opts.refresh) opts.refresh(t); else load(t);
+      }).catch(function (er) { busy = false; li.classList.remove('is-busy'); say(errText(er)); });
+    }
+    function tile(pk, ph, bar) {
       var input = h('input', { type: 'file', accept: 'image/*', hidden: true });
       var img = ph.thumb ? h('img', { src: ph.thumb, alt: 'Photo ' + ph.n, loading: 'lazy' }) : svg(PHOTO_ART);
       var num = h('span', { class: 'oswap-n', text: String(ph.n) });
-      var btn = h('button', { type: 'button', class: 'oswap-tile', 'aria-label': 'Change photo ' + ph.n }, img, num);
+      var btn = h('button', { type: 'button', class: 'oswap-tile', 'aria-label': 'Photo ' + ph.n + ': change or remove' }, img, num);
       var li = h('li', null, btn, input);
-      btn.addEventListener('click', function () { if (!busy) input.click(); });
+      btn.addEventListener('click', function () { choose(pk, ph, li, bar, input); });
       input.addEventListener('change', function () {
         var file = input.files && input.files[0]; input.value = '';
         if (!file || busy) return;
-        busy = true; li.classList.add('is-busy'); say('Uploading the new photo…', true);
+        busy = true; bar.hidden = true; li.classList.remove('is-picked'); li.classList.add('is-busy'); say('Uploading the new photo…', true);
         var prepared;
         swapPrepare(file).then(function (p) { prepared = p; return S.ensureUser(); }).then(function (u) {
           var path = 'uploads/' + u.uid + '/swap-' + Date.now().toString(36) + '/' + ph.n + '.' + prepared.ext;
@@ -368,19 +407,21 @@
           li.classList.add('is-new');
           say('Done! The photo was changed. We’ll print the new one.', true);
         }).catch(function (er) { say(errText(er)); })
-          .then(function () { busy = false; li.classList.remove('is-busy'); });
+          .then(function () { busy = false; picked = null; li.classList.remove('is-busy'); });
       });
       return li;
     }
-    open.addEventListener('click', load);
+    open.addEventListener('click', function () { load(); });
+    if (opts.note) setTimeout(function () { load(opts.note); panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 0);
+    else if (opts.autoOpen) setTimeout(function () { load(); }, 0);
     return panel;
   }
 
-  function detail(o, mode, who) {
+  function detail(o, mode, who, opts) {
     var wrap = h('div', { class: 'odetail' });
     var mainCol = h('div', { class: 'ocol' }, progressPanel(o),
       h('section', { class: 'panel', 'aria-labelledby': 'oitems-h' }, h('h2', { id: 'oitems-h', text: 'Items' }), itemsList(o)));
-    var sw = photoSwap(o, who); if (sw) mainCol.append(sw);
+    var sw = photoSwap(o, who, opts); if (sw) mainCol.append(sw);
     if (mode === 'account') mainCol.append(reviews(o));
     var side = h('div', { class: 'ocol side' }, summary(o), shipTo(o), actions(o, mode));
     wrap.append(mainCol, side);
@@ -421,12 +462,15 @@
     if (!id) return fail('This link is missing the order. Open it from your orders list.');
     S.ready().then(function (r) {
       if (!S.isMember(r.user)) { var a = $('signin-link'); if (a) a.href = BASE + 'account.html?next=' + encodeURIComponent('order.html?id=' + id); return show('st-signin'); }
-      return S.getOrder(id).then(function (o) {
+      /* #photos (the link on the orders list and in the emails) opens the photo panel right away */
+      function render(o, note) {
         if (!o || o.status === 'pending') return fail('We couldn’t find this order in your account. If you ordered as a guest, track it with your order number and email.');
         headline(o);
-        $('st-content').replaceChildren(detail(o, 'account', { id: id }));
+        $('st-content').replaceChildren(detail(o, 'account', { id: id }, { note: note, autoOpen: location.hash === '#photos',
+          refresh: function (t) { S.getOrder(id).then(function (x) { render(x, t); }); } }));
         show('st-content');
-      });
+      }
+      return S.getOrder(id).then(function (o) { render(o); });
     }).catch(function (e) { fail(S.message(e, 'order')); });
   }
   function pageTrack() {
@@ -446,11 +490,17 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Please enter the email you used for the order.'); form.elements.email.focus(); return; }
       say('');
       var b = form.querySelector('button[type="submit"]'); b.disabled = true; b.textContent = 'Looking…';
+      var photosLink = location.hash === '#photos';
+      function render(o, note) {
+        out.replaceChildren(h('div', { class: 'otrack-head' }, h('h2', { text: 'Order ' + (o.number || num) }), chip(o.status),
+          h('span', { class: 'muted', text: 'Placed ' + day(o.paidAt || o.createdAt, { month: 'long', day: 'numeric', year: 'numeric' }) })),
+          detail(o, 'track', { number: o.number || num, email: email }, { note: note, autoOpen: photosLink && !note,
+            refresh: function (t) { S.call('trackOrder', { number: num, email: email }).then(function (x) { if (x) render(x, t); }); } }));
+      }
       S.call('trackOrder', { number: num, email: email }).then(function (o) {
         b.disabled = false; b.textContent = 'Track order';
         if (!o) throw Object.assign(new Error('nf'), { code: 'not-found-plain' });
-        out.replaceChildren(h('div', { class: 'otrack-head' }, h('h2', { text: 'Order ' + (o.number || num) }), chip(o.status),
-          h('span', { class: 'muted', text: 'Placed ' + day(o.paidAt || o.createdAt, { month: 'long', day: 'numeric', year: 'numeric' }) })), detail(o, 'track', { number: o.number || num, email: email }));
+        render(o);
         out.hidden = false;
         if (history.replaceState) history.replaceState(null, '', location.pathname);   /* keep the email out of the address bar */
         out.querySelector('h2').setAttribute('tabindex', '-1'); out.querySelector('h2').focus();

@@ -8,10 +8,16 @@
      the framing (crop) starts fresh and autocrop.js places the new photo so no face is cut.
    - The print sheet is rebuilt and the owners get an email and a phone notification right away.
 
-   orderPhotos({number, email} | {id}) -> {editable, reason, packs: [{index, title, packSize, photos: [{n, thumb, frame, caption}]}]}
-   swapOrderPhoto({number, email} | {id}, index, n, path, w?, h?) -> {ok, photo: {n, thumb}, swaps} */
+   - Removing a photo (Nov 2026, the owners' choice) makes the pack one magnet smaller at the site's price for that many
+     photos, with the same discounts the order got and its sales tax. A card that is only held is charged the new,
+     smaller total when the order ships; a card already charged gets the difference back right away.
+
+   orderPhotos({number, email} | {id}) -> {editable, reason, packs: [{index, title, packSize, removable, removeSaves, photos: [{n, thumb, frame, caption}]}]}
+   swapOrderPhoto({number, email} | {id}, index, n, path, w?, h?) -> {ok, photo: {n, thumb}, swaps}
+   removeOrderPhoto({number, email} | {id}, index, n) -> {ok, saved, total, refunded, packSize} */
 
 const { fail, nowIso, mailAdmin } = require("./config");
+const { cents, dollars, photoPrice, loadCatalog } = require("./pricing");
 const deps = require("./deps");
 const O = require("./orders");
 const U = require("./util");
@@ -55,6 +61,53 @@ function lockReason(o) {
   return null;
 }
 
+/* ---------- removing a photo ---------- */
+/** null when photo packs can lose a photo, otherwise why not. Packs that repeat photos to fill (older packs) can't. */
+function removeBlock(it) {
+  if (!swappable(it)) return "That photo pack isn't in this order.";
+  if (it.photos.length !== Number(it.packSize)) return "This pack repeats your photos to fill it, so photos can be changed but not removed. Please contact us and we'll help.";
+  if (it.photos.length <= 1) return "This is the last photo of the pack, so it can't be removed here. Please contact us and we'll help.";
+  return null;
+}
+/** The list price of a pack of n photo magnets, as the site charges it (createCheckout: a pack's price, else photoPrice). */
+function packPrice(n, catalog) {
+  const pack = (catalog.packs || {})[String(n)];
+  return pack ? Number(pack.price) : photoPrice(n, catalog);
+}
+/**
+ * What taking one photo out of pack `index` takes off the order, in cents: the list price difference times the share
+ * of the list price the customer really paid for goods (discounts, sale and code), plus the sales tax on it.
+ * {goods, tax, total, newSize, newPrice}
+ */
+function removalQuote(order, index, catalog = loadCatalog()) {
+  const it = order.items[index];
+  const p = order.pricing || {};
+  const qty = Number(it.qty) || 1;
+  const newSize = it.photos.length - 1;
+  const newPrice = packPrice(newSize, catalog);
+  const listOff = Math.max(0, cents(it.price) - cents(newPrice)) * qty;
+  const subtotal = cents(p.subtotal || 0), removed = cents(p.removed || 0);
+  const tax = cents(p.tax || 0), total = cents(p.total || 0), ship = cents(p.shipping || 0);
+  const goodsNow = total - ship - tax;                       // goods after discounts, before tax (what is left of them)
+  const factor = subtotal > 0 ? Math.min(1, Math.max(0, (goodsNow + removed) / subtotal)) : 1;
+  const goods = Math.min(Math.round(listOff * factor), Math.max(0, goodsNow));
+  const taxOff = goodsNow > 0 ? Math.min(tax, Math.round(goods * tax / goodsNow)) : 0;
+  return { goods, tax: taxOff, total: goods + taxOff, list: listOff, newSize, newPrice };
+}
+/** Per-photo border colours ("<item>:<photo>") follow their photos when one before them leaves. */
+function shiftBorders(pb, index, j) {
+  if (!pb || !pb.photos) return pb || null;
+  const photos = {};
+  for (const [k, v] of Object.entries(pb.photos)) {
+    const m = /^(\d+):(\d+)$/.exec(k);
+    if (!m || Number(m[1]) !== index) { photos[k] = v; continue; }
+    const at = Number(m[2]);
+    if (at === j) continue;
+    photos[`${index}:${at > j ? at - 1 : at}`] = v;
+  }
+  return { ...pb, photos };
+}
+
 /** A short-lived link to the small copy of a photo (the thumbnail is made once, shared with the Hive Admin). */
 async function thumb(bucket, path) {
   const A = require("./admin")._internal;
@@ -90,7 +143,10 @@ async function orderPhotos(data, auth, rawRequest) {
       }
     };
     await Promise.all([worker(), worker(), worker(), worker()]);
-    packs.push({ index, title: it.title || `Custom photo magnets (${it.packSize})`, packSize: it.packSize, photos });
+    const block = removeBlock(it);
+    const q = block ? null : removalQuote(order, index);
+    packs.push({ index, title: it.title || `Custom photo magnets (${it.packSize})`, packSize: it.packSize, photos,
+      removable: !block, removeSaves: q ? dollars(q.total) : 0, removeNote: block || "" });
   }
   return { editable: !reason, reason: reason || "", number: order.number || "", packs };
 }
@@ -152,4 +208,78 @@ async function swapOrderPhoto(data, auth, rawRequest) {
   return { ok: true, photo: { n, thumb: url }, swaps: after.photoSwaps };
 }
 
-module.exports = { orderPhotos, swapOrderPhoto, lockReason, swappable, MAX_SWAPS, PHOTO_PATH };
+async function removeOrderPhoto(data, auth, rawRequest) {
+  await U.rateLimit("removeOrderPhoto", U.clientIp(rawRequest) || (auth && auth.uid) || (data && data.email), 40, 3600);
+  const { ref, id } = await findOrder(data, auth);
+  const index = Number(data && data.index), n = Number(data && data.n);
+  const catalog = loadCatalog();
+  const db = deps.db();
+  let after = null, quote = null, held = false;
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const o = snap.exists ? snap.data() : null;
+    const why = lockReason(o);
+    if (why) fail("failed-precondition", why);
+    const it = (o.items || [])[index];
+    if (!Number.isInteger(index) || !swappable(it)) fail("invalid-argument", "That photo pack isn't in this order.");
+    if (!Number.isInteger(n) || n < 1 || n > it.photos.length) fail("invalid-argument", "That photo isn't in this order.");
+    const block = removeBlock(it);
+    if (block) fail("failed-precondition", block);
+    held = !!(o.payment && o.payment.state === "authorized");
+    if (!held && !(o.stripe && o.stripe.paymentIntent)) fail("failed-precondition", "This order's payment can't be changed here. Please contact us and we'll help.");
+    quote = removalQuote(o, index, catalog);
+    const items = JSON.parse(JSON.stringify(o.items));
+    const gone = items[index].photos.splice(n - 1, 1)[0];
+    items[index].packSize = quote.newSize;
+    items[index].price = quote.newPrice;
+    if (/^Custom photo magnets \(\d+\)$/.test(items[index].title || "") || catalog.packs[String(it.packSize)]) {
+      const pk = catalog.packs[String(quote.newSize)];
+      items[index].title = pk ? pk.title : `Custom photo magnets (${quote.newSize})`;
+    }
+    const at = nowIso();
+    const label = items.filter(swappable).length > 1 ? `Photo ${n} (pack ${items.slice(0, index + 1).filter(swappable).length})` : `Photo ${n}`;
+    const money = `$${dollars(quote.total).toFixed(2)}`;
+    const update = {
+      items, photoSwaps: (Number(o.photoSwaps) || 0) + 1, updatedAt: at,
+      printBorders: shiftBorders(o.printBorders, index, n - 1),
+      removedPhotos: (o.removedPhotos || []).concat([{ at, index, n, path: gone.path, saved: dollars(quote.total) }]),
+      timeline: (o.timeline || []).concat([{ at, status: "photo_swap", text: `${label} was removed. ${quote.newSize} magnets now.` }]),
+      adminNotes: (o.adminNotes || []).concat([{ at, by: "system", text: held
+        ? `The customer removed photo ${n}: ${quote.newSize} magnets now, ${money} less. The card is charged the new total when the order ships.`
+        : `The customer removed photo ${n}: ${quote.newSize} magnets now, ${money} refunded to the card.` }]),
+    };
+    if (held) {
+      // not charged yet: the order total goes down and only that is captured at shipping (payments.captureOrder)
+      const p = { ...(o.pricing || {}) };
+      p.removed = dollars(cents(p.removed || 0) + quote.goods);
+      p.removedList = dollars(cents(p.removedList || 0) + quote.list);   // the same at list price (returns.js goodsFactor)
+      p.tax = dollars(Math.max(0, cents(p.tax || 0) - quote.tax));
+      p.total = dollars(Math.max(0, cents(p.total || 0) - quote.total));
+      update.pricing = p;
+    }
+    tx.update(ref, update);
+    after = { ...o, ...update };
+  });
+
+  let refunded = 0;
+  if (!held && quote.total > 0) {
+    // already charged: give the difference back now (the customer gets the refund email)
+    try {
+      const r = await require("./admin").refundOrder(ref, id, after, { amount: dollars(quote.total), reason: "other", note: `Photo ${n} removed by the customer`, by: "customer" });
+      refunded = r.amount || 0;
+    } catch (err) {
+      // the photo is out either way: the owners refund the difference by hand (they are told in the alert below)
+      console.error("[photoswap] refund after a removal", id, err && err.message);
+      await ref.update({ adminNotes: (after.adminNotes || []).concat([{ at: nowIso(), by: "system", text: `The refund of $${dollars(quote.total).toFixed(2)} for the removed photo failed (${String((err && err.message) || err).slice(0, 160)}). Refund it with the Refund button.` }]) }).catch(() => {});
+    }
+    after = (await ref.get()).data();
+  }
+  const ps = await require("./printsheet").tryGenerate(ref, id, after);
+  try {
+    await require("./mail").send({ to: mailAdmin(), kind: "admin_photo_swap", replyTo: after.email || undefined,
+      data: { order: O.emailOrder(id, after), swap: { n, index, removed: true, saved: dollars(quote.total), held, refunded, refundFailed: !held && quote.total > 0 && !refunded, newSize: quote.newSize, rebuilt: !!ps, swaps: after.photoSwaps } } });
+  } catch (err) { console.warn("[photoswap] owners' alert", err && err.message); }
+  return { ok: true, saved: dollars(quote.total), refunded, held, total: (after.pricing && after.pricing.total) || 0, packSize: quote.newSize };
+}
+
+module.exports = { orderPhotos, swapOrderPhoto, removeOrderPhoto, removalQuote, shiftBorders, lockReason, swappable, MAX_SWAPS, PHOTO_PATH };

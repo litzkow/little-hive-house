@@ -51,7 +51,7 @@ function windowOf(order, now = Date.now()) {
 /** What each paid dollar of goods is worth after discounts, with its sales tax (shipping left out). */
 function goodsFactor(order) {
   const p = order.pricing || {};
-  const subtotal = cents(p.subtotal || 0);
+  const subtotal = cents(p.subtotal || 0) - cents(p.removedList || 0);   // photos taken out before shipping (photoswap.js)
   const goodsPaid = cents(p.total || 0) - cents(p.shipping || 0);
   return subtotal > 0 && goodsPaid > 0 ? goodsPaid / subtotal : 0;
 }

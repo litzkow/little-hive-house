@@ -204,6 +204,15 @@ var PATTERNS = [
   [/^Photo (\d+) was changed for a new one\.$/, "第 $1 张照片已换成新照片。"],
   [/^Photo (\d+) \(pack (\d+)\) was changed for a new one\.$/, "第 $1 张照片（第 $2 组）已换成新照片。"],
   [/^Pack (\d+)$/, "第 $1 组"],
+  [/^Photo (\d+): change or remove$/, "第 $1 张照片：更换或移除"],
+  [/^Remove photo (\d+)\?$/, "移除第 $1 张照片？"],
+  [/^You’ll get (\d+) magnets and pay (\$[\d.,]+) less\.$/, "您将收到 $1 个磁贴，少付 $2。"],
+  [/^Swap it for another photo \(same price\), or remove it \((\$[\d.,]+) less\)\.$/, "换成另一张照片（价格不变），或移除（少付 $1）。"],
+  [/^Removing photo (\d+)…$/, "正在移除第 $1 张照片…"],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and your new total is (\$[\d.,]+)\.$/, "完成！第 $1 张照片已移除。现在共 $2 个磁贴，新总额为 $3。"],
+  [/^Done! Photo (\d+) was removed\. You now have (\d+) magnets and we refunded (\$[\d.,]+) to your card\.$/, "完成！第 $1 张照片已移除。现在共 $2 个磁贴，我们已将 $3 退回您的卡。"],
+  [/^Photo (\d+) was removed\. (\d+) magnets now\.$/, "第 $1 张照片已移除。现在共 $2 个磁贴。"],
+  [/^Photo (\d+) \(pack (\d+)\) was removed\. (\d+) magnets now\.$/, "第 $1 张照片（第 $2 组）已移除。现在共 $3 个磁贴。"]
 ];
 /* the end of the sale bar's text: " · through Cyber Monday" or " · ends in 5h 12m" */
 function saleEnd(rest) {

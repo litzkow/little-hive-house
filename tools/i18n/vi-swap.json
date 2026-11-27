@@ -1,10 +1,7 @@
 {
- "Change a photo": "Đổi một ảnh",
  "Need to change a photo?": "Cần đổi một ảnh?",
- "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "Gửi cùng một ảnh hai lần hoặc chọn nhầm ảnh? Bạn có thể đổi bất kỳ ảnh nào cho đến khi chúng tôi bắt đầu làm đơn hàng của bạn. Giá vẫn giữ nguyên.",
  "Loading your photos…": "Đang tải ảnh của bạn…",
  "These photos can’t be changed anymore.": "Không thể đổi những ảnh này nữa.",
- "Tap the photo you want to change, then pick the new one.": "Chạm vào ảnh bạn muốn đổi, rồi chọn ảnh mới.",
  "We couldn’t open that photo. Please try a JPG or PNG.": "Không mở được ảnh đó. Hãy thử ảnh JPG hoặc PNG.",
  "The photo didn’t upload. Please check your connection and try again.": "Ảnh chưa được tải lên. Hãy kiểm tra kết nối và thử lại.",
  "Uploading the new photo…": "Đang tải ảnh mới lên…",
@@ -17,5 +14,19 @@
  "The new photo didn't finish uploading. Please try again.": "Ảnh mới chưa tải lên xong. Hãy thử lại.",
  "That's the same photo. Please pick a different one.": "Đây là cùng một ảnh. Hãy chọn ảnh khác.",
  "That photo pack isn't in this order.": "Gói ảnh đó không có trong đơn hàng này.",
- "That photo isn't in this order.": "Ảnh đó không có trong đơn hàng này."
+ "That photo isn't in this order.": "Ảnh đó không có trong đơn hàng này.",
+ "Change or remove a photo": "Đổi hoặc bỏ một ảnh",
+ "Sent the same photo twice, or picked the wrong one? Until we start making your order, you can swap any photo (same price) or remove it (you pay less).": "Gửi cùng một ảnh hai lần hoặc chọn nhầm ảnh? Trước khi chúng tôi bắt đầu làm đơn hàng, bạn có thể đổi bất kỳ ảnh nào (giá không đổi) hoặc bỏ ảnh (trả ít hơn).",
+ "Tap the photo you want to change or remove.": "Chạm vào ảnh bạn muốn đổi hoặc bỏ.",
+ "Swap it": "Đổi ảnh",
+ "Remove it": "Bỏ ảnh",
+ "Cancel": "Hủy",
+ "Yes, remove it": "Có, bỏ ảnh",
+ "Keep it": "Giữ lại",
+ "Swap it for another photo. The price stays the same.": "Đổi sang ảnh khác. Giá vẫn giữ nguyên.",
+ "Photos you removed": "Ảnh bạn đã bỏ",
+ "You can still change or remove photos": "Bạn vẫn có thể đổi hoặc bỏ ảnh",
+ "This pack repeats your photos to fill it, so photos can be changed but not removed. Please contact us and we'll help.": "Gói này lặp lại ảnh của bạn cho đủ số lượng, nên có thể đổi ảnh nhưng không bỏ được. Hãy liên hệ, chúng tôi sẽ giúp bạn.",
+ "This is the last photo of the pack, so it can't be removed here. Please contact us and we'll help.": "Đây là ảnh cuối cùng của gói nên không thể bỏ ở đây. Hãy liên hệ, chúng tôi sẽ giúp bạn.",
+ "This order's payment can't be changed here. Please contact us and we'll help.": "Không thể thay đổi thanh toán của đơn hàng này ở đây. Hãy liên hệ, chúng tôi sẽ giúp bạn."
 }

@@ -1,10 +1,7 @@
 {
- "Change a photo": "Palitan ang isang litrato",
  "Need to change a photo?": "Kailangang palitan ang isang litrato?",
- "Sent the same photo twice, or picked the wrong one? You can swap any photo until we start making your order. The price stays the same.": "Naipadala mo ba ang parehong litrato nang dalawang beses, o mali ang napili mo? Puwede mong palitan ang kahit anong litrato hanggang sa simulan naming gawin ang order mo. Pareho pa rin ang presyo.",
  "Loading your photos…": "Nilo-load ang mga litrato mo…",
  "These photos can’t be changed anymore.": "Hindi na mapapalitan ang mga litratong ito.",
- "Tap the photo you want to change, then pick the new one.": "I-tap ang litratong gusto mong palitan, tapos piliin ang bago.",
  "We couldn’t open that photo. Please try a JPG or PNG.": "Hindi namin mabuksan ang litratong iyan. Subukan ang JPG o PNG.",
  "The photo didn’t upload. Please check your connection and try again.": "Hindi na-upload ang litrato. Tingnan ang koneksyon mo at subukan ulit.",
  "Uploading the new photo…": "Ina-upload ang bagong litrato…",
@@ -17,5 +14,19 @@
  "The new photo didn't finish uploading. Please try again.": "Hindi pa tapos ma-upload ang bagong litrato. Subukan ulit.",
  "That's the same photo. Please pick a different one.": "Parehong litrato iyan. Pumili ng iba.",
  "That photo pack isn't in this order.": "Wala sa order na ito ang pack ng litratong iyan.",
- "That photo isn't in this order.": "Wala sa order na ito ang litratong iyan."
+ "That photo isn't in this order.": "Wala sa order na ito ang litratong iyan.",
+ "Change or remove a photo": "Palitan o alisin ang isang litrato",
+ "Sent the same photo twice, or picked the wrong one? Until we start making your order, you can swap any photo (same price) or remove it (you pay less).": "Naipadala mo ba ang parehong litrato nang dalawang beses, o mali ang napili mo? Hanggang sa simulan naming gawin ang order mo, puwede mong palitan ang kahit anong litrato (parehong presyo) o alisin ito (mas mababa ang babayaran mo).",
+ "Tap the photo you want to change or remove.": "I-tap ang litratong gusto mong palitan o alisin.",
+ "Swap it": "Palitan",
+ "Remove it": "Alisin",
+ "Cancel": "Kanselahin",
+ "Yes, remove it": "Oo, alisin",
+ "Keep it": "Panatilihin",
+ "Swap it for another photo. The price stays the same.": "Palitan ng ibang litrato. Pareho pa rin ang presyo.",
+ "Photos you removed": "Mga litratong inalis mo",
+ "You can still change or remove photos": "Puwede mo pang palitan o alisin ang mga litrato",
+ "This pack repeats your photos to fill it, so photos can be changed but not removed. Please contact us and we'll help.": "Inuulit ng pack na ito ang mga litrato mo para mapuno, kaya puwedeng palitan ang mga litrato pero hindi alisin. Makipag-ugnayan sa amin at tutulungan ka namin.",
+ "This is the last photo of the pack, so it can't be removed here. Please contact us and we'll help.": "Ito ang huling litrato ng pack, kaya hindi ito maaalis dito. Makipag-ugnayan sa amin at tutulungan ka namin.",
+ "This order's payment can't be changed here. Please contact us and we'll help.": "Hindi mababago dito ang bayad ng order na ito. Makipag-ugnayan sa amin at tutulungan ka namin."
 }

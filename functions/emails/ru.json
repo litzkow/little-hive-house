@@ -307,5 +307,7 @@
  "Your card is authorized now and charged only when your order ships.": "Сейчас на карте блокируется сумма, а списание произойдёт только при отправке заказа.",
  "Magnets": "Магниты",
  "Tracking": "Отслеживание",
- "Occasion": "Повод"
+ "Occasion": "Повод",
+ "Sent the wrong photo, or the same one twice? You can swap or remove photos until we start making your order:": "Отправили не то фото или одно и то же дважды? Пока мы не начали делать ваш заказ, фото можно заменить или убрать:",
+ "change your photos": "изменить фото"
 }

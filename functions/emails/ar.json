@@ -307,5 +307,7 @@
  "Your card is authorized now and charged only when your order ships.": "بطاقتك مفوّضة الآن ولا يُخصم المبلغ إلا عند شحن طلبك.",
  "Magnets": "المغناطيسات",
  "Tracking": "التتبّع",
- "Occasion": "المناسبة"
+ "Occasion": "المناسبة",
+ "Sent the wrong photo, or the same one twice? You can swap or remove photos until we start making your order:": "أرسلت الصورة الخطأ أو الصورة نفسها مرتين؟ يمكنك تبديل الصور أو إزالتها إلى أن نبدأ في صنع طلبك:",
+ "change your photos": "تغيير صورك"
 }

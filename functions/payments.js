@@ -15,7 +15,7 @@ const deps = require("./deps");
 const stripe = require("./stripe");
 const mail = require("./mail");
 const O = require("./orders");
-const { dollars } = require("./pricing");
+const { dollars, cents } = require("./pricing");
 
 const WARN_HOURS = 48;
 const isHeld = (o) => !!(o && o.payment && o.payment.state === "authorized");
@@ -85,8 +85,10 @@ async function captureOrder(ref, id, order, { by } = {}) {
   if (!pi) fail("failed-precondition", "This order has no Stripe payment to charge.");
   let res;
   try {
-    res = await stripe.request("POST", `/payment_intents/${encodeURIComponent(pi)}/capture`, { expand: ["latest_charge.balance_transaction"] },
-      { idempotencyKey: `capture-${id}` });
+    // the customer took photos out before it shipped (photoswap.js): only the new, smaller total is charged
+    const less = order.pricing && Number(order.pricing.removed) > 0 ? { amount_to_capture: cents(order.pricing.total || 0) } : {};
+    res = await stripe.request("POST", `/payment_intents/${encodeURIComponent(pi)}/capture`, { expand: ["latest_charge.balance_transaction"], ...less },
+      { idempotencyKey: `capture-${id}${less.amount_to_capture ? `-${less.amount_to_capture}` : ""}` });
   } catch (err) {
     if (err instanceof stripe.StripeError && err.status >= 400 && err.status < 500) {
       // already captured in the Stripe dashboard, or the hold ended: look at the PaymentIntent
